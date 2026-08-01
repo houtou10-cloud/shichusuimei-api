@@ -19,7 +19,6 @@ def make_request(
 
 def make_verified_request():
     """
-    四柱・蔵干・通変星・十二運・五行などの
     統合テストで使用する共通リクエストを返します。
     """
     return make_request(
@@ -274,4 +273,39 @@ def test_chart_contains_month_command():
     assert (
         month_command["status"]
         == "provisional_month_command"
+    )
+
+
+def test_chart_contains_strength_judgment():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+    judgment = result["strength_judgment"]
+
+    assert (
+        judgment["label"]
+        == "中和～やや身弱寄り"
+    )
+
+    assert judgment["final_score"] == 45.11
+
+    assert (
+        judgment["base_supporting_ratio"]
+        == 42.11
+    )
+
+    assert judgment["adjustments"] == {
+        "root_bonus": 6.0,
+        "month_root_bonus": 5.0,
+        "month_command_adjustment": -8.0,
+    }
+
+    assert (
+        judgment["method"]
+        == "provisional_strength_v1"
+    )
+
+    assert (
+        judgment["status"]
+        == "provisional_judgment"
     )
