@@ -133,3 +133,19 @@ def test_chart_contains_hidden_stems_and_ten_gods():
         chart["hour"]["main_hidden_stem_ten_god"]
         == "印綬"
     )
+
+def test_chart_contains_twelve_stages():
+    request = make_request(
+        birth_date="1985-07-17",
+        birth_time="21:50",
+        birth_place="石川県",
+        gender="female",
+    )
+
+    result = calculate_chart(request)
+    chart = result["chart"]
+
+    assert chart["year"]["twelve_stage"] == "衰"
+    assert chart["month"]["twelve_stage"] == "養"
+    assert chart["day"]["twelve_stage"] == "沐浴"
+    assert chart["hour"]["twelve_stage"] == "死"
