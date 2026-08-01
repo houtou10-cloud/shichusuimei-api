@@ -1,5 +1,11 @@
 from datetime import date
 
+from engine.hour import (
+    calculate_hour_branch,
+    calculate_hour_branch_index,
+    calculate_hour_pillar,
+)
+
 from engine.calendar import add_days, days_between, parse_date
 from engine.day import calculate_day_pillar
 from engine.ganzhi import (
@@ -91,3 +97,57 @@ def test_day_pillar_moves_one_step_per_day():
     second = calculate_day_pillar(date(1984, 7, 22))
 
     assert next_ganzhi(first) == second
+
+def test_hour_branch_boundaries():
+    assert calculate_hour_branch(23) == "子"
+    assert calculate_hour_branch(0) == "子"
+
+    assert calculate_hour_branch(1) == "丑"
+    assert calculate_hour_branch(2) == "丑"
+
+    assert calculate_hour_branch(3) == "寅"
+    assert calculate_hour_branch(4) == "寅"
+
+    assert calculate_hour_branch(11) == "午"
+    assert calculate_hour_branch(12) == "午"
+
+    assert calculate_hour_branch(13) == "未"
+    assert calculate_hour_branch(14) == "未"
+
+    assert calculate_hour_branch(21) == "亥"
+    assert calculate_hour_branch(22) == "亥"
+
+
+def test_hour_branch_index():
+    assert calculate_hour_branch_index(23) == 0
+    assert calculate_hour_branch_index(0) == 0
+    assert calculate_hour_branch_index(4) == 2
+    assert calculate_hour_branch_index(12) == 6
+    assert calculate_hour_branch_index(22) == 11
+
+
+def test_verified_hour_pillars():
+    # 1984年7月22日・乙日・4時15分
+    assert calculate_hour_pillar("乙", 4) == "戊寅"
+
+    # 1984年7月22日・乙日・13時40分
+    assert calculate_hour_pillar("乙", 13) == "癸未"
+
+    # 1985年7月17日・乙日・21時50分
+    assert calculate_hour_pillar("乙", 21) == "丁亥"
+
+    # 1984年7月21日・甲日・12時00分
+    assert calculate_hour_pillar("甲", 12) == "庚午"
+
+
+def test_invalid_hour():
+    import pytest
+
+    with pytest.raises(ValueError):
+        calculate_hour_pillar("乙", -1)
+
+    with pytest.raises(ValueError):
+        calculate_hour_pillar("乙", 24)
+
+    with pytest.raises(ValueError):
+        calculate_hour_pillar("無", 12)
