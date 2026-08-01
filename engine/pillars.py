@@ -91,38 +91,33 @@ def calculate_four_pillars(
         )
 
     return {
-        "year": build_pillar_data(
-            year_pillar
-        ),
-        "month": build_pillar_data(
-            month_pillar
-        ),
-        "day": build_pillar_data(
-            day_pillar
-        ),
-        "hour": build_pillar_data(
-            hour_pillar
-        ),
-        "day_master": {
-            "stem": day_stem,
-        },
-        "calculation_rules": {
-            "year_boundary": (
-                "暫定：2月4日00:00"
-            ),
-            "month_boundary": (
-                "暫定：固定節入り日"
-            ),
-            "day_boundary": "00:00",
-            "hour_boundary": (
-                "子刻は23:00～00:59"
-            ),
-            "time_adjustment": (
-                "標準時・真太陽時補正なし"
-            ),
-        },
-        "calculation_status": (
-            "provisional_four_pillars"
-        ),
-        "warnings": warnings,
-    }
+    "year": build_pillar_data(
+        year_pillar,
+        day_stem,
+    ),
+    "month": build_pillar_data(
+        month_pillar,
+        day_stem,
+    ),
+    "day": build_pillar_data(
+        day_pillar,
+        day_stem,
+        is_day_pillar=True,
+    ),
+    "hour": build_pillar_data(
+        hour_pillar,
+        day_stem,
+    ),
+    "day_master": {
+        "stem": day_stem,
+    },
+    "calculation_rules": {
+        "year_boundary": "暫定：2月4日00:00",
+        "month_boundary": "暫定：固定節入り日",
+        "day_boundary": "00:00",
+        "hour_boundary": "子刻は23:00～00:59",
+        "time_adjustment": "標準時・真太陽時補正なし",
+    },
+    "calculation_status": "provisional_four_pillars",
+    "warnings": warnings,
+}
