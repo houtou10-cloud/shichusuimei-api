@@ -1,8 +1,5 @@
 from datetime import datetime
-
-from engine.twelve_stages import (
-    calculate_twelve_stage,
-)
+from engine.twelve_stages import calculate_twelve_stage
 
 from engine.day import calculate_day_pillar
 from engine.ganzhi import split_ganzhi
@@ -138,7 +135,7 @@ def calculate_four_pillars(
             "正式な節入り時刻の実装後に変わる可能性があります。"
         )
 
-    return {
+        return {
         "year": build_pillar_data(
             year_pillar,
             day_stem,
