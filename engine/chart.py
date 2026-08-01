@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+from engine.five_elements import calculate_five_elements
 from engine.pillars import calculate_four_pillars
 
 

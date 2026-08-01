@@ -37,7 +37,11 @@ def get_stem_element(stem: str) -> str:
 
 def get_branch_element(branch: str) -> str:
     """
+
+    地支の五行を返します。
+
     地支の本来の五行を返します。
+
     """
     if branch not in BRANCH_ELEMENTS:
         raise ValueError(
