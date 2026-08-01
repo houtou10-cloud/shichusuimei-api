@@ -1,17 +1,14 @@
-# TODO: pillar calculation
-
-from engine.hidden_stems import (
-    get_hidden_stems,
-    get_main_hidden_stem,
-)
-from engine.ten_gods import calculate_ten_god
-
 from datetime import datetime
 
 from engine.day import calculate_day_pillar
 from engine.ganzhi import split_ganzhi
+from engine.hidden_stems import (
+    get_hidden_stems,
+    get_main_hidden_stem,
+)
 from engine.hour import calculate_hour_pillar
 from engine.month import calculate_month_pillar
+from engine.ten_gods import calculate_ten_god
 from engine.year import (
     calculate_year_pillar,
     is_near_provisional_lichun,
@@ -35,14 +32,13 @@ def build_pillar_data(
     hidden_stems = get_hidden_stems(branch)
     main_hidden_stem = get_main_hidden_stem(branch)
 
-    stem_ten_god = (
-        None
-        if is_day_pillar
-        else calculate_ten_god(
+    if is_day_pillar:
+        stem_ten_god = None
+    else:
+        stem_ten_god = calculate_ten_god(
             day_stem,
             stem,
         )
-    )
 
     hidden_stem_ten_gods = [
         {
@@ -135,76 +131,33 @@ def calculate_four_pillars(
         )
 
     return {
-       return {
-    "year": build_pillar_data(
-        year_pillar,
-        day_stem,
-    ),
-    "month": build_pillar_data(
-        month_pillar,
-        day_stem,
-    ),
-    "day": build_pillar_data(
-        day_pillar,
-        day_stem,
-        is_day_pillar=True,
-    ),
-    "hour": build_pillar_data(
-        hour_pillar,
-        day_stem,
-    ),
-    "day_master": {
-        "stem": day_stem,
-    },
-    "calculation_rules": {
-        "year_boundary": (
-            "暫定：2月4日00:00"
+        "year": build_pillar_data(
+            year_pillar,
+            day_stem,
         ),
-        "month_boundary": (
-            "暫定：固定節入り日"
-        ),
-        "day_boundary": "00:00",
-        "hour_boundary": (
-            "子刻は23:00～00:59"
-        ),
-        "time_adjustment": (
-            "標準時・真太陽時補正なし"
-        ),
-    },
-    "calculation_status": (
-        "provisional_four_pillars"
-    ),
-    "warnings": warnings,
-}
         "month": build_pillar_data(
-            month_pillar
+            month_pillar,
+            day_stem,
         ),
         "day": build_pillar_data(
-            day_pillar
+            day_pillar,
+            day_stem,
+            is_day_pillar=True,
         ),
         "hour": build_pillar_data(
-            hour_pillar
+            hour_pillar,
+            day_stem,
         ),
         "day_master": {
             "stem": day_stem,
         },
         "calculation_rules": {
-            "year_boundary": (
-                "暫定：2月4日00:00"
-            ),
-            "month_boundary": (
-                "暫定：固定節入り日"
-            ),
+            "year_boundary": "暫定：2月4日00:00",
+            "month_boundary": "暫定：固定節入り日",
             "day_boundary": "00:00",
-            "hour_boundary": (
-                "子刻は23:00～00:59"
-            ),
-            "time_adjustment": (
-                "標準時・真太陽時補正なし"
-            ),
+            "hour_boundary": "子刻は23:00～00:59",
+            "time_adjustment": "標準時・真太陽時補正なし",
         },
-        "calculation_status": (
-            "provisional_four_pillars"
-        ),
+        "calculation_status": "provisional_four_pillars",
         "warnings": warnings,
     }
