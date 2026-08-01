@@ -1,5 +1,4 @@
 from datetime import datetime
-from engine.twelve_stages import calculate_twelve_stage
 
 from engine.day import calculate_day_pillar
 from engine.ganzhi import split_ganzhi
@@ -10,6 +9,7 @@ from engine.hidden_stems import (
 from engine.hour import calculate_hour_pillar
 from engine.month import calculate_month_pillar
 from engine.ten_gods import calculate_ten_god
+from engine.twelve_stages import calculate_twelve_stage
 from engine.year import (
     calculate_year_pillar,
     is_near_provisional_lichun,
@@ -22,7 +22,7 @@ def build_pillar_data(
     is_day_pillar: bool = False,
 ) -> dict:
     """
-    干支を、天干・地支・蔵干・通変星を含む
+    干支を、天干・地支・蔵干・通変星・十二運を含む
     辞書形式へ変換します。
     """
     parts = split_ganzhi(pillar)
@@ -52,23 +52,23 @@ def build_pillar_data(
         for hidden_stem in hidden_stems
     ]
 
-return {
-    "pillar": pillar,
-    "stem": stem,
-    "branch": branch,
-    "stem_ten_god": stem_ten_god,
-    "hidden_stems": hidden_stems,
-    "main_hidden_stem": main_hidden_stem,
-    "main_hidden_stem_ten_god": calculate_ten_god(
-        day_stem,
-        main_hidden_stem,
-    ),
-    "hidden_stem_ten_gods": hidden_stem_ten_gods,
-    "twelve_stage": calculate_twelve_stage(
-        day_stem,
-        branch,
-    ),
-}
+    return {
+        "pillar": pillar,
+        "stem": stem,
+        "branch": branch,
+        "stem_ten_god": stem_ten_god,
+        "hidden_stems": hidden_stems,
+        "main_hidden_stem": main_hidden_stem,
+        "main_hidden_stem_ten_god": calculate_ten_god(
+            day_stem,
+            main_hidden_stem,
+        ),
+        "hidden_stem_ten_gods": hidden_stem_ten_gods,
+        "twelve_stage": calculate_twelve_stage(
+            day_stem,
+            branch,
+        ),
+    }
 
 
 def calculate_four_pillars(
@@ -76,13 +76,6 @@ def calculate_four_pillars(
 ) -> dict:
     """
     出生日時から四柱を計算します。
-
-    現在の計算ルール：
-    ・年柱は暫定立春日を使用
-    ・月柱は固定の節入り日を使用
-    ・日柱の切り替えは午前0時
-    ・時柱は入力時刻をそのまま使用
-    ・真太陽時補正は未実装
     """
     if not isinstance(birth_datetime, datetime):
         raise TypeError(
@@ -135,7 +128,7 @@ def calculate_four_pillars(
             "正式な節入り時刻の実装後に変わる可能性があります。"
         )
 
-        return {
+    return {
         "year": build_pillar_data(
             year_pillar,
             day_stem,
