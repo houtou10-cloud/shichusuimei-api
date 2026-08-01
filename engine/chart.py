@@ -10,6 +10,9 @@ from engine.month_command import (
 )
 from engine.pillars import calculate_four_pillars
 from engine.root_strength import find_roots
+from engine.strength_judgment import (
+    calculate_provisional_strength,
+)
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -134,6 +137,14 @@ def calculate_chart(req) -> dict:
         pillars["month"]["branch"],
     )
 
+    strength_judgment = (
+        calculate_provisional_strength(
+            day_master_balance,
+            root_strength,
+            month_command,
+        )
+    )
+
     warnings.extend(
         pillars.get(
             "warnings",
@@ -155,6 +166,7 @@ def calculate_chart(req) -> dict:
         "day_master_balance": day_master_balance,
         "root_strength": root_strength,
         "month_command": month_command,
+        "strength_judgment": strength_judgment,
         "calculation_rules": (
             pillars["calculation_rules"]
         ),
