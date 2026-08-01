@@ -112,6 +112,7 @@ def calculate_chart(req) -> dict:
         }
     )
 
+
     day_master_balance = (
         classify_five_elements_for_day_master(
             pillars["day_master"]["stem"],
@@ -142,6 +143,7 @@ def calculate_chart(req) -> dict:
         },
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
+
         "day_master_balance": day_master_balance,
         "calculation_rules": (
             pillars["calculation_rules"]
