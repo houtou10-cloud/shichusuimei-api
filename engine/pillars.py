@@ -1,5 +1,9 @@
 from datetime import datetime
 
+from engine.twelve_stages import (
+    calculate_twelve_stage,
+)
+
 from engine.day import calculate_day_pillar
 from engine.ganzhi import split_ganzhi
 from engine.hidden_stems import (
@@ -51,19 +55,23 @@ def build_pillar_data(
         for hidden_stem in hidden_stems
     ]
 
-    return {
-        "pillar": pillar,
-        "stem": stem,
-        "branch": branch,
-        "stem_ten_god": stem_ten_god,
-        "hidden_stems": hidden_stems,
-        "main_hidden_stem": main_hidden_stem,
-        "main_hidden_stem_ten_god": calculate_ten_god(
-            day_stem,
-            main_hidden_stem,
-        ),
-        "hidden_stem_ten_gods": hidden_stem_ten_gods,
-    }
+return {
+    "pillar": pillar,
+    "stem": stem,
+    "branch": branch,
+    "stem_ten_god": stem_ten_god,
+    "hidden_stems": hidden_stems,
+    "main_hidden_stem": main_hidden_stem,
+    "main_hidden_stem_ten_god": calculate_ten_god(
+        day_stem,
+        main_hidden_stem,
+    ),
+    "hidden_stem_ten_gods": hidden_stem_ten_gods,
+    "twelve_stage": calculate_twelve_stage(
+        day_stem,
+        branch,
+    ),
+}
 
 
 def calculate_four_pillars(
