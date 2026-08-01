@@ -113,13 +113,14 @@ def calculate_chart(req) -> dict:
     if birth_time is None:
         pillars["hour"] = None
 
-    chart_data = {
+     chart_data = {
         "year": pillars["year"],
         "month": pillars["month"],
         "day": pillars["day"],
         "hour": pillars["hour"],
     }
-      weighted_five_elements = (
+
+    weighted_five_elements = (
         calculate_weighted_five_elements(
             chart_data
         )
