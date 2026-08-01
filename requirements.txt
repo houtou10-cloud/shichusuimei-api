@@ -6,3 +6,7 @@ fastapi
 uvicorn[standard]
 pydantic
 pytest
+
+skyfield
+jplephem
+tzdata
