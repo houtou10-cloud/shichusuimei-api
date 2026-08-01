@@ -1,5 +1,7 @@
 from engine.month import calculate_month_branch
 
+from engine.pillars import calculate_four_pillars
+
 from engine.month import (
     calculate_month_branch,
     calculate_month_pillar,
@@ -362,3 +364,83 @@ def test_verified_month_pillars():
         ),
         "乙",
     ) == "癸未"
+
+def test_verified_four_pillars_1984_early_hour():
+    birth_datetime = datetime(
+        1984,
+        7,
+        22,
+        4,
+        15,
+        tzinfo=JST,
+    )
+
+    result = calculate_four_pillars(
+        birth_datetime
+    )
+
+    assert result["year"]["pillar"] == "甲子"
+    assert result["month"]["pillar"] == "辛未"
+    assert result["day"]["pillar"] == "乙巳"
+    assert result["hour"]["pillar"] == "戊寅"
+    assert result["day_master"]["stem"] == "乙"
+
+
+def test_verified_four_pillars_1984_afternoon():
+    birth_datetime = datetime(
+        1984,
+        7,
+        22,
+        13,
+        40,
+        tzinfo=JST,
+    )
+
+    result = calculate_four_pillars(
+        birth_datetime
+    )
+
+    assert result["year"]["pillar"] == "甲子"
+    assert result["month"]["pillar"] == "辛未"
+    assert result["day"]["pillar"] == "乙巳"
+    assert result["hour"]["pillar"] == "癸未"
+
+
+def test_verified_four_pillars_1985():
+    birth_datetime = datetime(
+        1985,
+        7,
+        17,
+        21,
+        50,
+        tzinfo=JST,
+    )
+
+    result = calculate_four_pillars(
+        birth_datetime
+    )
+
+    assert result["year"]["pillar"] == "乙丑"
+    assert result["month"]["pillar"] == "癸未"
+    assert result["day"]["pillar"] == "乙巳"
+    assert result["hour"]["pillar"] == "丁亥"
+
+
+def test_verified_four_pillars_1984_previous_day():
+    birth_datetime = datetime(
+        1984,
+        7,
+        21,
+        12,
+        0,
+        tzinfo=JST,
+    )
+
+    result = calculate_four_pillars(
+        birth_datetime
+    )
+
+    assert result["year"]["pillar"] == "甲子"
+    assert result["month"]["pillar"] == "辛未"
+    assert result["day"]["pillar"] == "甲辰"
+    assert result["hour"]["pillar"] == "庚午"
