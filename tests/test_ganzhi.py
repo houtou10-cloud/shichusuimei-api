@@ -316,3 +316,49 @@ def test_month_branch():
         )
         == "子"
     )
+
+
+def test_month_stem_by_five_tigers():
+    assert calculate_month_stem(
+        "甲",
+        "寅",
+    ) == "丙"
+
+    assert calculate_month_stem(
+        "甲",
+        "未",
+    ) == "辛"
+
+    assert calculate_month_stem(
+        "乙",
+        "未",
+    ) == "癸"
+
+    assert calculate_month_stem(
+        "丙",
+        "未",
+    ) == "乙"
+
+
+def test_verified_month_pillars():
+    assert calculate_month_pillar(
+        datetime(
+            1984,
+            7,
+            22,
+            4,
+            15,
+        ),
+        "甲",
+    ) == "辛未"
+
+    assert calculate_month_pillar(
+        datetime(
+            1985,
+            7,
+            17,
+            21,
+            50,
+        ),
+        "乙",
+    ) == "癸未"
