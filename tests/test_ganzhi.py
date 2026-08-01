@@ -1,5 +1,14 @@
 from datetime import date
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from engine.year import (
+    calculate_effective_year,
+    calculate_year_pillar,
+    is_near_provisional_lichun,
+)
+
 from engine.hour import (
     calculate_hour_branch,
     calculate_hour_branch_index,
@@ -151,3 +160,105 @@ def test_invalid_hour():
 
     with pytest.raises(ValueError):
         calculate_hour_pillar("無", 12)
+
+JST = ZoneInfo("Asia/Tokyo")
+
+
+def test_year_pillar_after_provisional_lichun():
+    birth_datetime = datetime(
+        1984,
+        7,
+        22,
+        4,
+        15,
+        tzinfo=JST,
+    )
+
+    assert calculate_effective_year(
+        birth_datetime
+    ) == 1984
+
+    assert calculate_year_pillar(
+        birth_datetime
+    ) == "甲子"
+
+
+def test_year_pillar_for_1985():
+    birth_datetime = datetime(
+        1985,
+        7,
+        17,
+        21,
+        50,
+        tzinfo=JST,
+    )
+
+    assert calculate_year_pillar(
+        birth_datetime
+    ) == "乙丑"
+
+
+def test_year_before_provisional_lichun():
+    birth_datetime = datetime(
+        1984,
+        2,
+        3,
+        12,
+        0,
+        tzinfo=JST,
+    )
+
+    assert calculate_effective_year(
+        birth_datetime
+    ) == 1983
+
+    assert calculate_year_pillar(
+        birth_datetime
+    ) == "癸亥"
+
+
+def test_year_after_provisional_lichun():
+    birth_datetime = datetime(
+        1984,
+        2,
+        5,
+        12,
+        0,
+        tzinfo=JST,
+    )
+
+    assert calculate_effective_year(
+        birth_datetime
+    ) == 1984
+
+    assert calculate_year_pillar(
+        birth_datetime
+    ) == "甲子"
+
+
+def test_near_provisional_lichun_warning():
+    near_datetime = datetime(
+        1984,
+        2,
+        4,
+        12,
+        0,
+        tzinfo=JST,
+    )
+
+    normal_datetime = datetime(
+        1984,
+        7,
+        22,
+        12,
+        0,
+        tzinfo=JST,
+    )
+
+    assert is_near_provisional_lichun(
+        near_datetime
+    ) is True
+
+    assert is_near_provisional_lichun(
+        normal_datetime
+    ) is False
