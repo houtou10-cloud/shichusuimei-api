@@ -5,7 +5,11 @@ from engine.day_master_strength import (
     classify_five_elements_for_day_master,
 )
 from engine.five_elements import calculate_five_elements
+from engine.month_command import (
+    classify_month_relationship,
+)
 from engine.pillars import calculate_four_pillars
+from engine.root_strength import find_roots
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -67,8 +71,7 @@ def normalize_birth_time(
 
 def calculate_chart(req) -> dict:
     """
-    APIの入力情報から四柱を計算し、
-    GPT Actionsへ返すデータを作成します。
+    APIの入力情報から命式と各種分析データを作成します。
     """
     birth_date = normalize_birth_date(
         req.birth_date
@@ -103,21 +106,32 @@ def calculate_chart(req) -> dict:
     if birth_time is None:
         pillars["hour"] = None
 
-    five_elements = calculate_five_elements(
-        {
-            "year": pillars["year"],
-            "month": pillars["month"],
-            "day": pillars["day"],
-            "hour": pillars["hour"],
-        }
-    )
+    chart_data = {
+        "year": pillars["year"],
+        "month": pillars["month"],
+        "day": pillars["day"],
+        "hour": pillars["hour"],
+    }
 
+    five_elements = calculate_five_elements(
+        chart_data
+    )
 
     day_master_balance = (
         classify_five_elements_for_day_master(
             pillars["day_master"]["stem"],
             five_elements,
         )
+    )
+
+    root_strength = find_roots(
+        pillars["day_master"]["stem"],
+        chart_data,
+    )
+
+    month_command = classify_month_relationship(
+        pillars["day_master"]["stem"],
+        pillars["month"]["branch"],
     )
 
     warnings.extend(
@@ -135,16 +149,12 @@ def calculate_chart(req) -> dict:
             "gender": req.gender,
             "timezone": "Asia/Tokyo",
         },
-        "chart": {
-            "year": pillars["year"],
-            "month": pillars["month"],
-            "day": pillars["day"],
-            "hour": pillars["hour"],
-        },
+        "chart": chart_data,
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
-
         "day_master_balance": day_master_balance,
+        "root_strength": root_strength,
+        "month_command": month_command,
         "calculation_rules": (
             pillars["calculation_rules"]
         ),
