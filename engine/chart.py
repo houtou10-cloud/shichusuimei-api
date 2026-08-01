@@ -1,6 +1,9 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+from engine.day_master_strength import (
+    classify_five_elements_for_day_master,
+)
 from engine.five_elements import calculate_five_elements
 from engine.pillars import calculate_four_pillars
 
@@ -78,8 +81,6 @@ def calculate_chart(req) -> dict:
     warnings: list[str] = []
 
     if birth_time is None:
-        # 出生時間不明の場合は、
-        # 日付計算のため仮に正午を使用します。
         time_text = "12:00"
 
         warnings.append(
@@ -111,6 +112,13 @@ def calculate_chart(req) -> dict:
         }
     )
 
+    day_master_balance = (
+        classify_five_elements_for_day_master(
+            pillars["day_master"]["stem"],
+            five_elements,
+        )
+    )
+
     warnings.extend(
         pillars.get(
             "warnings",
@@ -134,6 +142,7 @@ def calculate_chart(req) -> dict:
         },
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
+        "day_master_balance": day_master_balance,
         "calculation_rules": (
             pillars["calculation_rules"]
         ),
