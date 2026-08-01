@@ -149,3 +149,32 @@ def test_chart_contains_twelve_stages():
     assert chart["month"]["twelve_stage"] == "養"
     assert chart["day"]["twelve_stage"] == "沐浴"
     assert chart["hour"]["twelve_stage"] == "死"
+
+def test_chart_contains_root_strength():
+    request = make_request(
+        birth_date="1985-07-17",
+        birth_time="21:50",
+        birth_place="石川県",
+        gender="female",
+    )
+
+    result = calculate_chart(request)
+
+    root_strength = result[
+        "root_strength"
+    ]
+
+    assert root_strength[
+        "has_root"
+    ] is True
+
+    assert root_strength[
+        "root_count"
+    ] == 2
+
+    assert root_strength[
+        "root_positions"
+    ] == [
+        "month",
+        "hour",
+    ]
