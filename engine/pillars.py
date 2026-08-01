@@ -18,17 +18,55 @@ from engine.year import (
 )
 
 
-def build_pillar_data(pillar: str) -> dict[str, str]:
+def build_pillar_data(
+    pillar: str,
+    day_stem: str,
+    is_day_pillar: bool = False,
+) -> dict:
     """
-    「甲子」のような干支を、
-    天干・地支を含む辞書形式へ変換します。
+    干支を、天干・地支・蔵干・通変星を含む
+    辞書形式へ変換します。
     """
     parts = split_ganzhi(pillar)
 
+    stem = parts["stem"]
+    branch = parts["branch"]
+
+    hidden_stems = get_hidden_stems(branch)
+    main_hidden_stem = get_main_hidden_stem(branch)
+
+    stem_ten_god = (
+        None
+        if is_day_pillar
+        else calculate_ten_god(
+            day_stem,
+            stem,
+        )
+    )
+
+    hidden_stem_ten_gods = [
+        {
+            "stem": hidden_stem,
+            "ten_god": calculate_ten_god(
+                day_stem,
+                hidden_stem,
+            ),
+        }
+        for hidden_stem in hidden_stems
+    ]
+
     return {
         "pillar": pillar,
-        "stem": parts["stem"],
-        "branch": parts["branch"],
+        "stem": stem,
+        "branch": branch,
+        "stem_ten_god": stem_ten_god,
+        "hidden_stems": hidden_stems,
+        "main_hidden_stem": main_hidden_stem,
+        "main_hidden_stem_ten_god": calculate_ten_god(
+            day_stem,
+            main_hidden_stem,
+        ),
+        "hidden_stem_ten_gods": hidden_stem_ten_gods,
     }
 
 
