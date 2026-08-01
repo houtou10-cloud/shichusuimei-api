@@ -1,3 +1,5 @@
+from engine.month import calculate_month_branch
+
 from datetime import date
 
 from datetime import datetime
@@ -262,3 +264,49 @@ def test_near_provisional_lichun_warning():
     assert is_near_provisional_lichun(
         normal_datetime
     ) is False
+
+def test_month_branch():
+
+    assert (
+        calculate_month_branch(
+            datetime(
+                1984,
+                7,
+                22,
+            )
+        )
+        == "未"
+    )
+
+    assert (
+        calculate_month_branch(
+            datetime(
+                1984,
+                8,
+                10,
+            )
+        )
+        == "申"
+    )
+
+    assert (
+        calculate_month_branch(
+            datetime(
+                1984,
+                2,
+                10,
+            )
+        )
+        == "寅"
+    )
+
+    assert (
+        calculate_month_branch(
+            datetime(
+                1984,
+                12,
+                20,
+            )
+        )
+        == "子"
+    )
