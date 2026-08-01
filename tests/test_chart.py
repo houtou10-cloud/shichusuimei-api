@@ -309,3 +309,35 @@ def test_chart_contains_strength_judgment():
         judgment["status"]
         == "provisional_judgment"
     )
+
+
+def test_chart_contains_weighted_five_elements():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    weighted = result[
+        "weighted_five_elements"
+    ]
+
+    assert weighted["scores"] == {
+        "木": 2.4,
+        "火": 1.9,
+        "土": 1.5,
+        "金": 0.2,
+        "水": 2.0,
+    }
+
+    assert weighted["percentages"] == {
+        "木": 30.0,
+        "火": 23.75,
+        "土": 18.75,
+        "金": 2.5,
+        "水": 25.0,
+    }
+
+    assert weighted["total"] == 8.0
+    assert (
+        weighted["method"]
+        == "weighted_hidden_stems_v1"
+    )

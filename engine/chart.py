@@ -1,15 +1,24 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+from engine.weighted_five_elements import (
+    calculate_weighted_five_elements,
+)
 from engine.day_master_strength import (
     classify_five_elements_for_day_master,
 )
-from engine.five_elements import calculate_five_elements
+from engine.five_elements import (
+    calculate_five_elements,
+)
 from engine.month_command import (
     classify_month_relationship,
 )
-from engine.pillars import calculate_four_pillars
-from engine.root_strength import find_roots
+from engine.pillars import (
+    calculate_four_pillars,
+)
+from engine.root_strength import (
+    find_roots,
+)
 from engine.strength_judgment import (
     calculate_provisional_strength,
 )
@@ -76,6 +85,7 @@ def calculate_chart(req) -> dict:
     """
     APIの入力情報から命式と各種分析データを作成します。
     """
+
     birth_date = normalize_birth_date(
         req.birth_date
     )
@@ -116,6 +126,12 @@ def calculate_chart(req) -> dict:
         "hour": pillars["hour"],
     }
 
+    weighted_five_elements = (
+        calculate_weighted_five_elements(
+            chart_data
+        )
+    )
+
     five_elements = calculate_five_elements(
         chart_data
     )
@@ -132,9 +148,11 @@ def calculate_chart(req) -> dict:
         chart_data,
     )
 
-    month_command = classify_month_relationship(
-        pillars["day_master"]["stem"],
-        pillars["month"]["branch"],
+    month_command = (
+        classify_month_relationship(
+            pillars["day_master"]["stem"],
+            pillars["month"]["branch"],
+        )
     )
 
     strength_judgment = (
@@ -163,10 +181,17 @@ def calculate_chart(req) -> dict:
         "chart": chart_data,
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
-        "day_master_balance": day_master_balance,
+        "weighted_five_elements": (
+            weighted_five_elements
+        ),
+        "day_master_balance": (
+            day_master_balance
+        ),
         "root_strength": root_strength,
         "month_command": month_command,
-        "strength_judgment": strength_judgment,
+        "strength_judgment": (
+            strength_judgment
+        ),
         "calculation_rules": (
             pillars["calculation_rules"]
         ),
