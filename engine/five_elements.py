@@ -1,109 +1,126 @@
-import pytest
-
-from engine.five_elements import (
-    calculate_five_elements,
-    count_pillar_elements,
-    get_branch_element,
-    get_stem_element,
+from engine.constants import (
+    BRANCH_ELEMENTS,
+    STEM_ELEMENTS,
 )
 
 
-def test_get_stem_element():
-    assert get_stem_element("甲") == "木"
-    assert get_stem_element("丁") == "火"
-    assert get_stem_element("己") == "土"
-    assert get_stem_element("辛") == "金"
-    assert get_stem_element("癸") == "水"
+FIVE_ELEMENTS = [
+    "木",
+    "火",
+    "土",
+    "金",
+    "水",
+]
 
 
-def test_get_branch_element():
-    assert get_branch_element("寅") == "木"
-    assert get_branch_element("午") == "火"
-    assert get_branch_element("未") == "土"
-    assert get_branch_element("酉") == "金"
-    assert get_branch_element("亥") == "水"
+def empty_element_counts() -> dict[str, int]:
+    """
+    五行をすべて0で初期化した辞書を返します。
+    """
+    return {
+        element: 0
+        for element in FIVE_ELEMENTS
+    }
 
 
-def test_count_single_pillar():
-    pillar_data = {
-        "stem": "乙",
-        "branch": "丑",
-        "hidden_stems": [
-            "己",
-            "癸",
-            "辛",
+def get_stem_element(stem: str) -> str:
+    """
+    天干の五行を返します。
+    """
+    if stem not in STEM_ELEMENTS:
+        raise ValueError(
+            f"不正な天干です: {stem}"
+        )
+
+    return STEM_ELEMENTS[stem]["element"]
+
+
+def get_branch_element(branch: str) -> str:
+    """
+    地支の五行を返します。
+    """
+    if branch not in BRANCH_ELEMENTS:
+        raise ValueError(
+            f"不正な地支です: {branch}"
+        )
+
+    return BRANCH_ELEMENTS[branch]
+
+
+def count_pillar_elements(
+    pillar_data: dict,
+) -> dict[str, int]:
+    """
+    1柱に含まれる五行を単純集計します。
+
+    集計対象：
+    ・天干
+    ・地支
+    ・すべての蔵干
+    """
+    counts = empty_element_counts()
+
+    stem = pillar_data["stem"]
+    branch = pillar_data["branch"]
+    hidden_stems = pillar_data["hidden_stems"]
+
+    counts[get_stem_element(stem)] += 1
+    counts[get_branch_element(branch)] += 1
+
+    for hidden_stem in hidden_stems:
+        counts[get_stem_element(hidden_stem)] += 1
+
+    return counts
+
+
+def calculate_five_elements(
+    chart: dict,
+) -> dict:
+    """
+    年柱・月柱・日柱・時柱に含まれる五行を
+    単純集計します。
+    """
+    counts = empty_element_counts()
+
+    for position in [
+        "year",
+        "month",
+        "day",
+        "hour",
+    ]:
+        pillar_data = chart.get(position)
+
+        if pillar_data is None:
+            continue
+
+        pillar_counts = count_pillar_elements(
+            pillar_data
+        )
+
+        for element in FIVE_ELEMENTS:
+            counts[element] += pillar_counts[element]
+
+    total = sum(counts.values())
+
+    percentages = {
+        element: (
+            round(
+                counts[element] / total * 100,
+                2,
+            )
+            if total
+            else 0.0
+        )
+        for element in FIVE_ELEMENTS
+    }
+
+    return {
+        "method": "simple_count_v1",
+        "counts": counts,
+        "percentages": percentages,
+        "total": total,
+        "notes": [
+            "天干・地支・蔵干を各1点として単純集計しています。",
+            "月令、季節、通根、蔵干比率は未反映です。",
         ],
     }
-
-    result = count_pillar_elements(
-        pillar_data
-    )
-
-    assert result == {
-        "木": 1,
-        "火": 0,
-        "土": 2,
-        "金": 1,
-        "水": 1,
-    }
-
-
-def test_verified_chart_five_elements():
-    chart = {
-        "year": {
-            "stem": "乙",
-            "branch": "丑",
-            "hidden_stems": [
-                "己",
-                "癸",
-                "辛",
-            ],
-        },
-        "month": {
-            "stem": "癸",
-            "branch": "未",
-            "hidden_stems": [
-                "己",
-                "丁",
-                "乙",
-            ],
-        },
-        "day": {
-            "stem": "乙",
-            "branch": "巳",
-            "hidden_stems": [
-                "丙",
-                "戊",
-                "庚",
-            ],
-        },
-        "hour": {
-            "stem": "丁",
-            "branch": "亥",
-            "hidden_stems": [
-                "壬",
-                "甲",
-            ],
-        },
-    }
-
-    result = calculate_five_elements(chart)
-
-    assert result["counts"] == {
-        "木": 4,
-        "火": 4,
-        "土": 4,
-        "金": 2,
-        "水": 4,
-    }
-
-    assert result["total"] == 18
-    assert result["method"] == "simple_count_v1"
-
-
-def test_invalid_values():
-    with pytest.raises(ValueError):
-        get_stem_element("無")
-
-    with pytest.raises(ValueError):
-        get_branch_element("無")
