@@ -85,3 +85,51 @@ def test_chart_without_birth_time():
         "出生時間が不明" in warning
         for warning in result["warnings"]
     )
+
+
+def test_chart_contains_hidden_stems_and_ten_gods():
+    request = make_request(
+        birth_date="1985-07-17",
+        birth_time="21:50",
+        birth_place="石川県",
+        gender="female",
+    )
+
+    result = calculate_chart(request)
+    chart = result["chart"]
+
+    assert chart["year"]["stem_ten_god"] == "比肩"
+    assert chart["year"]["hidden_stems"] == [
+        "己",
+        "癸",
+        "辛",
+    ]
+    assert (
+        chart["year"]["main_hidden_stem"]
+        == "己"
+    )
+    assert (
+        chart["year"]["main_hidden_stem_ten_god"]
+        == "偏財"
+    )
+
+    assert chart["month"]["stem_ten_god"] == "偏印"
+    assert chart["month"]["main_hidden_stem"] == "己"
+    assert (
+        chart["month"]["main_hidden_stem_ten_god"]
+        == "偏財"
+    )
+
+    assert chart["day"]["stem_ten_god"] is None
+    assert chart["day"]["main_hidden_stem"] == "丙"
+    assert (
+        chart["day"]["main_hidden_stem_ten_god"]
+        == "傷官"
+    )
+
+    assert chart["hour"]["stem_ten_god"] == "食神"
+    assert chart["hour"]["main_hidden_stem"] == "壬"
+    assert (
+        chart["hour"]["main_hidden_stem_ten_god"]
+        == "印綬"
+    )
