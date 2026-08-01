@@ -89,17 +89,15 @@ def test_verified_chart_five_elements():
 
     result = calculate_five_elements(chart)
 
- assert result["counts"] == {
-    "木": 4,
-    "火": 4,
-    "土": 5,
-    "金": 2,
-    "水": 4,
-}
+    assert result["counts"] == {
+        "木": 4,
+        "火": 4,
+        "土": 5,
+        "金": 2,
+        "水": 4,
+    }
 
-assert result["total"] == 19
-
-    assert result["total"] == 18
+    assert result["total"] == 19
     assert result["method"] == "simple_count_v1"
 
 
