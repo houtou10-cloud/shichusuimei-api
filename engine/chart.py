@@ -8,7 +8,9 @@ from engine.pillars import calculate_four_pillars
 JST = ZoneInfo("Asia/Tokyo")
 
 
-def normalize_birth_date(value: str | date) -> str:
+def normalize_birth_date(
+    value: str | date,
+) -> str:
     """
     birth_dateをYYYY-MM-DD形式の文字列へ統一します。
     """
@@ -17,7 +19,10 @@ def normalize_birth_date(value: str | date) -> str:
 
     if isinstance(value, str):
         try:
-            datetime.strptime(value, "%Y-%m-%d")
+            datetime.strptime(
+                value,
+                "%Y-%m-%d",
+            )
         except ValueError as error:
             raise ValueError(
                 "birth_dateはYYYY-MM-DD形式で指定してください。"
@@ -30,7 +35,9 @@ def normalize_birth_date(value: str | date) -> str:
     )
 
 
-def normalize_birth_time(value: str | None) -> str | None:
+def normalize_birth_time(
+    value: str | None,
+) -> str | None:
     """
     birth_timeをHH:MM形式として検証します。
     """
@@ -43,7 +50,10 @@ def normalize_birth_time(value: str | None) -> str | None:
         )
 
     try:
-        datetime.strptime(value, "%H:%M")
+        datetime.strptime(
+            value,
+            "%H:%M",
+        )
     except ValueError as error:
         raise ValueError(
             "birth_timeはHH:MM形式で指定してください。"
@@ -68,8 +78,8 @@ def calculate_chart(req) -> dict:
     warnings: list[str] = []
 
     if birth_time is None:
-        # 時間不明の場合は仮に正午で日付を処理する。
-        # 時柱は正式結果として返さない。
+        # 出生時間不明の場合は、
+        # 日付計算のため仮に正午を使用します。
         time_text = "12:00"
 
         warnings.append(
@@ -81,7 +91,9 @@ def calculate_chart(req) -> dict:
     birth_datetime = datetime.strptime(
         f"{birth_date} {time_text}",
         "%Y-%m-%d %H:%M",
-    ).replace(tzinfo=JST)
+    ).replace(
+        tzinfo=JST
+    )
 
     pillars = calculate_four_pillars(
         birth_datetime
@@ -90,8 +102,20 @@ def calculate_chart(req) -> dict:
     if birth_time is None:
         pillars["hour"] = None
 
+    five_elements = calculate_five_elements(
+        {
+            "year": pillars["year"],
+            "month": pillars["month"],
+            "day": pillars["day"],
+            "hour": pillars["hour"],
+        }
+    )
+
     warnings.extend(
-        pillars.get("warnings", [])
+        pillars.get(
+            "warnings",
+            [],
+        )
     )
 
     return {
@@ -109,6 +133,7 @@ def calculate_chart(req) -> dict:
             "hour": pillars["hour"],
         },
         "day_master": pillars["day_master"],
+        "five_elements": five_elements,
         "calculation_rules": (
             pillars["calculation_rules"]
         ),
