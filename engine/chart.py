@@ -5,18 +5,25 @@ from engine.day_master_strength import (
     classify_five_elements_for_day_master,
     classify_weighted_elements_for_day_master,
 )
-from engine.five_elements import calculate_five_elements
+from engine.five_elements import (
+    calculate_five_elements,
+)
 from engine.month_command import (
     classify_month_relationship,
 )
-from engine.pillars import calculate_four_pillars
-from engine.root_strength import find_roots
+from engine.pillars import (
+    calculate_four_pillars,
+)
+from engine.root_strength import (
+    find_roots,
+)
 from engine.strength_judgment import (
     calculate_provisional_strength,
 )
 from engine.weighted_five_elements import (
     calculate_weighted_five_elements,
 )
+
 
 JST = ZoneInfo("Asia/Tokyo")
 
@@ -163,6 +170,14 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    weighted_strength_judgment = (
+        calculate_provisional_strength(
+            weighted_day_master_balance,
+            root_strength,
+            month_command,
+        )
+    )
+
     warnings.extend(
         pillars.get(
             "warnings",
@@ -194,6 +209,9 @@ def calculate_chart(req) -> dict:
         "month_command": month_command,
         "strength_judgment": (
             strength_judgment
+        ),
+        "weighted_strength_judgment": (
+            weighted_strength_judgment
         ),
         "calculation_rules": (
             pillars["calculation_rules"]
