@@ -1,28 +1,22 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from engine.weighted_five_elements import (
-    calculate_weighted_five_elements,
-)
 from engine.day_master_strength import (
     classify_five_elements_for_day_master,
+    classify_weighted_elements_for_day_master,
 )
-from engine.five_elements import (
-    calculate_five_elements,
-)
+from engine.five_elements import calculate_five_elements
 from engine.month_command import (
     classify_month_relationship,
 )
-from engine.pillars import (
-    calculate_four_pillars,
-)
-from engine.root_strength import (
-    find_roots,
-)
+from engine.pillars import calculate_four_pillars
+from engine.root_strength import find_roots
 from engine.strength_judgment import (
     calculate_provisional_strength,
 )
-
+from engine.weighted_five_elements import (
+    calculate_weighted_five_elements,
+)
 
 JST = ZoneInfo("Asia/Tokyo")
 
@@ -85,7 +79,6 @@ def calculate_chart(req) -> dict:
     """
     APIの入力情報から命式と各種分析データを作成します。
     """
-
     birth_date = normalize_birth_date(
         req.birth_date
     )
@@ -126,20 +119,27 @@ def calculate_chart(req) -> dict:
         "hour": pillars["hour"],
     }
 
+    five_elements = calculate_five_elements(
+        chart_data
+    )
+
     weighted_five_elements = (
         calculate_weighted_five_elements(
             chart_data
         )
     )
 
-    five_elements = calculate_five_elements(
-        chart_data
-    )
-
     day_master_balance = (
         classify_five_elements_for_day_master(
             pillars["day_master"]["stem"],
             five_elements,
+        )
+    )
+
+    weighted_day_master_balance = (
+        classify_weighted_elements_for_day_master(
+            pillars["day_master"]["stem"],
+            weighted_five_elements,
         )
     )
 
@@ -186,6 +186,9 @@ def calculate_chart(req) -> dict:
         ),
         "day_master_balance": (
             day_master_balance
+        ),
+        "weighted_day_master_balance": (
+            weighted_day_master_balance
         ),
         "root_strength": root_strength,
         "month_command": month_command,
