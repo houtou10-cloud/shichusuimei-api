@@ -343,14 +343,27 @@ def test_chart_contains_weighted_strength_judgment():
     ]
 
     assert judgment["label"] == "やや身強寄り"
-    assert judgment["final_score"] == 58.0
+    assert judgment["final_score"] == 51.5
     assert judgment["base_supporting_ratio"] == 55.0
 
     assert judgment["adjustments"] == {
-        "root_bonus": 6.0,
-        "month_root_bonus": 5.0,
+        "weighted_root_bonus": 4.5,
         "month_command_adjustment": -8.0,
     }
+
+    assert judgment["evidence"][
+        "total_root_score"
+    ] == 0.45
+
+    assert (
+        judgment["method"]
+        == "weighted_provisional_strength_v1"
+    )
+
+    assert (
+        judgment["status"]
+        == "provisional_weighted_judgment"
+    )
 
 
 def test_chart_contains_weighted_root_strength():
