@@ -177,7 +177,14 @@ def calculate_chart(req) -> dict:
         )
     )
 
-     strength_judgment = (
+        seasonal_strength = (
+        evaluate_seasonal_strength(
+            pillars["day_master"]["stem"],
+            pillars["month"]["branch"],
+        )
+    )
+
+    strength_judgment = (
         calculate_provisional_strength(
             day_master_balance,
             root_strength,
