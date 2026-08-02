@@ -13,6 +13,7 @@ from engine.pillars import calculate_four_pillars
 from engine.root_strength import find_roots
 from engine.strength_judgment import (
     calculate_provisional_strength,
+    calculate_weighted_provisional_strength,
 )
 from engine.weighted_five_elements import (
     calculate_weighted_five_elements,
