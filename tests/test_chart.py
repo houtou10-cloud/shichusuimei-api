@@ -341,3 +341,21 @@ def test_chart_contains_weighted_five_elements():
         weighted["method"]
         == "weighted_hidden_stems_v1"
     )
+    def test_chart_contains_weighted_strength_judgment():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    judgment = result[
+        "weighted_strength_judgment"
+    ]
+
+    assert judgment["label"] == "やや身強寄り"
+    assert judgment["final_score"] == 58.0
+    assert judgment["base_supporting_ratio"] == 55.0
+
+    assert judgment["adjustments"] == {
+        "root_bonus": 6.0,
+        "month_root_bonus": 5.0,
+        "month_command_adjustment": -8.0,
+    }
