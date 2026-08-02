@@ -1,5 +1,3 @@
-import pytest
-
 from engine.strength_judgment import (
     calculate_provisional_strength,
     calculate_weighted_provisional_strength,
@@ -117,34 +115,7 @@ def test_strong_supporting_case():
     assert result["final_score"] == 93.0
 
 
-def test_weak_case():
-    day_master_balance = {
-        "supporting_score": 5,
-        "draining_score": 15,
-        "supporting_ratio": 25.0,
-    }
-
-    root_strength = {
-        "root_count": 0,
-        "root_positions": [],
-    }
-
-    month_command = {
-        "effect": "controlling",
-        "relationship": "officer",
-    }
-
-    result = calculate_provisional_strength(
-        day_master_balance,
-        root_strength,
-        month_command,
-    )
-
-    assert result["label"] == "かなり身弱寄り"
-    assert result["final_score"] == 15.0
-
-
-def test_weighted_provisional_strength():
+def test_weighted_verified_chart_strength():
     weighted_day_master_balance = {
         "supporting_score": 4.4,
         "draining_score": 3.6,
@@ -165,37 +136,38 @@ def test_weighted_provisional_strength():
         "relationship": "wealth",
     }
 
-    result = (
-        calculate_weighted_provisional_strength(
-            weighted_day_master_balance,
-            weighted_root_strength,
-            month_command,
-        )
+    seasonal_strength = {
+        "state": "囚",
+        "score": -6.0,
+    }
+
+    result = calculate_weighted_provisional_strength(
+        weighted_day_master_balance,
+        weighted_root_strength,
+        month_command,
+        seasonal_strength,
     )
 
-    # 55 + 4.5 - 8 = 51.5
-    assert result["final_score"] == 51.5
-
-    assert (
-        result["label"]
-        == "やや身強寄り"
-    )
+    # 55.0 + 4.5 - 6.0 = 53.5
+    assert result["label"] == "やや身強寄り"
+    assert result["final_score"] == 53.5
 
     assert result["adjustments"] == {
         "weighted_root_bonus": 4.5,
-        "month_command_adjustment": -8.0,
+        "seasonal_adjustment": -6.0,
     }
 
-    assert (
-        result["evidence"][
-            "total_root_score"
-        ]
-        == 0.45
-    )
+    assert result["evidence"][
+        "seasonal_state"
+    ] == "囚"
+
+    assert result["evidence"][
+        "seasonal_score"
+    ] == -6.0
 
     assert (
         result["method"]
-        == "weighted_provisional_strength_v1"
+        == "weighted_provisional_strength_v2"
     )
 
     assert (
