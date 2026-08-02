@@ -2,6 +2,13 @@ import pytest
 
 from engine.strength_judgment import (
     calculate_provisional_strength,
+    calculate_weighted_provisional_strength,
+    clamp_score,
+    get_strength_label,
+)
+
+from engine.strength_judgment import (
+    calculate_provisional_strength,
     clamp_score,
     get_strength_label,
 )
@@ -114,3 +121,54 @@ def test_strong_supporting_case():
 
     assert result["label"] == "身強寄り"
     assert result["final_score"] == 93.0
+    def test_weighted_provisional_strength():
+    weighted_day_master_balance = {
+        "supporting_score": 4.4,
+        "draining_score": 3.6,
+        "supporting_ratio": 55.0,
+    }
+
+    weighted_root_strength = {
+        "root_count": 2,
+        "root_positions": [
+            "month",
+            "hour",
+        ],
+        "total_root_score": 0.45,
+    }
+
+    month_command = {
+        "effect": "draining",
+        "relationship": "wealth",
+    }
+
+    result = (
+        calculate_weighted_provisional_strength(
+            weighted_day_master_balance,
+            weighted_root_strength,
+            month_command,
+        )
+    )
+
+    # 55.0 + 4.5 - 8.0 = 51.5
+    assert result["final_score"] == 51.5
+    assert result["label"] == "やや身強寄り"
+
+    assert result["adjustments"] == {
+        "weighted_root_bonus": 4.5,
+        "month_command_adjustment": -8.0,
+    }
+
+    assert result["evidence"][
+        "total_root_score"
+    ] == 0.45
+
+    assert (
+        result["method"]
+        == "weighted_provisional_strength_v1"
+    )
+
+    assert (
+        result["status"]
+        == "provisional_weighted_judgment"
+    )
