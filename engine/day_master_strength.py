@@ -171,7 +171,7 @@ def classify_five_elements_for_day_master(
             "この結果だけでは身強・身弱を確定しません。",
         ],
     }
-    def classify_weighted_elements_for_day_master(
+ def classify_weighted_elements_for_day_master(
     day_stem: str,
     weighted_five_elements: dict,
 ) -> dict:
@@ -240,12 +240,13 @@ def classify_five_elements_for_day_master(
         "supporting_ratio": supporting_ratio,
         "draining_ratio": draining_ratio,
         "method": "weighted_element_relation_v1",
-        "status": "provisional_weighted_classification",
+        "status": (
+            "provisional_weighted_classification"
+        ),
         "notes": [
             "重み付き五行スコアを日主との関係で分類しています。",
             "蔵干比率は暫定値です。",
             "月令と季節旺衰は別途評価します。",
         ],
     }
-
 
