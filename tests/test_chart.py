@@ -146,8 +146,6 @@ def test_chart_contains_hidden_stems_and_ten_gods():
         chart["hour"]["main_hidden_stem_ten_god"]
         == "印綬"
     )
-
-
 def test_chart_contains_twelve_stages():
     request = make_verified_request()
 
