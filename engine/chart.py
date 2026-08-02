@@ -162,7 +162,6 @@ def calculate_chart(req) -> dict:
             chart_data,
         )
     )
-
     month_command = (
         classify_month_relationship(
             pillars["day_master"]["stem"],
@@ -171,13 +170,6 @@ def calculate_chart(req) -> dict:
     )
 
     seasonal_strength = (
-        evaluate_seasonal_strength(
-            pillars["day_master"]["stem"],
-            pillars["month"]["branch"],
-        )
-    )
-
-        seasonal_strength = (
         evaluate_seasonal_strength(
             pillars["day_master"]["stem"],
             pillars["month"]["branch"],
