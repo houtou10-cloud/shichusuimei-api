@@ -302,7 +302,6 @@ def test_chart_contains_strength_judgment():
         == "provisional_judgment"
     )
 
-
 def test_chart_contains_weighted_five_elements():
     request = make_verified_request()
 
@@ -352,50 +351,9 @@ def test_chart_contains_weighted_strength_judgment():
         "month_root_bonus": 5.0,
         "month_command_adjustment": -8.0,
     }
-    def test_chart_contains_weighted_root_strength():
-    request = make_verified_request()
 
-    result = calculate_chart(request)
 
-    weighted_root = result[
-        "weighted_root_strength"
-    ]
-
-    assert weighted_root["has_root"] is True
-    assert weighted_root["root_count"] == 2
-    assert weighted_root["total_root_score"] == 0.45
-
-    assert weighted_root["root_positions"] == [
-        "month",
-        "hour",
-    ]
-
-    assert weighted_root["roots"] == [
-        {
-            "position": "month",
-            "branch": "未",
-            "stem": "乙",
-            "hidden_stem_rank": 3,
-            "position_weight": 1.5,
-            "hidden_stem_weight": 0.1,
-            "root_score": 0.15,
-        },
-        {
-            "position": "hour",
-            "branch": "亥",
-            "stem": "甲",
-            "hidden_stem_rank": 2,
-            "position_weight": 1.0,
-            "hidden_stem_weight": 0.3,
-            "root_score": 0.3,
-        },
-    ]
-
-    assert (
-        weighted_root["method"]
-        == "weighted_root_strength_v1"
-    )
-    def test_chart_contains_weighted_root_strength():
+def test_chart_contains_weighted_root_strength():
     request = make_verified_request()
 
     result = calculate_chart(request)
