@@ -146,6 +146,8 @@ def test_chart_contains_hidden_stems_and_ten_gods():
         chart["hour"]["main_hidden_stem_ten_god"]
         == "印綬"
     )
+
+
 def test_chart_contains_twelve_stages():
     request = make_verified_request()
 
@@ -280,17 +282,9 @@ def test_chart_contains_strength_judgment():
     result = calculate_chart(request)
     judgment = result["strength_judgment"]
 
-    assert (
-        judgment["label"]
-        == "中和～やや身弱寄り"
-    )
-
+    assert judgment["label"] == "中和～やや身弱寄り"
     assert judgment["final_score"] == 45.11
-
-    assert (
-        judgment["base_supporting_ratio"]
-        == 42.11
-    )
+    assert judgment["base_supporting_ratio"] == 42.11
 
     assert judgment["adjustments"] == {
         "root_bonus": 6.0,
@@ -314,9 +308,7 @@ def test_chart_contains_weighted_five_elements():
 
     result = calculate_chart(request)
 
-    weighted = result[
-        "weighted_five_elements"
-    ]
+    weighted = result["weighted_five_elements"]
 
     assert weighted["scores"] == {
         "木": 2.4,
@@ -335,11 +327,14 @@ def test_chart_contains_weighted_five_elements():
     }
 
     assert weighted["total"] == 8.0
+
     assert (
         weighted["method"]
         == "weighted_hidden_stems_v1"
     )
-    def test_chart_contains_weighted_strength_judgment():
+
+
+def test_chart_contains_weighted_strength_judgment():
     request = make_verified_request()
 
     result = calculate_chart(request)
