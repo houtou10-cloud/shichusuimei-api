@@ -171,3 +171,81 @@ def classify_five_elements_for_day_master(
             "この結果だけでは身強・身弱を確定しません。",
         ],
     }
+    def classify_weighted_elements_for_day_master(
+    day_stem: str,
+    weighted_five_elements: dict,
+) -> dict:
+    """
+    重み付き五行スコアを、
+    日主を助ける側と弱める側へ分類します。
+    """
+    scores = weighted_five_elements["scores"]
+
+    supporting_elements = get_supporting_elements(
+        day_stem
+    )
+
+    draining_elements = get_draining_elements(
+        day_stem
+    )
+
+    supporting_score = round(
+        sum(
+            scores[element]
+            for element in supporting_elements
+        ),
+        2,
+    )
+
+    draining_score = round(
+        sum(
+            scores[element]
+            for element in draining_elements
+        ),
+        2,
+    )
+
+    total = round(
+        supporting_score + draining_score,
+        2,
+    )
+
+    supporting_ratio = (
+        round(
+            supporting_score / total * 100,
+            2,
+        )
+        if total
+        else 0.0
+    )
+
+    draining_ratio = (
+        round(
+            draining_score / total * 100,
+            2,
+        )
+        if total
+        else 0.0
+    )
+
+    return {
+        "day_stem": day_stem,
+        "day_element": get_day_master_element(
+            day_stem
+        ),
+        "supporting_elements": supporting_elements,
+        "draining_elements": draining_elements,
+        "supporting_score": supporting_score,
+        "draining_score": draining_score,
+        "supporting_ratio": supporting_ratio,
+        "draining_ratio": draining_ratio,
+        "method": "weighted_element_relation_v1",
+        "status": "provisional_weighted_classification",
+        "notes": [
+            "重み付き五行スコアを日主との関係で分類しています。",
+            "蔵干比率は暫定値です。",
+            "月令と季節旺衰は別途評価します。",
+        ],
+    }
+
+
