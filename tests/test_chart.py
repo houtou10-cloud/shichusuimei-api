@@ -582,3 +582,39 @@ def test_chart_contains_weighted_month_command():
         weighted_month_command["status"]
         == "provisional_weighted_month_command"
     )
+
+def test_chart_contains_integrated_month_strength():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    integrated = result[
+        "integrated_month_strength"
+    ]
+
+    assert integrated["seasonal_state"] == "囚"
+    assert integrated["seasonal_score"] == -6.0
+    assert integrated["supporting_ratio"] == 10.0
+    assert integrated["draining_ratio"] == 90.0
+
+    assert (
+        integrated["hidden_stem_balance"]
+        == -0.8
+    )
+
+    assert (
+        integrated["hidden_stem_adjustment"]
+        == -3.2
+    )
+
+    assert integrated["integrated_score"] == -9.2
+
+    assert (
+        integrated["method"]
+        == "integrated_month_strength_v1"
+    )
+
+    assert (
+        integrated["status"]
+        == "provisional_integrated_month_strength"
+    )

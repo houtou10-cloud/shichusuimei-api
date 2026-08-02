@@ -6,6 +6,9 @@ from engine.day_master_strength import (
     classify_weighted_elements_for_day_master,
 )
 from engine.five_elements import calculate_five_elements
+from engine.integrated_month_strength import (
+    calculate_integrated_month_strength,
+)
 from engine.month_command import (
     classify_month_relationship,
 )
@@ -186,6 +189,13 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    integrated_month_strength = (
+        calculate_integrated_month_strength(
+            seasonal_strength,
+            weighted_month_command,
+        )
+    )
+
     strength_judgment = (
         calculate_provisional_strength(
             day_master_balance,
@@ -240,6 +250,9 @@ def calculate_chart(req) -> dict:
         ),
         "seasonal_strength": (
             seasonal_strength
+        ),
+        "integrated_month_strength": (
+            integrated_month_strength
         ),
         "strength_judgment": (
             strength_judgment
