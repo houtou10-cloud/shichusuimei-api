@@ -17,6 +17,10 @@ from engine.strength_judgment import (
 from engine.weighted_five_elements import (
     calculate_weighted_five_elements,
 )
+from engine.weighted_root_strength import (
+    calculate_weighted_roots,
+)
+
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -149,6 +153,13 @@ def calculate_chart(req) -> dict:
         chart_data,
     )
 
+    weighted_root_strength = (
+        calculate_weighted_roots(
+            pillars["day_master"]["stem"],
+            chart_data,
+        )
+    )
+
     month_command = (
         classify_month_relationship(
             pillars["day_master"]["stem"],
@@ -200,6 +211,9 @@ def calculate_chart(req) -> dict:
             weighted_day_master_balance
         ),
         "root_strength": root_strength,
+        "weighted_root_strength": (
+            weighted_root_strength
+        ),
         "month_command": month_command,
         "strength_judgment": (
             strength_judgment

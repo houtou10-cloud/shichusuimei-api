@@ -282,17 +282,9 @@ def test_chart_contains_strength_judgment():
     result = calculate_chart(request)
     judgment = result["strength_judgment"]
 
-    assert (
-        judgment["label"]
-        == "中和～やや身弱寄り"
-    )
-
+    assert judgment["label"] == "中和～やや身弱寄り"
     assert judgment["final_score"] == 45.11
-
-    assert (
-        judgment["base_supporting_ratio"]
-        == 42.11
-    )
+    assert judgment["base_supporting_ratio"] == 42.11
 
     assert judgment["adjustments"] == {
         "root_bonus": 6.0,
@@ -310,15 +302,12 @@ def test_chart_contains_strength_judgment():
         == "provisional_judgment"
     )
 
-
 def test_chart_contains_weighted_five_elements():
     request = make_verified_request()
 
     result = calculate_chart(request)
 
-    weighted = result[
-        "weighted_five_elements"
-    ]
+    weighted = result["weighted_five_elements"]
 
     assert weighted["scores"] == {
         "木": 2.4,
@@ -337,7 +326,78 @@ def test_chart_contains_weighted_five_elements():
     }
 
     assert weighted["total"] == 8.0
+
     assert (
         weighted["method"]
         == "weighted_hidden_stems_v1"
+    )
+
+
+def test_chart_contains_weighted_strength_judgment():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    judgment = result[
+        "weighted_strength_judgment"
+    ]
+
+    assert judgment["label"] == "やや身強寄り"
+    assert judgment["final_score"] == 58.0
+    assert judgment["base_supporting_ratio"] == 55.0
+
+    assert judgment["adjustments"] == {
+        "root_bonus": 6.0,
+        "month_root_bonus": 5.0,
+        "month_command_adjustment": -8.0,
+    }
+
+
+def test_chart_contains_weighted_root_strength():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    weighted_root = result[
+        "weighted_root_strength"
+    ]
+
+    assert weighted_root["has_root"] is True
+    assert weighted_root["root_count"] == 2
+    assert weighted_root["total_root_score"] == 0.45
+
+    assert weighted_root["root_positions"] == [
+        "month",
+        "hour",
+    ]
+
+    assert weighted_root["roots"] == [
+        {
+            "position": "month",
+            "branch": "未",
+            "stem": "乙",
+            "hidden_stem_rank": 3,
+            "position_weight": 1.5,
+            "hidden_stem_weight": 0.1,
+            "root_score": 0.15,
+        },
+        {
+            "position": "hour",
+            "branch": "亥",
+            "stem": "甲",
+            "hidden_stem_rank": 2,
+            "position_weight": 1.0,
+            "hidden_stem_weight": 0.3,
+            "root_score": 0.3,
+        },
+    ]
+
+    assert (
+        weighted_root["method"]
+        == "weighted_root_strength_v1"
+    )
+
+    assert (
+        weighted_root["status"]
+        == "provisional_weighted_roots"
     )
