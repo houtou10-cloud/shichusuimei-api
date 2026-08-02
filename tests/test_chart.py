@@ -186,6 +186,35 @@ def test_chart_contains_five_elements():
     assert five_elements["method"] == "simple_count_v1"
 
 
+def test_chart_contains_weighted_five_elements():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+    weighted = result["weighted_five_elements"]
+
+    assert weighted["scores"] == {
+        "木": 2.4,
+        "火": 1.9,
+        "土": 1.5,
+        "金": 0.2,
+        "水": 2.0,
+    }
+
+    assert weighted["percentages"] == {
+        "木": 30.0,
+        "火": 23.75,
+        "土": 18.75,
+        "金": 2.5,
+        "水": 25.0,
+    }
+
+    assert weighted["total"] == 8.0
+    assert (
+        weighted["method"]
+        == "weighted_hidden_stems_v1"
+    )
+
+
 def test_chart_contains_day_master_balance():
     request = make_verified_request()
 
@@ -210,8 +239,55 @@ def test_chart_contains_day_master_balance():
     assert balance["draining_score"] == 11
     assert balance["supporting_ratio"] == 42.11
     assert balance["draining_ratio"] == 57.89
-    assert balance["method"] == "simple_element_relation_v1"
-    assert balance["status"] == "classification_only"
+
+    assert (
+        balance["method"]
+        == "simple_element_relation_v1"
+    )
+
+    assert (
+        balance["status"]
+        == "classification_only"
+    )
+
+
+def test_chart_contains_weighted_day_master_balance():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    balance = result[
+        "weighted_day_master_balance"
+    ]
+
+    assert balance["day_stem"] == "乙"
+    assert balance["day_element"] == "木"
+
+    assert balance["supporting_elements"] == [
+        "木",
+        "水",
+    ]
+
+    assert balance["draining_elements"] == [
+        "火",
+        "土",
+        "金",
+    ]
+
+    assert balance["supporting_score"] == 4.4
+    assert balance["draining_score"] == 3.6
+    assert balance["supporting_ratio"] == 55.0
+    assert balance["draining_ratio"] == 45.0
+
+    assert (
+        balance["method"]
+        == "weighted_element_relation_v1"
+    )
+
+    assert (
+        balance["status"]
+        == "provisional_weighted_classification"
+    )
 
 
 def test_chart_contains_root_strength():
@@ -245,124 +321,14 @@ def test_chart_contains_root_strength():
         },
     ]
 
-    assert root_strength["method"] == "hidden_stem_root_v1"
+    assert (
+        root_strength["method"]
+        == "hidden_stem_root_v1"
+    )
+
     assert (
         root_strength["status"]
         == "simple_root_detection"
-    )
-
-
-def test_chart_contains_month_command():
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-    month_command = result["month_command"]
-
-    assert month_command["day_stem"] == "乙"
-    assert month_command["day_element"] == "木"
-    assert month_command["month_branch"] == "未"
-    assert month_command["month_element"] == "土"
-    assert month_command["relationship"] == "wealth"
-    assert month_command["relationship_label"] == "財星"
-    assert month_command["effect"] == "draining"
-    assert month_command["supports_day_master"] is False
-    assert (
-        month_command["method"]
-        == "month_branch_element_v1"
-    )
-    assert (
-        month_command["status"]
-        == "provisional_month_command"
-    )
-
-
-def test_chart_contains_strength_judgment():
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-    judgment = result["strength_judgment"]
-
-    assert judgment["label"] == "中和～やや身弱寄り"
-    assert judgment["final_score"] == 45.11
-    assert judgment["base_supporting_ratio"] == 42.11
-
-    assert judgment["adjustments"] == {
-        "root_bonus": 6.0,
-        "month_root_bonus": 5.0,
-        "month_command_adjustment": -8.0,
-    }
-
-    assert (
-        judgment["method"]
-        == "provisional_strength_v1"
-    )
-
-    assert (
-        judgment["status"]
-        == "provisional_judgment"
-    )
-
-def test_chart_contains_weighted_five_elements():
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-
-    weighted = result["weighted_five_elements"]
-
-    assert weighted["scores"] == {
-        "木": 2.4,
-        "火": 1.9,
-        "土": 1.5,
-        "金": 0.2,
-        "水": 2.0,
-    }
-
-    assert weighted["percentages"] == {
-        "木": 30.0,
-        "火": 23.75,
-        "土": 18.75,
-        "金": 2.5,
-        "水": 25.0,
-    }
-
-    assert weighted["total"] == 8.0
-
-    assert (
-        weighted["method"]
-        == "weighted_hidden_stems_v1"
-    )
-
-
-def test_chart_contains_weighted_strength_judgment():
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-
-    judgment = result[
-        "weighted_strength_judgment"
-    ]
-
-    assert judgment["label"] == "やや身強寄り"
-    assert judgment["final_score"] == 51.5
-    assert judgment["base_supporting_ratio"] == 55.0
-
-    assert judgment["adjustments"] == {
-        "weighted_root_bonus": 4.5,
-        "month_command_adjustment": -8.0,
-    }
-
-    assert judgment["evidence"][
-        "total_root_score"
-    ] == 0.45
-
-    assert (
-        judgment["method"]
-        == "weighted_provisional_strength_v1"
-    )
-
-    assert (
-        judgment["status"]
-        == "provisional_weighted_judgment"
     )
 
 
@@ -375,6 +341,8 @@ def test_chart_contains_weighted_root_strength():
         "weighted_root_strength"
     ]
 
+    assert weighted_root["day_stem"] == "乙"
+    assert weighted_root["day_element"] == "木"
     assert weighted_root["has_root"] is True
     assert weighted_root["root_count"] == 2
     assert weighted_root["total_root_score"] == 0.45
@@ -413,4 +381,137 @@ def test_chart_contains_weighted_root_strength():
     assert (
         weighted_root["status"]
         == "provisional_weighted_roots"
+    )
+
+
+def test_chart_contains_month_command():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+    month_command = result["month_command"]
+
+    assert month_command["day_stem"] == "乙"
+    assert month_command["day_element"] == "木"
+    assert month_command["month_branch"] == "未"
+    assert month_command["month_element"] == "土"
+    assert month_command["relationship"] == "wealth"
+    assert month_command["relationship_label"] == "財星"
+    assert month_command["effect"] == "draining"
+    assert month_command["supports_day_master"] is False
+
+    assert (
+        month_command["method"]
+        == "month_branch_element_v1"
+    )
+
+    assert (
+        month_command["status"]
+        == "provisional_month_command"
+    )
+
+
+def test_chart_contains_seasonal_strength():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    seasonal_strength = result[
+        "seasonal_strength"
+    ]
+
+    assert seasonal_strength["day_stem"] == "乙"
+    assert seasonal_strength["day_element"] == "木"
+    assert seasonal_strength["month_branch"] == "未"
+    assert seasonal_strength["state"] == "囚"
+    assert seasonal_strength["score"] == -6.0
+
+    assert (
+        seasonal_strength["method"]
+        == "seasonal_state_v1"
+    )
+
+    assert (
+        seasonal_strength["status"]
+        == "provisional_seasonal_strength"
+    )
+
+
+def test_chart_contains_strength_judgment():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+    judgment = result["strength_judgment"]
+
+    assert (
+        judgment["label"]
+        == "中和～やや身弱寄り"
+    )
+
+    assert judgment["final_score"] == 45.11
+    assert judgment["base_supporting_ratio"] == 42.11
+
+    assert judgment["adjustments"] == {
+        "root_bonus": 6.0,
+        "month_root_bonus": 5.0,
+        "month_command_adjustment": -8.0,
+    }
+
+    assert (
+        judgment["method"]
+        == "provisional_strength_v1"
+    )
+
+    assert (
+        judgment["status"]
+        == "provisional_judgment"
+    )
+
+
+def test_chart_contains_weighted_strength_judgment():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    judgment = result[
+        "weighted_strength_judgment"
+    ]
+
+    assert judgment["label"] == "やや身強寄り"
+    assert judgment["final_score"] == 53.5
+    assert judgment["base_supporting_ratio"] == 55.0
+
+    assert judgment["adjustments"] == {
+        "weighted_root_bonus": 4.5,
+        "seasonal_adjustment": -6.0,
+    }
+
+    assert (
+        judgment["evidence"][
+            "total_root_score"
+        ]
+        == 0.45
+    )
+
+    assert (
+        judgment["evidence"][
+            "seasonal_state"
+        ]
+        == "囚"
+    )
+
+    assert (
+        judgment["evidence"][
+            "seasonal_score"
+        ]
+        == -6.0
+    )
+
+    assert (
+        judgment["method"]
+        == "weighted_provisional_strength_v2"
+    )
+
+    assert (
+        judgment["status"]
+        == "provisional_weighted_judgment"
     )
