@@ -45,8 +45,11 @@ def calculate_provisional_strength(
     month_command: dict,
 ) -> dict:
     """
-    単純五行比率・通根本数・月令関係から、
+    単純五行比率・通根本数・月支との関係から、
     暫定的な身強身弱傾向を計算します。
+
+    この関数は比較用の従来版です。
+    季節補正は反映しません。
     """
     base_score = float(
         day_master_balance[
@@ -144,10 +147,10 @@ def calculate_provisional_strength(
             "provisional_judgment"
         ),
         "notes": [
-            "単純五行比率・通根本数・月令関係を使った暫定判定です。",
+            "単純五行比率・通根本数・月支関係を使った暫定判定です。",
             "蔵干の重みと通根の実効強度は未反映です。",
             "季節旺衰、合・冲・刑・害、格局は未反映です。",
-            "この結果を最終的な身強身弱判定として断定しません。",
+            "比較用の従来版として残しています。",
         ],
     }
 
@@ -156,10 +159,14 @@ def calculate_weighted_provisional_strength(
     weighted_day_master_balance: dict,
     weighted_root_strength: dict,
     month_command: dict,
+    seasonal_strength: dict,
 ) -> dict:
     """
-    重み付き五行比率・重み付き通根・月令関係から、
+    重み付き五行比率・重み付き通根・季節旺衰から、
     暫定的な身強身弱傾向を計算します。
+
+    月支関係補正と季節補正の二重評価を避けるため、
+    最終スコアには季節補正だけを使用します。
     """
     base_score = float(
         weighted_day_master_balance[
@@ -179,23 +186,25 @@ def calculate_weighted_provisional_strength(
         2,
     )
 
+    seasonal_adjustment = float(
+        seasonal_strength.get(
+            "score",
+            0.0,
+        )
+    )
+
     month_effect = month_command.get(
         "effect"
     )
 
-    if month_effect == "supporting":
-        month_adjustment = 12.0
-    elif month_effect == "draining":
-        month_adjustment = -8.0
-    elif month_effect == "controlling":
-        month_adjustment = -10.0
-    else:
-        month_adjustment = 0.0
+    seasonal_state = seasonal_strength.get(
+        "state"
+    )
 
     raw_score = (
         base_score
         + weighted_root_bonus
-        + month_adjustment
+        + seasonal_adjustment
     )
 
     final_score = round(
@@ -213,8 +222,8 @@ def calculate_weighted_provisional_strength(
             "weighted_root_bonus": (
                 weighted_root_bonus
             ),
-            "month_command_adjustment": (
-                month_adjustment
+            "seasonal_adjustment": (
+                seasonal_adjustment
             ),
         },
         "evidence": {
@@ -249,9 +258,15 @@ def calculate_weighted_provisional_strength(
                     "relationship"
                 )
             ),
+            "seasonal_state": (
+                seasonal_state
+            ),
+            "seasonal_score": (
+                seasonal_adjustment
+            ),
         },
         "method": (
-            "weighted_provisional_strength_v1"
+            "weighted_provisional_strength_v2"
         ),
         "status": (
             "provisional_weighted_judgment"
@@ -259,7 +274,8 @@ def calculate_weighted_provisional_strength(
         "notes": [
             "重み付き五行比率と重み付き通根を使用しています。",
             "通根加点は重み付き通根スコアの10倍です。",
-            "月令旺衰と季節補正は未反映です。",
+            "月支関係補正との二重評価を避け、季節補正を採用しています。",
+            "土用期間、節入り直後、合・冲・刑・害は未反映です。",
             "この結果を最終的な身強身弱判定として断定しません。",
         ],
     }
