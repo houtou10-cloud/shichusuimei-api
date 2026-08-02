@@ -2,6 +2,14 @@ import pytest
 
 from engine.day_master_strength import (
     classify_five_elements_for_day_master,
+    classify_weighted_elements_for_day_master,
+    get_day_master_element,
+    get_draining_elements,
+    get_supporting_elements,
+)
+
+from engine.day_master_strength import (
+    classify_five_elements_for_day_master,
     get_day_master_element,
     get_draining_elements,
     get_supporting_elements,
@@ -100,3 +108,43 @@ def test_classify_verified_chart():
 def test_invalid_day_stem():
     with pytest.raises(ValueError):
         get_day_master_element("無")
+def test_weighted_day_master_balance():
+    weighted_five_elements = {
+        "scores": {
+            "木": 2.4,
+            "火": 1.9,
+            "土": 1.5,
+            "金": 0.2,
+            "水": 2.0,
+        }
+    }
+
+    result = (
+        classify_weighted_elements_for_day_master(
+            "乙",
+            weighted_five_elements,
+        )
+    )
+
+    assert result["day_element"] == "木"
+
+    assert result["supporting_elements"] == [
+        "木",
+        "水",
+    ]
+
+    assert result["draining_elements"] == [
+        "火",
+        "土",
+        "金",
+    ]
+
+    assert result["supporting_score"] == 4.4
+    assert result["draining_score"] == 3.6
+    assert result["supporting_ratio"] == 55.0
+    assert result["draining_ratio"] == 45.0
+
+    assert (
+        result["method"]
+        == "weighted_element_relation_v1"
+    )
