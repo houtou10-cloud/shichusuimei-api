@@ -167,3 +167,123 @@ def calculate_provisional_strength(
             "この結果を最終的な身強身弱判定として断定しません。",
         ],
     }
+    def calculate_weighted_provisional_strength(
+    weighted_day_master_balance: dict,
+    weighted_root_strength: dict,
+    month_command: dict,
+) -> dict:
+    """
+    重み付き五行比率・重み付き通根・月令から、
+    暫定的な身強身弱傾向を計算します。
+
+    計算方法：
+    ・重み付き支持率を基礎点とする
+    ・重み付き通根スコア×10を加点する
+    ・月令が日主を助ける場合は12点加算
+    ・月令が日主を消耗させる場合は8点減算
+    ・月令が日主を剋す場合は10点減算
+    """
+    base_score = float(
+        weighted_day_master_balance[
+            "supporting_ratio"
+        ]
+    )
+
+    total_root_score = float(
+        weighted_root_strength.get(
+            "total_root_score",
+            0.0,
+        )
+    )
+
+    weighted_root_bonus = round(
+        total_root_score * 10.0,
+        2,
+    )
+
+    month_effect = month_command.get(
+        "effect"
+    )
+
+    if month_effect == "supporting":
+        month_adjustment = 12.0
+    elif month_effect == "draining":
+        month_adjustment = -8.0
+    elif month_effect == "controlling":
+        month_adjustment = -10.0
+    else:
+        month_adjustment = 0.0
+
+    raw_score = (
+        base_score
+        + weighted_root_bonus
+        + month_adjustment
+    )
+
+    final_score = round(
+        clamp_score(raw_score),
+        2,
+    )
+
+    label = get_strength_label(
+        final_score
+    )
+
+    return {
+        "label": label,
+        "final_score": final_score,
+        "base_supporting_ratio": base_score,
+        "adjustments": {
+            "weighted_root_bonus": (
+                weighted_root_bonus
+            ),
+            "month_command_adjustment": (
+                month_adjustment
+            ),
+        },
+        "evidence": {
+            "supporting_score": (
+                weighted_day_master_balance[
+                    "supporting_score"
+                ]
+            ),
+            "draining_score": (
+                weighted_day_master_balance[
+                    "draining_score"
+                ]
+            ),
+            "total_root_score": (
+                total_root_score
+            ),
+            "root_count": (
+                weighted_root_strength.get(
+                    "root_count",
+                    0,
+                )
+            ),
+            "root_positions": (
+                weighted_root_strength.get(
+                    "root_positions",
+                    [],
+                )
+            ),
+            "month_effect": month_effect,
+            "month_relationship": (
+                month_command.get(
+                    "relationship"
+                )
+            ),
+        },
+        "method": (
+            "weighted_provisional_strength_v1"
+        ),
+        "status": (
+            "provisional_weighted_judgment"
+        ),
+        "notes": [
+            "重み付き五行比率と重み付き通根を使用しています。",
+            "通根加点は重み付き通根スコアの10倍です。",
+            "月令旺衰と季節補正は未反映です。",
+            "この結果を最終的な身強身弱判定として断定しません。",
+        ],
+    }
