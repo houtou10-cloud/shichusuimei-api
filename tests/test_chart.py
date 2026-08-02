@@ -582,7 +582,8 @@ def test_chart_contains_weighted_month_command():
         weighted_month_command["status"]
         == "provisional_weighted_month_command"
     )
-    def test_chart_contains_integrated_month_strength():
+
+def test_chart_contains_integrated_month_strength():
     request = make_verified_request()
 
     result = calculate_chart(request)
