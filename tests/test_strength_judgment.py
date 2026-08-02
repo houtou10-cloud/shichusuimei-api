@@ -1,5 +1,3 @@
-import pytest
-
 from engine.strength_judgment import (
     calculate_provisional_strength,
     calculate_weighted_provisional_strength,
