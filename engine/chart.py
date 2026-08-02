@@ -5,23 +5,20 @@ from engine.day_master_strength import (
     classify_five_elements_for_day_master,
     classify_weighted_elements_for_day_master,
 )
-from engine.five_elements import (
-    calculate_five_elements,
-)
+from engine.five_elements import calculate_five_elements
 from engine.month_command import (
     classify_month_relationship,
 )
-from engine.pillars import (
-    calculate_four_pillars,
-)
-from engine.root_strength import (
-    find_roots,
-)
+from engine.pillars import calculate_four_pillars
+from engine.root_strength import find_roots
 from engine.strength_judgment import (
     calculate_provisional_strength,
 )
 from engine.weighted_five_elements import (
     calculate_weighted_five_elements,
+)
+from engine.weighted_root_strength import (
+    calculate_weighted_roots,
 )
 
 
@@ -155,6 +152,13 @@ def calculate_chart(req) -> dict:
         chart_data,
     )
 
+    weighted_root_strength = (
+        calculate_weighted_roots(
+            pillars["day_master"]["stem"],
+            chart_data,
+        )
+    )
+
     month_command = (
         classify_month_relationship(
             pillars["day_master"]["stem"],
@@ -206,6 +210,9 @@ def calculate_chart(req) -> dict:
             weighted_day_master_balance
         ),
         "root_strength": root_strength,
+        "weighted_root_strength": (
+            weighted_root_strength
+        ),
         "month_command": month_command,
         "strength_judgment": (
             strength_judgment
