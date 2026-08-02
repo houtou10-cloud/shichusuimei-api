@@ -43,6 +43,17 @@ def test_water_in_winter():
     assert result["score"] == 12.0
 
 
+def test_wood_in_autumn_is_dead():
+    result = evaluate_seasonal_strength(
+        "乙",
+        "申",
+    )
+
+    assert result["day_element"] == "木"
+    assert result["state"] == "死"
+    assert result["score"] == -10.0
+
+
 def test_invalid_month_branch():
     with pytest.raises(ValueError):
         evaluate_seasonal_strength(

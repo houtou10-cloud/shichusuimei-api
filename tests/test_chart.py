@@ -515,3 +515,70 @@ def test_chart_contains_weighted_strength_judgment():
         judgment["status"]
         == "provisional_weighted_judgment"
     )
+def test_chart_contains_weighted_month_command():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    weighted_month_command = result[
+        "weighted_month_command"
+    ]
+
+    assert weighted_month_command[
+        "day_stem"
+    ] == "乙"
+
+    assert weighted_month_command[
+        "day_element"
+    ] == "木"
+
+    assert weighted_month_command[
+        "month_branch"
+    ] == "未"
+
+    assert weighted_month_command[
+        "supporting_score"
+    ] == 0.1
+
+    assert weighted_month_command[
+        "draining_score"
+    ] == 0.9
+
+    assert weighted_month_command[
+        "supporting_ratio"
+    ] == 10.0
+
+    assert weighted_month_command[
+        "draining_ratio"
+    ] == 90.0
+
+    assert weighted_month_command["details"] == [
+        {
+            "stem": "己",
+            "element": "土",
+            "weight": 0.6,
+            "supports_day_master": False,
+        },
+        {
+            "stem": "丁",
+            "element": "火",
+            "weight": 0.3,
+            "supports_day_master": False,
+        },
+        {
+            "stem": "乙",
+            "element": "木",
+            "weight": 0.1,
+            "supports_day_master": True,
+        },
+    ]
+
+    assert (
+        weighted_month_command["method"]
+        == "weighted_month_command_v1"
+    )
+
+    assert (
+        weighted_month_command["status"]
+        == "provisional_weighted_month_command"
+    )

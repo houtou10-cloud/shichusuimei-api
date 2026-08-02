@@ -174,3 +174,87 @@ def test_weighted_verified_chart_strength():
         result["status"]
         == "provisional_weighted_judgment"
     )
+
+
+def test_weighted_strength_with_prosperous_season():
+    weighted_day_master_balance = {
+        "supporting_score": 4.4,
+        "draining_score": 3.6,
+        "supporting_ratio": 55.0,
+    }
+
+    weighted_root_strength = {
+        "root_count": 2,
+        "root_positions": [
+            "month",
+            "hour",
+        ],
+        "total_root_score": 0.45,
+    }
+
+    month_command = {
+        "effect": "supporting",
+        "relationship": "companion",
+    }
+
+    seasonal_strength = {
+        "state": "旺",
+        "score": 12.0,
+    }
+
+    result = calculate_weighted_provisional_strength(
+        weighted_day_master_balance,
+        weighted_root_strength,
+        month_command,
+        seasonal_strength,
+    )
+
+    # 55.0 + 4.5 + 12.0 = 71.5
+    assert result["final_score"] == 71.5
+    assert result["label"] == "身強寄り"
+    assert (
+        result["adjustments"]["seasonal_adjustment"]
+        == 12.0
+    )
+
+
+def test_weighted_strength_with_dead_season():
+    weighted_day_master_balance = {
+        "supporting_score": 4.4,
+        "draining_score": 3.6,
+        "supporting_ratio": 55.0,
+    }
+
+    weighted_root_strength = {
+        "root_count": 2,
+        "root_positions": [
+            "month",
+            "hour",
+        ],
+        "total_root_score": 0.45,
+    }
+
+    month_command = {
+        "effect": "controlling",
+        "relationship": "officer",
+    }
+
+    seasonal_strength = {
+        "state": "死",
+        "score": -10.0,
+    }
+
+    result = calculate_weighted_provisional_strength(
+        weighted_day_master_balance,
+        weighted_root_strength,
+        month_command,
+        seasonal_strength,
+    )
+
+    # 55.0 + 4.5 - 10.0 = 49.5
+    assert result["final_score"] == 49.5
+
+    assert (
+        result["label"]
+        == "中和～やや身弱寄り"
+    )
