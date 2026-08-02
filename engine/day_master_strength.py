@@ -92,16 +92,12 @@ def classify_five_elements_for_day_master(
     """
     counts = five_elements["counts"]
 
-    supporting_elements = (
-        get_supporting_elements(
-            day_stem
-        )
+    supporting_elements = get_supporting_elements(
+        day_stem
     )
 
-    draining_elements = (
-        get_draining_elements(
-            day_stem
-        )
+    draining_elements = get_draining_elements(
+        day_stem
     )
 
     supporting_score = sum(
@@ -136,42 +132,26 @@ def classify_five_elements_for_day_master(
 
     return {
         "day_stem": day_stem,
-        "day_element": (
-            get_day_master_element(
-                day_stem
-            )
+        "day_element": get_day_master_element(
+            day_stem
         ),
-        "supporting_elements": (
-            supporting_elements
-        ),
-        "draining_elements": (
-            draining_elements
-        ),
-        "supporting_score": (
-            supporting_score
-        ),
-        "draining_score": (
-            draining_score
-        ),
-        "supporting_ratio": (
-            supporting_ratio
-        ),
-        "draining_ratio": (
-            draining_ratio
-        ),
-        "method": (
-            "simple_element_relation_v1"
-        ),
-        "status": (
-            "classification_only"
-        ),
+        "supporting_elements": supporting_elements,
+        "draining_elements": draining_elements,
+        "supporting_score": supporting_score,
+        "draining_score": draining_score,
+        "supporting_ratio": supporting_ratio,
+        "draining_ratio": draining_ratio,
+        "method": "simple_element_relation_v1",
+        "status": "classification_only",
         "notes": [
             "単純五行集計を日主との関係で分類しています。",
             "月令、通根、季節補正は未反映です。",
             "この結果だけでは身強・身弱を確定しません。",
         ],
     }
- def classify_weighted_elements_for_day_master(
+
+
+def classify_weighted_elements_for_day_master(
     day_stem: str,
     weighted_five_elements: dict,
 ) -> dict:
@@ -249,4 +229,3 @@ def classify_five_elements_for_day_master(
             "月令と季節旺衰は別途評価します。",
         ],
     }
-
