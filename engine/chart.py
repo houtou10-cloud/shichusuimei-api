@@ -11,6 +11,9 @@ from engine.month_command import (
 )
 from engine.pillars import calculate_four_pillars
 from engine.root_strength import find_roots
+from engine.seasonal_strength import (
+    evaluate_seasonal_strength,
+)
 from engine.strength_judgment import (
     calculate_provisional_strength,
     calculate_weighted_provisional_strength,
@@ -21,7 +24,6 @@ from engine.weighted_five_elements import (
 from engine.weighted_root_strength import (
     calculate_weighted_roots,
 )
-
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -168,6 +170,13 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    seasonal_strength = (
+        evaluate_seasonal_strength(
+            pillars["day_master"]["stem"],
+            pillars["month"]["branch"],
+        )
+    )
+
     strength_judgment = (
         calculate_provisional_strength(
             day_master_balance,
@@ -216,6 +225,9 @@ def calculate_chart(req) -> dict:
             weighted_root_strength
         ),
         "month_command": month_command,
+        "seasonal_strength": (
+            seasonal_strength
+        ),
         "strength_judgment": (
             strength_judgment
         ),
