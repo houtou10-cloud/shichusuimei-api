@@ -175,13 +175,14 @@ def calculate_chart(req) -> dict:
         )
     )
 
-   weighted_strength_judgment = (
+    weighted_strength_judgment = (
         calculate_weighted_provisional_strength(
             weighted_day_master_balance,
             weighted_root_strength,
             month_command,
         )
     )
+
     warnings.extend(
         pillars.get(
             "warnings",
