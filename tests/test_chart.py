@@ -515,7 +515,7 @@ def test_chart_contains_weighted_strength_judgment():
         judgment["status"]
         == "provisional_weighted_judgment"
     )
-    def test_chart_contains_weighted_month_command():
+def test_chart_contains_weighted_month_command():
     request = make_verified_request()
 
     result = calculate_chart(request)
