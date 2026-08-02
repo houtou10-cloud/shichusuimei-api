@@ -25,6 +25,7 @@ from engine.weighted_root_strength import (
     calculate_weighted_roots,
 )
 
+
 JST = ZoneInfo("Asia/Tokyo")
 
 
