@@ -38,6 +38,9 @@ from engine.strength_judgment import (
     calculate_provisional_strength,
     calculate_weighted_provisional_strength,
 )
+from engine.transformation_root import (
+    evaluate_transformation_roots,
+)
 from engine.weighted_five_elements import (
     calculate_weighted_five_elements,
 )
@@ -159,6 +162,13 @@ def calculate_chart(req) -> dict:
     stem_transformations = (
         evaluate_stem_transformations(
             stem_combinations,
+            chart_data,
+        )
+    )
+
+    transformation_roots = (
+        evaluate_transformation_roots(
+            stem_transformations,
             chart_data,
         )
     )
@@ -312,6 +322,9 @@ def calculate_chart(req) -> dict:
         ),
         "stem_transformations": (
             stem_transformations
+        ),
+        "transformation_roots": (
+            transformation_roots
         ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
