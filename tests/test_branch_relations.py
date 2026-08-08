@@ -2,12 +2,14 @@ from engine.branch_relations import (
     find_branch_clashes,
     find_branch_combinations,
     find_branch_harms,
+    find_branch_breaks,
     find_branch_punishments,
     find_branch_trines,
     get_branch_trine_info,
     is_branch_clash,
     is_branch_combination,
     is_branch_harm,
+    is_branch_break,
     is_branch_trine,
 )
 
@@ -1182,3 +1184,160 @@ def test_without_birth_time_for_punishment():
             "punishment_name": "子卯",
         },
     ]
+
+def test_branch_break_pairs():
+    assert is_branch_break(
+        "子",
+        "酉",
+    ) is True
+
+    assert is_branch_break(
+        "酉",
+        "子",
+    ) is True
+
+    assert is_branch_break(
+        "丑",
+        "辰",
+    ) is True
+
+    assert is_branch_break(
+        "寅",
+        "亥",
+    ) is True
+
+    assert is_branch_break(
+        "卯",
+        "午",
+    ) is True
+
+    assert is_branch_break(
+        "巳",
+        "申",
+    ) is True
+
+    assert is_branch_break(
+        "未",
+        "戌",
+    ) is True
+
+
+def test_non_break_pair():
+    assert is_branch_break(
+        "子",
+        "丑",
+    ) is False
+
+    assert is_branch_break(
+        "寅",
+        "卯",
+    ) is False
+
+
+def test_find_branch_breaks():
+    chart_data = {
+        "year": {
+            "branch": "子",
+        },
+        "month": {
+            "branch": "酉",
+        },
+        "day": {
+            "branch": "未",
+        },
+        "hour": {
+            "branch": "戌",
+        },
+    }
+
+    result = find_branch_breaks(
+        chart_data
+    )
+
+    assert result["has_break"] is True
+    assert result["break_count"] == 2
+
+    assert result["breaks"] == [
+        {
+            "position_a": "year",
+            "branch_a": "子",
+            "position_b": "month",
+            "branch_b": "酉",
+            "relation": "破",
+        },
+        {
+            "position_a": "day",
+            "branch_a": "未",
+            "position_b": "hour",
+            "branch_b": "戌",
+            "relation": "破",
+        },
+    ]
+
+    assert (
+        result["method"]
+        == "branch_break_v1"
+    )
+
+    assert (
+        result["status"]
+        == "detected_branch_breaks"
+    )
+
+
+def test_chart_without_branch_break():
+    chart_data = {
+        "year": {
+            "branch": "子",
+        },
+        "month": {
+            "branch": "丑",
+        },
+        "day": {
+            "branch": "寅",
+        },
+        "hour": {
+            "branch": "卯",
+        },
+    }
+
+    result = find_branch_breaks(
+        chart_data
+    )
+
+    assert result["has_break"] is False
+    assert result["break_count"] == 0
+    assert result["breaks"] == []
+
+
+def test_without_birth_time_for_break():
+    chart_data = {
+        "year": {
+            "branch": "子",
+        },
+        "month": {
+            "branch": "酉",
+        },
+        "day": {
+            "branch": "寅",
+        },
+        "hour": None,
+    }
+
+    result = find_branch_breaks(
+        chart_data
+    )
+
+    assert result["has_break"] is True
+    assert result["break_count"] == 1
+
+    assert result["breaks"] == [
+        {
+            "position_a": "year",
+            "branch_a": "子",
+            "position_b": "month",
+            "branch_b": "酉",
+            "relation": "破",
+        },
+    ]
+
