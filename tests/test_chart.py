@@ -1362,7 +1362,7 @@ def test_chart_contains_stem_transformation_judgment():
     
         assert (
             judgment["method"]
-            == "stem_transformation_judgment_v1"
+            == "stem_transformation_judgment_v2"
         )
     
         assert (
