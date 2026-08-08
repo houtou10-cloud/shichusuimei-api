@@ -716,49 +716,6 @@ def test_chart_contains_integrated_month_strength():
         "branch_clashes"
     ]
 
-    assert branch_clashes[
-        "has_clash"
-    ] is True
-
-    assert branch_clashes[
-        "clash_count"
-    ] == 2
-
-    assert branch_clashes["clashes"] == [
-        {
-            "position_a": "year",
-            "branch_a": "丑",
-            "position_b": "month",
-            "branch_b": "未",
-            "relation": "冲",
-        },
-        {
-            "position_a": "day",
-            "branch_a": "巳",
-            "position_b": "hour",
-            "branch_b": "亥",
-            "relation": "冲",
-        },
-    ]
-
-    assert (
-        branch_clashes["method"]
-        == "branch_clash_v1"
-    )
-
-    assert (
-        branch_clashes["status"]
-        == "detected_branch_clashes"
-    )
-    def test_chart_contains_branch_clashes():
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-
-    branch_clashes = result[
-        "branch_clashes"
-    ]
-
     assert (
         branch_clashes["has_clash"]
         is True
