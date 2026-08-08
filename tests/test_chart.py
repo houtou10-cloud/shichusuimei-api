@@ -1635,3 +1635,149 @@ def test_chart_contains_stem_combination_conflict_types():
         >= 1
     )
 
+
+def test_chart_contains_final_strength_judgment():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    judgment = result[
+        "final_strength_judgment"
+    ]
+
+    assert isinstance(
+        judgment["base_score"],
+        float,
+    )
+
+    assert isinstance(
+        judgment["root_adjustment"],
+        float,
+    )
+
+    assert isinstance(
+        judgment["month_adjustment"],
+        float,
+    )
+
+    assert isinstance(
+        judgment["branch_adjustment"],
+        float,
+    )
+
+    assert isinstance(
+        judgment[
+            "transformation_adjustment"
+        ],
+        float,
+    )
+
+    assert isinstance(
+        judgment["adjustment_total"],
+        float,
+    )
+
+    assert isinstance(
+        judgment["raw_final_score"],
+        float,
+    )
+
+    assert isinstance(
+        judgment["final_score"],
+        float,
+    )
+
+    assert (
+        0.0
+        <= judgment["final_score"]
+        <= 100.0
+    )
+
+    assert judgment[
+        "technical_label"
+    ] in {
+        "very_strong",
+        "strong",
+        "balanced",
+        "weak",
+        "very_weak",
+    }
+
+    assert judgment["label"] in {
+        "極身強",
+        "身強",
+        "中和",
+        "身弱",
+        "極身弱",
+    }
+
+    assert judgment["confidence"] in {
+        "high",
+        "medium",
+        "low",
+    }
+
+    assert isinstance(
+        judgment["components"],
+        dict,
+    )
+
+    assert (
+        judgment["components"][
+            "base"
+        ]["score"]
+        == judgment["base_score"]
+    )
+
+    assert (
+        judgment["components"][
+            "root"
+        ]["adjustment"]
+        == judgment["root_adjustment"]
+    )
+
+    assert (
+        judgment["components"][
+            "month"
+        ]["adjustment"]
+        == judgment["month_adjustment"]
+    )
+
+    assert (
+        judgment["components"][
+            "branch_relations"
+        ]["adjustment"]
+        == judgment["branch_adjustment"]
+    )
+
+    assert (
+        judgment["components"][
+            "stem_transformation"
+        ]["adjustment"]
+        == judgment[
+            "transformation_adjustment"
+        ]
+    )
+
+    assert (
+        judgment["method"]
+        == "final_strength_judgment_v1"
+    )
+
+    assert (
+        judgment["status"]
+        == "provisional_final_strength_judgment"
+    )
+
+    assert isinstance(
+        judgment["notes"],
+        list,
+    )
+
+    assert (
+        len(
+            judgment["notes"]
+        )
+        >= 1
+    )
+
