@@ -1482,3 +1482,132 @@ def test_chart_contains_stem_combination_conflicts():
         assert len(
             conflicts["notes"]
         ) >= 1
+def test_chart_contains_stem_combination_conflict_types():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        conflict_types = result[
+            "stem_combination_conflict_types"
+        ]
+    
+        assert (
+            conflict_types[
+                "has_typed_conflict"
+            ]
+            is False
+        )
+    
+        assert (
+            conflict_types[
+                "typed_conflict_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflict_types[
+                "position_conflict_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflict_types[
+                "duplicate_conflict_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflict_types[
+                "争合_candidate_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflict_types[
+                "multiple_conflict_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflict_types[
+                "unclassified_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflict_types[
+                "severity_counts"
+            ]
+            == {
+                "high": 0,
+                "medium": 0,
+                "low": 0,
+            }
+        )
+    
+        assert (
+            conflict_types[
+                "overall_severity"
+            ]
+            == "none"
+        )
+    
+        assert (
+            conflict_types[
+                "position_conflicts"
+            ]
+            == []
+        )
+    
+        assert (
+            conflict_types[
+                "duplicate_conflicts"
+            ]
+            == []
+        )
+    
+        assert (
+            conflict_types[
+                "conflicts"
+            ]
+            == []
+        )
+    
+        assert (
+            conflict_types[
+                "overall_status"
+            ]
+            == "not_applicable"
+        )
+    
+        assert (
+            conflict_types[
+                "method"
+            ]
+            == "stem_combination_conflict_types_v1"
+        )
+    
+        assert (
+            conflict_types[
+                "status"
+            ]
+            == "provisional_conflict_typing"
+        )
+    
+        assert isinstance(
+            conflict_types["notes"],
+            list,
+        )
+    
+        assert (
+            len(
+                conflict_types["notes"]
+            )
+            >= 1
+        )
