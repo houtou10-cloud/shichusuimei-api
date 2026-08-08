@@ -305,9 +305,7 @@ def find_branch_combinations(
             combinations
         ),
         "combinations": combinations,
-        "method": (
-            "branch_combination_v1"
-        ),
+        "method": "branch_combination_v1",
         "status": (
             "detected_branch_combinations"
         ),
@@ -460,10 +458,7 @@ def find_branch_punishments(
         available_positions
     )
 
-    # -------------------------
     # 三刑
-    # -------------------------
-
     for index_a in range(
         position_count
     ):
@@ -538,10 +533,7 @@ def find_branch_punishments(
                     }
                 )
 
-    # -------------------------
     # 子卯の相刑
-    # -------------------------
-
     for index_a in range(
         position_count
     ):
@@ -601,10 +593,7 @@ def find_branch_punishments(
                 }
             )
 
-    # -------------------------
     # 自刑
-    # -------------------------
-
     for index_a in range(
         position_count
     ):
