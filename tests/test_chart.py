@@ -1155,3 +1155,79 @@ def test_chart_contains_stem_transformations():
             )
             >= 1
         )
+def test_chart_contains_transformation_roots():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        transformation_roots = result[
+            "transformation_roots"
+        ]
+    
+        assert (
+            transformation_roots[
+                "has_transformation_candidate"
+            ]
+            is False
+        )
+    
+        assert (
+            transformation_roots[
+                "transformation_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_roots[
+                "rooted_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_roots[
+                "month_rooted_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_roots[
+                "overall_root_status"
+            ]
+            == "not_applicable"
+        )
+    
+        assert (
+            transformation_roots[
+                "results"
+            ]
+            == []
+        )
+    
+        assert (
+            transformation_roots[
+                "method"
+            ]
+            == "transformation_roots_v1"
+        )
+    
+        assert (
+            transformation_roots[
+                "status"
+            ]
+            == "provisional_transformation_roots"
+        )
+    
+        assert isinstance(
+            transformation_roots["notes"],
+            list,
+        )
+    
+        assert (
+            len(
+                transformation_roots["notes"]
+            )
+            >= 1
+        )
