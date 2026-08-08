@@ -12,17 +12,14 @@ from engine.branch_relations import (
     find_branch_harms,
     find_branch_punishments,
     find_branch_trines,
-
-from engine.branch_relations import (
-    find_branch_clashes,
-    find_branch_combinations,
-
 )
 from engine.day_master_strength import (
     classify_five_elements_for_day_master,
     classify_weighted_elements_for_day_master,
 )
-from engine.five_elements import calculate_five_elements
+from engine.five_elements import (
+    calculate_five_elements,
+)
 from engine.final_strength_judgment import (
     evaluate_final_strength_judgment,
 )
