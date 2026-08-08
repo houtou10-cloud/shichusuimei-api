@@ -791,7 +791,7 @@ def test_chart_contains_branch_combinations():
 
 def test_chart_contains_branch_trines():
 
-    def test_chart_contains_branch_trines():
+def test_chart_contains_branch_trines():
     request = make_verified_request()
 
     result = calculate_chart(request)
