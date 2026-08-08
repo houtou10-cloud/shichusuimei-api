@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 from engine.branch_relations import (
     find_branch_clashes,
     find_branch_combinations,
+    find_branch_harms,
     find_branch_punishments,
     find_branch_trines,
 )
@@ -89,7 +90,7 @@ def normalize_birth_time(
         )
     except ValueError as error:
         raise ValueError(
-            "birth_timeはHH:MM形式で指定してください。"
+            "birth_timeはHH:MM形式の文字列で指定してください。"
         ) from error
 
     return value
@@ -175,8 +176,10 @@ def calculate_chart(req) -> dict:
         )
     )
 
-    branch_clashes = find_branch_clashes(
-        chart_data
+    branch_clashes = (
+        find_branch_clashes(
+            chart_data
+        )
     )
 
     branch_combinations = (
@@ -193,6 +196,12 @@ def calculate_chart(req) -> dict:
 
     branch_punishments = (
         find_branch_punishments(
+            chart_data
+        )
+    )
+
+    branch_harms = (
+        find_branch_harms(
             chart_data
         )
     )
@@ -284,6 +293,9 @@ def calculate_chart(req) -> dict:
         ),
         "branch_punishments": (
             branch_punishments
+        ),
+        "branch_harms": (
+            branch_harms
         ),
         "month_command": month_command,
         "weighted_month_command": (
