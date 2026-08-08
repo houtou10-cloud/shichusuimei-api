@@ -1231,3 +1231,79 @@ def test_chart_contains_transformation_roots():
             )
             >= 1
         )
+def test_chart_contains_transformation_exposures():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        transformation_exposures = result[
+            "transformation_exposures"
+        ]
+    
+        assert (
+            transformation_exposures[
+                "has_transformation_candidate"
+            ]
+            is False
+        )
+    
+        assert (
+            transformation_exposures[
+                "transformation_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_exposures[
+                "exposed_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_exposures[
+                "external_exposed_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_exposures[
+                "overall_exposure_status"
+            ]
+            == "not_applicable"
+        )
+    
+        assert (
+            transformation_exposures[
+                "results"
+            ]
+            == []
+        )
+    
+        assert (
+            transformation_exposures[
+                "method"
+            ]
+            == "transformation_exposures_v1"
+        )
+    
+        assert (
+            transformation_exposures[
+                "status"
+            ]
+            == "provisional_transformation_exposures"
+        )
+    
+        assert isinstance(
+            transformation_exposures["notes"],
+            list,
+        )
+    
+        assert (
+            len(
+                transformation_exposures["notes"]
+            )
+            >= 1
+        )
