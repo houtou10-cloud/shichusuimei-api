@@ -1307,3 +1307,77 @@ def test_chart_contains_transformation_exposures():
             )
             >= 1
         )
+def test_chart_contains_stem_transformation_judgment():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        judgment = result[
+            "stem_transformation_judgment"
+        ]
+    
+        assert (
+            judgment[
+                "has_transformation_candidate"
+            ]
+            is False
+        )
+    
+        assert (
+            judgment["judgment_count"]
+            == 0
+        )
+    
+        assert (
+            judgment[
+                "strong_candidate_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            judgment["possible_count"]
+            == 0
+        )
+    
+        assert (
+            judgment["weak_count"]
+            == 0
+        )
+    
+        assert (
+            judgment["unsupported_count"]
+            == 0
+        )
+    
+        assert (
+            judgment["overall_judgment"]
+            == "not_applicable"
+        )
+    
+        assert (
+            judgment["judgments"]
+            == []
+        )
+    
+        assert (
+            judgment["method"]
+            == "stem_transformation_judgment_v1"
+        )
+    
+        assert (
+            judgment["status"]
+            == "provisional_stem_transformation_judgment"
+        )
+    
+        assert isinstance(
+            judgment["notes"],
+            list,
+        )
+    
+        assert (
+            len(
+                judgment["notes"]
+            )
+            >= 1
+        )
