@@ -1079,3 +1079,79 @@ def test_chart_contains_branch_relation_strength():
         assert len(
             stem_combinations["notes"]
         ) >= 1
+def test_chart_contains_stem_transformations():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        stem_transformations = result[
+            "stem_transformations"
+        ]
+    
+        assert (
+            stem_transformations[
+                "has_stem_combination"
+            ]
+            is False
+        )
+    
+        assert (
+            stem_transformations[
+                "transformation_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            stem_transformations[
+                "possible_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            stem_transformations[
+                "unsupported_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            stem_transformations[
+                "overall_status"
+            ]
+            == "not_applicable"
+        )
+    
+        assert (
+            stem_transformations[
+                "transformations"
+            ]
+            == []
+        )
+    
+        assert (
+            stem_transformations[
+                "method"
+            ]
+            == "stem_transformation_v1"
+        )
+    
+        assert (
+            stem_transformations[
+                "status"
+            ]
+            == "provisional_stem_transformation"
+        )
+    
+        assert isinstance(
+            stem_transformations["notes"],
+            list,
+        )
+    
+        assert (
+            len(
+                stem_transformations["notes"]
+            )
+            >= 1
+        )
