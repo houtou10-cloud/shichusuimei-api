@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 from engine.branch_relations import (
     find_branch_clashes,
     find_branch_combinations,
+    find_branch_trines,
 )
 from engine.day_master_strength import (
     classify_five_elements_for_day_master,
@@ -183,6 +184,12 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    branch_trines = (
+        find_branch_trines(
+            chart_data
+        )
+    )
+
     month_command = (
         classify_month_relationship(
             pillars["day_master"]["stem"],
@@ -264,6 +271,9 @@ def calculate_chart(req) -> dict:
         ),
         "branch_combinations": (
             branch_combinations
+        ),
+        "branch_trines": (
+            branch_trines
         ),
         "month_command": month_command,
         "weighted_month_command": (
