@@ -822,5 +822,38 @@ def test_chart_contains_branch_trines():
         branch_trines["status"]
         == "detected_branch_trines"
     )
+    def test_chart_contains_branch_punishments():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    branch_punishments = result[
+        "branch_punishments"
+    ]
+
+    assert (
+        branch_punishments["has_punishment"]
+        is False
+    )
+
+    assert (
+        branch_punishments["punishment_count"]
+        == 0
+    )
+
+    assert (
+        branch_punishments["punishments"]
+        == []
+    )
+
+    assert (
+        branch_punishments["method"]
+        == "branch_punishment_v1"
+    )
+
+    assert (
+        branch_punishments["status"]
+        == "detected_branch_punishments"
+    )
     
     
