@@ -211,6 +211,7 @@ def calculate_chart(req) -> dict:
             transformation_roots,
             transformation_exposures,
             stem_combination_conflicts,
+            stem_combination_conflict_types,
         )
     )
 
