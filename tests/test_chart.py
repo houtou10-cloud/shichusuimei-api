@@ -915,3 +915,125 @@ def test_chart_contains_branch_breaks():
         branch_breaks["status"]
         == "detected_branch_breaks"
     )
+
+
+def test_chart_contains_branch_relation_strength():
+    """
+    calculate_chart() の結果に
+    地支関係の総合強度が含まれることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    relation_strength = result[
+        "branch_relation_strength"
+    ]
+
+    # 検証命式:
+    # 年支 丑 / 月支 未 / 日支 巳 / 時支 亥
+    #
+    # 冲:
+    # 丑-未
+    # 巳-亥
+    #
+    # その他:
+    # 六合 0
+    # 三合 0
+    # 刑   0
+    # 害   0
+    # 破   0
+    assert (
+        relation_strength["total_relation_count"]
+        == 2
+    )
+
+    assert (
+        relation_strength["positive_score"]
+        == 0.0
+    )
+
+    assert (
+        relation_strength["negative_score"]
+        == 4.0
+    )
+
+    assert (
+        relation_strength["total_score"]
+        == -4.0
+    )
+
+    assert (
+        relation_strength["balance"]
+        == "negative"
+    )
+
+    assert relation_strength["details"]["clash"] == {
+        "count": 2,
+        "weight": -2.0,
+        "score": -4.0,
+    }
+
+    assert (
+        relation_strength["details"]["combination"]
+        == {
+            "count": 0,
+            "weight": 1.5,
+            "score": 0.0,
+        }
+    )
+
+    assert relation_strength["details"]["trine"] == {
+        "count": 0,
+        "weight": 2.5,
+        "score": 0.0,
+    }
+
+    assert (
+        relation_strength["details"]["punishment"]
+        == {
+            "count": 0,
+            "weight": -1.5,
+            "score": 0.0,
+        }
+    )
+
+    assert relation_strength["details"]["harm"] == {
+        "count": 0,
+        "weight": -1.0,
+        "score": 0.0,
+    }
+
+    assert relation_strength["details"]["break"] == {
+        "count": 0,
+        "weight": -0.5,
+        "score": 0.0,
+    }
+
+    assert relation_strength["weights"] == {
+        "clash": -2.0,
+        "combination": 1.5,
+        "trine": 2.5,
+        "punishment": -1.5,
+        "harm": -1.0,
+        "break": -0.5,
+    }
+
+    assert (
+        relation_strength["method"]
+        == "branch_relation_strength_v1"
+    )
+
+    assert (
+        relation_strength["status"]
+        == "provisional_branch_relation_strength"
+    )
+
+    assert isinstance(
+        relation_strength["notes"],
+        list,
+    )
+
+    assert len(
+        relation_strength["notes"]
+    ) >= 1
