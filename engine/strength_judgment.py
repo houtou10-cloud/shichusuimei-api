@@ -45,11 +45,18 @@ def calculate_provisional_strength(
     month_command: dict,
 ) -> dict:
     """
-    単純五行比率・通根本数・月支との関係から、
-    暫定的な身強身弱傾向を計算します。
+    単純五行比率・通根本数・月支関係を使って、
+    比較用の暫定的な身強身弱傾向を計算します。
 
-    この関数は比較用の従来版です。
-    季節補正は反映しません。
+    計算方法：
+    ・日主を助ける五行の比率を基礎点とする
+    ・通根1件につき3点加算、最大9点
+    ・月支に通根していれば5点加算
+    ・月支関係が日主を助ける場合は12点加算
+    ・月支関係が日主を消耗させる場合は8点減算
+    ・月支関係が日主を剋す場合は10点減算
+
+    この関数は従来方式との比較用として残します。
     """
     base_score = float(
         day_master_balance[
@@ -86,10 +93,13 @@ def calculate_provisional_strength(
 
     if month_effect == "supporting":
         month_adjustment = 12.0
+
     elif month_effect == "draining":
         month_adjustment = -8.0
+
     elif month_effect == "controlling":
         month_adjustment = -10.0
+
     else:
         month_adjustment = 0.0
 
@@ -105,12 +115,16 @@ def calculate_provisional_strength(
         2,
     )
 
+    label = get_strength_label(
+        final_score
+    )
+
     return {
-        "label": get_strength_label(
-            final_score
-        ),
+        "label": label,
         "final_score": final_score,
-        "base_supporting_ratio": base_score,
+        "base_supporting_ratio": (
+            base_score
+        ),
         "adjustments": {
             "root_bonus": root_bonus,
             "month_root_bonus": (
@@ -132,7 +146,9 @@ def calculate_provisional_strength(
                 ]
             ),
             "root_count": root_count,
-            "root_positions": root_positions,
+            "root_positions": (
+                root_positions
+            ),
             "month_effect": month_effect,
             "month_relationship": (
                 month_command.get(
@@ -159,14 +175,22 @@ def calculate_weighted_provisional_strength(
     weighted_day_master_balance: dict,
     weighted_root_strength: dict,
     month_command: dict,
-    seasonal_strength: dict,
+    integrated_month_strength: dict,
 ) -> dict:
     """
-    重み付き五行比率・重み付き通根・季節旺衰から、
+    重み付き五行比率・重み付き通根・
+    統合月令評価を使って、
     暫定的な身強身弱傾向を計算します。
 
-    月支関係補正と季節補正の二重評価を避けるため、
-    最終スコアには季節補正だけを使用します。
+    計算方法：
+    ・重み付き支持率を基礎点とする
+    ・重み付き通根スコア×10を加点する
+    ・季節旺衰と月支蔵干評価を統合した
+      integrated_month_scoreを補正値として加える
+
+    月支関係による補正は、
+    integrated_month_strengthとの二重評価を避けるため、
+    最終スコアには直接加算しません。
     """
     base_score = float(
         weighted_day_master_balance[
@@ -186,25 +210,17 @@ def calculate_weighted_provisional_strength(
         2,
     )
 
-    seasonal_adjustment = float(
-        seasonal_strength.get(
-            "score",
+    integrated_month_adjustment = float(
+        integrated_month_strength.get(
+            "integrated_score",
             0.0,
         )
-    )
-
-    month_effect = month_command.get(
-        "effect"
-    )
-
-    seasonal_state = seasonal_strength.get(
-        "state"
     )
 
     raw_score = (
         base_score
         + weighted_root_bonus
-        + seasonal_adjustment
+        + integrated_month_adjustment
     )
 
     final_score = round(
@@ -212,18 +228,22 @@ def calculate_weighted_provisional_strength(
         2,
     )
 
+    label = get_strength_label(
+        final_score
+    )
+
     return {
-        "label": get_strength_label(
-            final_score
-        ),
+        "label": label,
         "final_score": final_score,
-        "base_supporting_ratio": base_score,
+        "base_supporting_ratio": (
+            base_score
+        ),
         "adjustments": {
             "weighted_root_bonus": (
                 weighted_root_bonus
             ),
-            "seasonal_adjustment": (
-                seasonal_adjustment
+            "integrated_month_adjustment": (
+                integrated_month_adjustment
             ),
         },
         "evidence": {
@@ -252,21 +272,54 @@ def calculate_weighted_provisional_strength(
                     [],
                 )
             ),
-            "month_effect": month_effect,
+            "month_effect": (
+                month_command.get(
+                    "effect"
+                )
+            ),
             "month_relationship": (
                 month_command.get(
                     "relationship"
                 )
             ),
+            "integrated_month_score": (
+                integrated_month_strength.get(
+                    "integrated_score"
+                )
+            ),
             "seasonal_state": (
-                seasonal_state
+                integrated_month_strength.get(
+                    "seasonal_state"
+                )
             ),
             "seasonal_score": (
-                seasonal_adjustment
+                integrated_month_strength.get(
+                    "seasonal_score"
+                )
+            ),
+            "month_supporting_ratio": (
+                integrated_month_strength.get(
+                    "supporting_ratio"
+                )
+            ),
+            "month_draining_ratio": (
+                integrated_month_strength.get(
+                    "draining_ratio"
+                )
+            ),
+            "hidden_stem_balance": (
+                integrated_month_strength.get(
+                    "hidden_stem_balance"
+                )
+            ),
+            "hidden_stem_adjustment": (
+                integrated_month_strength.get(
+                    "hidden_stem_adjustment"
+                )
             ),
         },
         "method": (
-            "weighted_provisional_strength_v2"
+            "weighted_provisional_strength_v3"
         ),
         "status": (
             "provisional_weighted_judgment"
@@ -274,7 +327,8 @@ def calculate_weighted_provisional_strength(
         "notes": [
             "重み付き五行比率と重み付き通根を使用しています。",
             "通根加点は重み付き通根スコアの10倍です。",
-            "月支関係補正との二重評価を避け、季節補正を採用しています。",
+            "季節旺衰と月支蔵干構成を統合した月令補正を使用しています。",
+            "月支関係補正との二重評価を避けています。",
             "土用期間、節入り直後、合・冲・刑・害は未反映です。",
             "この結果を最終的な身強身弱判定として断定しません。",
         ],
