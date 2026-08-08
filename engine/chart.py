@@ -218,15 +218,6 @@ def calculate_chart(req) -> dict:
         )
     )
 
-    final_strength_judgment = (
-        evaluate_final_strength_judgment(
-            weighted_strength_judgment,
-            weighted_root_strength,
-            integrated_month_strength,
-            branch_relation_strength,
-            stem_transformation_judgment,
-        )
-    )
 
     five_elements = calculate_five_elements(
         chart_data
@@ -360,6 +351,16 @@ def calculate_chart(req) -> dict:
         pillars.get(
             "warnings",
             [],
+        )
+    )
+
+    final_strength_judgment = (
+        evaluate_final_strength_judgment(
+            weighted_strength_judgment,
+            weighted_root_strength,
+            integrated_month_strength,
+            branch_relation_strength,
+            stem_transformation_judgment,
         )
     )
 
