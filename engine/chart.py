@@ -28,6 +28,9 @@ from engine.root_strength import find_roots
 from engine.seasonal_strength import (
     evaluate_seasonal_strength,
 )
+from engine.stem_combination_conflicts import (
+    evaluate_stem_combination_conflicts,
+)
 from engine.stem_combinations import (
     find_stem_combinations,
 )
@@ -162,6 +165,13 @@ def calculate_chart(req) -> dict:
     stem_combinations = (
         find_stem_combinations(
             chart_data
+        )
+    )
+
+    stem_combination_conflicts = (
+        evaluate_stem_combination_conflicts(
+            stem_combinations,
+            chart_data,
         )
     )
 
@@ -340,6 +350,9 @@ def calculate_chart(req) -> dict:
         "chart": chart_data,
         "stem_combinations": (
             stem_combinations
+        ),
+        "stem_combination_conflicts": (
+            stem_combination_conflicts
         ),
         "stem_transformations": (
             stem_transformations
