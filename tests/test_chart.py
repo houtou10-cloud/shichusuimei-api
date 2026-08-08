@@ -822,38 +822,62 @@ def test_chart_contains_branch_trines():
         branch_trines["status"]
         == "detected_branch_trines"
     )
-    def test_chart_contains_branch_punishments():
-        request = make_verified_request()
-    
-        result = calculate_chart(request)
-    
-        branch_punishments = result[
-            "branch_punishments"
-        ]
-    
-        assert (
-            branch_punishments["has_punishment"]
-            is False
-        )
-    
-        assert (
-            branch_punishments["punishment_count"]
-            == 0
-        )
-    
-        assert (
-            branch_punishments["punishments"]
-            == []
-        )
-    
-        assert (
-            branch_punishments["method"]
-            == "branch_punishment_v1"
-        )
-    
-        assert (
-            branch_punishments["status"]
-            == "detected_branch_punishments"
-        )
-        
-    
+
+
+def test_chart_contains_branch_punishments():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    branch_punishments = result[
+        "branch_punishments"
+    ]
+
+    assert (
+        branch_punishments["has_punishment"]
+        is False
+    )
+
+    assert (
+        branch_punishments["punishment_count"]
+        == 0
+    )
+
+    assert (
+        branch_punishments["punishments"]
+        == []
+    )
+
+    assert (
+        branch_punishments["method"]
+        == "branch_punishment_v1"
+    )
+
+    assert (
+        branch_punishments["status"]
+        == "detected_branch_punishments"
+    )
+
+
+def test_chart_contains_branch_harms():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    branch_harms = result[
+        "branch_harms"
+    ]
+
+    assert branch_harms["has_harm"] is False
+    assert branch_harms["harm_count"] == 0
+    assert branch_harms["harms"] == []
+
+    assert (
+        branch_harms["method"]
+        == "branch_harm_v1"
+    )
+
+    assert (
+        branch_harms["status"]
+        == "detected_branch_harms"
+    )
