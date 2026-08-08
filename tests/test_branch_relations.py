@@ -1,8 +1,11 @@
 from engine.branch_relations import (
     find_branch_clashes,
     find_branch_combinations,
+    find_branch_trines,
+    get_branch_trine_info,
     is_branch_clash,
     is_branch_combination,
+    is_branch_trine,
 )
 
 
@@ -92,6 +95,125 @@ def test_non_combination_pair():
         "子",
         "午",
     ) is False
+
+
+def test_branch_trine_water():
+    assert is_branch_trine(
+        "申",
+        "子",
+        "辰",
+    ) is True
+
+    info = get_branch_trine_info(
+        "申",
+        "子",
+        "辰",
+    )
+
+    assert info == {
+        "name": "申子辰",
+        "element": "水",
+    }
+
+
+def test_branch_trine_wood():
+    assert is_branch_trine(
+        "亥",
+        "卯",
+        "未",
+    ) is True
+
+    info = get_branch_trine_info(
+        "亥",
+        "卯",
+        "未",
+    )
+
+    assert info == {
+        "name": "亥卯未",
+        "element": "木",
+    }
+
+
+def test_branch_trine_fire():
+    assert is_branch_trine(
+        "寅",
+        "午",
+        "戌",
+    ) is True
+
+    info = get_branch_trine_info(
+        "寅",
+        "午",
+        "戌",
+    )
+
+    assert info == {
+        "name": "寅午戌",
+        "element": "火",
+    }
+
+
+def test_branch_trine_metal():
+    assert is_branch_trine(
+        "巳",
+        "酉",
+        "丑",
+    ) is True
+
+    info = get_branch_trine_info(
+        "巳",
+        "酉",
+        "丑",
+    )
+
+    assert info == {
+        "name": "巳酉丑",
+        "element": "金",
+    }
+
+
+def test_branch_trine_order_does_not_matter():
+    assert is_branch_trine(
+        "辰",
+        "申",
+        "子",
+    ) is True
+
+    assert is_branch_trine(
+        "未",
+        "亥",
+        "卯",
+    ) is True
+
+    assert is_branch_trine(
+        "戌",
+        "午",
+        "寅",
+    ) is True
+
+    assert is_branch_trine(
+        "丑",
+        "巳",
+        "酉",
+    ) is True
+
+
+def test_non_trine_group():
+    assert is_branch_trine(
+        "子",
+        "丑",
+        "寅",
+    ) is False
+
+    assert (
+        get_branch_trine_info(
+            "子",
+            "丑",
+            "寅",
+        )
+        is None
+    )
 
 
 def test_find_branch_clashes():
@@ -196,6 +318,90 @@ def test_find_branch_combinations():
     )
 
 
+def test_find_branch_trines():
+    chart_data = {
+        "year": {
+            "branch": "申",
+        },
+        "month": {
+            "branch": "子",
+        },
+        "day": {
+            "branch": "辰",
+        },
+        "hour": {
+            "branch": "午",
+        },
+    }
+
+    result = find_branch_trines(
+        chart_data
+    )
+
+    assert result["has_trine"] is True
+    assert result["trine_count"] == 1
+
+    assert result["trines"] == [
+        {
+            "position_a": "year",
+            "branch_a": "申",
+            "position_b": "month",
+            "branch_b": "子",
+            "position_c": "day",
+            "branch_c": "辰",
+            "relation": "三合",
+            "trine_name": "申子辰",
+            "element": "水",
+        },
+    ]
+
+    assert (
+        result["method"]
+        == "branch_trine_v1"
+    )
+
+    assert (
+        result["status"]
+        == "detected_branch_trines"
+    )
+
+
+def test_find_multiple_branch_trines():
+    chart_data = {
+        "year": {
+            "branch": "亥",
+        },
+        "month": {
+            "branch": "卯",
+        },
+        "day": {
+            "branch": "未",
+        },
+        "hour": {
+            "branch": "子",
+        },
+    }
+
+    result = find_branch_trines(
+        chart_data
+    )
+
+    assert result["has_trine"] is True
+    assert result["trine_count"] == 1
+
+    assert result["trines"][0] == {
+        "position_a": "year",
+        "branch_a": "亥",
+        "position_b": "month",
+        "branch_b": "卯",
+        "position_c": "day",
+        "branch_c": "未",
+        "relation": "三合",
+        "trine_name": "亥卯未",
+        "element": "木",
+    }
+
+
 def test_chart_without_branch_clash():
     chart_data = {
         "year": {
@@ -252,6 +458,31 @@ def test_chart_without_branch_combination():
     )
 
     assert result["combinations"] == []
+
+
+def test_chart_without_branch_trine():
+    chart_data = {
+        "year": {
+            "branch": "子",
+        },
+        "month": {
+            "branch": "丑",
+        },
+        "day": {
+            "branch": "寅",
+        },
+        "hour": {
+            "branch": "卯",
+        },
+    }
+
+    result = find_branch_trines(
+        chart_data
+    )
+
+    assert result["has_trine"] is False
+    assert result["trine_count"] == 0
+    assert result["trines"] == []
 
 
 def test_without_birth_time_for_clash():
@@ -321,5 +552,41 @@ def test_without_birth_time_for_combination():
             "position_b": "month",
             "branch_b": "丑",
             "relation": "六合",
+        },
+    ]
+
+
+def test_without_birth_time_for_trine():
+    chart_data = {
+        "year": {
+            "branch": "申",
+        },
+        "month": {
+            "branch": "子",
+        },
+        "day": {
+            "branch": "辰",
+        },
+        "hour": None,
+    }
+
+    result = find_branch_trines(
+        chart_data
+    )
+
+    assert result["has_trine"] is True
+    assert result["trine_count"] == 1
+
+    assert result["trines"] == [
+        {
+            "position_a": "year",
+            "branch_a": "申",
+            "position_b": "month",
+            "branch_b": "子",
+            "position_c": "day",
+            "branch_c": "辰",
+            "relation": "三合",
+            "trine_name": "申子辰",
+            "element": "水",
         },
     ]
