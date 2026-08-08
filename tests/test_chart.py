@@ -1038,44 +1038,44 @@ def test_chart_contains_branch_relation_strength():
         relation_strength["notes"]
     ) >= 1
     def test_chart_contains_stem_combinations():
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-
-    stem_combinations = result[
-        "stem_combinations"
-    ]
-
-    assert (
-        stem_combinations["has_combination"]
-        is False
-    )
-
-    assert (
-        stem_combinations["combination_count"]
-        == 0
-    )
-
-    assert (
-        stem_combinations["combinations"]
-        == []
-    )
-
-    assert (
-        stem_combinations["method"]
-        == "stem_combination_v1"
-    )
-
-    assert (
-        stem_combinations["status"]
-        == "detected_stem_combinations"
-    )
-
-    assert isinstance(
-        stem_combinations["notes"],
-        list,
-    )
-
-    assert len(
-        stem_combinations["notes"]
-    ) >= 1
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        stem_combinations = result[
+            "stem_combinations"
+        ]
+    
+        assert (
+            stem_combinations["has_combination"]
+            is False
+        )
+    
+        assert (
+            stem_combinations["combination_count"]
+            == 0
+        )
+    
+        assert (
+            stem_combinations["combinations"]
+            == []
+        )
+    
+        assert (
+            stem_combinations["method"]
+            == "stem_combination_v1"
+        )
+    
+        assert (
+            stem_combinations["status"]
+            == "detected_stem_combinations"
+        )
+    
+        assert isinstance(
+            stem_combinations["notes"],
+            list,
+        )
+    
+        assert len(
+            stem_combinations["notes"]
+        ) >= 1
