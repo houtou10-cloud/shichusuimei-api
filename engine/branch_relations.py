@@ -18,6 +18,16 @@ BRANCH_COMBINATION_PAIRS = {
 }
 
 
+BRANCH_HARM_PAIRS = {
+    frozenset(("子", "未")),
+    frozenset(("丑", "午")),
+    frozenset(("寅", "巳")),
+    frozenset(("卯", "辰")),
+    frozenset(("申", "亥")),
+    frozenset(("酉", "戌")),
+}
+
+
 BRANCH_TRINE_GROUPS = {
     frozenset(("申", "子", "辰")): {
         "element": "水",
@@ -108,6 +118,23 @@ def is_branch_combination(
     return pair in BRANCH_COMBINATION_PAIRS
 
 
+def is_branch_harm(
+    branch_a: str,
+    branch_b: str,
+) -> bool:
+    """
+    2つの地支が六害の関係にあるかを判定します。
+    """
+    pair = frozenset(
+        (
+            branch_a,
+            branch_b,
+        )
+    )
+
+    return pair in BRANCH_HARM_PAIRS
+
+
 def is_branch_trine(
     branch_a: str,
     branch_b: str,
@@ -180,9 +207,6 @@ def find_branch_clashes(
 ) -> dict:
     """
     命式内の地支同士から六冲を検出します。
-
-    出生時間不明でhourがNoneの場合は、
-    時柱を判定対象から除外します。
     """
     available_positions = (
         get_available_positions(
@@ -248,9 +272,6 @@ def find_branch_combinations(
 ) -> dict:
     """
     命式内の地支同士から六合を検出します。
-
-    出生時間不明でhourがNoneの場合は、
-    時柱を判定対象から除外します。
     """
     available_positions = (
         get_available_positions(
@@ -317,20 +338,86 @@ def find_branch_combinations(
     }
 
 
+def find_branch_harms(
+    chart_data: dict,
+) -> dict:
+    """
+    命式内の地支同士から六害を検出します。
+
+    六害：
+    子・未
+    丑・午
+    寅・巳
+    卯・辰
+    申・亥
+    酉・戌
+    """
+    available_positions = (
+        get_available_positions(
+            chart_data
+        )
+    )
+
+    harms: list[dict] = []
+
+    for index_a in range(
+        len(available_positions)
+    ):
+        for index_b in range(
+            index_a + 1,
+            len(available_positions),
+        ):
+            position_a = (
+                available_positions[index_a]
+            )
+
+            position_b = (
+                available_positions[index_b]
+            )
+
+            branch_a = chart_data[
+                position_a
+            ]["branch"]
+
+            branch_b = chart_data[
+                position_b
+            ]["branch"]
+
+            if not is_branch_harm(
+                branch_a,
+                branch_b,
+            ):
+                continue
+
+            harms.append(
+                {
+                    "position_a": position_a,
+                    "branch_a": branch_a,
+                    "position_b": position_b,
+                    "branch_b": branch_b,
+                    "relation": "害",
+                }
+            )
+
+    return {
+        "has_harm": bool(harms),
+        "harm_count": len(harms),
+        "harms": harms,
+        "method": "branch_harm_v1",
+        "status": "detected_branch_harms",
+        "notes": [
+            "命式内の地支同士から六害を検出しています。",
+            "現在は六害の有無のみを判定しています。",
+            "害による五行・通根・身強身弱への補正は未反映です。",
+        ],
+    }
+
+
 def find_branch_trines(
     chart_data: dict,
 ) -> dict:
     """
     命式内の地支から三合を検出します。
-
-    三合四局：
-    申・子・辰 → 水局
-    亥・卯・未 → 木局
-    寅・午・戌 → 火局
-    巳・酉・丑 → 金局
-
-    出生時間不明でhourがNoneの場合は、
-    時柱を判定対象から除外します。
     """
     available_positions = (
         get_available_positions(
@@ -442,9 +529,6 @@ def find_branch_punishments(
 
     三刑は3支すべてが揃った場合のみ
     完全な三刑として判定します。
-
-    出生時間不明でhourがNoneの場合は、
-    時柱を判定対象から除外します。
     """
     available_positions = (
         get_available_positions(
