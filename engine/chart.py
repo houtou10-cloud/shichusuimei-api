@@ -31,6 +31,7 @@ from engine.weighted_root_strength import (
     calculate_weighted_roots,
 )
 
+
 JST = ZoneInfo("Asia/Tokyo")
 
 
@@ -205,13 +206,13 @@ def calculate_chart(req) -> dict:
     )
 
     weighted_strength_judgment = (
-    calculate_weighted_provisional_strength(
-        weighted_day_master_balance,
-        weighted_root_strength,
-        month_command,
-        integrated_month_strength,
+        calculate_weighted_provisional_strength(
+            weighted_day_master_balance,
+            weighted_root_strength,
+            month_command,
+            integrated_month_strength,
+        )
     )
-)
 
     warnings.extend(
         pillars.get(
