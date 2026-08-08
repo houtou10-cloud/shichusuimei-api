@@ -1,22 +1,22 @@
 """
 天干五合の化について、
-月令・通根・透干・干合競合を統合して
+月令・通根・透干・競合severityを統合して
 暫定的な総合判定を行うモジュール。
 
-現在利用する情報:
+v3では、
+競合の有無だけでなく、
+stem_combination_conflict_types の
+severity を反映します。
 
-1. 月令による化神の支持
-2. 化神の通根
-3. 化神の透干
-4. 干合参加者以外からの外部透干
-5. 同一柱が複数の干合候補に参加する競合
+補正ルール:
 
-重要:
-v2でも争合・妬合・妨害条件の
-占術的な最終判定までは行いません。
+- low    -> 判定維持
+- medium -> 1段階抑制
+- high   -> 2段階抑制
 
-競合が検出された干合候補は、
-評価を1段階抑制します。
+ただし、
+無関係な柱位置の競合は
+その干合候補へ影響させません。
 
 判定:
 
@@ -49,25 +49,26 @@ EXPOSURE_STRENGTH_SCORES = {
 }
 
 
-JUDGMENT_DOWNGRADE = {
-    "strong_candidate": "possible",
-    "possible": "weak",
-    "weak": "unsupported",
-    "unsupported": "unsupported",
+JUDGMENT_LEVELS = [
+    "unsupported",
+    "weak",
+    "possible",
+    "strong_candidate",
+]
+
+
+SEVERITY_ADJUSTMENT_STEPS = {
+    "none": 0,
+    "low": 0,
+    "medium": -1,
+    "high": -2,
 }
 
 
 def get_month_support_score(
     support_level: str,
 ) -> float:
-    """
-    月令による化神支持を
-    総合判定用スコアへ変換します。
-    """
-    if (
-        support_level
-        not in MONTH_SUPPORT_SCORES
-    ):
+    if support_level not in MONTH_SUPPORT_SCORES:
         raise ValueError(
             "不正なmonth support levelです: "
             f"{support_level}"
@@ -81,14 +82,7 @@ def get_month_support_score(
 def get_root_strength_score(
     root_strength: str,
 ) -> float:
-    """
-    化神の通根強度を
-    総合判定用スコアへ変換します。
-    """
-    if (
-        root_strength
-        not in ROOT_STRENGTH_SCORES
-    ):
+    if root_strength not in ROOT_STRENGTH_SCORES:
         raise ValueError(
             "不正なroot strengthです: "
             f"{root_strength}"
@@ -102,10 +96,6 @@ def get_root_strength_score(
 def get_exposure_strength_score(
     exposure_strength: str,
 ) -> float:
-    """
-    化神の透干状態を
-    総合判定用スコアへ変換します。
-    """
     if (
         exposure_strength
         not in EXPOSURE_STRENGTH_SCORES
@@ -124,15 +114,6 @@ def find_result_by_combination(
     results: list,
     combination_name: str,
 ) -> dict | None:
-    """
-    resultsからcombination_nameが一致する
-    最初のデータを返します。
-
-    v2では既存APIとの互換性維持のため残します。
-    複数の同名干合がある場合は、
-    positionによる照合を優先する
-    find_result_for_transformation()を使用します。
-    """
     for item in results:
         if (
             item.get(
@@ -149,16 +130,6 @@ def find_result_for_transformation(
     results: list,
     transformation: dict,
 ) -> dict | None:
-    """
-    transformationに対応する評価結果を探します。
-
-    combination_nameに加えて、
-    position_a / position_b が結果側に存在する場合は
-    位置も照合します。
-
-    既存のroot/exposure結果が位置情報を
-    持たない場合はcombination_nameで照合します。
-    """
     combination_name = transformation.get(
         "combination_name"
     )
@@ -220,14 +191,6 @@ def classify_judgment(
     has_root: bool,
     has_external_exposure: bool,
 ) -> str:
-    """
-    総合スコアと主要条件から、
-    化の候補レベルを判定します。
-
-    この段階では競合情報を反映しません。
-    競合による抑制は
-    apply_conflict_adjustment()で行います。
-    """
     if (
         month_support_level == "strong"
         and has_root
@@ -263,13 +226,6 @@ def classify_judgment(
 def get_conflicted_positions(
     stem_combination_conflicts: dict | None,
 ) -> set[str]:
-    """
-    競合評価から、
-    competing_combinationが検出された
-    柱位置を集合で返します。
-
-    Noneの場合は競合なしとして扱います。
-    """
     if stem_combination_conflicts is None:
         return set()
 
@@ -324,16 +280,6 @@ def get_transformation_conflict_info(
     transformation: dict,
     stem_combination_conflicts: dict | None,
 ) -> dict:
-    """
-    1件の干合候補が、
-    検出済みの競合位置に関係しているかを
-    判定します。
-
-    全体に競合が存在するだけでは減点せず、
-    position_a / position_b のどちらかが
-    実際に競合位置である場合だけ
-    この干合候補をconflictedとします。
-    """
     if not isinstance(
         transformation,
         dict,
@@ -364,8 +310,7 @@ def get_transformation_conflict_info(
         )
         if (
             position is not None
-            and position
-            in conflicted_positions
+            and position in conflicted_positions
         )
     ]
 
@@ -389,30 +334,223 @@ def get_transformation_conflict_info(
     }
 
 
-def apply_conflict_adjustment(
-    judgment: str,
-    has_conflict: bool,
+def get_related_typed_conflicts(
+    transformation: dict,
+    stem_combination_conflict_types: dict | None,
+) -> list[dict]:
+    """
+    transformationに関係する
+    typed conflictのみを抽出します。
+
+    position_conflictは
+    position_a / position_b が一致する場合。
+
+    duplicate_combinationは
+    combination_name が一致する場合。
+    """
+    if stem_combination_conflict_types is None:
+        return []
+
+    if not isinstance(
+        stem_combination_conflict_types,
+        dict,
+    ):
+        raise TypeError(
+            "stem_combination_conflict_typesは"
+            "dict型またはNoneで指定してください。"
+        )
+
+    conflicts = (
+        stem_combination_conflict_types.get(
+            "conflicts",
+            [],
+        )
+    )
+
+    if not isinstance(
+        conflicts,
+        list,
+    ):
+        raise TypeError(
+            "stem_combination_conflict_typesの"
+            "conflictsはlist型で指定してください。"
+        )
+
+    position_a = transformation.get(
+        "position_a"
+    )
+
+    position_b = transformation.get(
+        "position_b"
+    )
+
+    combination_name = transformation.get(
+        "combination_name"
+    )
+
+    related: list[dict] = []
+
+    for conflict in conflicts:
+        if not isinstance(
+            conflict,
+            dict,
+        ):
+            raise TypeError(
+                "typed conflictはdict型で指定してください。"
+            )
+
+        source_type = conflict.get(
+            "source_type"
+        )
+
+        if source_type == "position_conflict":
+            position = conflict.get(
+                "position"
+            )
+
+            if position in {
+                position_a,
+                position_b,
+            }:
+                related.append(
+                    conflict
+                )
+
+        elif source_type == "duplicate_combination":
+            if (
+                conflict.get(
+                    "combination_name"
+                )
+                == combination_name
+            ):
+                related.append(
+                    conflict
+                )
+
+    return related
+
+
+def get_max_conflict_severity(
+    related_conflicts: list[dict],
 ) -> str:
     """
-    競合がある干合候補の判定を
-    1段階抑制します。
-
-    strong_candidate -> possible
-    possible         -> weak
-    weak             -> unsupported
-    unsupported      -> unsupported
+    関連する競合の最大severityを返します。
     """
-    if judgment not in JUDGMENT_DOWNGRADE:
+    if not isinstance(
+        related_conflicts,
+        list,
+    ):
+        raise TypeError(
+            "related_conflictsはlist型で指定してください。"
+        )
+
+    severity_rank = {
+        "none": 0,
+        "low": 1,
+        "medium": 2,
+        "high": 3,
+    }
+
+    max_severity = "none"
+    max_rank = 0
+
+    for conflict in related_conflicts:
+        if not isinstance(
+            conflict,
+            dict,
+        ):
+            raise TypeError(
+                "typed conflictはdict型で指定してください。"
+            )
+
+        severity = conflict.get(
+            "severity",
+            "none",
+        )
+
+        if severity not in severity_rank:
+            raise ValueError(
+                "不正なconflict severityです: "
+                f"{severity}"
+            )
+
+        rank = severity_rank[
+            severity
+        ]
+
+        if rank > max_rank:
+            max_rank = rank
+            max_severity = severity
+
+    return max_severity
+
+
+def get_severity_adjustment_steps(
+    severity: str,
+) -> int:
+    if (
+        severity
+        not in SEVERITY_ADJUSTMENT_STEPS
+    ):
+        raise ValueError(
+            "不正なconflict severityです: "
+            f"{severity}"
+        )
+
+    return SEVERITY_ADJUSTMENT_STEPS[
+        severity
+    ]
+
+
+def apply_judgment_adjustment_steps(
+    judgment: str,
+    adjustment_steps: int,
+) -> str:
+    """
+    judgmentを指定段階だけ上下させます。
+
+    今回は主に負数を使用します。
+    下限はunsupported、
+    上限はstrong_candidateです。
+    """
+    if judgment not in JUDGMENT_LEVELS:
         raise ValueError(
             "不正なjudgmentです: "
             f"{judgment}"
         )
 
-    if not has_conflict:
-        return judgment
+    if not isinstance(
+        adjustment_steps,
+        int,
+    ):
+        raise TypeError(
+            "adjustment_stepsはint型で指定してください。"
+        )
 
-    return JUDGMENT_DOWNGRADE[
-        judgment
+    current_index = (
+        JUDGMENT_LEVELS.index(
+            judgment
+        )
+    )
+
+    adjusted_index = (
+        current_index
+        + adjustment_steps
+    )
+
+    adjusted_index = max(
+        0,
+        min(
+            adjusted_index,
+            len(
+                JUDGMENT_LEVELS
+            )
+            - 1,
+        ),
+    )
+
+    return JUDGMENT_LEVELS[
+        adjusted_index
     ]
 
 
@@ -421,16 +559,8 @@ def evaluate_single_transformation_judgment(
     root_result: dict,
     exposure_result: dict,
     conflict_info: dict | None = None,
+    related_typed_conflicts: list[dict] | None = None,
 ) -> dict:
-    """
-    1件の干合について、
-    月令・通根・透干・競合を統合して
-    暫定総合判定を行います。
-
-    conflict_infoを省略した場合は
-    競合なしとして扱うため、
-    v1の呼び出し方とも互換性があります。
-    """
     if not isinstance(
         transformation,
         dict,
@@ -464,6 +594,18 @@ def evaluate_single_transformation_judgment(
     ):
         raise TypeError(
             "conflict_infoはdict型またはNoneで指定してください。"
+        )
+
+    if (
+        related_typed_conflicts is not None
+        and not isinstance(
+            related_typed_conflicts,
+            list,
+        )
+    ):
+        raise TypeError(
+            "related_typed_conflictsは"
+            "list型またはNoneで指定してください。"
         )
 
     combination_name = (
@@ -639,16 +781,38 @@ def evaluate_single_transformation_judgment(
             "reason": None,
         }
 
-    has_conflict = bool(
-        conflict_info.get(
-            "has_conflict",
-            False,
+    if related_typed_conflicts is None:
+        related_typed_conflicts = []
+
+    conflict_severity = (
+        get_max_conflict_severity(
+            related_typed_conflicts
         )
     )
 
-    judgment = apply_conflict_adjustment(
-        base_judgment,
-        has_conflict,
+    severity_adjustment_steps = (
+        get_severity_adjustment_steps(
+            conflict_severity
+        )
+    )
+
+    # typed conflictが存在しない場合は、
+    # v2互換のconflict_infoを利用します。
+    if (
+        conflict_severity == "none"
+        and conflict_info.get(
+            "has_conflict",
+            False,
+        )
+    ):
+        conflict_severity = "medium"
+        severity_adjustment_steps = -1
+
+    judgment = (
+        apply_judgment_adjustment_steps(
+            base_judgment,
+            severity_adjustment_steps,
+        )
     )
 
     if judgment == "strong_candidate":
@@ -720,9 +884,19 @@ def evaluate_single_transformation_judgment(
             "no_transformation_exposure"
         )
 
-    if has_conflict:
+    if conflict_severity == "low":
         limiting_factors.append(
-            "competing_combination"
+            "low_conflict"
+        )
+
+    elif conflict_severity == "medium":
+        limiting_factors.append(
+            "medium_conflict"
+        )
+
+    elif conflict_severity == "high":
+        limiting_factors.append(
+            "high_conflict"
         )
 
     return {
@@ -779,10 +953,20 @@ def evaluate_single_transformation_judgment(
             base_judgment
         ),
         "has_conflict": (
-            has_conflict
+            conflict_severity
+            != "none"
+        ),
+        "conflict_severity": (
+            conflict_severity
+        ),
+        "conflict_adjustment_steps": (
+            severity_adjustment_steps
         ),
         "conflict_info": (
             conflict_info
+        ),
+        "related_typed_conflicts": (
+            related_typed_conflicts
         ),
         "judgment": (
             judgment
@@ -804,16 +988,8 @@ def evaluate_stem_transformation_judgment(
     transformation_roots: dict,
     transformation_exposures: dict,
     stem_combination_conflicts: dict | None = None,
+    stem_combination_conflict_types: dict | None = None,
 ) -> dict:
-    """
-    全ての干合候補について、
-    月令・通根・透干・競合を統合した
-    暫定総合判定を行います。
-
-    第4引数は任意です。
-    省略した場合は競合なしとして扱うため、
-    既存コードとの互換性を保ちます。
-    """
     if not isinstance(
         stem_transformations,
         dict,
@@ -847,6 +1023,18 @@ def evaluate_stem_transformation_judgment(
     ):
         raise TypeError(
             "stem_combination_conflictsは"
+            "dict型またはNoneで指定してください。"
+        )
+
+    if (
+        stem_combination_conflict_types is not None
+        and not isinstance(
+            stem_combination_conflict_types,
+            dict,
+        )
+    ):
+        raise TypeError(
+            "stem_combination_conflict_typesは"
             "dict型またはNoneで指定してください。"
         )
 
@@ -955,12 +1143,20 @@ def evaluate_stem_transformation_judgment(
             )
         )
 
+        related_typed_conflicts = (
+            get_related_typed_conflicts(
+                transformation,
+                stem_combination_conflict_types,
+            )
+        )
+
         judgment = (
             evaluate_single_transformation_judgment(
                 transformation,
                 root_result,
                 exposure_result,
                 conflict_info,
+                related_typed_conflicts,
             )
         )
 
@@ -1007,9 +1203,45 @@ def evaluate_stem_transformation_judgment(
     conflicted_judgment_count = sum(
         1
         for item in judgments
-        if item[
-            "has_conflict"
-        ]
+        if (
+            item[
+                "conflict_severity"
+            ]
+            != "none"
+        )
+    )
+
+    high_conflict_count = sum(
+        1
+        for item in judgments
+        if (
+            item[
+                "conflict_severity"
+            ]
+            == "high"
+        )
+    )
+
+    medium_conflict_count = sum(
+        1
+        for item in judgments
+        if (
+            item[
+                "conflict_severity"
+            ]
+            == "medium"
+        )
+    )
+
+    low_conflict_count = sum(
+        1
+        for item in judgments
+        if (
+            item[
+                "conflict_severity"
+            ]
+            == "low"
+        )
     )
 
     if not judgments:
@@ -1076,6 +1308,15 @@ def evaluate_stem_transformation_judgment(
         "conflicted_judgment_count": (
             conflicted_judgment_count
         ),
+        "high_conflict_count": (
+            high_conflict_count
+        ),
+        "medium_conflict_count": (
+            medium_conflict_count
+        ),
+        "low_conflict_count": (
+            low_conflict_count
+        ),
         "overall_judgment": (
             overall_judgment
         ),
@@ -1083,7 +1324,7 @@ def evaluate_stem_transformation_judgment(
             judgments
         ),
         "method": (
-            "stem_transformation_judgment_v2"
+            "stem_transformation_judgment_v3"
         ),
         "status": (
             "provisional_stem_transformation_judgment"
@@ -1091,26 +1332,25 @@ def evaluate_stem_transformation_judgment(
         "notes": [
             (
                 "天干五合の化について、"
-                "月令・通根・透干・干合競合を"
+                "月令・通根・透干・競合severityを"
                 "統合して暫定評価しています。"
             ),
             (
-                "競合する柱位置を含む干合候補は"
-                "判定を1段階抑制しています。"
+                "low競合は判定維持、"
+                "mediumは1段階、"
+                "highは2段階抑制します。"
+            ),
+            (
+                "無関係な柱位置の競合は"
+                "対象干合へ影響させません。"
             ),
             (
                 "strong_candidateでも"
                 "化成立を確定したものではありません。"
             ),
             (
-                "争合・妬合の詳細分類や"
-                "その他の妨害条件は"
-                "まだ評価していません。"
-            ),
-            (
-                "現段階では五行量や"
-                "身強身弱への変換補正を"
-                "行っていません。"
+                "争合・妬合の古典的な最終判定は"
+                "まだ暫定段階です。"
             ),
         ],
     }
