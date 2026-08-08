@@ -1,15 +1,28 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+
+from engine.branch_relation_strength import (
+    calculate_branch_relation_strength,
+)
 from engine.branch_relations import (
+    find_branch_breaks,
     find_branch_clashes,
     find_branch_combinations,
+    find_branch_harms,
+    find_branch_punishments,
+    find_branch_trines,
 )
 from engine.day_master_strength import (
     classify_five_elements_for_day_master,
     classify_weighted_elements_for_day_master,
 )
-from engine.five_elements import calculate_five_elements
+from engine.five_elements import (
+    calculate_five_elements,
+)
+from engine.final_strength_judgment import (
+    evaluate_final_strength_judgment,
+)
 from engine.integrated_month_strength import (
     calculate_integrated_month_strength,
 )
@@ -21,9 +34,30 @@ from engine.root_strength import find_roots
 from engine.seasonal_strength import (
     evaluate_seasonal_strength,
 )
+from engine.stem_combination_conflict_types import (
+    evaluate_stem_combination_conflict_types,
+)
+from engine.stem_combination_conflicts import (
+    evaluate_stem_combination_conflicts,
+)
+from engine.stem_combinations import (
+    find_stem_combinations,
+)
+from engine.stem_transformation_judgment import (
+    evaluate_stem_transformation_judgment,
+)
+from engine.stem_transformation import (
+    evaluate_stem_transformations,
+)
 from engine.strength_judgment import (
     calculate_provisional_strength,
     calculate_weighted_provisional_strength,
+)
+from engine.transformation_exposure import (
+    evaluate_transformation_exposures,
+)
+from engine.transformation_root import (
+    evaluate_transformation_roots,
 )
 from engine.weighted_five_elements import (
     calculate_weighted_five_elements,
@@ -137,6 +171,57 @@ def calculate_chart(req) -> dict:
         "hour": pillars["hour"],
     }
 
+    stem_combinations = (
+        find_stem_combinations(
+            chart_data
+        )
+    )
+
+    stem_combination_conflicts = (
+        evaluate_stem_combination_conflicts(
+            stem_combinations,
+            chart_data,
+        )
+    )
+
+    stem_combination_conflict_types = (
+        evaluate_stem_combination_conflict_types(
+            stem_combination_conflicts
+        )
+    )
+
+    stem_transformations = (
+        evaluate_stem_transformations(
+            stem_combinations,
+            chart_data,
+        )
+    )
+
+    transformation_roots = (
+        evaluate_transformation_roots(
+            stem_transformations,
+            chart_data,
+        )
+    )
+
+    transformation_exposures = (
+        evaluate_transformation_exposures(
+            stem_transformations,
+            chart_data,
+        )
+    )
+
+    stem_transformation_judgment = (
+        evaluate_stem_transformation_judgment(
+            stem_transformations,
+            transformation_roots,
+            transformation_exposures,
+            stem_combination_conflicts,
+            stem_combination_conflict_types,
+        )
+    )
+
+
     five_elements = calculate_five_elements(
         chart_data
     )
@@ -173,8 +258,15 @@ def calculate_chart(req) -> dict:
         )
     )
 
+
+    branch_clashes = (
+        find_branch_clashes(
+            chart_data
+        )
+    )
     branch_clashes = find_branch_clashes(
         chart_data
+
     )
 
     branch_combinations = (
@@ -183,6 +275,40 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    branch_trines = (
+        find_branch_trines(
+            chart_data
+        )
+    )
+
+    branch_punishments = (
+        find_branch_punishments(
+            chart_data
+        )
+    )
+
+    branch_harms = (
+        find_branch_harms(
+            chart_data
+        )
+    )
+
+    branch_breaks = (
+        find_branch_breaks(
+            chart_data
+        )
+    )
+
+    branch_relation_strength = (
+        calculate_branch_relation_strength(
+            branch_clashes,
+            branch_combinations,
+            branch_trines,
+            branch_punishments,
+            branch_harms,
+            branch_breaks,
+        )
+    )
     month_command = (
         classify_month_relationship(
             pillars["day_master"]["stem"],
@@ -235,6 +361,16 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    final_strength_judgment = (
+        evaluate_final_strength_judgment(
+            weighted_strength_judgment,
+            weighted_root_strength,
+            integrated_month_strength,
+            branch_relation_strength,
+            stem_transformation_judgment,
+        )
+    )
+
     return {
         "input": {
             "birth_date": birth_date,
@@ -244,6 +380,30 @@ def calculate_chart(req) -> dict:
             "timezone": "Asia/Tokyo",
         },
         "chart": chart_data,
+        "stem_combinations": (
+            stem_combinations
+        ),
+        "stem_combination_conflicts": (
+            stem_combination_conflicts
+        ),
+        "stem_combination_conflict_types": (
+            stem_combination_conflict_types
+        ),
+        "stem_transformations": (
+            stem_transformations
+        ),
+        "transformation_roots": (
+            transformation_roots
+        ),
+        "transformation_exposures": (
+            transformation_exposures
+        ),
+        "stem_transformation_judgment": (
+            stem_transformation_judgment
+        ),
+        "final_strength_judgment": (
+            final_strength_judgment
+        ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
         "weighted_five_elements": (
@@ -264,6 +424,22 @@ def calculate_chart(req) -> dict:
         ),
         "branch_combinations": (
             branch_combinations
+        ),
+
+        "branch_trines": (
+            branch_trines
+        ),
+        "branch_punishments": (
+            branch_punishments
+        ),
+        "branch_harms": (
+            branch_harms
+        ),
+        "branch_breaks": (
+            branch_breaks
+        ),
+        "branch_relation_strength": (
+            branch_relation_strength
         ),
         "month_command": month_command,
         "weighted_month_command": (

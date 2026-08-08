@@ -183,7 +183,11 @@ def test_chart_contains_five_elements():
     }
 
     assert five_elements["total"] == 19
-    assert five_elements["method"] == "simple_count_v1"
+
+    assert (
+        five_elements["method"]
+        == "simple_count_v1"
+    )
 
 
 def test_chart_contains_weighted_five_elements():
@@ -209,6 +213,7 @@ def test_chart_contains_weighted_five_elements():
     }
 
     assert weighted["total"] == 8.0
+
     assert (
         weighted["method"]
         == "weighted_hidden_stems_v1"
@@ -345,7 +350,11 @@ def test_chart_contains_weighted_root_strength():
     assert weighted_root["day_element"] == "木"
     assert weighted_root["has_root"] is True
     assert weighted_root["root_count"] == 2
-    assert weighted_root["total_root_score"] == 0.45
+
+    assert (
+        weighted_root["total_root_score"]
+        == 0.45
+    )
 
     assert weighted_root["root_positions"] == [
         "month",
@@ -394,10 +403,23 @@ def test_chart_contains_month_command():
     assert month_command["day_element"] == "木"
     assert month_command["month_branch"] == "未"
     assert month_command["month_element"] == "土"
-    assert month_command["relationship"] == "wealth"
-    assert month_command["relationship_label"] == "財星"
+
+    assert (
+        month_command["relationship"]
+        == "wealth"
+    )
+
+    assert (
+        month_command["relationship_label"]
+        == "財星"
+    )
+
     assert month_command["effect"] == "draining"
-    assert month_command["supports_day_master"] is False
+
+    assert (
+        month_command["supports_day_master"]
+        is False
+    )
 
     assert (
         month_command["method"]
@@ -448,7 +470,11 @@ def test_chart_contains_strength_judgment():
     )
 
     assert judgment["final_score"] == 45.11
-    assert judgment["base_supporting_ratio"] == 42.11
+
+    assert (
+        judgment["base_supporting_ratio"]
+        == 42.11
+    )
 
     assert judgment["adjustments"] == {
         "root_bonus": 6.0,
@@ -476,13 +502,23 @@ def test_chart_contains_weighted_strength_judgment():
         "weighted_strength_judgment"
     ]
 
-    assert judgment["label"] == "やや身強寄り"
-    assert judgment["final_score"] == 53.5
-    assert judgment["base_supporting_ratio"] == 55.0
+    assert (
+        judgment["label"]
+        == "やや身強寄り"
+    )
+
+    # V3:
+    # 55.0 + 4.5 - 9.2 = 50.3
+    assert judgment["final_score"] == 50.3
+
+    assert (
+        judgment["base_supporting_ratio"]
+        == 55.0
+    )
 
     assert judgment["adjustments"] == {
         "weighted_root_bonus": 4.5,
-        "seasonal_adjustment": -6.0,
+        "integrated_month_adjustment": -9.2,
     }
 
     assert (
@@ -490,6 +526,13 @@ def test_chart_contains_weighted_strength_judgment():
             "total_root_score"
         ]
         == 0.45
+    )
+
+    assert (
+        judgment["evidence"][
+            "integrated_month_score"
+        ]
+        == -9.2
     )
 
     assert (
@@ -507,14 +550,44 @@ def test_chart_contains_weighted_strength_judgment():
     )
 
     assert (
+        judgment["evidence"][
+            "month_supporting_ratio"
+        ]
+        == 10.0
+    )
+
+    assert (
+        judgment["evidence"][
+            "month_draining_ratio"
+        ]
+        == 90.0
+    )
+
+    assert (
+        judgment["evidence"][
+            "hidden_stem_balance"
+        ]
+        == -0.8
+    )
+
+    assert (
+        judgment["evidence"][
+            "hidden_stem_adjustment"
+        ]
+        == -3.2
+    )
+
+    assert (
         judgment["method"]
-        == "weighted_provisional_strength_v2"
+        == "weighted_provisional_strength_v3"
     )
 
     assert (
         judgment["status"]
         == "provisional_weighted_judgment"
     )
+
+
 def test_chart_contains_weighted_month_command():
     request = make_verified_request()
 
@@ -583,6 +656,7 @@ def test_chart_contains_weighted_month_command():
         == "provisional_weighted_month_command"
     )
 
+
 def test_chart_contains_integrated_month_strength():
     request = make_verified_request()
 
@@ -592,10 +666,22 @@ def test_chart_contains_integrated_month_strength():
         "integrated_month_strength"
     ]
 
-    assert integrated["seasonal_state"] == "囚"
+    assert (
+        integrated["seasonal_state"]
+        == "囚"
+    )
+
     assert integrated["seasonal_score"] == -6.0
-    assert integrated["supporting_ratio"] == 10.0
-    assert integrated["draining_ratio"] == 90.0
+
+    assert (
+        integrated["supporting_ratio"]
+        == 10.0
+    )
+
+    assert (
+        integrated["draining_ratio"]
+        == 90.0
+    )
 
     assert (
         integrated["hidden_stem_balance"]
@@ -607,7 +693,10 @@ def test_chart_contains_integrated_month_strength():
         == -3.2
     )
 
-    assert integrated["integrated_score"] == -9.2
+    assert (
+        integrated["integrated_score"]
+        == -9.2
+    )
 
     assert (
         integrated["method"]
@@ -618,7 +707,88 @@ def test_chart_contains_integrated_month_strength():
         integrated["status"]
         == "provisional_integrated_month_strength"
     )
-    def test_chart_contains_branch_trines():
+def test_chart_contains_branch_clashes():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    branch_clashes = result[
+        "branch_clashes"
+    ]
+
+    assert (
+        branch_clashes["has_clash"]
+        is True
+    )
+
+    assert (
+        branch_clashes["clash_count"]
+        == 2
+    )
+
+    assert branch_clashes["clashes"] == [
+        {
+            "position_a": "year",
+            "branch_a": "丑",
+            "position_b": "month",
+            "branch_b": "未",
+            "relation": "冲",
+        },
+        {
+            "position_a": "day",
+            "branch_a": "巳",
+            "position_b": "hour",
+            "branch_b": "亥",
+            "relation": "冲",
+        },
+    ]
+
+    assert (
+        branch_clashes["method"]
+        == "branch_clash_v1"
+    )
+
+    assert (
+        branch_clashes["status"]
+        == "detected_branch_clashes"
+    )
+
+
+def test_chart_contains_branch_combinations():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    branch_combinations = result[
+        "branch_combinations"
+    ]
+
+    assert (
+        branch_combinations["has_combination"]
+        is False
+    )
+
+    assert (
+        branch_combinations["combination_count"]
+        == 0
+    )
+
+    assert (
+        branch_combinations["combinations"]
+        == []
+    )
+
+    assert (
+        branch_combinations["method"]
+        == "branch_combination_v1"
+    )
+
+    assert (
+        branch_combinations["status"]
+        == "detected_branch_combinations"
+    )
+
+def test_chart_contains_branch_trines():
     request = make_verified_request()
 
     result = calculate_chart(request)
@@ -650,4 +820,961 @@ def test_chart_contains_integrated_month_strength():
     assert (
         branch_trines["status"]
         == "detected_branch_trines"
+    )
+
+def test_chart_contains_branch_punishments():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    branch_punishments = result[
+        "branch_punishments"
+    ]
+
+    assert (
+        branch_punishments["has_punishment"]
+        is False
+    )
+
+    assert (
+        branch_punishments["punishment_count"]
+        == 0
+    )
+
+    assert (
+        branch_punishments["punishments"]
+        == []
+    )
+
+    assert (
+        branch_punishments["method"]
+        == "branch_punishment_v1"
+    )
+
+    assert (
+        branch_punishments["status"]
+        == "detected_branch_punishments"
+    )
+
+
+def test_chart_contains_branch_harms():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    branch_harms = result[
+        "branch_harms"
+    ]
+
+    assert branch_harms["has_harm"] is False
+    assert branch_harms["harm_count"] == 0
+    assert branch_harms["harms"] == []
+
+    assert (
+        branch_harms["method"]
+        == "branch_harm_v1"
+    )
+
+    assert (
+        branch_harms["status"]
+        == "detected_branch_harms"
+    )
+
+def test_chart_contains_branch_breaks():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    branch_breaks = result[
+        "branch_breaks"
+    ]
+
+    assert (
+        branch_breaks["has_break"]
+        is False
+    )
+
+    assert (
+        branch_breaks["break_count"]
+        == 0
+    )
+
+    assert (
+        branch_breaks["breaks"]
+        == []
+    )
+
+    assert (
+        branch_breaks["method"]
+        == "branch_break_v1"
+    )
+
+    assert (
+        branch_breaks["status"]
+        == "detected_branch_breaks"
+    )
+
+
+def test_chart_contains_branch_relation_strength():
+    """
+    calculate_chart() の結果に
+    地支関係の総合強度が含まれることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    relation_strength = result[
+        "branch_relation_strength"
+    ]
+
+    # 検証命式:
+    # 年支 丑 / 月支 未 / 日支 巳 / 時支 亥
+    #
+    # 冲:
+    # 丑-未
+    # 巳-亥
+    #
+    # その他:
+    # 六合 0
+    # 三合 0
+    # 刑   0
+    # 害   0
+    # 破   0
+    assert (
+        relation_strength["total_relation_count"]
+        == 2
+    )
+
+    assert (
+        relation_strength["positive_score"]
+        == 0.0
+    )
+
+    assert (
+        relation_strength["negative_score"]
+        == 4.0
+    )
+
+    assert (
+        relation_strength["total_score"]
+        == -4.0
+    )
+
+    assert (
+        relation_strength["balance"]
+        == "negative"
+    )
+
+    assert relation_strength["details"]["clash"] == {
+        "count": 2,
+        "weight": -2.0,
+        "score": -4.0,
+    }
+
+    assert (
+        relation_strength["details"]["combination"]
+        == {
+            "count": 0,
+            "weight": 1.5,
+            "score": 0.0,
+        }
+    )
+
+    assert relation_strength["details"]["trine"] == {
+        "count": 0,
+        "weight": 2.5,
+        "score": 0.0,
+    }
+
+    assert (
+        relation_strength["details"]["punishment"]
+        == {
+            "count": 0,
+            "weight": -1.5,
+            "score": 0.0,
+        }
+    )
+
+    assert relation_strength["details"]["harm"] == {
+        "count": 0,
+        "weight": -1.0,
+        "score": 0.0,
+    }
+
+    assert relation_strength["details"]["break"] == {
+        "count": 0,
+        "weight": -0.5,
+        "score": 0.0,
+    }
+
+    assert relation_strength["weights"] == {
+        "clash": -2.0,
+        "combination": 1.5,
+        "trine": 2.5,
+        "punishment": -1.5,
+        "harm": -1.0,
+        "break": -0.5,
+    }
+
+    assert (
+        relation_strength["method"]
+        == "branch_relation_strength_v1"
+    )
+
+    assert (
+        relation_strength["status"]
+        == "provisional_branch_relation_strength"
+    )
+
+    assert isinstance(
+        relation_strength["notes"],
+        list,
+    )
+
+    assert len(
+        relation_strength["notes"]
+    ) >= 1
+    def test_chart_contains_stem_combinations():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        stem_combinations = result[
+            "stem_combinations"
+        ]
+    
+        assert (
+            stem_combinations["has_combination"]
+            is False
+        )
+    
+        assert (
+            stem_combinations["combination_count"]
+            == 0
+        )
+    
+        assert (
+            stem_combinations["combinations"]
+            == []
+        )
+    
+        assert (
+            stem_combinations["method"]
+            == "stem_combination_v1"
+        )
+    
+        assert (
+            stem_combinations["status"]
+            == "detected_stem_combinations"
+        )
+    
+        assert isinstance(
+            stem_combinations["notes"],
+            list,
+        )
+    
+        assert len(
+            stem_combinations["notes"]
+        ) >= 1
+def test_chart_contains_stem_transformations():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        stem_transformations = result[
+            "stem_transformations"
+        ]
+    
+        assert (
+            stem_transformations[
+                "has_stem_combination"
+            ]
+            is False
+        )
+    
+        assert (
+            stem_transformations[
+                "transformation_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            stem_transformations[
+                "possible_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            stem_transformations[
+                "unsupported_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            stem_transformations[
+                "overall_status"
+            ]
+            == "not_applicable"
+        )
+    
+        assert (
+            stem_transformations[
+                "transformations"
+            ]
+            == []
+        )
+    
+        assert (
+            stem_transformations[
+                "method"
+            ]
+            == "stem_transformation_v1"
+        )
+    
+        assert (
+            stem_transformations[
+                "status"
+            ]
+            == "provisional_stem_transformation"
+        )
+    
+        assert isinstance(
+            stem_transformations["notes"],
+            list,
+        )
+    
+        assert (
+            len(
+                stem_transformations["notes"]
+            )
+            >= 1
+        )
+def test_chart_contains_transformation_roots():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        transformation_roots = result[
+            "transformation_roots"
+        ]
+    
+        assert (
+            transformation_roots[
+                "has_transformation_candidate"
+            ]
+            is False
+        )
+    
+        assert (
+            transformation_roots[
+                "transformation_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_roots[
+                "rooted_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_roots[
+                "month_rooted_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_roots[
+                "overall_root_status"
+            ]
+            == "not_applicable"
+        )
+    
+        assert (
+            transformation_roots[
+                "results"
+            ]
+            == []
+        )
+    
+        assert (
+            transformation_roots[
+                "method"
+            ]
+            == "transformation_roots_v1"
+        )
+    
+        assert (
+            transformation_roots[
+                "status"
+            ]
+            == "provisional_transformation_roots"
+        )
+    
+        assert isinstance(
+            transformation_roots["notes"],
+            list,
+        )
+    
+        assert (
+            len(
+                transformation_roots["notes"]
+            )
+            >= 1
+        )
+def test_chart_contains_transformation_exposures():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        transformation_exposures = result[
+            "transformation_exposures"
+        ]
+    
+        assert (
+            transformation_exposures[
+                "has_transformation_candidate"
+            ]
+            is False
+        )
+    
+        assert (
+            transformation_exposures[
+                "transformation_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_exposures[
+                "exposed_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_exposures[
+                "external_exposed_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            transformation_exposures[
+                "overall_exposure_status"
+            ]
+            == "not_applicable"
+        )
+    
+        assert (
+            transformation_exposures[
+                "results"
+            ]
+            == []
+        )
+    
+        assert (
+            transformation_exposures[
+                "method"
+            ]
+            == "transformation_exposures_v1"
+        )
+    
+        assert (
+            transformation_exposures[
+                "status"
+            ]
+            == "provisional_transformation_exposures"
+        )
+    
+        assert isinstance(
+            transformation_exposures["notes"],
+            list,
+        )
+    
+        assert (
+            len(
+                transformation_exposures["notes"]
+            )
+            >= 1
+        )
+def test_chart_contains_stem_transformation_judgment():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        judgment = result[
+            "stem_transformation_judgment"
+        ]
+    
+        assert (
+            judgment[
+                "has_transformation_candidate"
+            ]
+            is False
+        )
+    
+        assert (
+            judgment["judgment_count"]
+            == 0
+        )
+    
+        assert (
+            judgment[
+                "strong_candidate_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            judgment["possible_count"]
+            == 0
+        )
+    
+        assert (
+            judgment["weak_count"]
+            == 0
+        )
+    
+        assert (
+            judgment["unsupported_count"]
+            == 0
+        )
+
+        assert (
+            judgment[
+                "conflicted_judgment_count"
+            ]
+            == 0
+        )
+
+        assert (
+            judgment[
+                "high_conflict_count"
+            ]
+            == 0
+        )
+
+        assert (
+            judgment[
+                "medium_conflict_count"
+            ]
+            == 0
+        )
+
+        assert (
+            judgment[
+                "low_conflict_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            judgment["overall_judgment"]
+            == "not_applicable"
+        )
+    
+        assert (
+            judgment["judgments"]
+            == []
+        )
+    
+        assert (
+            judgment["method"]
+            == "stem_transformation_judgment_v3"
+        )
+    
+        assert (
+            judgment["status"]
+            == "provisional_stem_transformation_judgment"
+        )
+    
+        assert isinstance(
+            judgment["notes"],
+            list,
+        )
+    
+        assert (
+            len(
+                judgment["notes"]
+            )
+            >= 1
+        )
+def test_chart_contains_stem_combination_conflicts():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        conflicts = result[
+            "stem_combination_conflicts"
+        ]
+    
+        assert (
+            conflicts[
+                "has_stem_combination"
+            ]
+            is False
+        )
+    
+        assert (
+            conflicts[
+                "combination_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflicts[
+                "has_conflict"
+            ]
+            is False
+        )
+    
+        assert (
+            conflicts[
+                "conflict_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflicts[
+                "position_conflict_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflicts[
+                "duplicate_combination_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflicts[
+                "position_conflicts"
+            ]
+            == []
+        )
+    
+        assert (
+            conflicts[
+                "duplicate_combinations"
+            ]
+            == []
+        )
+    
+        assert (
+            conflicts[
+                "overall_status"
+            ]
+            == "not_applicable"
+        )
+    
+        assert (
+            conflicts[
+                "method"
+            ]
+            == "stem_combination_conflict_v1"
+        )
+    
+        assert (
+            conflicts[
+                "status"
+            ]
+            == "detected_stem_combination_conflicts"
+        )
+    
+        assert isinstance(
+            conflicts["notes"],
+            list,
+        )
+    
+        assert len(
+            conflicts["notes"]
+        ) >= 1
+
+
+def test_chart_contains_stem_combination_conflict_types():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    conflict_types = result[
+        "stem_combination_conflict_types"
+    ]
+
+    assert (
+        conflict_types[
+            "has_typed_conflict"
+        ]
+        is False
+    )
+
+    assert (
+        conflict_types[
+            "typed_conflict_count"
+        ]
+        == 0
+    )
+
+    assert (
+        conflict_types[
+            "position_conflict_count"
+        ]
+        == 0
+    )
+
+    assert (
+        conflict_types[
+            "duplicate_conflict_count"
+        ]
+        == 0
+    )
+
+    assert (
+        conflict_types[
+            "争合_candidate_count"
+        ]
+        == 0
+    )
+
+    assert (
+        conflict_types[
+            "multiple_conflict_count"
+        ]
+        == 0
+    )
+
+    assert (
+        conflict_types[
+            "unclassified_count"
+        ]
+        == 0
+    )
+
+    assert (
+        conflict_types[
+            "severity_counts"
+        ]
+        == {
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+        }
+    )
+
+    assert (
+        conflict_types[
+            "overall_severity"
+        ]
+        == "none"
+    )
+
+    assert (
+        conflict_types[
+            "position_conflicts"
+        ]
+        == []
+    )
+
+    assert (
+        conflict_types[
+            "duplicate_conflicts"
+        ]
+        == []
+    )
+
+    assert (
+        conflict_types[
+            "conflicts"
+        ]
+        == []
+    )
+
+    assert (
+        conflict_types[
+            "overall_status"
+        ]
+        == "not_applicable"
+    )
+
+    assert (
+        conflict_types[
+            "method"
+        ]
+        == "stem_combination_conflict_types_v1"
+    )
+
+    assert (
+        conflict_types[
+            "status"
+        ]
+        == "provisional_conflict_typing"
+    )
+
+    assert isinstance(
+        conflict_types["notes"],
+        list,
+    )
+
+    assert (
+        len(
+            conflict_types["notes"]
+        )
+        >= 1
+    )
+
+
+def test_chart_contains_final_strength_judgment():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    judgment = result[
+        "final_strength_judgment"
+    ]
+
+    assert isinstance(
+        judgment["base_score"],
+        float,
+    )
+
+    assert isinstance(
+        judgment["root_adjustment"],
+        float,
+    )
+
+    assert isinstance(
+        judgment["month_adjustment"],
+        float,
+    )
+
+    assert isinstance(
+        judgment["branch_adjustment"],
+        float,
+    )
+
+    assert isinstance(
+        judgment[
+            "transformation_adjustment"
+        ],
+        float,
+    )
+
+    assert isinstance(
+        judgment["adjustment_total"],
+        float,
+    )
+
+    assert isinstance(
+        judgment["raw_final_score"],
+        float,
+    )
+
+    assert isinstance(
+        judgment["final_score"],
+        float,
+    )
+
+    assert (
+        0.0
+        <= judgment["final_score"]
+        <= 100.0
+    )
+
+    assert judgment[
+        "technical_label"
+    ] in {
+        "very_strong",
+        "strong",
+        "balanced",
+        "weak",
+        "very_weak",
+    }
+
+    assert judgment["label"] in {
+        "極身強",
+        "身強",
+        "中和",
+        "身弱",
+        "極身弱",
+    }
+
+    assert judgment["confidence"] in {
+        "high",
+        "medium",
+        "low",
+    }
+
+    assert isinstance(
+        judgment["components"],
+        dict,
+    )
+
+    assert (
+        judgment["components"][
+            "base"
+        ]["score"]
+        == judgment["base_score"]
+    )
+
+    assert (
+        judgment["components"][
+            "root"
+        ]["adjustment"]
+        == judgment["root_adjustment"]
+    )
+
+    assert (
+        judgment["components"][
+            "month"
+        ]["adjustment"]
+        == judgment["month_adjustment"]
+    )
+
+    assert (
+        judgment["components"][
+            "branch_relations"
+        ]["adjustment"]
+        == judgment["branch_adjustment"]
+    )
+
+    assert (
+        judgment["components"][
+            "stem_transformation"
+        ]["adjustment"]
+        == judgment[
+            "transformation_adjustment"
+        ]
+    )
+
+    assert (
+        judgment["method"]
+        == "final_strength_judgment_v1"
+    )
+
+    assert (
+        judgment["status"]
+        == "provisional_final_strength_judgment"
+    )
+
+    assert isinstance(
+        judgment["notes"],
+        list,
+    )
+
+    assert (
+        len(
+            judgment["notes"]
+        )
+        >= 1
     )

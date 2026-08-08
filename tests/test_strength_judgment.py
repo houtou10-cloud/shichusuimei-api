@@ -136,38 +136,92 @@ def test_weighted_verified_chart_strength():
         "relationship": "wealth",
     }
 
-    seasonal_strength = {
-        "state": "囚",
-        "score": -6.0,
+    integrated_month_strength = {
+        "seasonal_state": "囚",
+        "seasonal_score": -6.0,
+        "supporting_ratio": 10.0,
+        "draining_ratio": 90.0,
+        "hidden_stem_balance": -0.8,
+        "hidden_stem_adjustment": -3.2,
+        "integrated_score": -9.2,
     }
 
     result = calculate_weighted_provisional_strength(
         weighted_day_master_balance,
         weighted_root_strength,
         month_command,
-        seasonal_strength,
+        integrated_month_strength,
     )
 
-    # 55.0 + 4.5 - 6.0 = 53.5
+    # 55.0 + 4.5 - 9.2 = 50.3
     assert result["label"] == "やや身強寄り"
-    assert result["final_score"] == 53.5
+    assert result["final_score"] == 50.3
+    assert result["base_supporting_ratio"] == 55.0
 
     assert result["adjustments"] == {
         "weighted_root_bonus": 4.5,
-        "seasonal_adjustment": -6.0,
+        "integrated_month_adjustment": -9.2,
     }
 
-    assert result["evidence"][
-        "seasonal_state"
-    ] == "囚"
+    assert (
+        result["evidence"][
+            "total_root_score"
+        ]
+        == 0.45
+    )
 
-    assert result["evidence"][
-        "seasonal_score"
-    ] == -6.0
+    assert (
+        result["evidence"][
+            "integrated_month_score"
+        ]
+        == -9.2
+    )
+
+    assert (
+        result["evidence"][
+            "seasonal_state"
+        ]
+        == "囚"
+    )
+
+    assert (
+        result["evidence"][
+            "seasonal_score"
+        ]
+        == -6.0
+    )
+
+    assert (
+        result["evidence"][
+            "month_supporting_ratio"
+        ]
+        == 10.0
+    )
+
+    assert (
+        result["evidence"][
+            "month_draining_ratio"
+        ]
+        == 90.0
+    )
+
+    assert (
+        result["evidence"][
+            "hidden_stem_balance"
+        ]
+        == -0.8
+    )
+
+    assert (
+        result["evidence"][
+            "hidden_stem_adjustment"
+        ]
+        == -3.2
+    )
 
     assert (
         result["method"]
-        == "weighted_provisional_strength_v2"
+        == "weighted_provisional_strength_v3"
     )
 
     assert (
@@ -176,7 +230,7 @@ def test_weighted_verified_chart_strength():
     )
 
 
-def test_weighted_strength_with_prosperous_season():
+def test_weighted_strength_with_strong_month():
     weighted_day_master_balance = {
         "supporting_score": 4.4,
         "draining_score": 3.6,
@@ -197,28 +251,39 @@ def test_weighted_strength_with_prosperous_season():
         "relationship": "companion",
     }
 
-    seasonal_strength = {
-        "state": "旺",
-        "score": 12.0,
+    integrated_month_strength = {
+        "seasonal_state": "旺",
+        "seasonal_score": 12.0,
+        "supporting_ratio": 80.0,
+        "draining_ratio": 20.0,
+        "hidden_stem_balance": 0.6,
+        "hidden_stem_adjustment": 2.4,
+        "integrated_score": 14.4,
     }
 
     result = calculate_weighted_provisional_strength(
         weighted_day_master_balance,
         weighted_root_strength,
         month_command,
-        seasonal_strength,
+        integrated_month_strength,
     )
 
-    # 55.0 + 4.5 + 12.0 = 71.5
-    assert result["final_score"] == 71.5
+    # 55.0 + 4.5 + 14.4 = 73.9
+    assert result["final_score"] == 73.9
     assert result["label"] == "身強寄り"
+
+    assert result["adjustments"] == {
+        "weighted_root_bonus": 4.5,
+        "integrated_month_adjustment": 14.4,
+    }
+
     assert (
-        result["adjustments"]["seasonal_adjustment"]
-        == 12.0
+        result["method"]
+        == "weighted_provisional_strength_v3"
     )
 
 
-def test_weighted_strength_with_dead_season():
+def test_weighted_strength_with_weak_month():
     weighted_day_master_balance = {
         "supporting_score": 4.4,
         "draining_score": 3.6,
@@ -239,22 +304,178 @@ def test_weighted_strength_with_dead_season():
         "relationship": "officer",
     }
 
-    seasonal_strength = {
-        "state": "死",
-        "score": -10.0,
+    integrated_month_strength = {
+        "seasonal_state": "死",
+        "seasonal_score": -10.0,
+        "supporting_ratio": 20.0,
+        "draining_ratio": 80.0,
+        "hidden_stem_balance": -0.6,
+        "hidden_stem_adjustment": -2.4,
+        "integrated_score": -12.4,
     }
 
     result = calculate_weighted_provisional_strength(
         weighted_day_master_balance,
         weighted_root_strength,
         month_command,
-        seasonal_strength,
+        integrated_month_strength,
     )
 
-    # 55.0 + 4.5 - 10.0 = 49.5
-    assert result["final_score"] == 49.5
+    # 55.0 + 4.5 - 12.4 = 47.1
+    assert result["final_score"] == 47.1
 
     assert (
         result["label"]
         == "中和～やや身弱寄り"
+    )
+
+    assert result["adjustments"] == {
+        "weighted_root_bonus": 4.5,
+        "integrated_month_adjustment": -12.4,
+    }
+
+    assert (
+        result["method"]
+        == "weighted_provisional_strength_v3"
+    )
+
+
+def test_weighted_strength_with_neutral_month():
+    weighted_day_master_balance = {
+        "supporting_score": 4.4,
+        "draining_score": 3.6,
+        "supporting_ratio": 55.0,
+    }
+
+    weighted_root_strength = {
+        "root_count": 2,
+        "root_positions": [
+            "month",
+            "hour",
+        ],
+        "total_root_score": 0.45,
+    }
+
+    month_command = {
+        "effect": "neutral",
+        "relationship": "neutral",
+    }
+
+    integrated_month_strength = {
+        "seasonal_state": "休",
+        "seasonal_score": 2.0,
+        "supporting_ratio": 50.0,
+        "draining_ratio": 50.0,
+        "hidden_stem_balance": 0.0,
+        "hidden_stem_adjustment": 0.0,
+        "integrated_score": 2.0,
+    }
+
+    result = calculate_weighted_provisional_strength(
+        weighted_day_master_balance,
+        weighted_root_strength,
+        month_command,
+        integrated_month_strength,
+    )
+
+    # 55.0 + 4.5 + 2.0 = 61.5
+    assert result["final_score"] == 61.5
+    assert result["label"] == "身強寄り"
+
+    assert result["adjustments"] == {
+        "weighted_root_bonus": 4.5,
+        "integrated_month_adjustment": 2.0,
+    }
+
+    assert (
+        result["method"]
+        == "weighted_provisional_strength_v3"
+    )
+
+
+def test_weighted_strength_clamps_to_100():
+    weighted_day_master_balance = {
+        "supporting_score": 9.0,
+        "draining_score": 1.0,
+        "supporting_ratio": 90.0,
+    }
+
+    weighted_root_strength = {
+        "root_count": 3,
+        "root_positions": [
+            "year",
+            "month",
+            "hour",
+        ],
+        "total_root_score": 1.5,
+    }
+
+    month_command = {
+        "effect": "supporting",
+        "relationship": "companion",
+    }
+
+    integrated_month_strength = {
+        "seasonal_state": "旺",
+        "seasonal_score": 12.0,
+        "supporting_ratio": 100.0,
+        "draining_ratio": 0.0,
+        "hidden_stem_balance": 1.0,
+        "hidden_stem_adjustment": 4.0,
+        "integrated_score": 16.0,
+    }
+
+    result = calculate_weighted_provisional_strength(
+        weighted_day_master_balance,
+        weighted_root_strength,
+        month_command,
+        integrated_month_strength,
+    )
+
+    # 90 + 15 + 16 = 121 → 100へ制限
+    assert result["final_score"] == 100.0
+    assert result["label"] == "身強寄り"
+
+
+def test_weighted_strength_clamps_to_zero():
+    weighted_day_master_balance = {
+        "supporting_score": 0.5,
+        "draining_score": 9.5,
+        "supporting_ratio": 5.0,
+    }
+
+    weighted_root_strength = {
+        "root_count": 0,
+        "root_positions": [],
+        "total_root_score": 0.0,
+    }
+
+    month_command = {
+        "effect": "controlling",
+        "relationship": "officer",
+    }
+
+    integrated_month_strength = {
+        "seasonal_state": "死",
+        "seasonal_score": -10.0,
+        "supporting_ratio": 0.0,
+        "draining_ratio": 100.0,
+        "hidden_stem_balance": -1.0,
+        "hidden_stem_adjustment": -4.0,
+        "integrated_score": -14.0,
+    }
+
+    result = calculate_weighted_provisional_strength(
+        weighted_day_master_balance,
+        weighted_root_strength,
+        month_command,
+        integrated_month_strength,
+    )
+
+    # 5 + 0 - 14 = -9 → 0へ制限
+    assert result["final_score"] == 0.0
+
+    assert (
+        result["label"]
+        == "かなり身弱寄り"
     )

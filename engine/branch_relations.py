@@ -1,0 +1,853 @@
+BRANCH_CLASH_PAIRS = {
+    frozenset(("子", "午")),
+    frozenset(("丑", "未")),
+    frozenset(("寅", "申")),
+    frozenset(("卯", "酉")),
+    frozenset(("辰", "戌")),
+    frozenset(("巳", "亥")),
+}
+
+
+BRANCH_COMBINATION_PAIRS = {
+    frozenset(("子", "丑")),
+    frozenset(("寅", "亥")),
+    frozenset(("卯", "戌")),
+    frozenset(("辰", "酉")),
+    frozenset(("巳", "申")),
+    frozenset(("午", "未")),
+}
+
+
+BRANCH_HARM_PAIRS = {
+    frozenset(("子", "未")),
+    frozenset(("丑", "午")),
+    frozenset(("寅", "巳")),
+    frozenset(("卯", "辰")),
+    frozenset(("申", "亥")),
+    frozenset(("酉", "戌")),
+}
+
+
+BRANCH_BREAK_PAIRS = {
+    frozenset(("子", "酉")),
+    frozenset(("丑", "辰")),
+    frozenset(("寅", "亥")),
+    frozenset(("卯", "午")),
+    frozenset(("巳", "申")),
+    frozenset(("未", "戌")),
+}
+
+
+BRANCH_TRINE_GROUPS = {
+    frozenset(("申", "子", "辰")): {
+        "element": "水",
+        "name": "申子辰",
+    },
+    frozenset(("亥", "卯", "未")): {
+        "element": "木",
+        "name": "亥卯未",
+    },
+    frozenset(("寅", "午", "戌")): {
+        "element": "火",
+        "name": "寅午戌",
+    },
+    frozenset(("巳", "酉", "丑")): {
+        "element": "金",
+        "name": "巳酉丑",
+    },
+}
+
+
+BRANCH_PUNISHMENT_TRIPLES = {
+    frozenset(("寅", "巳", "申")): {
+        "name": "寅巳申",
+        "type": "三刑",
+    },
+    frozenset(("丑", "戌", "未")): {
+        "name": "丑戌未",
+        "type": "三刑",
+    },
+}
+
+
+BRANCH_MUTUAL_PUNISHMENT_PAIRS = {
+    frozenset(("子", "卯")): {
+        "name": "子卯",
+        "type": "相刑",
+    },
+}
+
+
+SELF_PUNISHMENT_BRANCHES = {
+    "辰",
+    "午",
+    "酉",
+    "亥",
+}
+
+
+PILLAR_POSITIONS = (
+    "year",
+    "month",
+    "day",
+    "hour",
+)
+
+
+def is_branch_clash(
+    branch_a: str,
+    branch_b: str,
+) -> bool:
+    """
+    2つの地支が六冲の関係にあるかを判定します。
+    """
+    pair = frozenset(
+        (
+            branch_a,
+            branch_b,
+        )
+    )
+
+    return pair in BRANCH_CLASH_PAIRS
+
+
+def is_branch_combination(
+    branch_a: str,
+    branch_b: str,
+) -> bool:
+    """
+    2つの地支が六合の関係にあるかを判定します。
+    """
+    pair = frozenset(
+        (
+            branch_a,
+            branch_b,
+        )
+    )
+
+    return pair in BRANCH_COMBINATION_PAIRS
+
+
+def is_branch_harm(
+    branch_a: str,
+    branch_b: str,
+) -> bool:
+    """
+    2つの地支が六害の関係にあるかを判定します。
+    """
+    pair = frozenset(
+        (
+            branch_a,
+            branch_b,
+        )
+    )
+
+    return pair in BRANCH_HARM_PAIRS
+
+
+def is_branch_break(
+    branch_a: str,
+    branch_b: str,
+) -> bool:
+    """
+    2つの地支が六破の関係にあるかを判定します。
+    """
+    pair = frozenset(
+        (
+            branch_a,
+            branch_b,
+        )
+    )
+
+    return pair in BRANCH_BREAK_PAIRS
+
+
+def is_branch_trine(
+    branch_a: str,
+    branch_b: str,
+    branch_c: str,
+) -> bool:
+    """
+    3つの地支が三合の関係にあるかを判定します。
+    """
+    group = frozenset(
+        (
+            branch_a,
+            branch_b,
+            branch_c,
+        )
+    )
+
+    return group in BRANCH_TRINE_GROUPS
+
+
+def get_branch_trine_info(
+    branch_a: str,
+    branch_b: str,
+    branch_c: str,
+) -> dict | None:
+    """
+    3つの地支が三合を形成する場合、
+    三合局の情報を返します。
+
+    三合でない場合はNoneを返します。
+    """
+    group = frozenset(
+        (
+            branch_a,
+            branch_b,
+            branch_c,
+        )
+    )
+
+    info = BRANCH_TRINE_GROUPS.get(
+        group
+    )
+
+    if info is None:
+        return None
+
+    return {
+        "name": info["name"],
+        "element": info["element"],
+    }
+
+
+def get_available_positions(
+    chart_data: dict,
+) -> list[str]:
+    """
+    命式内で利用可能な柱位置を返します。
+
+    出生時間不明でhourがNoneの場合は、
+    時柱を除外します。
+    """
+    return [
+        position
+        for position in PILLAR_POSITIONS
+        if chart_data.get(position) is not None
+    ]
+
+
+def find_branch_clashes(
+    chart_data: dict,
+) -> dict:
+    """
+    命式内の地支同士から六冲を検出します。
+    """
+    available_positions = (
+        get_available_positions(
+            chart_data
+        )
+    )
+
+    clashes: list[dict] = []
+
+    for index_a in range(
+        len(available_positions)
+    ):
+        for index_b in range(
+            index_a + 1,
+            len(available_positions),
+        ):
+            position_a = (
+                available_positions[index_a]
+            )
+
+            position_b = (
+                available_positions[index_b]
+            )
+
+            pillar_a = chart_data[position_a]
+            pillar_b = chart_data[position_b]
+
+            branch_a = pillar_a["branch"]
+            branch_b = pillar_b["branch"]
+
+            if not is_branch_clash(
+                branch_a,
+                branch_b,
+            ):
+                continue
+
+            clashes.append(
+                {
+                    "position_a": position_a,
+                    "branch_a": branch_a,
+                    "position_b": position_b,
+                    "branch_b": branch_b,
+                    "relation": "冲",
+                }
+            )
+
+    return {
+        "has_clash": bool(clashes),
+        "clash_count": len(clashes),
+        "clashes": clashes,
+        "method": "branch_clash_v1",
+        "status": "detected_branch_clashes",
+        "notes": [
+            "命式内の地支同士から六冲を検出しています。",
+            "現在は六冲の有無のみを判定しています。",
+            "冲による五行・通根への影響度は未反映です。",
+        ],
+    }
+
+
+def find_branch_combinations(
+    chart_data: dict,
+) -> dict:
+    """
+    命式内の地支同士から六合を検出します。
+    """
+    available_positions = (
+        get_available_positions(
+            chart_data
+        )
+    )
+
+    combinations: list[dict] = []
+
+    for index_a in range(
+        len(available_positions)
+    ):
+        for index_b in range(
+            index_a + 1,
+            len(available_positions),
+        ):
+            position_a = (
+                available_positions[index_a]
+            )
+
+            position_b = (
+                available_positions[index_b]
+            )
+
+            pillar_a = chart_data[position_a]
+            pillar_b = chart_data[position_b]
+
+            branch_a = pillar_a["branch"]
+            branch_b = pillar_b["branch"]
+
+            if not is_branch_combination(
+                branch_a,
+                branch_b,
+            ):
+                continue
+
+            combinations.append(
+                {
+                    "position_a": position_a,
+                    "branch_a": branch_a,
+                    "position_b": position_b,
+                    "branch_b": branch_b,
+                    "relation": "六合",
+                }
+            )
+
+    return {
+        "has_combination": bool(
+            combinations
+        ),
+        "combination_count": len(
+            combinations
+        ),
+        "combinations": combinations,
+        "method": "branch_combination_v1",
+        "status": (
+            "detected_branch_combinations"
+        ),
+        "notes": [
+            "命式内の地支同士から六合を検出しています。",
+            "現在は六合の有無のみを判定しています。",
+            "六合による五行・通根への影響度は未反映です。",
+        ],
+    }
+
+
+def find_branch_harms(
+    chart_data: dict,
+) -> dict:
+    """
+    命式内の地支同士から六害を検出します。
+
+    六害：
+    子・未
+    丑・午
+    寅・巳
+    卯・辰
+    申・亥
+    酉・戌
+    """
+    available_positions = (
+        get_available_positions(
+            chart_data
+        )
+    )
+
+    harms: list[dict] = []
+
+    for index_a in range(
+        len(available_positions)
+    ):
+        for index_b in range(
+            index_a + 1,
+            len(available_positions),
+        ):
+            position_a = (
+                available_positions[index_a]
+            )
+
+            position_b = (
+                available_positions[index_b]
+            )
+
+            branch_a = chart_data[
+                position_a
+            ]["branch"]
+
+            branch_b = chart_data[
+                position_b
+            ]["branch"]
+
+            if not is_branch_harm(
+                branch_a,
+                branch_b,
+            ):
+                continue
+
+            harms.append(
+                {
+                    "position_a": position_a,
+                    "branch_a": branch_a,
+                    "position_b": position_b,
+                    "branch_b": branch_b,
+                    "relation": "害",
+                }
+            )
+
+    return {
+        "has_harm": bool(harms),
+        "harm_count": len(harms),
+        "harms": harms,
+        "method": "branch_harm_v1",
+        "status": "detected_branch_harms",
+        "notes": [
+            "命式内の地支同士から六害を検出しています。",
+            "現在は六害の有無のみを判定しています。",
+            "害による五行・通根・身強身弱への補正は未反映です。",
+        ],
+    }
+
+
+
+def find_branch_breaks(
+    chart_data: dict,
+) -> dict:
+    """
+    命式内の地支同士から六破を検出します。
+
+    六破：
+    子・酉
+    丑・辰
+    寅・亥
+    卯・午
+    巳・申
+    未・戌
+    """
+    available_positions = (
+        get_available_positions(
+            chart_data
+        )
+    )
+
+    breaks: list[dict] = []
+
+    for index_a in range(
+        len(available_positions)
+    ):
+        for index_b in range(
+            index_a + 1,
+            len(available_positions),
+        ):
+            position_a = (
+                available_positions[index_a]
+            )
+
+            position_b = (
+                available_positions[index_b]
+            )
+
+            branch_a = chart_data[
+                position_a
+            ]["branch"]
+
+            branch_b = chart_data[
+                position_b
+            ]["branch"]
+
+            if not is_branch_break(
+                branch_a,
+                branch_b,
+            ):
+                continue
+
+            breaks.append(
+                {
+                    "position_a": position_a,
+                    "branch_a": branch_a,
+                    "position_b": position_b,
+                    "branch_b": branch_b,
+                    "relation": "破",
+                }
+            )
+
+    return {
+        "has_break": bool(breaks),
+        "break_count": len(breaks),
+        "breaks": breaks,
+        "method": "branch_break_v1",
+        "status": "detected_branch_breaks",
+        "notes": [
+            "命式内の地支同士から六破を検出しています。",
+            "現在は六破の有無のみを判定しています。",
+            "破による五行・通根・身強身弱への補正は未反映です。",
+        ],
+    }
+
+
+def find_branch_trines(
+    chart_data: dict,
+) -> dict:
+    """
+    命式内の地支から三合を検出します。
+    """
+    available_positions = (
+        get_available_positions(
+            chart_data
+        )
+    )
+
+    trines: list[dict] = []
+
+    position_count = len(
+        available_positions
+    )
+
+    for index_a in range(
+        position_count
+    ):
+        for index_b in range(
+            index_a + 1,
+            position_count,
+        ):
+            for index_c in range(
+                index_b + 1,
+                position_count,
+            ):
+                position_a = (
+                    available_positions[index_a]
+                )
+
+                position_b = (
+                    available_positions[index_b]
+                )
+
+                position_c = (
+                    available_positions[index_c]
+                )
+
+                branch_a = chart_data[
+                    position_a
+                ]["branch"]
+
+                branch_b = chart_data[
+                    position_b
+                ]["branch"]
+
+                branch_c = chart_data[
+                    position_c
+                ]["branch"]
+
+                trine_info = (
+                    get_branch_trine_info(
+                        branch_a,
+                        branch_b,
+                        branch_c,
+                    )
+                )
+
+                if trine_info is None:
+                    continue
+
+                trines.append(
+                    {
+                        "position_a": position_a,
+                        "branch_a": branch_a,
+                        "position_b": position_b,
+                        "branch_b": branch_b,
+                        "position_c": position_c,
+                        "branch_c": branch_c,
+                        "relation": "三合",
+                        "trine_name": (
+                            trine_info["name"]
+                        ),
+                        "element": (
+                            trine_info["element"]
+                        ),
+                    }
+                )
+
+    return {
+        "has_trine": bool(trines),
+        "trine_count": len(trines),
+        "trines": trines,
+        "method": "branch_trine_v1",
+        "status": "detected_branch_trines",
+        "notes": [
+            "命式内の3つの地支から三合を検出しています。",
+            "申子辰は水局として判定します。",
+            "亥卯未は木局として判定します。",
+            "寅午戌は火局として判定します。",
+            "巳酉丑は金局として判定します。",
+            "現在は完全な三合のみを判定しています。",
+            "半会・拱合はまだ判定していません。",
+            "三合による五行強弱への補正は未反映です。",
+        ],
+    }
+
+
+def find_branch_punishments(
+    chart_data: dict,
+) -> dict:
+    """
+    命式内の地支から刑を検出します。
+
+    v1では以下を判定します。
+
+    ・寅巳申の三刑
+    ・丑戌未の三刑
+    ・子卯の相刑
+    ・辰、午、酉、亥の自刑
+
+    三刑は3支すべてが揃った場合のみ
+    完全な三刑として判定します。
+    """
+    available_positions = (
+        get_available_positions(
+            chart_data
+        )
+    )
+
+    punishments: list[dict] = []
+
+    position_count = len(
+        available_positions
+    )
+
+    # 三刑
+    for index_a in range(
+        position_count
+    ):
+        for index_b in range(
+            index_a + 1,
+            position_count,
+        ):
+            for index_c in range(
+                index_b + 1,
+                position_count,
+            ):
+                position_a = (
+                    available_positions[index_a]
+                )
+
+                position_b = (
+                    available_positions[index_b]
+                )
+
+                position_c = (
+                    available_positions[index_c]
+                )
+
+                branch_a = chart_data[
+                    position_a
+                ]["branch"]
+
+                branch_b = chart_data[
+                    position_b
+                ]["branch"]
+
+                branch_c = chart_data[
+                    position_c
+                ]["branch"]
+
+                group = frozenset(
+                    (
+                        branch_a,
+                        branch_b,
+                        branch_c,
+                    )
+                )
+
+                info = (
+                    BRANCH_PUNISHMENT_TRIPLES.get(
+                        group
+                    )
+                )
+
+                if info is None:
+                    continue
+
+                punishments.append(
+                    {
+                        "positions": [
+                            position_a,
+                            position_b,
+                            position_c,
+                        ],
+                        "branches": [
+                            branch_a,
+                            branch_b,
+                            branch_c,
+                        ],
+                        "relation": "刑",
+                        "punishment_type": (
+                            info["type"]
+                        ),
+                        "punishment_name": (
+                            info["name"]
+                        ),
+                    }
+                )
+
+    # 子卯の相刑
+    for index_a in range(
+        position_count
+    ):
+        for index_b in range(
+            index_a + 1,
+            position_count,
+        ):
+            position_a = (
+                available_positions[index_a]
+            )
+
+            position_b = (
+                available_positions[index_b]
+            )
+
+            branch_a = chart_data[
+                position_a
+            ]["branch"]
+
+            branch_b = chart_data[
+                position_b
+            ]["branch"]
+
+            pair = frozenset(
+                (
+                    branch_a,
+                    branch_b,
+                )
+            )
+
+            info = (
+                BRANCH_MUTUAL_PUNISHMENT_PAIRS.get(
+                    pair
+                )
+            )
+
+            if info is None:
+                continue
+
+            punishments.append(
+                {
+                    "positions": [
+                        position_a,
+                        position_b,
+                    ],
+                    "branches": [
+                        branch_a,
+                        branch_b,
+                    ],
+                    "relation": "刑",
+                    "punishment_type": (
+                        info["type"]
+                    ),
+                    "punishment_name": (
+                        info["name"]
+                    ),
+                }
+            )
+
+    # 自刑
+    for index_a in range(
+        position_count
+    ):
+        for index_b in range(
+            index_a + 1,
+            position_count,
+        ):
+            position_a = (
+                available_positions[index_a]
+            )
+
+            position_b = (
+                available_positions[index_b]
+            )
+
+            branch_a = chart_data[
+                position_a
+            ]["branch"]
+
+            branch_b = chart_data[
+                position_b
+            ]["branch"]
+
+            if branch_a != branch_b:
+                continue
+
+            if (
+                branch_a
+                not in SELF_PUNISHMENT_BRANCHES
+            ):
+                continue
+
+            punishments.append(
+                {
+                    "positions": [
+                        position_a,
+                        position_b,
+                    ],
+                    "branches": [
+                        branch_a,
+                        branch_b,
+                    ],
+                    "relation": "刑",
+                    "punishment_type": "自刑",
+                    "punishment_name": (
+                        f"{branch_a}{branch_b}"
+                    ),
+                }
+            )
+
+    return {
+        "has_punishment": bool(
+            punishments
+        ),
+        "punishment_count": len(
+            punishments
+        ),
+        "punishments": punishments,
+        "method": "branch_punishment_v1",
+        "status": (
+            "detected_branch_punishments"
+        ),
+        "notes": [
+            "寅巳申・丑戌未は3支すべて揃った場合のみ三刑として判定します。",
+            "子卯は相刑として判定します。",
+            "辰・午・酉・亥は同じ地支が2つ以上ある場合に自刑として判定します。",
+            "三刑の部分成立については未判定です。",
+            "刑による五行・通根・身強身弱への補正は未反映です。",
+        ],
+    }
