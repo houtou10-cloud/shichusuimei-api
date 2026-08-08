@@ -264,6 +264,9 @@ def calculate_chart(req) -> dict:
         "branch_clashes": (
             branch_clashes
         ),
+        "branch_combinations": (
+            branch_combinations
+        ),
         "month_command": month_command,
         "weighted_month_command": (
             weighted_month_command
