@@ -916,7 +916,7 @@ def test_judgment_not_applicable():
         result["method"]
         == (
             "stem_transformation_"
-            "judgment_v1"
+            "judgment_v2"
         )
     )
 
