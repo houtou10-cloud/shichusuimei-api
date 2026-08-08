@@ -1,6 +1,7 @@
 from engine.branch_relations import (
     find_branch_clashes,
     find_branch_combinations,
+    find_branch_punishments,
     find_branch_trines,
     get_branch_trine_info,
     is_branch_clash,
@@ -366,7 +367,7 @@ def test_find_branch_trines():
     )
 
 
-def test_find_multiple_branch_trines():
+def test_find_wood_branch_trine():
     chart_data = {
         "year": {
             "branch": "亥",
@@ -588,5 +589,437 @@ def test_without_birth_time_for_trine():
             "relation": "三合",
             "trine_name": "申子辰",
             "element": "水",
+        },
+    ]
+
+
+def test_tiger_snake_monkey_triple_punishment():
+    chart_data = {
+        "year": {
+            "branch": "寅",
+        },
+        "month": {
+            "branch": "巳",
+        },
+        "day": {
+            "branch": "申",
+        },
+        "hour": {
+            "branch": "子",
+        },
+    }
+
+    result = find_branch_punishments(
+        chart_data
+    )
+
+    assert (
+        result["has_punishment"]
+        is True
+    )
+
+    assert (
+        result["punishment_count"]
+        == 1
+    )
+
+    assert result["punishments"] == [
+        {
+            "positions": [
+                "year",
+                "month",
+                "day",
+            ],
+            "branches": [
+                "寅",
+                "巳",
+                "申",
+            ],
+            "relation": "刑",
+            "punishment_type": "三刑",
+            "punishment_name": "寅巳申",
+        },
+    ]
+
+
+def test_ox_dog_goat_triple_punishment():
+    chart_data = {
+        "year": {
+            "branch": "丑",
+        },
+        "month": {
+            "branch": "戌",
+        },
+        "day": {
+            "branch": "未",
+        },
+        "hour": {
+            "branch": "子",
+        },
+    }
+
+    result = find_branch_punishments(
+        chart_data
+    )
+
+    assert (
+        result["has_punishment"]
+        is True
+    )
+
+    assert (
+        result["punishment_count"]
+        == 1
+    )
+
+    assert result["punishments"] == [
+        {
+            "positions": [
+                "year",
+                "month",
+                "day",
+            ],
+            "branches": [
+                "丑",
+                "戌",
+                "未",
+            ],
+            "relation": "刑",
+            "punishment_type": "三刑",
+            "punishment_name": "丑戌未",
+        },
+    ]
+
+
+def test_rat_rabbit_mutual_punishment():
+    chart_data = {
+        "year": {
+            "branch": "子",
+        },
+        "month": {
+            "branch": "卯",
+        },
+        "day": {
+            "branch": "寅",
+        },
+        "hour": {
+            "branch": "巳",
+        },
+    }
+
+    result = find_branch_punishments(
+        chart_data
+    )
+
+    assert (
+        result["has_punishment"]
+        is True
+    )
+
+    assert (
+        result["punishment_count"]
+        == 1
+    )
+
+    assert result["punishments"] == [
+        {
+            "positions": [
+                "year",
+                "month",
+            ],
+            "branches": [
+                "子",
+                "卯",
+            ],
+            "relation": "刑",
+            "punishment_type": "相刑",
+            "punishment_name": "子卯",
+        },
+    ]
+
+
+def test_dragon_self_punishment():
+    chart_data = {
+        "year": {
+            "branch": "辰",
+        },
+        "month": {
+            "branch": "辰",
+        },
+        "day": {
+            "branch": "寅",
+        },
+        "hour": {
+            "branch": "巳",
+        },
+    }
+
+    result = find_branch_punishments(
+        chart_data
+    )
+
+    assert (
+        result["has_punishment"]
+        is True
+    )
+
+    assert (
+        result["punishment_count"]
+        == 1
+    )
+
+    assert result["punishments"] == [
+        {
+            "positions": [
+                "year",
+                "month",
+            ],
+            "branches": [
+                "辰",
+                "辰",
+            ],
+            "relation": "刑",
+            "punishment_type": "自刑",
+            "punishment_name": "辰辰",
+        },
+    ]
+
+
+def test_horse_self_punishment():
+    chart_data = {
+        "year": {
+            "branch": "午",
+        },
+        "month": {
+            "branch": "午",
+        },
+        "day": {
+            "branch": "寅",
+        },
+        "hour": {
+            "branch": "巳",
+        },
+    }
+
+    result = find_branch_punishments(
+        chart_data
+    )
+
+    assert (
+        result["has_punishment"]
+        is True
+    )
+
+    assert (
+        result["punishment_count"]
+        == 1
+    )
+
+    assert (
+        result["punishments"][0][
+            "punishment_type"
+        ]
+        == "自刑"
+    )
+
+    assert (
+        result["punishments"][0][
+            "punishment_name"
+        ]
+        == "午午"
+    )
+
+
+def test_rooster_self_punishment():
+    chart_data = {
+        "year": {
+            "branch": "酉",
+        },
+        "month": {
+            "branch": "酉",
+        },
+        "day": {
+            "branch": "寅",
+        },
+        "hour": {
+            "branch": "巳",
+        },
+    }
+
+    result = find_branch_punishments(
+        chart_data
+    )
+
+    assert (
+        result["has_punishment"]
+        is True
+    )
+
+    assert (
+        result["punishment_count"]
+        == 1
+    )
+
+    assert (
+        result["punishments"][0][
+            "punishment_name"
+        ]
+        == "酉酉"
+    )
+
+
+def test_boar_self_punishment():
+    chart_data = {
+        "year": {
+            "branch": "亥",
+        },
+        "month": {
+            "branch": "亥",
+        },
+        "day": {
+            "branch": "寅",
+        },
+        "hour": {
+            "branch": "午",
+        },
+    }
+
+    result = find_branch_punishments(
+        chart_data
+    )
+
+    assert (
+        result["has_punishment"]
+        is True
+    )
+
+    assert (
+        result["punishment_count"]
+        == 1
+    )
+
+    assert (
+        result["punishments"][0][
+            "punishment_name"
+        ]
+        == "亥亥"
+    )
+
+
+def test_chart_without_branch_punishment():
+    chart_data = {
+        "year": {
+            "branch": "子",
+        },
+        "month": {
+            "branch": "丑",
+        },
+        "day": {
+            "branch": "辰",
+        },
+        "hour": {
+            "branch": "未",
+        },
+    }
+
+    result = find_branch_punishments(
+        chart_data
+    )
+
+    assert (
+        result["has_punishment"]
+        is False
+    )
+
+    assert (
+        result["punishment_count"]
+        == 0
+    )
+
+    assert result["punishments"] == []
+
+    assert (
+        result["method"]
+        == "branch_punishment_v1"
+    )
+
+    assert (
+        result["status"]
+        == "detected_branch_punishments"
+    )
+
+
+def test_partial_triple_punishment_is_not_detected():
+    chart_data = {
+        "year": {
+            "branch": "寅",
+        },
+        "month": {
+            "branch": "巳",
+        },
+        "day": {
+            "branch": "子",
+        },
+        "hour": {
+            "branch": "丑",
+        },
+    }
+
+    result = find_branch_punishments(
+        chart_data
+    )
+
+    assert (
+        result["has_punishment"]
+        is False
+    )
+
+    assert (
+        result["punishment_count"]
+        == 0
+    )
+
+
+def test_without_birth_time_for_punishment():
+    chart_data = {
+        "year": {
+            "branch": "子",
+        },
+        "month": {
+            "branch": "卯",
+        },
+        "day": {
+            "branch": "寅",
+        },
+        "hour": None,
+    }
+
+    result = find_branch_punishments(
+        chart_data
+    )
+
+    assert (
+        result["has_punishment"]
+        is True
+    )
+
+    assert (
+        result["punishment_count"]
+        == 1
+    )
+
+    assert result["punishments"] == [
+        {
+            "positions": [
+                "year",
+                "month",
+            ],
+            "branches": [
+                "子",
+                "卯",
+            ],
+            "relation": "刑",
+            "punishment_type": "相刑",
+            "punishment_name": "子卯",
         },
     ]
