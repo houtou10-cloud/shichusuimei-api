@@ -618,3 +618,36 @@ def test_chart_contains_integrated_month_strength():
         integrated["status"]
         == "provisional_integrated_month_strength"
     )
+    def test_chart_contains_branch_trines():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    branch_trines = result[
+        "branch_trines"
+    ]
+
+    assert (
+        branch_trines["has_trine"]
+        is False
+    )
+
+    assert (
+        branch_trines["trine_count"]
+        == 0
+    )
+
+    assert (
+        branch_trines["trines"]
+        == []
+    )
+
+    assert (
+        branch_trines["method"]
+        == "branch_trine_v1"
+    )
+
+    assert (
+        branch_trines["status"]
+        == "detected_branch_trines"
+    )
