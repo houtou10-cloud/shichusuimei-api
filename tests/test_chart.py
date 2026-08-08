@@ -752,3 +752,39 @@ def test_chart_contains_branch_clashes():
             branch_clashes["status"]
             == "detected_branch_clashes"
         )
+def test_chart_contains_branch_combinations():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    branch_combinations = result[
+        "branch_combinations"
+    ]
+
+    assert (
+        branch_combinations["has_combination"]
+        is False
+    )
+
+    assert (
+        branch_combinations["combination_count"]
+        == 0
+    )
+
+    assert (
+        branch_combinations["combinations"]
+        == []
+    )
+
+    assert (
+        branch_combinations["method"]
+        == "branch_combination_v1"
+    )
+
+    assert (
+        branch_combinations["status"]
+        == "detected_branch_combinations"
+    )
+        
+    
+    
