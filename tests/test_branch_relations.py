@@ -1,11 +1,13 @@
 from engine.branch_relations import (
     find_branch_clashes,
     find_branch_combinations,
+    find_branch_harms,
     find_branch_punishments,
     find_branch_trines,
     get_branch_trine_info,
     is_branch_clash,
     is_branch_combination,
+    is_branch_harm,
     is_branch_trine,
 )
 
@@ -95,6 +97,55 @@ def test_non_combination_pair():
     assert is_branch_combination(
         "子",
         "午",
+    ) is False
+
+
+def test_branch_harm_pairs():
+    assert is_branch_harm(
+        "子",
+        "未",
+    ) is True
+
+    assert is_branch_harm(
+        "未",
+        "子",
+    ) is True
+
+    assert is_branch_harm(
+        "丑",
+        "午",
+    ) is True
+
+    assert is_branch_harm(
+        "寅",
+        "巳",
+    ) is True
+
+    assert is_branch_harm(
+        "卯",
+        "辰",
+    ) is True
+
+    assert is_branch_harm(
+        "申",
+        "亥",
+    ) is True
+
+    assert is_branch_harm(
+        "酉",
+        "戌",
+    ) is True
+
+
+def test_non_harm_pair():
+    assert is_branch_harm(
+        "子",
+        "丑",
+    ) is False
+
+    assert is_branch_harm(
+        "寅",
+        "卯",
     ) is False
 
 
@@ -319,6 +370,57 @@ def test_find_branch_combinations():
     )
 
 
+def test_find_branch_harms():
+    chart_data = {
+        "year": {
+            "branch": "子",
+        },
+        "month": {
+            "branch": "未",
+        },
+        "day": {
+            "branch": "申",
+        },
+        "hour": {
+            "branch": "亥",
+        },
+    }
+
+    result = find_branch_harms(
+        chart_data
+    )
+
+    assert result["has_harm"] is True
+    assert result["harm_count"] == 2
+
+    assert result["harms"] == [
+        {
+            "position_a": "year",
+            "branch_a": "子",
+            "position_b": "month",
+            "branch_b": "未",
+            "relation": "害",
+        },
+        {
+            "position_a": "day",
+            "branch_a": "申",
+            "position_b": "hour",
+            "branch_b": "亥",
+            "relation": "害",
+        },
+    ]
+
+    assert (
+        result["method"]
+        == "branch_harm_v1"
+    )
+
+    assert (
+        result["status"]
+        == "detected_branch_harms"
+    )
+
+
 def test_find_branch_trines():
     chart_data = {
         "year": {
@@ -461,6 +563,31 @@ def test_chart_without_branch_combination():
     assert result["combinations"] == []
 
 
+def test_chart_without_branch_harm():
+    chart_data = {
+        "year": {
+            "branch": "子",
+        },
+        "month": {
+            "branch": "丑",
+        },
+        "day": {
+            "branch": "辰",
+        },
+        "hour": {
+            "branch": "酉",
+        },
+    }
+
+    result = find_branch_harms(
+        chart_data
+    )
+
+    assert result["has_harm"] is False
+    assert result["harm_count"] == 0
+    assert result["harms"] == []
+
+
 def test_chart_without_branch_trine():
     chart_data = {
         "year": {
@@ -553,6 +680,38 @@ def test_without_birth_time_for_combination():
             "position_b": "month",
             "branch_b": "丑",
             "relation": "六合",
+        },
+    ]
+
+
+def test_without_birth_time_for_harm():
+    chart_data = {
+        "year": {
+            "branch": "子",
+        },
+        "month": {
+            "branch": "未",
+        },
+        "day": {
+            "branch": "辰",
+        },
+        "hour": None,
+    }
+
+    result = find_branch_harms(
+        chart_data
+    )
+
+    assert result["has_harm"] is True
+    assert result["harm_count"] == 1
+
+    assert result["harms"] == [
+        {
+            "position_a": "year",
+            "branch_a": "子",
+            "position_b": "month",
+            "branch_b": "未",
+            "relation": "害",
         },
     ]
 
