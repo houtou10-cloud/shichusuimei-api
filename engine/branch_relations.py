@@ -38,6 +38,34 @@ BRANCH_TRINE_GROUPS = {
 }
 
 
+BRANCH_PUNISHMENT_TRIPLES = {
+    frozenset(("寅", "巳", "申")): {
+        "name": "寅巳申",
+        "type": "三刑",
+    },
+    frozenset(("丑", "戌", "未")): {
+        "name": "丑戌未",
+        "type": "三刑",
+    },
+}
+
+
+BRANCH_MUTUAL_PUNISHMENT_PAIRS = {
+    frozenset(("子", "卯")): {
+        "name": "子卯",
+        "type": "相刑",
+    },
+}
+
+
+SELF_PUNISHMENT_BRANCHES = {
+    "辰",
+    "午",
+    "酉",
+    "亥",
+}
+
+
 PILLAR_POSITIONS = (
     "year",
     "month",
@@ -397,5 +425,253 @@ def find_branch_trines(
             "現在は完全な三合のみを判定しています。",
             "半会・拱合はまだ判定していません。",
             "三合による五行強弱への補正は未反映です。",
+        ],
+    }
+
+
+def find_branch_punishments(
+    chart_data: dict,
+) -> dict:
+    """
+    命式内の地支から刑を検出します。
+
+    v1では以下を判定します。
+
+    ・寅巳申の三刑
+    ・丑戌未の三刑
+    ・子卯の相刑
+    ・辰、午、酉、亥の自刑
+
+    三刑は3支すべてが揃った場合のみ
+    完全な三刑として判定します。
+
+    出生時間不明でhourがNoneの場合は、
+    時柱を判定対象から除外します。
+    """
+    available_positions = (
+        get_available_positions(
+            chart_data
+        )
+    )
+
+    punishments: list[dict] = []
+
+    position_count = len(
+        available_positions
+    )
+
+    # -------------------------
+    # 三刑
+    # -------------------------
+
+    for index_a in range(
+        position_count
+    ):
+        for index_b in range(
+            index_a + 1,
+            position_count,
+        ):
+            for index_c in range(
+                index_b + 1,
+                position_count,
+            ):
+                position_a = (
+                    available_positions[index_a]
+                )
+
+                position_b = (
+                    available_positions[index_b]
+                )
+
+                position_c = (
+                    available_positions[index_c]
+                )
+
+                branch_a = chart_data[
+                    position_a
+                ]["branch"]
+
+                branch_b = chart_data[
+                    position_b
+                ]["branch"]
+
+                branch_c = chart_data[
+                    position_c
+                ]["branch"]
+
+                group = frozenset(
+                    (
+                        branch_a,
+                        branch_b,
+                        branch_c,
+                    )
+                )
+
+                info = (
+                    BRANCH_PUNISHMENT_TRIPLES.get(
+                        group
+                    )
+                )
+
+                if info is None:
+                    continue
+
+                punishments.append(
+                    {
+                        "positions": [
+                            position_a,
+                            position_b,
+                            position_c,
+                        ],
+                        "branches": [
+                            branch_a,
+                            branch_b,
+                            branch_c,
+                        ],
+                        "relation": "刑",
+                        "punishment_type": (
+                            info["type"]
+                        ),
+                        "punishment_name": (
+                            info["name"]
+                        ),
+                    }
+                )
+
+    # -------------------------
+    # 子卯の相刑
+    # -------------------------
+
+    for index_a in range(
+        position_count
+    ):
+        for index_b in range(
+            index_a + 1,
+            position_count,
+        ):
+            position_a = (
+                available_positions[index_a]
+            )
+
+            position_b = (
+                available_positions[index_b]
+            )
+
+            branch_a = chart_data[
+                position_a
+            ]["branch"]
+
+            branch_b = chart_data[
+                position_b
+            ]["branch"]
+
+            pair = frozenset(
+                (
+                    branch_a,
+                    branch_b,
+                )
+            )
+
+            info = (
+                BRANCH_MUTUAL_PUNISHMENT_PAIRS.get(
+                    pair
+                )
+            )
+
+            if info is None:
+                continue
+
+            punishments.append(
+                {
+                    "positions": [
+                        position_a,
+                        position_b,
+                    ],
+                    "branches": [
+                        branch_a,
+                        branch_b,
+                    ],
+                    "relation": "刑",
+                    "punishment_type": (
+                        info["type"]
+                    ),
+                    "punishment_name": (
+                        info["name"]
+                    ),
+                }
+            )
+
+    # -------------------------
+    # 自刑
+    # -------------------------
+
+    for index_a in range(
+        position_count
+    ):
+        for index_b in range(
+            index_a + 1,
+            position_count,
+        ):
+            position_a = (
+                available_positions[index_a]
+            )
+
+            position_b = (
+                available_positions[index_b]
+            )
+
+            branch_a = chart_data[
+                position_a
+            ]["branch"]
+
+            branch_b = chart_data[
+                position_b
+            ]["branch"]
+
+            if branch_a != branch_b:
+                continue
+
+            if (
+                branch_a
+                not in SELF_PUNISHMENT_BRANCHES
+            ):
+                continue
+
+            punishments.append(
+                {
+                    "positions": [
+                        position_a,
+                        position_b,
+                    ],
+                    "branches": [
+                        branch_a,
+                        branch_b,
+                    ],
+                    "relation": "刑",
+                    "punishment_type": "自刑",
+                    "punishment_name": (
+                        f"{branch_a}{branch_b}"
+                    ),
+                }
+            )
+
+    return {
+        "has_punishment": bool(
+            punishments
+        ),
+        "punishment_count": len(
+            punishments
+        ),
+        "punishments": punishments,
+        "method": "branch_punishment_v1",
+        "status": (
+            "detected_branch_punishments"
+        ),
+        "notes": [
+            "寅巳申・丑戌未は3支すべて揃った場合のみ三刑として判定します。",
+            "子卯は相刑として判定します。",
+            "辰・午・酉・亥は同じ地支が2つ以上ある場合に自刑として判定します。",
+            "三刑の部分成立については未判定です。",
+            "刑による五行・通根・身強身弱への補正は未反映です。",
         ],
     }
