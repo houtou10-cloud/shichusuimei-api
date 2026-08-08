@@ -1381,3 +1381,97 @@ def test_chart_contains_stem_transformation_judgment():
             )
             >= 1
         )
+def test_chart_contains_stem_combination_conflicts():
+        request = make_verified_request()
+    
+        result = calculate_chart(request)
+    
+        conflicts = result[
+            "stem_combination_conflicts"
+        ]
+    
+        assert (
+            conflicts[
+                "has_stem_combination"
+            ]
+            is False
+        )
+    
+        assert (
+            conflicts[
+                "combination_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflicts[
+                "has_conflict"
+            ]
+            is False
+        )
+    
+        assert (
+            conflicts[
+                "conflict_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflicts[
+                "position_conflict_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflicts[
+                "duplicate_combination_count"
+            ]
+            == 0
+        )
+    
+        assert (
+            conflicts[
+                "position_conflicts"
+            ]
+            == []
+        )
+    
+        assert (
+            conflicts[
+                "duplicate_combinations"
+            ]
+            == []
+        )
+    
+        assert (
+            conflicts[
+                "overall_status"
+            ]
+            == "not_applicable"
+        )
+    
+        assert (
+            conflicts[
+                "method"
+            ]
+            == "stem_combination_conflict_v1"
+        )
+    
+        assert (
+            conflicts[
+                "status"
+            ]
+            == "detected_stem_combination_conflicts"
+        )
+    
+        assert isinstance(
+            conflicts["notes"],
+            list,
+        )
+    
+        assert len(
+            conflicts["notes"]
+        ) >= 1
