@@ -174,16 +174,14 @@ def calculate_chart(req) -> dict:
     )
 
     branch_clashes = find_branch_clashes(
-    chart_data
-)
+        chart_data
+    )
 
     branch_combinations = (
         find_branch_combinations(
             chart_data
         )
     )
-
-    month_command = (
 
     month_command = (
         classify_month_relationship(
