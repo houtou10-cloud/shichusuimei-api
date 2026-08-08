@@ -1,6 +1,9 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+from engine.branch_relation_strength import (
+    calculate_branch_relation_strength,
+)
 from engine.branch_relations import (
     find_branch_breaks,
     find_branch_clashes,
@@ -213,6 +216,17 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    branch_relation_strength = (
+        calculate_branch_relation_strength(
+            branch_clashes,
+            branch_combinations,
+            branch_trines,
+            branch_punishments,
+            branch_harms,
+            branch_breaks,
+        )
+    )
+
     month_command = (
         classify_month_relationship(
             pillars["day_master"]["stem"],
@@ -306,6 +320,9 @@ def calculate_chart(req) -> dict:
         ),
         "branch_breaks": (
             branch_breaks
+        ),
+        "branch_relation_strength": (
+            branch_relation_strength
         ),
         "month_command": month_command,
         "weighted_month_command": (
