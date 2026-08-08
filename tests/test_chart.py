@@ -1349,6 +1349,13 @@ def test_chart_contains_stem_transformation_judgment():
             judgment["unsupported_count"]
             == 0
         )
+
+        assert (
+            judgment[
+                "conflicted_judgment_count"
+            ]
+            == 0
+        )
     
         assert (
             judgment["overall_judgment"]
