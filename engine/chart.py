@@ -17,6 +17,9 @@ from engine.day_master_strength import (
     classify_weighted_elements_for_day_master,
 )
 from engine.five_elements import calculate_five_elements
+from engine.final_strength_judgment import (
+    evaluate_final_strength_judgment,
+)
 from engine.integrated_month_strength import (
     calculate_integrated_month_strength,
 )
@@ -215,6 +218,16 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    final_strength_judgment = (
+        evaluate_final_strength_judgment(
+            weighted_strength_judgment,
+            weighted_root_strength,
+            integrated_month_strength,
+            branch_relation_strength,
+            stem_transformation_judgment,
+        )
+    )
+
     five_elements = calculate_five_elements(
         chart_data
     )
@@ -379,6 +392,9 @@ def calculate_chart(req) -> dict:
         ),
         "stem_transformation_judgment": (
             stem_transformation_judgment
+        ),
+        "final_strength_judgment": (
+            final_strength_judgment
         ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
