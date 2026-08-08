@@ -38,6 +38,9 @@ from engine.strength_judgment import (
     calculate_provisional_strength,
     calculate_weighted_provisional_strength,
 )
+from engine.transformation_exposure import (
+    evaluate_transformation_exposures,
+)
 from engine.transformation_root import (
     evaluate_transformation_roots,
 )
@@ -168,6 +171,13 @@ def calculate_chart(req) -> dict:
 
     transformation_roots = (
         evaluate_transformation_roots(
+            stem_transformations,
+            chart_data,
+        )
+    )
+
+    transformation_exposures = (
+        evaluate_transformation_exposures(
             stem_transformations,
             chart_data,
         )
@@ -325,6 +335,9 @@ def calculate_chart(req) -> dict:
         ),
         "transformation_roots": (
             transformation_roots
+        ),
+        "transformation_exposures": (
+            transformation_exposures
         ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
