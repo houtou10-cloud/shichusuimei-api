@@ -881,3 +881,37 @@ def test_chart_contains_branch_harms():
         branch_harms["status"]
         == "detected_branch_harms"
     )
+
+def test_chart_contains_branch_breaks():
+    request = make_verified_request()
+
+    result = calculate_chart(request)
+
+    branch_breaks = result[
+        "branch_breaks"
+    ]
+
+    assert (
+        branch_breaks["has_break"]
+        is False
+    )
+
+    assert (
+        branch_breaks["break_count"]
+        == 0
+    )
+
+    assert (
+        branch_breaks["breaks"]
+        == []
+    )
+
+    assert (
+        branch_breaks["method"]
+        == "branch_break_v1"
+    )
+
+    assert (
+        branch_breaks["status"]
+        == "detected_branch_breaks"
+    )
