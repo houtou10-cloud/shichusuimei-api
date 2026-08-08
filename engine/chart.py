@@ -31,6 +31,9 @@ from engine.seasonal_strength import (
 from engine.stem_combinations import (
     find_stem_combinations,
 )
+from engine.stem_transformation_judgment import (
+    evaluate_stem_transformation_judgment,
+)
 from engine.stem_transformation import (
     evaluate_stem_transformations,
 )
@@ -180,6 +183,14 @@ def calculate_chart(req) -> dict:
         evaluate_transformation_exposures(
             stem_transformations,
             chart_data,
+        )
+    )
+
+    stem_transformation_judgment = (
+        evaluate_stem_transformation_judgment(
+            stem_transformations,
+            transformation_roots,
+            transformation_exposures,
         )
     )
 
@@ -338,6 +349,9 @@ def calculate_chart(req) -> dict:
         ),
         "transformation_exposures": (
             transformation_exposures
+        ),
+        "stem_transformation_judgment": (
+            stem_transformation_judgment
         ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
