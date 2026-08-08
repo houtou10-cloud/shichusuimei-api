@@ -1,6 +1,6 @@
 """
 天干五合の化について、
-月令・通根・透干を統合して
+月令・通根・透干・干合競合を統合して
 暫定的な総合判定を行うモジュール。
 
 現在利用する情報:
@@ -9,21 +9,22 @@
 2. 化神の通根
 3. 化神の透干
 4. 干合参加者以外からの外部透干
+5. 同一柱が複数の干合候補に参加する競合
 
 重要:
-v1では争合・妬合・妨害条件などを
-まだ評価していません。
+v2でも争合・妬合・妨害条件の
+占術的な最終判定までは行いません。
 
-そのため、
-「化が成立した(transformed)」とは断定せず、
+競合が検出された干合候補は、
+評価を1段階抑制します。
+
+判定:
 
 - strong_candidate
 - possible
 - weak
 - unsupported
 - not_applicable
-
-という候補評価を返します。
 """
 
 
@@ -45,6 +46,14 @@ EXPOSURE_STRENGTH_SCORES = {
     "strong": 2.0,
     "participant_only": 0.5,
     "none": 0.0,
+}
+
+
+JUDGMENT_DOWNGRADE = {
+    "strong_candidate": "possible",
+    "possible": "weak",
+    "weak": "unsupported",
+    "unsupported": "unsupported",
 }
 
 
@@ -118,6 +127,11 @@ def find_result_by_combination(
     """
     resultsからcombination_nameが一致する
     最初のデータを返します。
+
+    v2では既存APIとの互換性維持のため残します。
+    複数の同名干合がある場合は、
+    positionによる照合を優先する
+    find_result_for_transformation()を使用します。
     """
     for item in results:
         if (
@@ -131,6 +145,75 @@ def find_result_by_combination(
     return None
 
 
+def find_result_for_transformation(
+    results: list,
+    transformation: dict,
+) -> dict | None:
+    """
+    transformationに対応する評価結果を探します。
+
+    combination_nameに加えて、
+    position_a / position_b が結果側に存在する場合は
+    位置も照合します。
+
+    既存のroot/exposure結果が位置情報を
+    持たない場合はcombination_nameで照合します。
+    """
+    combination_name = transformation.get(
+        "combination_name"
+    )
+
+    position_a = transformation.get(
+        "position_a"
+    )
+
+    position_b = transformation.get(
+        "position_b"
+    )
+
+    name_matches = [
+        item
+        for item in results
+        if (
+            item.get(
+                "combination_name"
+            )
+            == combination_name
+        )
+    ]
+
+    if not name_matches:
+        return None
+
+    for item in name_matches:
+        item_position_a = item.get(
+            "position_a"
+        )
+        item_position_b = item.get(
+            "position_b"
+        )
+
+        if (
+            item_position_a is None
+            and item_position_b is None
+        ):
+            continue
+
+        if (
+            item_position_a == position_a
+            and item_position_b == position_b
+        ):
+            return item
+
+        if (
+            item_position_a == position_b
+            and item_position_b == position_a
+        ):
+            return item
+
+    return name_matches[0]
+
+
 def classify_judgment(
     total_score: float,
     month_support_level: str,
@@ -141,13 +224,10 @@ def classify_judgment(
     総合スコアと主要条件から、
     化の候補レベルを判定します。
 
-    v1では「transformed」は返しません。
+    この段階では競合情報を反映しません。
+    競合による抑制は
+    apply_conflict_adjustment()で行います。
     """
-
-    # 月令の支持が強く、
-    # 通根があり、
-    # 外部透干もある場合は
-    # 強い化候補として扱います。
     if (
         month_support_level == "strong"
         and has_root
@@ -156,8 +236,6 @@ def classify_judgment(
     ):
         return "strong_candidate"
 
-    # 月令がstrongまたはsupportiveで、
-    # 通根も存在する場合。
     if (
         month_support_level
         in {
@@ -169,8 +247,6 @@ def classify_judgment(
     ):
         return "possible"
 
-    # 月令支持はあるが、
-    # 通根・外部透干などが弱いケース。
     if (
         month_support_level
         in {
@@ -184,15 +260,176 @@ def classify_judgment(
     return "unsupported"
 
 
+def get_conflicted_positions(
+    stem_combination_conflicts: dict | None,
+) -> set[str]:
+    """
+    競合評価から、
+    competing_combinationが検出された
+    柱位置を集合で返します。
+
+    Noneの場合は競合なしとして扱います。
+    """
+    if stem_combination_conflicts is None:
+        return set()
+
+    if not isinstance(
+        stem_combination_conflicts,
+        dict,
+    ):
+        raise TypeError(
+            "stem_combination_conflictsは"
+            "dict型またはNoneで指定してください。"
+        )
+
+    position_conflicts = (
+        stem_combination_conflicts.get(
+            "position_conflicts",
+            [],
+        )
+    )
+
+    if not isinstance(
+        position_conflicts,
+        list,
+    ):
+        raise TypeError(
+            "position_conflictsはlist型で指定してください。"
+        )
+
+    positions: set[str] = set()
+
+    for conflict in position_conflicts:
+        if not isinstance(
+            conflict,
+            dict,
+        ):
+            raise TypeError(
+                "position_conflictはdict型で指定してください。"
+            )
+
+        position = conflict.get(
+            "position"
+        )
+
+        if position is not None:
+            positions.add(
+                position
+            )
+
+    return positions
+
+
+def get_transformation_conflict_info(
+    transformation: dict,
+    stem_combination_conflicts: dict | None,
+) -> dict:
+    """
+    1件の干合候補が、
+    検出済みの競合位置に関係しているかを
+    判定します。
+
+    全体に競合が存在するだけでは減点せず、
+    position_a / position_b のどちらかが
+    実際に競合位置である場合だけ
+    この干合候補をconflictedとします。
+    """
+    if not isinstance(
+        transformation,
+        dict,
+    ):
+        raise TypeError(
+            "transformationはdict型で指定してください。"
+        )
+
+    conflicted_positions = (
+        get_conflicted_positions(
+            stem_combination_conflicts
+        )
+    )
+
+    position_a = transformation.get(
+        "position_a"
+    )
+
+    position_b = transformation.get(
+        "position_b"
+    )
+
+    matched_positions = [
+        position
+        for position in (
+            position_a,
+            position_b,
+        )
+        if (
+            position is not None
+            and position
+            in conflicted_positions
+        )
+    ]
+
+    has_conflict = bool(
+        matched_positions
+    )
+
+    return {
+        "has_conflict": has_conflict,
+        "conflicted_positions": (
+            matched_positions
+        ),
+        "adjustment_steps": (
+            -1 if has_conflict else 0
+        ),
+        "reason": (
+            "competing_combination"
+            if has_conflict
+            else None
+        ),
+    }
+
+
+def apply_conflict_adjustment(
+    judgment: str,
+    has_conflict: bool,
+) -> str:
+    """
+    競合がある干合候補の判定を
+    1段階抑制します。
+
+    strong_candidate -> possible
+    possible         -> weak
+    weak             -> unsupported
+    unsupported      -> unsupported
+    """
+    if judgment not in JUDGMENT_DOWNGRADE:
+        raise ValueError(
+            "不正なjudgmentです: "
+            f"{judgment}"
+        )
+
+    if not has_conflict:
+        return judgment
+
+    return JUDGMENT_DOWNGRADE[
+        judgment
+    ]
+
+
 def evaluate_single_transformation_judgment(
     transformation: dict,
     root_result: dict,
     exposure_result: dict,
+    conflict_info: dict | None = None,
 ) -> dict:
     """
     1件の干合について、
-    月令・通根・透干を統合して
+    月令・通根・透干・競合を統合して
     暫定総合判定を行います。
+
+    conflict_infoを省略した場合は
+    競合なしとして扱うため、
+    v1の呼び出し方とも互換性があります。
     """
     if not isinstance(
         transformation,
@@ -216,6 +453,17 @@ def evaluate_single_transformation_judgment(
     ):
         raise TypeError(
             "exposure_resultはdict型で指定してください。"
+        )
+
+    if (
+        conflict_info is not None
+        and not isinstance(
+            conflict_info,
+            dict,
+        )
+    ):
+        raise TypeError(
+            "conflict_infoはdict型またはNoneで指定してください。"
         )
 
     combination_name = (
@@ -376,11 +624,31 @@ def evaluate_single_transformation_judgment(
         2,
     )
 
-    judgment = classify_judgment(
+    base_judgment = classify_judgment(
         total_score,
         month_support_level,
         has_root,
         has_external_exposure,
+    )
+
+    if conflict_info is None:
+        conflict_info = {
+            "has_conflict": False,
+            "conflicted_positions": [],
+            "adjustment_steps": 0,
+            "reason": None,
+        }
+
+    has_conflict = bool(
+        conflict_info.get(
+            "has_conflict",
+            False,
+        )
+    )
+
+    judgment = apply_conflict_adjustment(
+        base_judgment,
+        has_conflict,
     )
 
     if judgment == "strong_candidate":
@@ -452,6 +720,11 @@ def evaluate_single_transformation_judgment(
             "no_transformation_exposure"
         )
 
+    if has_conflict:
+        limiting_factors.append(
+            "competing_combination"
+        )
+
     return {
         "combination_name": (
             combination_name
@@ -502,6 +775,15 @@ def evaluate_single_transformation_judgment(
         "total_score": (
             total_score
         ),
+        "base_judgment": (
+            base_judgment
+        ),
+        "has_conflict": (
+            has_conflict
+        ),
+        "conflict_info": (
+            conflict_info
+        ),
         "judgment": (
             judgment
         ),
@@ -521,11 +803,16 @@ def evaluate_stem_transformation_judgment(
     stem_transformations: dict,
     transformation_roots: dict,
     transformation_exposures: dict,
+    stem_combination_conflicts: dict | None = None,
 ) -> dict:
     """
     全ての干合候補について、
-    月令・通根・透干を統合した
+    月令・通根・透干・競合を統合した
     暫定総合判定を行います。
+
+    第4引数は任意です。
+    省略した場合は競合なしとして扱うため、
+    既存コードとの互換性を保ちます。
     """
     if not isinstance(
         stem_transformations,
@@ -549,6 +836,18 @@ def evaluate_stem_transformation_judgment(
     ):
         raise TypeError(
             "transformation_exposuresはdict型で指定してください。"
+        )
+
+    if (
+        stem_combination_conflicts is not None
+        and not isinstance(
+            stem_combination_conflicts,
+            dict,
+        )
+    ):
+        raise TypeError(
+            "stem_combination_conflictsは"
+            "dict型またはNoneで指定してください。"
         )
 
     transformations = (
@@ -601,6 +900,14 @@ def evaluate_stem_transformation_judgment(
     judgments: list[dict] = []
 
     for transformation in transformations:
+        if not isinstance(
+            transformation,
+            dict,
+        ):
+            raise TypeError(
+                "transformationはdict型で指定してください。"
+            )
+
         combination_name = (
             transformation.get(
                 "combination_name"
@@ -614,9 +921,9 @@ def evaluate_stem_transformation_judgment(
             )
 
         root_result = (
-            find_result_by_combination(
+            find_result_for_transformation(
                 root_results,
-                combination_name,
+                transformation,
             )
         )
 
@@ -628,9 +935,9 @@ def evaluate_stem_transformation_judgment(
             )
 
         exposure_result = (
-            find_result_by_combination(
+            find_result_for_transformation(
                 exposure_results,
-                combination_name,
+                transformation,
             )
         )
 
@@ -641,11 +948,19 @@ def evaluate_stem_transformation_judgment(
                 f"{combination_name}"
             )
 
+        conflict_info = (
+            get_transformation_conflict_info(
+                transformation,
+                stem_combination_conflicts,
+            )
+        )
+
         judgment = (
             evaluate_single_transformation_judgment(
                 transformation,
                 root_result,
                 exposure_result,
+                conflict_info,
             )
         )
 
@@ -687,6 +1002,14 @@ def evaluate_stem_transformation_judgment(
             item["judgment"]
             == "unsupported"
         )
+    )
+
+    conflicted_judgment_count = sum(
+        1
+        for item in judgments
+        if item[
+            "has_conflict"
+        ]
     )
 
     if not judgments:
@@ -750,6 +1073,9 @@ def evaluate_stem_transformation_judgment(
         "unsupported_count": (
             unsupported_count
         ),
+        "conflicted_judgment_count": (
+            conflicted_judgment_count
+        ),
         "overall_judgment": (
             overall_judgment
         ),
@@ -757,7 +1083,7 @@ def evaluate_stem_transformation_judgment(
             judgments
         ),
         "method": (
-            "stem_transformation_judgment_v1"
+            "stem_transformation_judgment_v2"
         ),
         "status": (
             "provisional_stem_transformation_judgment"
@@ -765,16 +1091,20 @@ def evaluate_stem_transformation_judgment(
         "notes": [
             (
                 "天干五合の化について、"
-                "月令・通根・透干を統合して"
-                "暫定評価しています。"
+                "月令・通根・透干・干合競合を"
+                "統合して暫定評価しています。"
+            ),
+            (
+                "競合する柱位置を含む干合候補は"
+                "判定を1段階抑制しています。"
             ),
             (
                 "strong_candidateでも"
-                "化成立を確定したものでは"
-                "ありません。"
+                "化成立を確定したものではありません。"
             ),
             (
-                "争合・妬合・妨害条件などは"
+                "争合・妬合の詳細分類や"
+                "その他の妨害条件は"
                 "まだ評価していません。"
             ),
             (
