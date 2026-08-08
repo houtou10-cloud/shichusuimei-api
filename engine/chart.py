@@ -263,7 +263,7 @@ def calculate_chart(req) -> dict:
         find_branch_clashes(
             chart_data
         )
-
+    )
     branch_clashes = find_branch_clashes(
         chart_data
 
