@@ -28,6 +28,16 @@ BRANCH_HARM_PAIRS = {
 }
 
 
+BRANCH_BREAK_PAIRS = {
+    frozenset(("子", "酉")),
+    frozenset(("丑", "辰")),
+    frozenset(("寅", "亥")),
+    frozenset(("卯", "午")),
+    frozenset(("巳", "申")),
+    frozenset(("未", "戌")),
+}
+
+
 BRANCH_TRINE_GROUPS = {
     frozenset(("申", "子", "辰")): {
         "element": "水",
@@ -133,6 +143,23 @@ def is_branch_harm(
     )
 
     return pair in BRANCH_HARM_PAIRS
+
+
+def is_branch_break(
+    branch_a: str,
+    branch_b: str,
+) -> bool:
+    """
+    2つの地支が六破の関係にあるかを判定します。
+    """
+    pair = frozenset(
+        (
+            branch_a,
+            branch_b,
+        )
+    )
+
+    return pair in BRANCH_BREAK_PAIRS
 
 
 def is_branch_trine(
@@ -409,6 +436,82 @@ def find_branch_harms(
             "命式内の地支同士から六害を検出しています。",
             "現在は六害の有無のみを判定しています。",
             "害による五行・通根・身強身弱への補正は未反映です。",
+        ],
+    }
+
+
+
+def find_branch_breaks(
+    chart_data: dict,
+) -> dict:
+    """
+    命式内の地支同士から六破を検出します。
+
+    六破：
+    子・酉
+    丑・辰
+    寅・亥
+    卯・午
+    巳・申
+    未・戌
+    """
+    available_positions = (
+        get_available_positions(
+            chart_data
+        )
+    )
+
+    breaks: list[dict] = []
+
+    for index_a in range(
+        len(available_positions)
+    ):
+        for index_b in range(
+            index_a + 1,
+            len(available_positions),
+        ):
+            position_a = (
+                available_positions[index_a]
+            )
+
+            position_b = (
+                available_positions[index_b]
+            )
+
+            branch_a = chart_data[
+                position_a
+            ]["branch"]
+
+            branch_b = chart_data[
+                position_b
+            ]["branch"]
+
+            if not is_branch_break(
+                branch_a,
+                branch_b,
+            ):
+                continue
+
+            breaks.append(
+                {
+                    "position_a": position_a,
+                    "branch_a": branch_a,
+                    "position_b": position_b,
+                    "branch_b": branch_b,
+                    "relation": "破",
+                }
+            )
+
+    return {
+        "has_break": bool(breaks),
+        "break_count": len(breaks),
+        "breaks": breaks,
+        "method": "branch_break_v1",
+        "status": "detected_branch_breaks",
+        "notes": [
+            "命式内の地支同士から六破を検出しています。",
+            "現在は六破の有無のみを判定しています。",
+            "破による五行・通根・身強身弱への補正は未反映です。",
         ],
     }
 
