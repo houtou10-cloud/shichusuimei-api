@@ -28,6 +28,9 @@ from engine.root_strength import find_roots
 from engine.seasonal_strength import (
     evaluate_seasonal_strength,
 )
+from engine.stem_combinations import (
+    find_stem_combinations,
+)
 from engine.strength_judgment import (
     calculate_provisional_strength,
     calculate_weighted_provisional_strength,
@@ -143,6 +146,12 @@ def calculate_chart(req) -> dict:
         "day": pillars["day"],
         "hour": pillars["hour"],
     }
+
+    stem_combinations = (
+        find_stem_combinations(
+            chart_data
+        )
+    )
 
     five_elements = calculate_five_elements(
         chart_data
@@ -288,6 +297,9 @@ def calculate_chart(req) -> dict:
             "timezone": "Asia/Tokyo",
         },
         "chart": chart_data,
+        "stem_combinations": (
+            stem_combinations
+        ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
         "weighted_five_elements": (
