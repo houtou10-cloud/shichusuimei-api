@@ -31,6 +31,9 @@ from engine.seasonal_strength import (
 from engine.stem_combinations import (
     find_stem_combinations,
 )
+from engine.stem_transformation import (
+    evaluate_stem_transformations,
+)
 from engine.strength_judgment import (
     calculate_provisional_strength,
     calculate_weighted_provisional_strength,
@@ -150,6 +153,13 @@ def calculate_chart(req) -> dict:
     stem_combinations = (
         find_stem_combinations(
             chart_data
+        )
+    )
+
+    stem_transformations = (
+        evaluate_stem_transformations(
+            stem_combinations,
+            chart_data,
         )
     )
 
@@ -299,6 +309,9 @@ def calculate_chart(req) -> dict:
         "chart": chart_data,
         "stem_combinations": (
             stem_combinations
+        ),
+        "stem_transformations": (
+            stem_transformations
         ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
