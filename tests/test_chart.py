@@ -707,7 +707,7 @@ def test_chart_contains_integrated_month_strength():
         integrated["status"]
         == "provisional_integrated_month_strength"
     )
-    def test_chart_contains_branch_clashes():
+  def test_chart_contains_branch_clashes():
     request = make_verified_request()
 
     result = calculate_chart(request)
