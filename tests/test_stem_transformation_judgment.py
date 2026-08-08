@@ -1,6 +1,1753 @@
 import pytest
 
 from engine.stem_transformation_judgment import (
+    apply_conflict_adjustment,
+    classify_judgment,
+    evaluate_single_transformation_judgment,
+    evaluate_stem_transformation_judgment,
+    find_result_by_combination,
+    get_conflicted_positions,
+    get_exposure_strength_score,
+    get_month_support_score,
+    get_root_strength_score,
+    get_transformation_conflict_info,
+)
+
+
+def make_transformation(
+    combination_name="甲己",
+    result_element="土",
+    support_level="strong",
+    position_a="year",
+    position_b="month",
+):
+    return {
+        "position_a": position_a,
+        "stem_a": "甲",
+        "position_b": position_b,
+        "stem_b": "己",
+        "combination_name": combination_name,
+        "result_element": result_element,
+        "transformation_status": "possible",
+        "confidence": "high",
+        "month_support": {
+            "month_branch": "未",
+            "month_element": "土",
+            "result_element": result_element,
+            "support_level": support_level,
+            "support_score": 2.0,
+        },
+    }
+
+
+def make_root_result(
+    combination_name="甲己",
+    result_element="土",
+    root_strength="strong",
+    has_root=True,
+    has_month_root=True,
+):
+    return {
+        "combination_name": combination_name,
+        "result_element": result_element,
+        "transformation_status": "possible",
+        "confidence": "high",
+        "root_evaluation": {
+            "result_element": result_element,
+            "has_root": has_root,
+            "has_month_root": has_month_root,
+            "root_count": (
+                1 if has_root else 0
+            ),
+            "root_positions": (
+                ["month"]
+                if has_root
+                else []
+            ),
+            "total_root_score": (
+                1.5 if has_root else 0.0
+            ),
+            "month_root_score": (
+                1.5
+                if has_month_root
+                else 0.0
+            ),
+            "root_strength": root_strength,
+            "roots": [],
+        },
+    }
+
+
+def make_exposure_result(
+    combination_name="甲己",
+    result_element="土",
+    exposure_strength="strong",
+    has_exposure=True,
+    has_external_exposure=True,
+):
+    return {
+        "combination_name": combination_name,
+        "result_element": result_element,
+        "transformation_status": "possible",
+        "confidence": "high",
+        "exposure_evaluation": {
+            "combination_name": (
+                combination_name
+            ),
+            "result_element": result_element,
+            "has_exposure": has_exposure,
+            "exposure_count": (
+                1 if has_exposure else 0
+            ),
+            "has_external_exposure": (
+                has_external_exposure
+            ),
+            "external_exposure_count": (
+                1
+                if has_external_exposure
+                else 0
+            ),
+            "exposure_strength": (
+                exposure_strength
+            ),
+        },
+    }
+
+
+def make_conflicts(
+    positions=None,
+):
+    if positions is None:
+        positions = []
+
+    position_conflicts = [
+        {
+            "position": position,
+            "stem": None,
+            "combination_count": 2,
+            "combination_names": [
+                "甲己",
+                "甲己",
+            ],
+            "partner_positions": [],
+            "conflict_type": (
+                "competing_combination"
+            ),
+        }
+        for position in positions
+    ]
+
+    return {
+        "has_stem_combination": True,
+        "combination_count": 2,
+        "has_conflict": bool(
+            position_conflicts
+        ),
+        "conflict_count": len(
+            position_conflicts
+        ),
+        "position_conflict_count": len(
+            position_conflicts
+        ),
+        "duplicate_combination_count": 0,
+        "position_conflicts": (
+            position_conflicts
+        ),
+        "duplicate_combinations": [],
+        "overall_status": (
+            "conflicted"
+            if position_conflicts
+            else "clear"
+        ),
+    }
+
+
+# =========================================================
+# Score conversion
+# =========================================================
+
+
+def test_get_month_support_score():
+    assert (
+        get_month_support_score(
+            "strong"
+        )
+        == 4.0
+    )
+
+    assert (
+        get_month_support_score(
+            "supportive"
+        )
+        == 2.0
+    )
+
+    assert (
+        get_month_support_score(
+            "weak"
+        )
+        == 0.0
+    )
+
+
+def test_invalid_month_support_score():
+    with pytest.raises(
+        ValueError,
+        match=(
+            "不正なmonth support level"
+        ),
+    ):
+        get_month_support_score(
+            "invalid"
+        )
+
+
+def test_get_root_strength_score():
+    assert (
+        get_root_strength_score(
+            "strong"
+        )
+        == 3.0
+    )
+
+    assert (
+        get_root_strength_score(
+            "present"
+        )
+        == 1.5
+    )
+
+    assert (
+        get_root_strength_score(
+            "none"
+        )
+        == 0.0
+    )
+
+
+def test_invalid_root_strength_score():
+    with pytest.raises(
+        ValueError,
+        match="不正なroot strength",
+    ):
+        get_root_strength_score(
+            "invalid"
+        )
+
+
+def test_get_exposure_strength_score():
+    assert (
+        get_exposure_strength_score(
+            "strong"
+        )
+        == 2.0
+    )
+
+    assert (
+        get_exposure_strength_score(
+            "participant_only"
+        )
+        == 0.5
+    )
+
+    assert (
+        get_exposure_strength_score(
+            "none"
+        )
+        == 0.0
+    )
+
+
+def test_invalid_exposure_strength_score():
+    with pytest.raises(
+        ValueError,
+        match=(
+            "不正なexposure strength"
+        ),
+    ):
+        get_exposure_strength_score(
+            "invalid"
+        )
+
+
+# =========================================================
+# find_result_by_combination
+# =========================================================
+
+
+def test_find_result_by_combination():
+    results = [
+        {
+            "combination_name": "甲己",
+            "value": 1,
+        },
+        {
+            "combination_name": "乙庚",
+            "value": 2,
+        },
+    ]
+
+    result = find_result_by_combination(
+        results,
+        "乙庚",
+    )
+
+    assert result == {
+        "combination_name": "乙庚",
+        "value": 2,
+    }
+
+
+def test_find_result_by_combination_none():
+    results = [
+        {
+            "combination_name": "甲己",
+        },
+    ]
+
+    result = find_result_by_combination(
+        results,
+        "丙辛",
+    )
+
+    assert result is None
+
+
+# =========================================================
+# classify_judgment
+# =========================================================
+
+
+def test_classify_strong_candidate():
+    result = classify_judgment(
+        total_score=9.0,
+        month_support_level="strong",
+        has_root=True,
+        has_external_exposure=True,
+    )
+
+    assert result == "strong_candidate"
+
+
+def test_classify_possible_with_strong_month():
+    result = classify_judgment(
+        total_score=7.5,
+        month_support_level="strong",
+        has_root=True,
+        has_external_exposure=False,
+    )
+
+    assert result == "possible"
+
+
+def test_classify_possible_with_supportive_month():
+    result = classify_judgment(
+        total_score=5.5,
+        month_support_level="supportive",
+        has_root=True,
+        has_external_exposure=True,
+    )
+
+    assert result == "possible"
+
+
+def test_classify_weak():
+    result = classify_judgment(
+        total_score=4.0,
+        month_support_level="strong",
+        has_root=False,
+        has_external_exposure=False,
+    )
+
+    assert result == "weak"
+
+
+def test_classify_unsupported():
+    result = classify_judgment(
+        total_score=4.5,
+        month_support_level="weak",
+        has_root=True,
+        has_external_exposure=False,
+    )
+
+    assert result == "unsupported"
+
+
+# =========================================================
+# Conflict helpers
+# =========================================================
+
+
+def test_get_conflicted_positions_none():
+    assert (
+        get_conflicted_positions(
+            None
+        )
+        == set()
+    )
+
+
+def test_get_conflicted_positions():
+    result = get_conflicted_positions(
+        make_conflicts(
+            [
+                "year",
+                "month",
+            ]
+        )
+    )
+
+    assert result == {
+        "year",
+        "month",
+    }
+
+
+def test_invalid_conflicts_type():
+    with pytest.raises(
+        TypeError,
+        match=(
+            "stem_combination_conflictsは"
+            "dict型またはNone"
+        ),
+    ):
+        get_conflicted_positions(
+            []
+        )
+
+
+def test_invalid_position_conflicts_type():
+    with pytest.raises(
+        TypeError,
+        match="position_conflictsはlist型",
+    ):
+        get_conflicted_positions(
+            {
+                "position_conflicts": {},
+            }
+        )
+
+
+def test_invalid_position_conflict_item():
+    with pytest.raises(
+        TypeError,
+        match="position_conflictはdict型",
+    ):
+        get_conflicted_positions(
+            {
+                "position_conflicts": [
+                    [],
+                ],
+            }
+        )
+
+
+def test_get_transformation_conflict_info_conflicted():
+    transformation = (
+        make_transformation()
+    )
+
+    result = (
+        get_transformation_conflict_info(
+            transformation,
+            make_conflicts(
+                ["year"]
+            ),
+        )
+    )
+
+    assert result == {
+        "has_conflict": True,
+        "conflicted_positions": [
+            "year",
+        ],
+        "adjustment_steps": -1,
+        "reason": (
+            "competing_combination"
+        ),
+    }
+
+
+def test_get_transformation_conflict_info_clear():
+    transformation = (
+        make_transformation()
+    )
+
+    result = (
+        get_transformation_conflict_info(
+            transformation,
+            make_conflicts(
+                ["day"]
+            ),
+        )
+    )
+
+    assert result == {
+        "has_conflict": False,
+        "conflicted_positions": [],
+        "adjustment_steps": 0,
+        "reason": None,
+    }
+
+
+def test_apply_conflict_adjustment_no_conflict():
+    assert (
+        apply_conflict_adjustment(
+            "strong_candidate",
+            False,
+        )
+        == "strong_candidate"
+    )
+
+
+def test_apply_conflict_strong_to_possible():
+    assert (
+        apply_conflict_adjustment(
+            "strong_candidate",
+            True,
+        )
+        == "possible"
+    )
+
+
+def test_apply_conflict_possible_to_weak():
+    assert (
+        apply_conflict_adjustment(
+            "possible",
+            True,
+        )
+        == "weak"
+    )
+
+
+def test_apply_conflict_weak_to_unsupported():
+    assert (
+        apply_conflict_adjustment(
+            "weak",
+            True,
+        )
+        == "unsupported"
+    )
+
+
+def test_apply_conflict_unsupported_stays_unsupported():
+    assert (
+        apply_conflict_adjustment(
+            "unsupported",
+            True,
+        )
+        == "unsupported"
+    )
+
+
+def test_apply_conflict_invalid_judgment():
+    with pytest.raises(
+        ValueError,
+        match="不正なjudgmentです",
+    ):
+        apply_conflict_adjustment(
+            "invalid",
+            True,
+        )
+
+
+# =========================================================
+# Single judgment
+# =========================================================
+
+
+def test_single_strong_candidate():
+    transformation = (
+        make_transformation(
+            support_level="strong"
+        )
+    )
+
+    root_result = make_root_result(
+        root_strength="strong",
+        has_root=True,
+        has_month_root=True,
+    )
+
+    exposure_result = (
+        make_exposure_result(
+            exposure_strength="strong",
+            has_exposure=True,
+            has_external_exposure=True,
+        )
+    )
+
+    result = (
+        evaluate_single_transformation_judgment(
+            transformation,
+            root_result,
+            exposure_result,
+        )
+    )
+
+    assert (
+        result["combination_name"]
+        == "甲己"
+    )
+
+    assert (
+        result["result_element"]
+        == "土"
+    )
+
+    assert (
+        result["position_a"]
+        == "year"
+    )
+
+    assert (
+        result["position_b"]
+        == "month"
+    )
+
+    assert (
+        result["month_support_level"]
+        == "strong"
+    )
+
+    assert (
+        result["month_support_score"]
+        == 4.0
+    )
+
+    assert (
+        result["root_strength"]
+        == "strong"
+    )
+
+    assert (
+        result["root_score"]
+        == 3.0
+    )
+
+    assert result["has_root"] is True
+
+    assert (
+        result["has_month_root"]
+        is True
+    )
+
+    assert (
+        result["exposure_strength"]
+        == "strong"
+    )
+
+    assert (
+        result["exposure_score"]
+        == 2.0
+    )
+
+    assert (
+        result["has_exposure"]
+        is True
+    )
+
+    assert (
+        result[
+            "has_external_exposure"
+        ]
+        is True
+    )
+
+    assert (
+        result["total_score"]
+        == 9.0
+    )
+
+    assert (
+        result["base_judgment"]
+        == "strong_candidate"
+    )
+
+    assert (
+        result["has_conflict"]
+        is False
+    )
+
+    assert (
+        result["judgment"]
+        == "strong_candidate"
+    )
+
+    assert (
+        result["confidence"]
+        == "high"
+    )
+
+    assert (
+        "strong_month_support"
+        in result["supporting_factors"]
+    )
+
+    assert (
+        "has_transformation_root"
+        in result["supporting_factors"]
+    )
+
+    assert (
+        "has_month_root"
+        in result["supporting_factors"]
+    )
+
+    assert (
+        "has_external_exposure"
+        in result["supporting_factors"]
+    )
+
+    assert (
+        result["limiting_factors"]
+        == []
+    )
+
+
+def test_single_strong_candidate_downgraded_by_conflict():
+    transformation = (
+        make_transformation(
+            support_level="strong"
+        )
+    )
+
+    result = (
+        evaluate_single_transformation_judgment(
+            transformation,
+            make_root_result(
+                root_strength="strong",
+                has_root=True,
+                has_month_root=True,
+            ),
+            make_exposure_result(
+                exposure_strength="strong",
+                has_exposure=True,
+                has_external_exposure=True,
+            ),
+            {
+                "has_conflict": True,
+                "conflicted_positions": [
+                    "year",
+                ],
+                "adjustment_steps": -1,
+                "reason": (
+                    "competing_combination"
+                ),
+            },
+        )
+    )
+
+    assert (
+        result["base_judgment"]
+        == "strong_candidate"
+    )
+
+    assert (
+        result["judgment"]
+        == "possible"
+    )
+
+    assert (
+        result["confidence"]
+        == "medium"
+    )
+
+    assert (
+        result["has_conflict"]
+        is True
+    )
+
+    assert (
+        "competing_combination"
+        in result["limiting_factors"]
+    )
+
+
+def test_single_possible():
+    transformation = (
+        make_transformation(
+            support_level="supportive"
+        )
+    )
+
+    root_result = make_root_result(
+        root_strength="strong",
+        has_root=True,
+        has_month_root=False,
+    )
+
+    exposure_result = (
+        make_exposure_result(
+            exposure_strength="participant_only",
+            has_exposure=True,
+            has_external_exposure=False,
+        )
+    )
+
+    result = (
+        evaluate_single_transformation_judgment(
+            transformation,
+            root_result,
+            exposure_result,
+        )
+    )
+
+    assert (
+        result["total_score"]
+        == 5.5
+    )
+
+    assert (
+        result["base_judgment"]
+        == "possible"
+    )
+
+    assert (
+        result["judgment"]
+        == "possible"
+    )
+
+    assert (
+        result["confidence"]
+        == "medium"
+    )
+
+
+def test_single_possible_downgraded_to_weak():
+    transformation = (
+        make_transformation(
+            support_level="supportive"
+        )
+    )
+
+    result = (
+        evaluate_single_transformation_judgment(
+            transformation,
+            make_root_result(
+                root_strength="strong",
+                has_root=True,
+                has_month_root=False,
+            ),
+            make_exposure_result(
+                exposure_strength="participant_only",
+                has_exposure=True,
+                has_external_exposure=False,
+            ),
+            {
+                "has_conflict": True,
+                "conflicted_positions": [
+                    "year",
+                ],
+                "adjustment_steps": -1,
+                "reason": (
+                    "competing_combination"
+                ),
+            },
+        )
+    )
+
+    assert (
+        result["base_judgment"]
+        == "possible"
+    )
+
+    assert (
+        result["judgment"]
+        == "weak"
+    )
+
+    assert (
+        result["confidence"]
+        == "low"
+    )
+
+
+def test_single_weak():
+    transformation = (
+        make_transformation(
+            support_level="strong"
+        )
+    )
+
+    result = (
+        evaluate_single_transformation_judgment(
+            transformation,
+            make_root_result(
+                root_strength="none",
+                has_root=False,
+                has_month_root=False,
+            ),
+            make_exposure_result(
+                exposure_strength="none",
+                has_exposure=False,
+                has_external_exposure=False,
+            ),
+        )
+    )
+
+    assert (
+        result["base_judgment"]
+        == "weak"
+    )
+
+    assert (
+        result["judgment"]
+        == "weak"
+    )
+
+    assert (
+        result["confidence"]
+        == "low"
+    )
+
+
+def test_single_weak_downgraded_to_unsupported():
+    transformation = (
+        make_transformation(
+            support_level="strong"
+        )
+    )
+
+    result = (
+        evaluate_single_transformation_judgment(
+            transformation,
+            make_root_result(
+                root_strength="none",
+                has_root=False,
+                has_month_root=False,
+            ),
+            make_exposure_result(
+                exposure_strength="none",
+                has_exposure=False,
+                has_external_exposure=False,
+            ),
+            {
+                "has_conflict": True,
+                "conflicted_positions": [
+                    "month",
+                ],
+                "adjustment_steps": -1,
+                "reason": (
+                    "competing_combination"
+                ),
+            },
+        )
+    )
+
+    assert (
+        result["base_judgment"]
+        == "weak"
+    )
+
+    assert (
+        result["judgment"]
+        == "unsupported"
+    )
+
+    assert (
+        result["confidence"]
+        == "very_low"
+    )
+
+
+def test_single_unsupported():
+    transformation = (
+        make_transformation(
+            support_level="weak"
+        )
+    )
+
+    result = (
+        evaluate_single_transformation_judgment(
+            transformation,
+            make_root_result(
+                root_strength="none",
+                has_root=False,
+                has_month_root=False,
+            ),
+            make_exposure_result(
+                exposure_strength="none",
+                has_exposure=False,
+                has_external_exposure=False,
+            ),
+        )
+    )
+
+    assert (
+        result["base_judgment"]
+        == "unsupported"
+    )
+
+    assert (
+        result["judgment"]
+        == "unsupported"
+    )
+
+    assert (
+        result["confidence"]
+        == "very_low"
+    )
+
+
+# =========================================================
+# Invalid single inputs
+# =========================================================
+
+
+def test_invalid_transformation_type():
+    with pytest.raises(
+        TypeError,
+        match="transformationはdict型",
+    ):
+        evaluate_single_transformation_judgment(
+            [],
+            {},
+            {},
+        )
+
+
+def test_invalid_root_result_type():
+    with pytest.raises(
+        TypeError,
+        match="root_resultはdict型",
+    ):
+        evaluate_single_transformation_judgment(
+            make_transformation(),
+            [],
+            {},
+        )
+
+
+def test_invalid_exposure_result_type():
+    with pytest.raises(
+        TypeError,
+        match="exposure_resultはdict型",
+    ):
+        evaluate_single_transformation_judgment(
+            make_transformation(),
+            make_root_result(),
+            [],
+        )
+
+
+def test_invalid_conflict_info_type():
+    with pytest.raises(
+        TypeError,
+        match=(
+            "conflict_infoはdict型またはNone"
+        ),
+    ):
+        evaluate_single_transformation_judgment(
+            make_transformation(),
+            make_root_result(),
+            make_exposure_result(),
+            [],
+        )
+
+
+def test_missing_combination_name():
+    transformation = (
+        make_transformation()
+    )
+
+    del transformation[
+        "combination_name"
+    ]
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "combination_nameが必要です"
+        ),
+    ):
+        evaluate_single_transformation_judgment(
+            transformation,
+            make_root_result(),
+            make_exposure_result(),
+        )
+
+
+def test_missing_result_element():
+    transformation = (
+        make_transformation()
+    )
+
+    del transformation[
+        "result_element"
+    ]
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "result_elementが必要です"
+        ),
+    ):
+        evaluate_single_transformation_judgment(
+            transformation,
+            make_root_result(),
+            make_exposure_result(),
+        )
+
+
+def test_missing_month_support():
+    transformation = (
+        make_transformation()
+    )
+
+    del transformation[
+        "month_support"
+    ]
+
+    with pytest.raises(
+        ValueError,
+        match="month_supportが必要です",
+    ):
+        evaluate_single_transformation_judgment(
+            transformation,
+            make_root_result(),
+            make_exposure_result(),
+        )
+
+
+def test_missing_month_support_level():
+    transformation = (
+        make_transformation()
+    )
+
+    transformation[
+        "month_support"
+    ] = {}
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "support_levelが必要です"
+        ),
+    ):
+        evaluate_single_transformation_judgment(
+            transformation,
+            make_root_result(),
+            make_exposure_result(),
+        )
+
+
+def test_missing_root_evaluation():
+    with pytest.raises(
+        ValueError,
+        match=(
+            "root_evaluationが必要です"
+        ),
+    ):
+        evaluate_single_transformation_judgment(
+            make_transformation(),
+            {},
+            make_exposure_result(),
+        )
+
+
+def test_missing_root_strength():
+    root_result = make_root_result()
+
+    root_result[
+        "root_evaluation"
+    ].pop(
+        "root_strength"
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="root_strengthが必要です",
+    ):
+        evaluate_single_transformation_judgment(
+            make_transformation(),
+            root_result,
+            make_exposure_result(),
+        )
+
+
+def test_missing_exposure_evaluation():
+    with pytest.raises(
+        ValueError,
+        match=(
+            "exposure_evaluationが必要です"
+        ),
+    ):
+        evaluate_single_transformation_judgment(
+            make_transformation(),
+            make_root_result(),
+            {},
+        )
+
+
+def test_missing_exposure_strength():
+    exposure_result = (
+        make_exposure_result()
+    )
+
+    exposure_result[
+        "exposure_evaluation"
+    ].pop(
+        "exposure_strength"
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "exposure_strengthが必要です"
+        ),
+    ):
+        evaluate_single_transformation_judgment(
+            make_transformation(),
+            make_root_result(),
+            exposure_result,
+        )
+
+
+# =========================================================
+# Collection judgment
+# =========================================================
+
+
+def test_judgment_not_applicable():
+    result = (
+        evaluate_stem_transformation_judgment(
+            {
+                "transformations": [],
+            },
+            {
+                "results": [],
+            },
+            {
+                "results": [],
+            },
+        )
+    )
+
+    assert (
+        result[
+            "has_transformation_candidate"
+        ]
+        is False
+    )
+
+    assert (
+        result["judgment_count"]
+        == 0
+    )
+
+    assert (
+        result[
+            "strong_candidate_count"
+        ]
+        == 0
+    )
+
+    assert (
+        result["possible_count"]
+        == 0
+    )
+
+    assert (
+        result["weak_count"]
+        == 0
+    )
+
+    assert (
+        result["unsupported_count"]
+        == 0
+    )
+
+    assert (
+        result[
+            "conflicted_judgment_count"
+        ]
+        == 0
+    )
+
+    assert (
+        result["overall_judgment"]
+        == "not_applicable"
+    )
+
+    assert (
+        result["judgments"]
+        == []
+    )
+
+    assert (
+        result["method"]
+        == (
+            "stem_transformation_"
+            "judgment_v2"
+        )
+    )
+
+    assert (
+        result["status"]
+        == (
+            "provisional_stem_"
+            "transformation_judgment"
+        )
+    )
+
+
+def test_all_strong_candidates_without_conflict():
+    transformations = {
+        "transformations": [
+            make_transformation(),
+        ],
+    }
+
+    roots = {
+        "results": [
+            make_root_result(),
+        ],
+    }
+
+    exposures = {
+        "results": [
+            make_exposure_result(),
+        ],
+    }
+
+    result = (
+        evaluate_stem_transformation_judgment(
+            transformations,
+            roots,
+            exposures,
+            make_conflicts([]),
+        )
+    )
+
+    assert (
+        result[
+            "strong_candidate_count"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "conflicted_judgment_count"
+        ]
+        == 0
+    )
+
+    assert (
+        result["overall_judgment"]
+        == "strong_candidate"
+    )
+
+
+def test_collection_strong_candidate_downgraded():
+    transformations = {
+        "transformations": [
+            make_transformation(),
+        ],
+    }
+
+    result = (
+        evaluate_stem_transformation_judgment(
+            transformations,
+            {
+                "results": [
+                    make_root_result(),
+                ],
+            },
+            {
+                "results": [
+                    make_exposure_result(),
+                ],
+            },
+            make_conflicts(
+                ["year"]
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "strong_candidate_count"
+        ]
+        == 0
+    )
+
+    assert (
+        result["possible_count"]
+        == 1
+    )
+
+    assert (
+        result[
+            "conflicted_judgment_count"
+        ]
+        == 1
+    )
+
+    assert (
+        result["overall_judgment"]
+        == "possible"
+    )
+
+
+def test_unrelated_conflict_does_not_change_judgment():
+    transformations = {
+        "transformations": [
+            make_transformation(
+                position_a="year",
+                position_b="month",
+            ),
+        ],
+    }
+
+    result = (
+        evaluate_stem_transformation_judgment(
+            transformations,
+            {
+                "results": [
+                    make_root_result(),
+                ],
+            },
+            {
+                "results": [
+                    make_exposure_result(),
+                ],
+            },
+            make_conflicts(
+                ["day"]
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "strong_candidate_count"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "conflicted_judgment_count"
+        ]
+        == 0
+    )
+
+    assert (
+        result["overall_judgment"]
+        == "strong_candidate"
+    )
+
+
+def test_mixed_judgments_with_only_one_conflicted():
+    transformation_a = (
+        make_transformation(
+            combination_name="甲己",
+            result_element="土",
+            support_level="strong",
+            position_a="year",
+            position_b="month",
+        )
+    )
+
+    transformation_b = (
+        make_transformation(
+            combination_name="丙辛",
+            result_element="水",
+            support_level="strong",
+            position_a="day",
+            position_b="hour",
+        )
+    )
+
+    roots = {
+        "results": [
+            make_root_result(
+                combination_name="甲己",
+                result_element="土",
+            ),
+            make_root_result(
+                combination_name="丙辛",
+                result_element="水",
+            ),
+        ],
+    }
+
+    exposures = {
+        "results": [
+            make_exposure_result(
+                combination_name="甲己",
+                result_element="土",
+            ),
+            make_exposure_result(
+                combination_name="丙辛",
+                result_element="水",
+            ),
+        ],
+    }
+
+    result = (
+        evaluate_stem_transformation_judgment(
+            {
+                "transformations": [
+                    transformation_a,
+                    transformation_b,
+                ],
+            },
+            roots,
+            exposures,
+            make_conflicts(
+                ["year"]
+            ),
+        )
+    )
+
+    assert (
+        result["judgment_count"]
+        == 2
+    )
+
+    assert (
+        result[
+            "strong_candidate_count"
+        ]
+        == 1
+    )
+
+    assert (
+        result["possible_count"]
+        == 1
+    )
+
+    assert (
+        result[
+            "conflicted_judgment_count"
+        ]
+        == 1
+    )
+
+    assert (
+        result["overall_judgment"]
+        == "mixed"
+    )
+
+
+# =========================================================
+# Collection validation
+# =========================================================
+
+
+def test_invalid_stem_transformations_type():
+    with pytest.raises(
+        TypeError,
+        match=(
+            "stem_transformationsはdict型"
+        ),
+    ):
+        evaluate_stem_transformation_judgment(
+            [],
+            {},
+            {},
+        )
+
+
+def test_invalid_transformation_roots_type():
+    with pytest.raises(
+        TypeError,
+        match=(
+            "transformation_rootsはdict型"
+        ),
+    ):
+        evaluate_stem_transformation_judgment(
+            {
+                "transformations": [],
+            },
+            [],
+            {},
+        )
+
+
+def test_invalid_transformation_exposures_type():
+    with pytest.raises(
+        TypeError,
+        match=(
+            "transformation_exposuresはdict型"
+        ),
+    ):
+        evaluate_stem_transformation_judgment(
+            {
+                "transformations": [],
+            },
+            {
+                "results": [],
+            },
+            [],
+        )
+
+
+def test_invalid_stem_combination_conflicts_type():
+    with pytest.raises(
+        TypeError,
+        match=(
+            "stem_combination_conflictsは"
+            "dict型またはNone"
+        ),
+    ):
+        evaluate_stem_transformation_judgment(
+            {
+                "transformations": [],
+            },
+            {
+                "results": [],
+            },
+            {
+                "results": [],
+            },
+            [],
+        )
+
+
+def test_invalid_transformations_list():
+    with pytest.raises(
+        TypeError,
+        match="transformationsはlist型",
+    ):
+        evaluate_stem_transformation_judgment(
+            {
+                "transformations": {},
+            },
+            {
+                "results": [],
+            },
+            {
+                "results": [],
+            },
+        )
+
+
+def test_invalid_root_results_list():
+    with pytest.raises(
+        TypeError,
+        match=(
+            "transformation_rootsの"
+            "resultsはlist型"
+        ),
+    ):
+        evaluate_stem_transformation_judgment(
+            {
+                "transformations": [],
+            },
+            {
+                "results": {},
+            },
+            {
+                "results": [],
+            },
+        )
+
+
+def test_invalid_exposure_results_list():
+    with pytest.raises(
+        TypeError,
+        match=(
+            "transformation_exposuresの"
+            "resultsはlist型"
+        ),
+    ):
+        evaluate_stem_transformation_judgment(
+            {
+                "transformations": [],
+            },
+            {
+                "results": [],
+            },
+            {
+                "results": {},
+            },
+        )
+
+
+def test_missing_root_result():
+    transformations = {
+        "transformations": [
+            make_transformation(),
+        ],
+    }
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "対応する通根評価が"
+            "見つかりません"
+        ),
+    ):
+        evaluate_stem_transformation_judgment(
+            transformations,
+            {
+                "results": [],
+            },
+            {
+                "results": [
+                    make_exposure_result(),
+                ],
+            },
+        )
+
+
+def test_missing_exposure_result():
+    transformations = {
+        "transformations": [
+            make_transformation(),
+        ],
+    }
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "対応する透干評価が"
+            "見つかりません"
+        ),
+    ):
+        evaluate_stem_transformation_judgment(
+            transformations,
+            {
+                "results": [
+                    make_root_result(),
+                ],
+            },
+            {
+                "results": [],
+            },
+        )
+
+
+def test_result_contains_notes():
+    result = (
+        evaluate_stem_transformation_judgment(
+            {
+                "transformations": [],
+            },
+            {
+                "results": [],
+            },
+            {
+                "results": [],
+            },
+        )
+    )
+
+    assert isinstance(
+        result["notes"],
+        list,
+    )
+
+    assert len(
+        result["notes"]
+    ) >= 1
+import pytest
+
+from engine.stem_transformation_judgment import (
     classify_judgment,
     evaluate_single_transformation_judgment,
     evaluate_stem_transformation_judgment,
