@@ -2788,3 +2788,544 @@ def test_chart_pattern_special_rules_and_judgment_are_v2_compatible():
         (int, float),
     )
 
+
+# =========================================================
+# useful_gods_v1 integration
+# =========================================================
+
+
+def test_chart_contains_useful_gods():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    useful_gods = result[
+        "useful_gods"
+    ]
+
+    assert isinstance(
+        useful_gods,
+        dict,
+    )
+
+    required_keys = {
+        "has_useful_candidate",
+        "primary_useful_element",
+        "secondary_favorable_elements",
+        "favorable_elements",
+        "primary_unfavorable_element",
+        "unfavorable_elements",
+        "neutral_elements",
+        "useful_candidates",
+        "unfavorable_candidates",
+        "neutral_candidates",
+        "day_master_stem",
+        "day_master_element",
+        "strength_class",
+        "selection_basis",
+        "confidence",
+        "relations",
+        "element_scores",
+        "reasoning",
+        "evidence",
+        "method",
+        "status",
+        "notes",
+    }
+
+    assert required_keys.issubset(
+        useful_gods.keys()
+    )
+
+    assert (
+        useful_gods[
+            "method"
+        ]
+        == "useful_gods_v1"
+    )
+
+    assert (
+        useful_gods[
+            "status"
+        ]
+        == "provisional_useful_gods"
+    )
+
+    assert (
+        useful_gods[
+            "has_useful_candidate"
+        ]
+        is True
+    )
+
+
+def test_chart_useful_gods_matches_day_master():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    useful_gods = result[
+        "useful_gods"
+    ]
+
+    assert (
+        useful_gods[
+            "day_master_stem"
+        ]
+        == result[
+            "day_master"
+        ][
+            "stem"
+        ]
+    )
+
+    assert (
+        useful_gods[
+            "day_master_stem"
+        ]
+        == "乙"
+    )
+
+    assert (
+        useful_gods[
+            "day_master_element"
+        ]
+        == "木"
+    )
+
+
+def test_chart_useful_gods_evidence_matches_results():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    evidence = result[
+        "useful_gods"
+    ][
+        "evidence"
+    ]
+
+    assert (
+        evidence[
+            "weighted_five_elements"
+        ]
+        == result[
+            "weighted_five_elements"
+        ]
+    )
+
+    assert (
+        evidence[
+            "final_strength_judgment"
+        ]
+        == result[
+            "final_strength_judgment"
+        ]
+    )
+
+    assert (
+        evidence[
+            "pattern_judgment"
+        ]
+        == result[
+            "pattern_judgment"
+        ]
+    )
+
+
+def test_chart_useful_gods_strength_summary_matches_final_strength():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    summary = result[
+        "useful_gods"
+    ][
+        "evidence"
+    ][
+        "strength_summary"
+    ]
+
+    strength = result[
+        "final_strength_judgment"
+    ]
+
+    assert (
+        summary[
+            "technical_label"
+        ]
+        == strength.get(
+            "technical_label"
+        )
+    )
+
+    assert (
+        summary[
+            "final_score"
+        ]
+        == strength.get(
+            "final_score"
+        )
+    )
+
+    assert (
+        summary[
+            "confidence"
+        ]
+        == strength.get(
+            "confidence"
+        )
+    )
+
+
+def test_chart_useful_gods_pattern_summary_matches_pattern_judgment():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    summary = result[
+        "useful_gods"
+    ][
+        "evidence"
+    ][
+        "pattern_summary"
+    ]
+
+    judgment = result[
+        "pattern_judgment"
+    ]
+
+    assert (
+        summary[
+            "available"
+        ]
+        is True
+    )
+
+    assert (
+        summary[
+            "primary_pattern"
+        ]
+        == judgment.get(
+            "primary_pattern"
+        )
+    )
+
+    assert (
+        summary[
+            "technical_pattern"
+        ]
+        == judgment.get(
+            "technical_pattern"
+        )
+    )
+
+    assert (
+        summary[
+            "overall_judgment"
+        ]
+        == judgment.get(
+            "overall_judgment"
+        )
+    )
+
+    assert (
+        summary[
+            "confidence"
+        ]
+        == judgment.get(
+            "confidence"
+        )
+    )
+
+
+def test_chart_useful_gods_primary_matches_favorable_elements():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    useful_gods = result[
+        "useful_gods"
+    ]
+
+    favorable = useful_gods[
+        "favorable_elements"
+    ]
+
+    assert isinstance(
+        favorable,
+        list,
+    )
+
+    assert (
+        len(
+            favorable
+        )
+        >= 1
+    )
+
+    assert (
+        useful_gods[
+            "primary_useful_element"
+        ]
+        == favorable[0]
+    )
+
+    assert (
+        useful_gods[
+            "secondary_favorable_elements"
+        ]
+        == favorable[1:]
+    )
+
+
+def test_chart_useful_gods_primary_unfavorable_is_consistent():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    useful_gods = result[
+        "useful_gods"
+    ]
+
+    unfavorable = useful_gods[
+        "unfavorable_elements"
+    ]
+
+    assert isinstance(
+        unfavorable,
+        list,
+    )
+
+    if unfavorable:
+        assert (
+            useful_gods[
+                "primary_unfavorable_element"
+            ]
+            == unfavorable[0]
+        )
+    else:
+        assert (
+            useful_gods[
+                "primary_unfavorable_element"
+            ]
+            is None
+        )
+
+
+def test_chart_useful_gods_element_scores_match_weighted_five_elements():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    useful_gods = result[
+        "useful_gods"
+    ]
+
+    weighted = result[
+        "weighted_five_elements"
+    ]
+
+    expected_scores = {
+        element: float(
+            weighted[
+                "scores"
+            ][
+                element
+            ]
+        )
+        for element in (
+            "木",
+            "火",
+            "土",
+            "金",
+            "水",
+        )
+    }
+
+    assert (
+        useful_gods[
+            "element_scores"
+        ]
+        == expected_scores
+    )
+
+
+def test_chart_useful_gods_candidate_priorities_are_consistent():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    useful_gods = result[
+        "useful_gods"
+    ]
+
+    candidates = useful_gods[
+        "useful_candidates"
+    ]
+
+    assert (
+        len(
+            candidates
+        )
+        == len(
+            useful_gods[
+                "favorable_elements"
+            ]
+        )
+    )
+
+    for index, candidate in enumerate(
+        candidates,
+        start=1,
+    ):
+        assert (
+            candidate[
+                "priority"
+            ]
+            == index
+        )
+
+        assert (
+            candidate[
+                "element"
+            ]
+            == useful_gods[
+                "favorable_elements"
+            ][
+                index - 1
+            ]
+        )
+
+        assert (
+            candidate[
+                "category"
+            ]
+            == "favorable"
+        )
+
+
+def test_chart_useful_gods_lists_are_disjoint():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    useful_gods = result[
+        "useful_gods"
+    ]
+
+    favorable = set(
+        useful_gods[
+            "favorable_elements"
+        ]
+    )
+
+    unfavorable = set(
+        useful_gods[
+            "unfavorable_elements"
+        ]
+    )
+
+    neutral = set(
+        useful_gods[
+            "neutral_elements"
+        ]
+    )
+
+    assert favorable.isdisjoint(
+        unfavorable
+    )
+
+    assert favorable.isdisjoint(
+        neutral
+    )
+
+    assert unfavorable.isdisjoint(
+        neutral
+    )
+
+
+def test_chart_useful_gods_confidence_is_valid():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    assert (
+        result[
+            "useful_gods"
+        ][
+            "confidence"
+        ]
+        in {
+            "high",
+            "medium",
+            "low",
+        }
+    )
+
+
+def test_chart_useful_gods_reasoning_and_notes_exist():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    useful_gods = result[
+        "useful_gods"
+    ]
+
+    assert isinstance(
+        useful_gods[
+            "reasoning"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            useful_gods[
+                "reasoning"
+            ]
+        )
+        >= 1
+    )
+
+    assert isinstance(
+        useful_gods[
+            "notes"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            useful_gods[
+                "notes"
+            ]
+        )
+        >= 1
+    )
+
