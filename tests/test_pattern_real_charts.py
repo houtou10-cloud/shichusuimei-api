@@ -1366,3 +1366,444 @@ def test_verified_1985_pattern_metadata():
         judgment["status"]
         == "provisional_pattern_judgment_v2"
     )
+
+
+# =========================================================
+# pattern_special_rules real-chart regression
+# =========================================================
+
+
+def test_real_chart_contains_pattern_special_rules(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    special_rules = result[
+        "pattern_special_rules"
+    ]
+
+    assert isinstance(
+        special_rules,
+        dict,
+    )
+
+    required_keys = {
+        "has_special_rule",
+        "rule_count",
+        "detected_rule_count",
+        "breaking_rule_count",
+        "rescue_rule_count",
+        "school_rule_count",
+        "overall_status",
+        "total_score_adjustment",
+        "rules",
+        "detected_rules",
+        "breaking_rules",
+        "rescue_rules",
+        "school_rule_items",
+        "ten_god_counts",
+        "ten_god_occurrences",
+        "strength_evidence",
+        "method",
+        "status",
+        "notes",
+    }
+
+    assert required_keys.issubset(
+        special_rules.keys()
+    )
+
+
+def test_real_chart_pattern_special_rules_metadata(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    special_rules = result[
+        "pattern_special_rules"
+    ]
+
+    assert (
+        special_rules["method"]
+        == "pattern_special_rules_v1"
+    )
+
+    assert (
+        special_rules["status"]
+        == "provisional_pattern_special_rules"
+    )
+
+    assert (
+        special_rules["rule_count"]
+        == 6
+    )
+
+    assert (
+        len(
+            special_rules["rules"]
+        )
+        == 6
+    )
+
+    assert isinstance(
+        special_rules["notes"],
+        list,
+    )
+
+    assert (
+        len(
+            special_rules["notes"]
+        )
+        >= 1
+    )
+
+
+def test_real_chart_pattern_special_rule_counts_are_consistent(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    special_rules = result[
+        "pattern_special_rules"
+    ]
+
+    assert (
+        special_rules[
+            "detected_rule_count"
+        ]
+        == len(
+            special_rules[
+                "detected_rules"
+            ]
+        )
+    )
+
+    assert (
+        special_rules[
+            "breaking_rule_count"
+        ]
+        == len(
+            special_rules[
+                "breaking_rules"
+            ]
+        )
+    )
+
+    assert (
+        special_rules[
+            "rescue_rule_count"
+        ]
+        == len(
+            special_rules[
+                "rescue_rules"
+            ]
+        )
+    )
+
+    assert (
+        special_rules[
+            "school_rule_count"
+        ]
+        == len(
+            special_rules[
+                "school_rule_items"
+            ]
+        )
+    )
+
+
+def test_real_chart_pattern_special_rules_strength_evidence(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    special_rules = result[
+        "pattern_special_rules"
+    ]
+
+    final_strength = result[
+        "final_strength_judgment"
+    ]
+
+    evidence = special_rules[
+        "strength_evidence"
+    ]
+
+    assert (
+        evidence[
+            "technical_label"
+        ]
+        == final_strength.get(
+            "technical_label"
+        )
+    )
+
+    assert (
+        evidence[
+            "final_score"
+        ]
+        == final_strength.get(
+            "final_score"
+        )
+    )
+
+    assert isinstance(
+        evidence[
+            "is_weak_day_master"
+        ],
+        bool,
+    )
+
+
+def test_real_chart_pattern_special_rules_ten_god_counts(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    special_rules = result[
+        "pattern_special_rules"
+    ]
+
+    counts = special_rules[
+        "ten_god_counts"
+    ]
+
+    assert isinstance(
+        counts,
+        dict,
+    )
+
+    expected_ten_gods = {
+        "比肩",
+        "劫財",
+        "食神",
+        "傷官",
+        "偏財",
+        "正財",
+        "偏官",
+        "正官",
+        "偏印",
+        "印綬",
+    }
+
+    assert (
+        set(
+            counts.keys()
+        )
+        == expected_ten_gods
+    )
+
+    assert all(
+        isinstance(
+            value,
+            int,
+        )
+        and value >= 0
+        for value in counts.values()
+    )
+
+
+def test_real_chart_pattern_special_rule_lists_have_valid_structure(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    special_rules = result[
+        "pattern_special_rules"
+    ]
+
+    for rule in special_rules[
+        "rules"
+    ]:
+        assert isinstance(
+            rule,
+            dict,
+        )
+
+        assert {
+            "rule",
+            "technical_rule",
+            "detected",
+            "confidence",
+            "severity",
+            "effect",
+            "score_adjustment",
+            "requires_school_rule",
+            "evidence",
+            "note",
+        }.issubset(
+            rule.keys()
+        )
+
+        assert isinstance(
+            rule["detected"],
+            bool,
+        )
+
+        assert rule[
+            "effect"
+        ] in {
+            "breaking",
+            "rescue",
+            "neutral",
+        }
+
+
+def test_real_chart_pattern_special_rules_total_adjustment_is_bounded(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    adjustment = result[
+        "pattern_special_rules"
+    ][
+        "total_score_adjustment"
+    ]
+
+    assert isinstance(
+        adjustment,
+        (int, float),
+    )
+
+    assert (
+        -20.0
+        <= adjustment
+        <= 20.0
+    )
+
+
+def test_real_chart_pattern_judgment_receives_special_rules(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    evidence = result[
+        "pattern_judgment"
+    ][
+        "evidence"
+    ]
+
+    assert (
+        evidence[
+            "pattern_special_rules"
+        ]
+        == result[
+            "pattern_special_rules"
+        ]
+    )
+
+
+def test_real_chart_primary_judgment_special_rule_fields(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    primary = result[
+        "pattern_judgment"
+    ][
+        "primary_judgment"
+    ]
+
+    assert (
+        "special_rule_adjustment"
+        in primary
+    )
+
+    assert (
+        "applied_special_rule_count"
+        in primary
+    )
+
+    assert (
+        "applied_special_rules"
+        in primary
+    )
+
+    assert isinstance(
+        primary[
+            "special_rule_adjustment"
+        ],
+        (int, float),
+    )
+
+    assert (
+        primary[
+            "applied_special_rule_count"
+        ]
+        == len(
+            primary[
+                "applied_special_rules"
+            ]
+        )
+    )
+
+    assert (
+        -15.0
+        <= primary[
+            "special_rule_adjustment"
+        ]
+        <= 15.0
+    )
+
+
+def test_verified_1985_pattern_special_rules_metadata():
+    result = calculate_chart(
+        make_verified_request()
+    )
+
+    special_rules = result[
+        "pattern_special_rules"
+    ]
+
+    assert (
+        special_rules["method"]
+        == "pattern_special_rules_v1"
+    )
+
+    assert (
+        special_rules["status"]
+        == "provisional_pattern_special_rules"
+    )
+
+    assert (
+        special_rules["rule_count"]
+        == 6
+    )
+
+
+def test_verified_1985_pattern_judgment_special_rules_evidence():
+    result = calculate_chart(
+        make_verified_request()
+    )
+
+    assert (
+        result[
+            "pattern_judgment"
+        ][
+            "evidence"
+        ][
+            "pattern_special_rules"
+        ]
+        == result[
+            "pattern_special_rules"
+        ]
+    )
+
