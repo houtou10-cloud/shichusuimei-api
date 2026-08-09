@@ -1781,3 +1781,320 @@ def test_chart_contains_final_strength_judgment():
         >= 1
     )
 
+
+def test_chart_contains_pattern_candidates():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    pattern_candidates = result[
+        "pattern_candidates"
+    ]
+
+    assert isinstance(
+        pattern_candidates,
+        dict,
+    )
+
+    assert (
+        pattern_candidates[
+            "has_candidate"
+        ]
+        is True
+    )
+
+    assert (
+        pattern_candidates[
+            "candidate_count"
+        ]
+        >= 1
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ]
+        is not None
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "pattern"
+        ]
+        == "偏財格"
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "technical_pattern"
+        ]
+        == "indirect_wealth"
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "pattern_group"
+        ]
+        == "standard_pattern"
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "source"
+        ]
+        == "month_main_hidden_stem"
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "month_branch"
+        ]
+        == "未"
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "month_main_hidden_stem"
+        ]
+        == "己"
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "ten_god"
+        ]
+        == "偏財"
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "is_exposed"
+        ]
+        is False
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "exposure_positions"
+        ]
+        == []
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "confidence"
+        ]
+        == "medium"
+    )
+
+    assert (
+        pattern_candidates[
+            "candidate_groups"
+        ]
+        == {
+            "standard_pattern": 1,
+            "special_month_pattern": 0,
+        }
+    )
+
+    assert (
+        pattern_candidates[
+            "has_school_rule_candidate"
+        ]
+        is False
+    )
+
+    assert (
+        pattern_candidates[
+            "month_context"
+        ][
+            "month_stem"
+        ]
+        == "癸"
+    )
+
+    assert (
+        pattern_candidates[
+            "month_context"
+        ][
+            "month_branch"
+        ]
+        == "未"
+    )
+
+    assert (
+        pattern_candidates[
+            "month_context"
+        ][
+            "hidden_stems"
+        ]
+        == [
+            "己",
+            "丁",
+            "乙",
+        ]
+    )
+
+    assert (
+        pattern_candidates[
+            "month_context"
+        ][
+            "main_hidden_stem"
+        ]
+        == "己"
+    )
+
+    assert (
+        pattern_candidates[
+            "month_context"
+        ][
+            "main_hidden_stem_ten_god"
+        ]
+        == "偏財"
+    )
+
+    assert (
+        pattern_candidates[
+            "day_master_stem"
+        ]
+        == "乙"
+    )
+
+    assert (
+        pattern_candidates[
+            "overall_status"
+        ]
+        == "candidate_detected"
+    )
+
+    assert (
+        pattern_candidates[
+            "method"
+        ]
+        == "pattern_candidates_v1"
+    )
+
+    assert (
+        pattern_candidates[
+            "status"
+        ]
+        == "provisional_pattern_candidates"
+    )
+
+    assert isinstance(
+        pattern_candidates[
+            "notes"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            pattern_candidates[
+                "notes"
+            ]
+        )
+        >= 1
+    )
+
+
+def test_chart_pattern_candidate_matches_month_data():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    month = result[
+        "chart"
+    ][
+        "month"
+    ]
+
+    pattern_candidates = result[
+        "pattern_candidates"
+    ]
+
+    primary = pattern_candidates[
+        "primary_candidate"
+    ]
+
+    assert (
+        primary[
+            "month_branch"
+        ]
+        == month[
+            "branch"
+        ]
+    )
+
+    assert (
+        primary[
+            "month_main_hidden_stem"
+        ]
+        == month[
+            "main_hidden_stem"
+        ]
+    )
+
+    assert (
+        primary[
+            "ten_god"
+        ]
+        == month[
+            "main_hidden_stem_ten_god"
+        ]
+    )
+
+
+def test_chart_pattern_candidates_are_provisional():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    pattern_candidates = result[
+        "pattern_candidates"
+    ]
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "is_provisional"
+        ]
+        is True
+    )
+
+    assert (
+        pattern_candidates[
+            "primary_candidate"
+        ][
+            "candidate_status"
+        ]
+        == "provisional_candidate"
+    )
+
