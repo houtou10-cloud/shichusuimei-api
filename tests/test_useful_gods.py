@@ -3,15 +3,26 @@ tests/test_useful_gods.py
 
 engine/useful_gods.py の単体テスト。
 
+現在の engine/useful_gods.py の公開APIに準拠する。
+
+検証対象
+--------
 v1:
-- 扶抑用神候補判定の基本動作
-- 五行関係
-- 身強身弱の抽出
-- 喜神・忌神・中立候補
-- evidence / metadata
+- 五行定数
+- 日主五行
+- 生剋関係
+- weighted_five_elements 検証
+- 身強身弱の正規化
+- 扶抑候補
+- 候補順位
+- confidence
+- pattern evidence
+- evaluate_useful_gods()
 
 v2:
-- 扶抑用神 v1 と調候用神 v1 の統合
+- climate_useful_gods_v1 入力検証
+- 扶抑スコア
+- 調候統合スコア
 - strong_agreement
 - partial_agreement
 - conflict
@@ -20,65 +31,77 @@ v2:
 - 統合スコア
 - 最終候補順位
 - confidence
-- evidence / metadata
-
-重要:
-evaluate_useful_gods() は後方互換のため v1 のまま検証し、
-evaluate_useful_gods_v2() を別テストで固定する。
+- evidence
+- evaluate_useful_gods_v2()
 """
 
 import pytest
 
 from engine.useful_gods import (
     AGREEMENT_BONUS,
+    BALANCED_LABELS,
     CLIMATE_WEIGHTS,
+    CONTROLLED_BY,
+    CONTROLS,
     ELEMENTS,
-    ELEMENT_CONTROLS,
-    ELEMENT_GENERATES,
-    ELEMENT_ORDER,
+    GENERATED_BY,
+    GENERATES,
     STEM_TO_ELEMENT,
+    STRONG_LABELS,
     SUPPORT_FAVORABLE_WEIGHTS,
     SUPPORT_UNFAVORABLE_WEIGHTS,
     USEFUL_GODS_METHOD,
     USEFUL_GODS_STATUS,
     USEFUL_GODS_V2_METHOD,
     USEFUL_GODS_V2_STATUS,
+    WEAK_LABELS,
     build_candidate_details,
     build_climate_integration_scores,
+    build_fuyoku_candidates,
     build_integrated_candidate_details,
     build_integrated_element_scores,
+    build_pattern_evidence,
     build_support_balance_scores,
     build_useful_gods_v2_reasoning,
+    calculate_element_role,
+    classify_strength_for_useful_gods,
     determine_confidence,
-    determine_element_relations,
-    determine_favorable_elements,
-    determine_neutral_elements,
-    determine_strength_class,
-    determine_unfavorable_elements,
     determine_useful_gods_v2_confidence,
     evaluate_useful_gods,
     evaluate_useful_gods_agreement,
     evaluate_useful_gods_v2,
     extract_element_scores,
+    extract_strength_evidence,
+    get_day_master_element,
+    get_element_relations,
+    rank_elements_by_score,
     rank_integrated_useful_elements,
     validate_climate_useful_gods_result,
+    validate_weighted_five_elements,
 )
 
 
-def make_weighted(
-    scores=None,
-):
-    if scores is None:
-        scores = {
-            "木": 30.0,
-            "火": 20.0,
-            "土": 10.0,
-            "金": 15.0,
-            "水": 25.0,
-        }
+# =========================================================
+# Helpers
+# =========================================================
 
+
+def make_weighted(
+    *,
+    wood=30.0,
+    fire=20.0,
+    earth=10.0,
+    metal=15.0,
+    water=25.0,
+):
     return {
-        "scores": scores,
+        "scores": {
+            "木": wood,
+            "火": fire,
+            "土": earth,
+            "金": metal,
+            "水": water,
+        },
         "method": (
             "weighted_five_elements_v1"
         ),
@@ -86,13 +109,30 @@ def make_weighted(
 
 
 def make_strength(
+    *,
     label="balanced",
+    score=None,
     confidence="medium",
 ):
+    if score is None:
+        if label in {
+            "strong",
+            "very_strong",
+            "extremely_strong",
+        }:
+            score = 65.0
+        elif label in {
+            "weak",
+            "very_weak",
+            "extremely_weak",
+        }:
+            score = 35.0
+        else:
+            score = 50.0
+
     return {
         "technical_label": label,
-        "label": label,
-        "final_score": 50.0,
+        "final_score": score,
         "confidence": confidence,
         "method": (
             "final_strength_judgment_v2"
@@ -100,17 +140,23 @@ def make_strength(
     }
 
 
-def make_pattern():
+def make_pattern(
+    *,
+    confidence="medium",
+):
     return {
         "primary_pattern": "偏財格",
         "technical_pattern": (
             "indirect_wealth"
         ),
         "overall_judgment": (
-            "standard_pattern"
+            "provisional_possible"
         ),
-        "confidence": "medium",
+        "confidence": confidence,
         "method": "pattern_judgment_v2",
+        "status": (
+            "provisional_pattern_judgment_v2"
+        ),
     }
 
 
@@ -161,19 +207,8 @@ def make_climate(
             else []
         ),
         "climate_element_scores": {
-            element: (
-                float(
-                    len(elements)
-                    - index
-                )
-                if element
-                in elements
-                else 0.0
-            )
-            for index, element
-            in enumerate(
-                ELEMENTS
-            )
+            element: 0.0
+            for element in ELEMENTS
         },
         "confidence": confidence,
         "reasoning": [
@@ -197,7 +232,7 @@ def make_climate(
 
 
 # =========================================================
-# v1 constants / relations
+# Constants
 # =========================================================
 
 
@@ -213,6 +248,18 @@ def test_v1_metadata_constants():
     )
 
 
+def test_v2_metadata_constants():
+    assert (
+        USEFUL_GODS_V2_METHOD
+        == "useful_gods_v2"
+    )
+
+    assert (
+        USEFUL_GODS_V2_STATUS
+        == "provisional_useful_gods_v2"
+    )
+
+
 def test_elements_constant():
     assert ELEMENTS == (
         "木",
@@ -223,60 +270,23 @@ def test_elements_constant():
     )
 
 
-def test_element_order_matches_elements():
-    assert ELEMENT_ORDER == {
-        element: index
-        for index, element
-        in enumerate(
-            ELEMENTS
-        )
+def test_stem_to_element_mapping():
+    assert STEM_TO_ELEMENT == {
+        "甲": "木",
+        "乙": "木",
+        "丙": "火",
+        "丁": "火",
+        "戊": "土",
+        "己": "土",
+        "庚": "金",
+        "辛": "金",
+        "壬": "水",
+        "癸": "水",
     }
 
 
-def test_stem_to_element():
-    assert STEM_TO_ELEMENT[
-        "甲"
-    ] == "木"
-
-    assert STEM_TO_ELEMENT[
-        "乙"
-    ] == "木"
-
-    assert STEM_TO_ELEMENT[
-        "丙"
-    ] == "火"
-
-    assert STEM_TO_ELEMENT[
-        "丁"
-    ] == "火"
-
-    assert STEM_TO_ELEMENT[
-        "戊"
-    ] == "土"
-
-    assert STEM_TO_ELEMENT[
-        "己"
-    ] == "土"
-
-    assert STEM_TO_ELEMENT[
-        "庚"
-    ] == "金"
-
-    assert STEM_TO_ELEMENT[
-        "辛"
-    ] == "金"
-
-    assert STEM_TO_ELEMENT[
-        "壬"
-    ] == "水"
-
-    assert STEM_TO_ELEMENT[
-        "癸"
-    ] == "水"
-
-
-def test_generating_cycle():
-    assert ELEMENT_GENERATES == {
+def test_generates_mapping():
+    assert GENERATES == {
         "木": "火",
         "火": "土",
         "土": "金",
@@ -285,8 +295,18 @@ def test_generating_cycle():
     }
 
 
-def test_controlling_cycle():
-    assert ELEMENT_CONTROLS == {
+def test_generated_by_mapping():
+    assert GENERATED_BY == {
+        "火": "木",
+        "土": "火",
+        "金": "土",
+        "水": "金",
+        "木": "水",
+    }
+
+
+def test_controls_mapping():
+    assert CONTROLS == {
         "木": "土",
         "火": "金",
         "土": "水",
@@ -295,171 +315,147 @@ def test_controlling_cycle():
     }
 
 
-# =========================================================
-# v1 score extraction
-# =========================================================
-
-
-def test_extract_element_scores():
-    result = extract_element_scores(
-        make_weighted()
-    )
-
-    assert result == {
-        "木": 30.0,
-        "火": 20.0,
-        "土": 10.0,
-        "金": 15.0,
-        "水": 25.0,
+def test_controlled_by_mapping():
+    assert CONTROLLED_BY == {
+        "土": "木",
+        "金": "火",
+        "水": "土",
+        "木": "金",
+        "火": "水",
     }
 
 
-def test_extract_element_scores_missing_scores():
-    with pytest.raises(
-        ValueError
-    ):
-        extract_element_scores(
-            {}
+def test_strength_label_sets():
+    assert STRONG_LABELS == {
+        "strong",
+        "very_strong",
+        "extremely_strong",
+    }
+
+    assert WEAK_LABELS == {
+        "weak",
+        "very_weak",
+        "extremely_weak",
+    }
+
+    assert BALANCED_LABELS == {
+        "balanced",
+        "neutral",
+    }
+
+
+def test_v2_weight_constants():
+    assert (
+        SUPPORT_FAVORABLE_WEIGHTS
+        == (
+            3.0,
+            2.0,
+            1.0,
         )
+    )
 
-
-def test_extract_element_scores_missing_element():
-    weighted = make_weighted()
-
-    del weighted[
-        "scores"
-    ][
-        "水"
-    ]
-
-    with pytest.raises(
-        ValueError
-    ):
-        extract_element_scores(
-            weighted
+    assert (
+        SUPPORT_UNFAVORABLE_WEIGHTS
+        == (
+            -2.5,
+            -1.5,
+            -1.0,
         )
+    )
 
-
-def test_extract_element_scores_invalid_number():
-    weighted = make_weighted()
-
-    weighted[
-        "scores"
-    ][
-        "水"
-    ] = True
-
-    with pytest.raises(
-        ValueError
-    ):
-        extract_element_scores(
-            weighted
+    assert (
+        CLIMATE_WEIGHTS
+        == (
+            3.0,
+            1.5,
+            1.0,
         )
+    )
+
+    assert (
+        AGREEMENT_BONUS
+        == 2.0
+    )
 
 
 # =========================================================
-# v1 strength class
+# Day master / relations
 # =========================================================
 
 
 @pytest.mark.parametrize(
     (
-        "label",
+        "stem",
         "expected",
     ),
     [
-        ("very_strong", "very_strong"),
-        ("strong", "strong"),
-        ("balanced", "balanced"),
-        ("weak", "weak"),
-        ("very_weak", "very_weak"),
+        ("甲", "木"),
+        ("乙", "木"),
+        ("丙", "火"),
+        ("丁", "火"),
+        ("戊", "土"),
+        ("己", "土"),
+        ("庚", "金"),
+        ("辛", "金"),
+        ("壬", "水"),
+        ("癸", "水"),
     ],
 )
-def test_determine_strength_class(
-    label,
+def test_get_day_master_element(
+    stem,
     expected,
 ):
-    result = (
-        determine_strength_class(
-            make_strength(
-                label
-            )
-        )
-    )
-
-    assert result == expected
-
-
-def test_determine_strength_class_fallback_score():
-    strength = {
-        "final_score": 72.0,
-    }
-
     assert (
-        determine_strength_class(
-            strength
+        get_day_master_element(
+            stem
         )
-        == "strong"
+        == expected
     )
 
 
-# =========================================================
-# v1 relations
-# =========================================================
+def test_get_day_master_element_type_error():
+    with pytest.raises(
+        TypeError
+    ):
+        get_day_master_element(
+            123
+        )
 
 
-def test_determine_element_relations_wood():
+def test_get_day_master_element_value_error():
+    with pytest.raises(
+        ValueError
+    ):
+        get_day_master_element(
+            "A"
+        )
+
+
+def test_get_element_relations_wood():
     result = (
-        determine_element_relations(
+        get_element_relations(
             "木"
         )
     )
 
-    assert (
-        result[
-            "self"
-        ]
-        == "木"
-    )
-
-    assert (
-        result[
-            "resource"
-        ]
-        == "水"
-    )
-
-    assert (
-        result[
-            "output"
-        ]
-        == "火"
-    )
-
-    assert (
-        result[
-            "wealth"
-        ]
-        == "土"
-    )
-
-    assert (
-        result[
-            "officer"
-        ]
-        == "金"
-    )
+    assert result == {
+        "self": "木",
+        "resource": "水",
+        "output": "火",
+        "wealth": "土",
+        "officer": "金",
+    }
 
 
 @pytest.mark.parametrize(
     "element",
     ELEMENTS,
 )
-def test_determine_element_relations_all_elements(
+def test_get_element_relations_all_elements(
     element,
 ):
     result = (
-        determine_element_relations(
+        get_element_relations(
             element
         )
     )
@@ -481,205 +477,704 @@ def test_determine_element_relations_all_elements(
     )
 
 
-# =========================================================
-# v1 favorable / unfavorable / neutral
-# =========================================================
-
-
-def test_favorable_strong():
-    relations = (
-        determine_element_relations(
-            "木"
+def test_get_element_relations_invalid():
+    with pytest.raises(
+        ValueError
+    ):
+        get_element_relations(
+            "風"
         )
+
+
+# =========================================================
+# Weighted five elements
+# =========================================================
+
+
+def test_validate_weighted_five_elements():
+    validate_weighted_five_elements(
+        make_weighted()
     )
 
+
+def test_validate_weighted_five_elements_type_error():
+    with pytest.raises(
+        TypeError
+    ):
+        validate_weighted_five_elements(
+            []
+        )
+
+
+def test_validate_weighted_five_elements_missing_scores():
+    with pytest.raises(
+        ValueError
+    ):
+        validate_weighted_five_elements(
+            {}
+        )
+
+
+def test_validate_weighted_five_elements_missing_element():
+    weighted = make_weighted()
+
+    del weighted[
+        "scores"
+    ][
+        "水"
+    ]
+
+    with pytest.raises(
+        ValueError
+    ):
+        validate_weighted_five_elements(
+            weighted
+        )
+
+
+def test_validate_weighted_five_elements_bool_invalid():
+    weighted = make_weighted()
+
+    weighted[
+        "scores"
+    ][
+        "木"
+    ] = True
+
+    with pytest.raises(
+        ValueError
+    ):
+        validate_weighted_five_elements(
+            weighted
+        )
+
+
+def test_extract_element_scores():
+    assert (
+        extract_element_scores(
+            make_weighted()
+        )
+        == {
+            "木": 30.0,
+            "火": 20.0,
+            "土": 10.0,
+            "金": 15.0,
+            "水": 25.0,
+        }
+    )
+
+
+def test_extract_element_scores_returns_float():
     result = (
-        determine_favorable_elements(
-            "strong",
-            relations,
-            make_pattern(),
+        extract_element_scores(
+            make_weighted(
+                wood=3,
+                fire=2,
+                earth=1,
+                metal=4,
+                water=5,
+            )
         )
     )
 
-    assert result[
-        0
-    ] in {
-        "火",
-        "土",
-        "金",
+    assert all(
+        isinstance(
+            value,
+            float,
+        )
+        for value in result.values()
+    )
+
+
+# =========================================================
+# Strength evidence / classification
+# =========================================================
+
+
+def test_extract_strength_evidence():
+    result = (
+        extract_strength_evidence(
+            make_strength(
+                label="strong",
+                score=62.5,
+                confidence="high",
+            )
+        )
+    )
+
+    assert result == {
+        "technical_label": "strong",
+        "final_score": 62.5,
+        "confidence": "high",
     }
 
-    assert set(
-        result
-    ) == {
-        "火",
-        "土",
-        "金",
-    }
+
+def test_extract_strength_evidence_type_error():
+    with pytest.raises(
+        TypeError
+    ):
+        extract_strength_evidence(
+            []
+        )
 
 
-def test_favorable_weak():
-    relations = (
-        determine_element_relations(
-            "木"
+def test_extract_strength_evidence_invalid_label():
+    with pytest.raises(
+        TypeError
+    ):
+        extract_strength_evidence(
+            {
+                "technical_label": 123,
+                "final_score": 50.0,
+            }
+        )
+
+
+def test_extract_strength_evidence_invalid_score():
+    with pytest.raises(
+        TypeError
+    ):
+        extract_strength_evidence(
+            {
+                "technical_label": (
+                    "balanced"
+                ),
+                "final_score": "50",
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    (
+        "label",
+        "expected",
+    ),
+    [
+        ("strong", "strong"),
+        ("very_strong", "strong"),
+        ("extremely_strong", "strong"),
+        ("weak", "weak"),
+        ("very_weak", "weak"),
+        ("extremely_weak", "weak"),
+        ("balanced", "balanced"),
+        ("neutral", "balanced"),
+    ],
+)
+def test_classify_strength_by_label(
+    label,
+    expected,
+):
+    assert (
+        classify_strength_for_useful_gods(
+            make_strength(
+                label=label
+            )
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    (
+        "score",
+        "expected",
+    ),
+    [
+        (55.0, "strong"),
+        (70.0, "strong"),
+        (44.9, "weak"),
+        (20.0, "weak"),
+        (45.0, "balanced"),
+        (54.9, "balanced"),
+    ],
+)
+def test_classify_strength_fallback_score(
+    score,
+    expected,
+):
+    result = (
+        classify_strength_for_useful_gods(
+            {
+                "technical_label": (
+                    "unknown"
+                ),
+                "final_score": score,
+            }
         )
     )
 
+    assert result == expected
+
+
+def test_classify_strength_without_score():
+    assert (
+        classify_strength_for_useful_gods(
+            {
+                "technical_label": (
+                    "unknown"
+                ),
+                "final_score": None,
+            }
+        )
+        == "balanced"
+    )
+
+
+# =========================================================
+# Ranking / fuyoku
+# =========================================================
+
+
+def test_rank_elements_by_score_ascending():
+    scores = (
+        extract_element_scores(
+            make_weighted()
+        )
+    )
+
+    assert (
+        rank_elements_by_score(
+            [
+                "木",
+                "水",
+                "金",
+            ],
+            scores,
+        )
+        == [
+            "金",
+            "水",
+            "木",
+        ]
+    )
+
+
+def test_rank_elements_by_score_descending():
+    scores = (
+        extract_element_scores(
+            make_weighted()
+        )
+    )
+
+    assert (
+        rank_elements_by_score(
+            [
+                "木",
+                "水",
+                "金",
+            ],
+            scores,
+            ascending=False,
+        )
+        == [
+            "木",
+            "水",
+            "金",
+        ]
+    )
+
+
+def test_rank_elements_by_score_type_error():
+    with pytest.raises(
+        TypeError
+    ):
+        rank_elements_by_score(
+            "木",
+            {
+                "木": 1.0,
+            },
+        )
+
+
+def test_rank_elements_by_score_invalid_element():
+    with pytest.raises(
+        ValueError
+    ):
+        rank_elements_by_score(
+            [
+                "風",
+            ],
+            {
+                "風": 1.0,
+            },
+        )
+
+
+def test_build_fuyoku_candidates_weak_wood():
     result = (
-        determine_favorable_elements(
+        build_fuyoku_candidates(
+            "木",
             "weak",
-            relations,
-            make_pattern(),
+            extract_element_scores(
+                make_weighted()
+            ),
         )
     )
 
-    assert set(
-        result
-    ) == {
-        "木",
-        "水",
-    }
-
-
-def test_unfavorable_strong():
-    relations = (
-        determine_element_relations(
-            "木"
-        )
+    assert (
+        result[
+            "favorable_elements"
+        ]
+        == [
+            "水",
+            "木",
+        ]
     )
 
+    assert (
+        result[
+            "unfavorable_elements"
+        ]
+        == [
+            "火",
+            "金",
+            "土",
+        ]
+    )
+
+    assert (
+        result[
+            "neutral_elements"
+        ]
+        == []
+    )
+
+    assert (
+        result[
+            "selection_basis"
+        ]
+        == "weak_day_master_support"
+    )
+
+
+def test_build_fuyoku_candidates_strong_wood():
     result = (
-        determine_unfavorable_elements(
+        build_fuyoku_candidates(
+            "木",
             "strong",
-            relations,
+            extract_element_scores(
+                make_weighted()
+            ),
         )
     )
 
-    assert set(
-        result
-    ) == {
-        "木",
-        "水",
-    }
-
-
-def test_unfavorable_weak():
-    relations = (
-        determine_element_relations(
-            "木"
-        )
+    assert (
+        result[
+            "favorable_elements"
+        ]
+        == [
+            "土",
+            "金",
+            "火",
+        ]
     )
 
+    assert (
+        result[
+            "unfavorable_elements"
+        ]
+        == [
+            "木",
+            "水",
+        ]
+    )
+
+    assert (
+        result[
+            "selection_basis"
+        ]
+        == "strong_day_master_drain"
+    )
+
+
+def test_build_fuyoku_candidates_balanced_wood():
     result = (
-        determine_unfavorable_elements(
-            "weak",
-            relations,
+        build_fuyoku_candidates(
+            "木",
+            "balanced",
+            extract_element_scores(
+                make_weighted()
+            ),
         )
     )
 
-    assert set(
-        result
-    ) == {
-        "火",
-        "土",
-        "金",
-    }
+    assert (
+        result[
+            "favorable_elements"
+        ]
+        == [
+            "土",
+            "金",
+        ]
+    )
+
+    assert (
+        result[
+            "unfavorable_elements"
+        ]
+        == []
+    )
+
+    assert (
+        result[
+            "neutral_elements"
+        ]
+        == [
+            "火",
+            "水",
+            "木",
+        ]
+    )
+
+    assert (
+        result[
+            "selection_basis"
+        ]
+        == "balanced_day_master_scarcity"
+    )
 
 
-def test_neutral_elements_are_disjoint():
+def test_build_fuyoku_candidates_invalid_strength():
+    with pytest.raises(
+        ValueError
+    ):
+        build_fuyoku_candidates(
+            "木",
+            "super_strong",
+            extract_element_scores(
+                make_weighted()
+            ),
+        )
+
+
+# =========================================================
+# Candidate details
+# =========================================================
+
+
+def test_calculate_element_role():
     relations = (
-        determine_element_relations(
+        get_element_relations(
             "木"
         )
     )
 
-    favorable = (
-        determine_favorable_elements(
-            "balanced",
-            relations,
-            make_pattern(),
-        )
-    )
-
-    unfavorable = (
-        determine_unfavorable_elements(
-            "balanced",
+    assert (
+        calculate_element_role(
+            "木",
             relations,
         )
+        == "self"
     )
 
-    neutral = (
-        determine_neutral_elements(
-            favorable,
-            unfavorable,
+    assert (
+        calculate_element_role(
+            "水",
+            relations,
         )
+        == "resource"
     )
 
-    assert set(
-        favorable
-    ).isdisjoint(
-        neutral
+    assert (
+        calculate_element_role(
+            "火",
+            relations,
+        )
+        == "output"
     )
 
-    assert set(
-        unfavorable
-    ).isdisjoint(
-        neutral
+    assert (
+        calculate_element_role(
+            "土",
+            relations,
+        )
+        == "wealth"
     )
 
-
-# =========================================================
-# v1 candidates
-# =========================================================
+    assert (
+        calculate_element_role(
+            "金",
+            relations,
+        )
+        == "officer"
+    )
 
 
 def test_build_candidate_details():
-    scores = {
-        "木": 30.0,
-        "火": 20.0,
-        "土": 10.0,
-        "金": 15.0,
-        "水": 25.0,
-    }
-
     result = (
         build_candidate_details(
             [
                 "水",
                 "木",
             ],
-            scores,
-            "favorable",
+            category="favorable",
+            element_scores=(
+                extract_element_scores(
+                    make_weighted()
+                )
+            ),
+            relations=(
+                get_element_relations(
+                    "木"
+                )
+            ),
         )
     )
 
-    assert len(
-        result
-    ) == 2
+    assert result == [
+        {
+            "element": "水",
+            "priority": 1,
+            "category": "favorable",
+            "day_master_relation": (
+                "resource"
+            ),
+            "weighted_score": 25.0,
+        },
+        {
+            "element": "木",
+            "priority": 2,
+            "category": "favorable",
+            "day_master_relation": (
+                "self"
+            ),
+            "weighted_score": 30.0,
+        },
+    ]
 
-    assert result[
-        0
-    ][
-        "element"
-    ] == "水"
 
-    assert result[
-        0
-    ][
-        "priority"
-    ] == 1
+# =========================================================
+# Pattern evidence / v1 confidence
+# =========================================================
 
-    assert result[
-        0
-    ][
-        "category"
-    ] == "favorable"
 
-    assert result[
-        0
-    ][
-        "score"
-    ] == 25.0
+def test_build_pattern_evidence_none():
+    assert (
+        build_pattern_evidence(
+            None
+        )
+        == {
+            "available": False,
+            "primary_pattern": None,
+            "technical_pattern": None,
+            "overall_judgment": None,
+            "confidence": None,
+        }
+    )
+
+
+def test_build_pattern_evidence():
+    result = (
+        build_pattern_evidence(
+            make_pattern(
+                confidence="high"
+            )
+        )
+    )
+
+    assert (
+        result[
+            "available"
+        ]
+        is True
+    )
+
+    assert (
+        result[
+            "primary_pattern"
+        ]
+        == "偏財格"
+    )
+
+    assert (
+        result[
+            "technical_pattern"
+        ]
+        == "indirect_wealth"
+    )
+
+    assert (
+        result[
+            "overall_judgment"
+        ]
+        == "provisional_possible"
+    )
+
+    assert (
+        result[
+            "confidence"
+        ]
+        == "high"
+    )
+
+
+def test_build_pattern_evidence_type_error():
+    with pytest.raises(
+        TypeError
+    ):
+        build_pattern_evidence(
+            []
+        )
+
+
+def test_determine_confidence_balanced():
+    assert (
+        determine_confidence(
+            "balanced",
+            make_strength(
+                label="balanced",
+                confidence="high",
+            ),
+            make_pattern(
+                confidence="high"
+            ),
+        )
+        == "medium"
+    )
+
+
+def test_determine_confidence_balanced_low():
+    assert (
+        determine_confidence(
+            "balanced",
+            make_strength(
+                label="balanced",
+                confidence="low",
+            ),
+            make_pattern(),
+        )
+        == "low"
+    )
+
+
+def test_determine_confidence_strong_high():
+    assert (
+        determine_confidence(
+            "strong",
+            make_strength(
+                label="strong",
+                confidence="high",
+            ),
+            make_pattern(
+                confidence="medium"
+            ),
+        )
+        == "high"
+    )
+
+
+def test_determine_confidence_without_pattern():
+    assert (
+        determine_confidence(
+            "weak",
+            make_strength(
+                label="weak",
+                confidence="high",
+            ),
+            None,
+        )
+        == "medium"
+    )
 
 
 # =========================================================
@@ -687,17 +1182,15 @@ def test_build_candidate_details():
 # =========================================================
 
 
-def test_evaluate_useful_gods_basic():
+def test_evaluate_useful_gods_weak():
     result = evaluate_useful_gods(
         "乙",
         make_weighted(),
-        make_strength(),
+        make_strength(
+            label="weak",
+            confidence="high",
+        ),
         make_pattern(),
-    )
-
-    assert isinstance(
-        result,
-        dict,
     )
 
     assert (
@@ -728,29 +1221,134 @@ def test_evaluate_useful_gods_basic():
         == "木"
     )
 
-    assert isinstance(
+    assert (
+        result[
+            "strength_class"
+        ]
+        == "weak"
+    )
+
+    assert (
+        result[
+            "primary_useful_element"
+        ]
+        == "水"
+    )
+
+    assert (
+        result[
+            "secondary_favorable_elements"
+        ]
+        == [
+            "木",
+        ]
+    )
+
+    assert (
         result[
             "favorable_elements"
-        ],
-        list,
+        ]
+        == [
+            "水",
+            "木",
+        ]
     )
 
-    assert isinstance(
+
+def test_evaluate_useful_gods_strong():
+    result = evaluate_useful_gods(
+        "乙",
+        make_weighted(),
+        make_strength(
+            label="strong",
+            confidence="high",
+        ),
+        make_pattern(),
+    )
+
+    assert (
+        result[
+            "primary_useful_element"
+        ]
+        == "土"
+    )
+
+    assert (
+        result[
+            "favorable_elements"
+        ]
+        == [
+            "土",
+            "金",
+            "火",
+        ]
+    )
+
+    assert (
         result[
             "unfavorable_elements"
-        ],
-        list,
+        ]
+        == [
+            "木",
+            "水",
+        ]
     )
 
-    assert isinstance(
+
+def test_evaluate_useful_gods_balanced():
+    result = evaluate_useful_gods(
+        "乙",
+        make_weighted(),
+        make_strength(
+            label="balanced",
+            confidence="high",
+        ),
+        make_pattern(),
+    )
+
+    assert (
+        result[
+            "primary_useful_element"
+        ]
+        == "土"
+    )
+
+    assert (
+        result[
+            "secondary_favorable_elements"
+        ]
+        == [
+            "金",
+        ]
+    )
+
+    assert (
+        result[
+            "unfavorable_elements"
+        ]
+        == []
+    )
+
+    assert (
         result[
             "neutral_elements"
-        ],
-        list,
+        ]
+        == [
+            "火",
+            "水",
+            "木",
+        ]
+    )
+
+    assert (
+        result[
+            "confidence"
+        ]
+        == "medium"
     )
 
 
-def test_evaluate_useful_gods_primary_consistency():
+def test_evaluate_useful_gods_structure():
     result = evaluate_useful_gods(
         "乙",
         make_weighted(),
@@ -758,27 +1356,37 @@ def test_evaluate_useful_gods_primary_consistency():
         make_pattern(),
     )
 
-    favorable = result[
-        "favorable_elements"
-    ]
+    required_keys = {
+        "has_useful_candidate",
+        "primary_useful_element",
+        "secondary_favorable_elements",
+        "favorable_elements",
+        "primary_unfavorable_element",
+        "unfavorable_elements",
+        "neutral_elements",
+        "useful_candidates",
+        "unfavorable_candidates",
+        "neutral_candidates",
+        "day_master_stem",
+        "day_master_element",
+        "strength_class",
+        "selection_basis",
+        "confidence",
+        "relations",
+        "element_scores",
+        "reasoning",
+        "evidence",
+        "method",
+        "status",
+        "notes",
+    }
 
-    if favorable:
-        assert (
-            result[
-                "primary_useful_element"
-            ]
-            == favorable[0]
-        )
-
-        assert (
-            result[
-                "secondary_favorable_elements"
-            ]
-            == favorable[1:]
-        )
+    assert required_keys.issubset(
+        result.keys()
+    )
 
 
-def test_evaluate_useful_gods_evidence():
+def test_evaluate_useful_gods_evidence_integrity():
     weighted = make_weighted()
     strength = make_strength()
     pattern = make_pattern()
@@ -826,57 +1434,6 @@ def test_evaluate_useful_gods_invalid_stem():
             make_strength(),
             make_pattern(),
         )
-
-
-# =========================================================
-# v2 constants
-# =========================================================
-
-
-def test_v2_metadata_constants():
-    assert (
-        USEFUL_GODS_V2_METHOD
-        == "useful_gods_v2"
-    )
-
-    assert (
-        USEFUL_GODS_V2_STATUS
-        == "provisional_useful_gods_v2"
-    )
-
-
-def test_v2_weights():
-    assert (
-        SUPPORT_FAVORABLE_WEIGHTS
-        == (
-            3.0,
-            2.0,
-            1.0,
-        )
-    )
-
-    assert (
-        SUPPORT_UNFAVORABLE_WEIGHTS
-        == (
-            -2.5,
-            -1.5,
-            -1.0,
-        )
-    )
-
-    assert (
-        CLIMATE_WEIGHTS
-        == (
-            3.0,
-            1.5,
-            1.0,
-        )
-    )
-
-    assert (
-        AGREEMENT_BONUS
-        == 2.0
-    )
 
 
 # =========================================================
@@ -963,7 +1520,7 @@ def test_validate_climate_result_invalid_primary():
 
 
 # =========================================================
-# v2 support-balance scores
+# v2 support / climate integration scores
 # =========================================================
 
 
@@ -980,22 +1537,21 @@ def test_build_support_balance_scores():
         ],
     }
 
-    result = (
+    assert (
         build_support_balance_scores(
             support
         )
+        == {
+            "木": 2.0,
+            "火": 1.0,
+            "土": -2.5,
+            "金": -1.5,
+            "水": 3.0,
+        }
     )
 
-    assert result == {
-        "木": 2.0,
-        "火": 1.0,
-        "土": -2.5,
-        "金": -1.5,
-        "水": 3.0,
-    }
 
-
-def test_build_support_balance_scores_long_lists_clamped():
+def test_build_support_balance_scores_weight_clamp():
     support = {
         "favorable_elements": [
             "木",
@@ -1059,48 +1615,39 @@ def test_build_support_balance_scores_type_error():
         )
 
 
-# =========================================================
-# v2 climate integration scores
-# =========================================================
-
-
 def test_build_climate_integration_scores():
-    climate = make_climate(
-        [
-            "水",
-            "木",
-            "火",
-        ]
-    )
-
-    result = (
+    assert (
         build_climate_integration_scores(
-            climate
+            make_climate(
+                [
+                    "水",
+                    "木",
+                    "火",
+                ]
+            )
         )
+        == {
+            "木": 1.5,
+            "火": 1.0,
+            "土": 0.0,
+            "金": 0.0,
+            "水": 3.0,
+        }
     )
-
-    assert result == {
-        "木": 1.5,
-        "火": 1.0,
-        "土": 0.0,
-        "金": 0.0,
-        "水": 3.0,
-    }
 
 
 def test_build_climate_integration_scores_empty():
-    result = (
+    assert (
         build_climate_integration_scores(
             make_climate(
                 []
             )
         )
+        == {
+            element: 0.0
+            for element in ELEMENTS
+        }
     )
-
-    assert result == {
-        element: 0.0
-        for element in ELEMENTS
-    }
 
 
 # =========================================================
@@ -1121,16 +1668,14 @@ def test_agreement_strong():
         ],
     }
 
-    climate = make_climate(
-        [
-            "水",
-        ]
-    )
-
     result = (
         evaluate_useful_gods_agreement(
             support,
-            climate,
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
         )
     )
 
@@ -1178,16 +1723,14 @@ def test_agreement_partial():
         ],
     }
 
-    climate = make_climate(
-        [
-            "水",
-        ]
-    )
-
     result = (
         evaluate_useful_gods_agreement(
             support,
-            climate,
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
         )
     )
 
@@ -1221,16 +1764,14 @@ def test_agreement_conflict():
         ],
     }
 
-    climate = make_climate(
-        [
-            "水",
-        ]
-    )
-
     result = (
         evaluate_useful_gods_agreement(
             support,
-            climate,
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
         )
     )
 
@@ -1276,16 +1817,14 @@ def test_agreement_independent():
         ],
     }
 
-    climate = make_climate(
-        [
-            "水",
-        ]
-    )
-
     result = (
         evaluate_useful_gods_agreement(
             support,
-            climate,
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
         )
     )
 
@@ -1322,14 +1861,12 @@ def test_agreement_support_balance_only():
         ],
     }
 
-    climate = make_climate(
-        []
-    )
-
     result = (
         evaluate_useful_gods_agreement(
             support,
-            climate,
+            make_climate(
+                []
+            ),
         )
     )
 
@@ -1342,7 +1879,7 @@ def test_agreement_support_balance_only():
 
 
 # =========================================================
-# v2 integrated scores
+# v2 integrated scores / ranking
 # =========================================================
 
 
@@ -1408,6 +1945,13 @@ def test_integrated_scores_strong_agreement():
         == -1.5
     )
 
+    assert (
+        result[
+            "金"
+        ]
+        == 0.0
+    )
+
 
 def test_integrated_scores_conflict():
     support = {
@@ -1443,8 +1987,6 @@ def test_integrated_scores_conflict():
         )
     )
 
-    # 水は扶抑 -2.5 + 調候 +3.0 = +0.5
-    # conflict なので agreement bonus は付かない。
     assert (
         result[
             "水"
@@ -1467,23 +2009,16 @@ def test_integrated_scores_conflict():
     )
 
 
-# =========================================================
-# v2 ranking
-# =========================================================
-
-
 def test_rank_integrated_useful_elements():
-    scores = {
-        "木": 2.0,
-        "火": -1.0,
-        "土": 0.0,
-        "金": 3.0,
-        "水": 8.0,
-    }
-
     assert (
         rank_integrated_useful_elements(
-            scores
+            {
+                "木": 2.0,
+                "火": -1.0,
+                "土": 0.0,
+                "金": 3.0,
+                "水": 8.0,
+            }
         )
         == [
             "水",
@@ -1493,18 +2028,16 @@ def test_rank_integrated_useful_elements():
     )
 
 
-def test_rank_integrated_ignores_zero_and_negative():
-    scores = {
-        "木": 0.0,
-        "火": -1.0,
-        "土": 0.0,
-        "金": 1.0,
-        "水": -2.0,
-    }
-
+def test_rank_integrated_ignores_zero_negative():
     assert (
         rank_integrated_useful_elements(
-            scores
+            {
+                "木": 0.0,
+                "火": -1.0,
+                "土": 0.0,
+                "金": 1.0,
+                "水": -2.0,
+            }
         )
         == [
             "金",
@@ -1513,17 +2046,15 @@ def test_rank_integrated_ignores_zero_and_negative():
 
 
 def test_rank_integrated_stable_tie():
-    scores = {
-        "木": 2.0,
-        "火": 2.0,
-        "土": 0.0,
-        "金": 0.0,
-        "水": 0.0,
-    }
-
     assert (
         rank_integrated_useful_elements(
-            scores
+            {
+                "木": 2.0,
+                "火": 2.0,
+                "土": 0.0,
+                "金": 0.0,
+                "水": 0.0,
+            }
         )
         == [
             "木",
@@ -1533,24 +2064,22 @@ def test_rank_integrated_stable_tie():
 
 
 def test_rank_integrated_invalid_score():
-    scores = {
-        "木": True,
-        "火": 2.0,
-        "土": 0.0,
-        "金": 0.0,
-        "水": 0.0,
-    }
-
     with pytest.raises(
         ValueError
     ):
         rank_integrated_useful_elements(
-            scores
+            {
+                "木": True,
+                "火": 2.0,
+                "土": 0.0,
+                "金": 0.0,
+                "水": 0.0,
+            }
         )
 
 
 # =========================================================
-# v2 candidate details
+# v2 integrated candidate details
 # =========================================================
 
 
@@ -1604,105 +2133,117 @@ def test_build_integrated_candidate_details():
         )
     )
 
-    assert result[
-        0
-    ][
-        "element"
-    ] == "水"
+    assert (
+        result[
+            0
+        ][
+            "element"
+        ]
+        == "水"
+    )
 
-    assert result[
-        0
-    ][
-        "priority"
-    ] == 1
+    assert (
+        result[
+            0
+        ][
+            "priority"
+        ]
+        == 1
+    )
 
-    assert result[
-        0
-    ][
-        "integrated_score"
-    ] == 8.0
+    assert (
+        result[
+            0
+        ][
+            "integrated_score"
+        ]
+        == 8.0
+    )
 
-    assert result[
-        0
-    ][
-        "support_balance_score"
-    ] == 3.0
+    assert (
+        result[
+            0
+        ][
+            "support_balance_score"
+        ]
+        == 3.0
+    )
 
-    assert result[
-        0
-    ][
-        "climate_score"
-    ] == 3.0
+    assert (
+        result[
+            0
+        ][
+            "climate_score"
+        ]
+        == 3.0
+    )
 
-    assert result[
-        0
-    ][
-        "agreement_bonus"
-    ] == 2.0
+    assert (
+        result[
+            0
+        ][
+            "agreement_bonus"
+        ]
+        == 2.0
+    )
 
-    assert result[
-        0
-    ][
-        "is_agreed"
-    ] is True
+    assert (
+        result[
+            0
+        ][
+            "is_agreed"
+        ]
+        is True
+    )
 
-    assert result[
-        0
-    ][
-        "is_conflicted"
-    ] is False
+    assert (
+        result[
+            0
+        ][
+            "is_conflicted"
+        ]
+        is False
+    )
 
 
 # =========================================================
-# v2 confidence
+# v2 confidence / reasoning
 # =========================================================
 
 
 def test_v2_confidence_strong_agreement_high():
-    support = {
-        "confidence": "high",
-    }
-
-    climate = {
-        "confidence": "high",
-    }
-
-    agreement = {
-        "agreement_level": (
-            "strong_agreement"
-        ),
-    }
-
     assert (
         determine_useful_gods_v2_confidence(
-            support,
-            climate,
-            agreement,
+            {
+                "confidence": "high",
+            },
+            {
+                "confidence": "high",
+            },
+            {
+                "agreement_level": (
+                    "strong_agreement"
+                ),
+            },
         )
         == "high"
     )
 
 
 def test_v2_confidence_strong_agreement_medium():
-    support = {
-        "confidence": "low",
-    }
-
-    climate = {
-        "confidence": "high",
-    }
-
-    agreement = {
-        "agreement_level": (
-            "strong_agreement"
-        ),
-    }
-
     assert (
         determine_useful_gods_v2_confidence(
-            support,
-            climate,
-            agreement,
+            {
+                "confidence": "low",
+            },
+            {
+                "confidence": "high",
+            },
+            {
+                "agreement_level": (
+                    "strong_agreement"
+                ),
+            },
         )
         == "medium"
     )
@@ -1784,40 +2325,28 @@ def test_v2_confidence_support_only():
     )
 
 
-# =========================================================
-# v2 reasoning
-# =========================================================
-
-
 def test_v2_reasoning_strong_agreement():
-    support = {
-        "primary_useful_element": "水",
-    }
-
-    climate = {
-        "primary_climate_element": "水",
-    }
-
-    agreement = {
-        "agreement_level": (
-            "strong_agreement"
-        ),
-    }
-
     result = (
         build_useful_gods_v2_reasoning(
-            support,
-            climate,
-            agreement,
+            {
+                "primary_useful_element": (
+                    "水"
+                ),
+            },
+            {
+                "primary_climate_element": (
+                    "水"
+                ),
+            },
+            {
+                "agreement_level": (
+                    "strong_agreement"
+                ),
+            },
             [
                 "水",
             ],
         )
-    )
-
-    assert isinstance(
-        result,
-        list,
     )
 
     assert any(
@@ -1875,12 +2404,18 @@ def test_evaluate_useful_gods_v2_structure():
         evaluate_useful_gods_v2(
             "乙",
             make_weighted(),
-            make_strength(),
-            make_pattern(),
+            make_strength(
+                label="weak",
+                confidence="high",
+            ),
+            make_pattern(
+                confidence="medium"
+            ),
             make_climate(
                 [
                     "水",
-                ]
+                ],
+                confidence="high",
             ),
         )
     )
@@ -1911,17 +2446,23 @@ def test_evaluate_useful_gods_v2_structure():
     )
 
 
-def test_evaluate_useful_gods_v2_metadata():
+def test_evaluate_useful_gods_v2_strong_agreement():
     result = (
         evaluate_useful_gods_v2(
             "乙",
             make_weighted(),
-            make_strength(),
-            make_pattern(),
+            make_strength(
+                label="weak",
+                confidence="high",
+            ),
+            make_pattern(
+                confidence="medium"
+            ),
             make_climate(
                 [
                     "水",
-                ]
+                ],
+                confidence="high",
             ),
         )
     )
@@ -1954,13 +2495,71 @@ def test_evaluate_useful_gods_v2_metadata():
         == "木"
     )
 
+    assert (
+        result[
+            "strength_class"
+        ]
+        == "weak"
+    )
+
+    assert (
+        result[
+            "support_balance"
+        ][
+            "primary_useful_element"
+        ]
+        == "水"
+    )
+
+    assert (
+        result[
+            "climate"
+        ][
+            "primary_climate_element"
+        ]
+        == "水"
+    )
+
+    assert (
+        result[
+            "agreement"
+        ][
+            "agreement_level"
+        ]
+        == "strong_agreement"
+    )
+
+    assert (
+        result[
+            "primary_useful_element"
+        ]
+        == "水"
+    )
+
+    assert (
+        result[
+            "final_useful_elements"
+        ][0]
+        == "水"
+    )
+
+    assert (
+        result[
+            "confidence"
+        ]
+        == "high"
+    )
+
 
 def test_evaluate_useful_gods_v2_primary_consistency():
     result = (
         evaluate_useful_gods_v2(
             "乙",
             make_weighted(),
-            make_strength(),
+            make_strength(
+                label="weak",
+                confidence="high",
+            ),
             make_pattern(),
             make_climate(
                 [
@@ -1974,34 +2573,26 @@ def test_evaluate_useful_gods_v2_primary_consistency():
         "final_useful_elements"
     ]
 
-    if final_elements:
-        assert (
-            result[
-                "primary_useful_element"
-            ]
-            == final_elements[0]
-        )
+    assert (
+        result[
+            "primary_useful_element"
+        ]
+        == final_elements[0]
+    )
 
-        assert (
-            result[
-                "secondary_useful_elements"
-            ]
-            == final_elements[1:]
-        )
+    assert (
+        result[
+            "secondary_useful_elements"
+        ]
+        == final_elements[1:]
+    )
 
-        assert (
-            result[
-                "has_useful_candidate"
-            ]
-            is True
-        )
-    else:
-        assert (
-            result[
-                "primary_useful_element"
-            ]
-            is None
-        )
+    assert (
+        result[
+            "has_useful_candidate"
+        ]
+        is True
+    )
 
 
 def test_evaluate_useful_gods_v2_candidate_priorities():
@@ -2009,7 +2600,9 @@ def test_evaluate_useful_gods_v2_candidate_priorities():
         evaluate_useful_gods_v2(
             "乙",
             make_weighted(),
-            make_strength(),
+            make_strength(
+                label="weak"
+            ),
             make_pattern(),
             make_climate(
                 [
@@ -2057,9 +2650,11 @@ def test_evaluate_useful_gods_v2_candidate_priorities():
         )
 
 
-def test_evaluate_useful_gods_v2_evidence():
+def test_evaluate_useful_gods_v2_evidence_integrity():
     weighted = make_weighted()
-    strength = make_strength()
+    strength = make_strength(
+        label="weak"
+    )
     pattern = make_pattern()
     climate = make_climate(
         [
@@ -2119,12 +2714,14 @@ def test_evaluate_useful_gods_v2_evidence():
     )
 
 
-def test_evaluate_useful_gods_v2_preserves_v1_support_result():
+def test_evaluate_useful_gods_v2_preserves_v1_support():
     weighted = make_weighted()
-    strength = make_strength()
+    strength = make_strength(
+        label="weak"
+    )
     pattern = make_pattern()
 
-    expected_v1 = (
+    expected = (
         evaluate_useful_gods(
             "乙",
             weighted,
@@ -2151,7 +2748,7 @@ def test_evaluate_useful_gods_v2_preserves_v1_support_result():
         result[
             "support_balance"
         ]
-        == expected_v1
+        == expected
     )
 
 
@@ -2162,7 +2759,9 @@ def test_evaluate_useful_gods_v2_day_master_mismatch():
         evaluate_useful_gods_v2(
             "乙",
             make_weighted(),
-            make_strength(),
+            make_strength(
+                label="weak"
+            ),
             make_pattern(),
             make_climate(
                 [
@@ -2173,70 +2772,14 @@ def test_evaluate_useful_gods_v2_day_master_mismatch():
         )
 
 
-# =========================================================
-# v2 scenario regression
-# =========================================================
-
-
-def test_v2_realistic_1985_wei_month_climate_is_water():
-    """
-    1985/07/17 21:50 石川の既知命式では
-    日主=乙、月支=未。
-
-    climate_useful_gods_v1 の現行仕様では
-    未月 -> summer -> cooling -> 水。
-
-    ここでは chart.py 未接続段階なので、
-    climate結果をスタブとして渡し、
-    v2統合の構造を固定する。
-    """
+def test_evaluate_useful_gods_v2_integrated_scores_numeric():
     result = (
         evaluate_useful_gods_v2(
             "乙",
             make_weighted(),
-            make_strength(),
-            make_pattern(),
-            make_climate(
-                [
-                    "水",
-                ],
-                confidence="high",
+            make_strength(
+                label="weak"
             ),
-        )
-    )
-
-    assert (
-        result[
-            "climate"
-        ][
-            "primary_climate_element"
-        ]
-        == "水"
-    )
-
-    assert (
-        result[
-            "climate"
-        ][
-            "month_branch"
-        ]
-        == "未"
-    )
-
-    assert (
-        result[
-            "method"
-        ]
-        == "useful_gods_v2"
-    )
-
-
-def test_v2_all_integrated_scores_are_numeric():
-    result = (
-        evaluate_useful_gods_v2(
-            "乙",
-            make_weighted(),
-            make_strength(),
             make_pattern(),
             make_climate(
                 [
@@ -2246,34 +2789,37 @@ def test_v2_all_integrated_scores_are_numeric():
         )
     )
 
+    scores = result[
+        "integrated_element_scores"
+    ]
+
     assert set(
-        result[
-            "integrated_element_scores"
-        ].keys()
+        scores.keys()
     ) == set(
         ELEMENTS
     )
 
-    for value in result[
-        "integrated_element_scores"
-    ].values():
-        assert isinstance(
+    assert all(
+        isinstance(
             value,
             (int, float),
         )
-
-        assert not isinstance(
+        and not isinstance(
             value,
             bool,
         )
+        for value in scores.values()
+    )
 
 
-def test_v2_reasoning_and_notes_exist():
+def test_evaluate_useful_gods_v2_reasoning_notes():
     result = (
         evaluate_useful_gods_v2(
             "乙",
             make_weighted(),
-            make_strength(),
+            make_strength(
+                label="weak"
+            ),
             make_pattern(),
             make_climate(
                 [
@@ -2316,12 +2862,14 @@ def test_v2_reasoning_and_notes_exist():
     )
 
 
-def test_v2_confidence_is_valid():
+def test_evaluate_useful_gods_v2_confidence_valid():
     result = (
         evaluate_useful_gods_v2(
             "乙",
             make_weighted(),
-            make_strength(),
+            make_strength(
+                label="weak"
+            ),
             make_pattern(),
             make_climate(
                 [
