@@ -13,6 +13,9 @@ from engine.branch_relations import (
     find_branch_punishments,
     find_branch_trines,
 )
+from engine.climate_useful_gods import (
+    evaluate_climate_useful_gods,
+)
 from engine.day_master_strength import (
     classify_five_elements_for_day_master,
     classify_weighted_elements_for_day_master,
@@ -69,7 +72,7 @@ from engine.transformation_root import (
     evaluate_transformation_roots,
 )
 from engine.useful_gods import (
-    evaluate_useful_gods,
+    evaluate_useful_gods_v2,
 )
 from engine.weighted_five_elements import (
     calculate_weighted_five_elements,
@@ -233,7 +236,6 @@ def calculate_chart(req) -> dict:
         )
     )
 
-
     five_elements = calculate_five_elements(
         chart_data
     )
@@ -269,7 +271,6 @@ def calculate_chart(req) -> dict:
             chart_data,
         )
     )
-
 
     branch_clashes = (
         find_branch_clashes(
@@ -317,6 +318,7 @@ def calculate_chart(req) -> dict:
             branch_breaks,
         )
     )
+
     month_command = (
         classify_month_relationship(
             pillars["day_master"]["stem"],
@@ -403,8 +405,23 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    climate_useful_gods = (
+        evaluate_climate_useful_gods(
+            pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            pillars[
+                "month"
+            ][
+                "branch"
+            ],
+        )
+    )
+
     useful_gods = (
-        evaluate_useful_gods(
+        evaluate_useful_gods_v2(
             pillars[
                 "day_master"
             ][
@@ -413,6 +430,7 @@ def calculate_chart(req) -> dict:
             weighted_five_elements,
             final_strength_judgment,
             pattern_judgment,
+            climate_useful_gods,
         )
     )
 
@@ -458,6 +476,9 @@ def calculate_chart(req) -> dict:
         "pattern_judgment": (
             pattern_judgment
         ),
+        "climate_useful_gods": (
+            climate_useful_gods
+        ),
         "useful_gods": (
             useful_gods
         ),
@@ -482,7 +503,6 @@ def calculate_chart(req) -> dict:
         "branch_combinations": (
             branch_combinations
         ),
-
         "branch_trines": (
             branch_trines
         ),
