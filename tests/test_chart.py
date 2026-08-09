@@ -2098,3 +2098,369 @@ def test_chart_pattern_candidates_are_provisional():
         == "provisional_candidate"
     )
 
+
+
+
+def test_chart_contains_pattern_judgment():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    judgment = result[
+        "pattern_judgment"
+    ]
+
+    assert isinstance(
+        judgment,
+        dict,
+    )
+
+    assert (
+        judgment[
+            "has_pattern_candidate"
+        ]
+        is True
+    )
+
+    assert (
+        judgment[
+            "has_pattern"
+        ]
+        is True
+    )
+
+    assert (
+        judgment[
+            "judgment_count"
+        ]
+        >= 1
+    )
+
+    assert (
+        judgment[
+            "primary_pattern"
+        ]
+        == "偏財格"
+    )
+
+    assert (
+        judgment[
+            "technical_pattern"
+        ]
+        == "indirect_wealth"
+    )
+
+    assert (
+        judgment[
+            "primary_judgment"
+        ]
+        is not None
+    )
+
+    assert (
+        judgment[
+            "primary_judgment"
+        ][
+            "pattern"
+        ]
+        == "偏財格"
+    )
+
+    assert (
+        judgment[
+            "primary_judgment"
+        ][
+            "technical_pattern"
+        ]
+        == "indirect_wealth"
+    )
+
+    assert (
+        judgment[
+            "primary_judgment"
+        ][
+            "is_exposed"
+        ]
+        is False
+    )
+
+    assert (
+        judgment[
+            "primary_judgment"
+        ][
+            "establishment_score"
+        ]
+        == 60.0
+    )
+
+    assert (
+        judgment[
+            "primary_judgment"
+        ][
+            "establishment_status"
+        ]
+        == "possible"
+    )
+
+    assert (
+        judgment[
+            "primary_judgment"
+        ][
+            "final_judgment"
+        ]
+        == "provisional_possible"
+    )
+
+    assert (
+        judgment[
+            "strong_count"
+        ]
+        == 0
+    )
+
+    assert (
+        judgment[
+            "possible_count"
+        ]
+        == 1
+    )
+
+    assert (
+        judgment[
+            "weakened_count"
+        ]
+        == 0
+    )
+
+    assert (
+        judgment[
+            "school_rule_count"
+        ]
+        == 0
+    )
+
+    assert (
+        judgment[
+            "overall_judgment"
+        ]
+        == "provisional_possible"
+    )
+
+    assert (
+        judgment[
+            "confidence"
+        ]
+        == "medium"
+    )
+
+    assert (
+        judgment[
+            "method"
+        ]
+        == "pattern_judgment_v1"
+    )
+
+    assert (
+        judgment[
+            "status"
+        ]
+        == "provisional_pattern_judgment"
+    )
+
+    assert isinstance(
+        judgment[
+            "notes"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            judgment[
+                "notes"
+            ]
+        )
+        >= 1
+    )
+
+
+def test_chart_pattern_judgment_breaking_factors():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    judgment = result[
+        "pattern_judgment"
+    ]
+
+    primary = judgment[
+        "primary_judgment"
+    ]
+
+    breaking_types = {
+        factor[
+            "type"
+        ]
+        for factor in primary[
+            "breaking_factors"
+        ]
+    }
+
+    assert (
+        "main_hidden_stem_not_exposed"
+        in breaking_types
+    )
+
+    assert (
+        primary[
+            "breaking_factor_count"
+        ]
+        == len(
+            primary[
+                "breaking_factors"
+            ]
+        )
+    )
+
+
+def test_chart_pattern_judgment_rescue_factors():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    judgment = result[
+        "pattern_judgment"
+    ]
+
+    primary = judgment[
+        "primary_judgment"
+    ]
+
+    assert (
+        primary[
+            "rescue_factor_count"
+        ]
+        == len(
+            primary[
+                "rescue_factors"
+            ]
+        )
+    )
+
+    rescue_types = {
+        factor[
+            "type"
+        ]
+        for factor in primary[
+            "rescue_factors"
+        ]
+    }
+
+    final_strength = result[
+        "final_strength_judgment"
+    ]
+
+    if (
+        final_strength[
+            "technical_label"
+        ]
+        == "balanced"
+    ):
+        assert (
+            "balanced_day_master"
+            in rescue_types
+        )
+
+
+def test_chart_pattern_judgment_evidence_matches_results():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    evidence = result[
+        "pattern_judgment"
+    ][
+        "evidence"
+    ]
+
+    assert (
+        evidence[
+            "pattern_candidates"
+        ]
+        == result[
+            "pattern_candidates"
+        ]
+    )
+
+    assert (
+        evidence[
+            "final_strength_judgment"
+        ]
+        == result[
+            "final_strength_judgment"
+        ]
+    )
+
+    assert (
+        evidence[
+            "stem_transformation_judgment"
+        ]
+        == result[
+            "stem_transformation_judgment"
+        ]
+    )
+
+    assert (
+        evidence[
+            "branch_relation_strength"
+        ]
+        == result[
+            "branch_relation_strength"
+        ]
+    )
+
+
+def test_chart_pattern_judgment_matches_pattern_candidates():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    candidates = result[
+        "pattern_candidates"
+    ]
+
+    judgment = result[
+        "pattern_judgment"
+    ]
+
+    assert (
+        judgment[
+            "primary_pattern"
+        ]
+        == candidates[
+            "primary_candidate"
+        ][
+            "pattern"
+        ]
+    )
+
+    assert (
+        judgment[
+            "technical_pattern"
+        ]
+        == candidates[
+            "primary_candidate"
+        ][
+            "technical_pattern"
+        ]
+    )
