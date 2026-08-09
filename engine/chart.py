@@ -68,6 +68,9 @@ from engine.transformation_exposure import (
 from engine.transformation_root import (
     evaluate_transformation_roots,
 )
+from engine.useful_gods import (
+    evaluate_useful_gods,
+)
 from engine.weighted_five_elements import (
     calculate_weighted_five_elements,
 )
@@ -400,6 +403,19 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    useful_gods = (
+        evaluate_useful_gods(
+            pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            weighted_five_elements,
+            final_strength_judgment,
+            pattern_judgment,
+        )
+    )
+
     return {
         "input": {
             "birth_date": birth_date,
@@ -441,6 +457,9 @@ def calculate_chart(req) -> dict:
         ),
         "pattern_judgment": (
             pattern_judgment
+        ),
+        "useful_gods": (
+            useful_gods
         ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
