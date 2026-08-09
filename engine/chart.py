@@ -38,6 +38,9 @@ from engine.pattern_candidates import (
 from engine.pattern_judgment import (
     evaluate_pattern_judgment,
 )
+from engine.pattern_useful_gods import (
+    evaluate_pattern_useful_gods,
+)
 from engine.pattern_special_rules import (
     evaluate_pattern_special_rules,
 )
@@ -405,6 +408,18 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    pattern_useful_gods = (
+        evaluate_pattern_useful_gods(
+            pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            pattern_judgment,
+            weighted_five_elements,
+        )
+    )
+
     climate_useful_gods = (
         evaluate_climate_useful_gods(
             pillars[
@@ -475,6 +490,9 @@ def calculate_chart(req) -> dict:
         ),
         "pattern_judgment": (
             pattern_judgment
+        ),
+        "pattern_useful_gods": (
+            pattern_useful_gods
         ),
         "climate_useful_gods": (
             climate_useful_gods
