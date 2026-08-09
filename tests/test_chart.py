@@ -788,6 +788,7 @@ def test_chart_contains_branch_combinations():
         == "detected_branch_combinations"
     )
 
+
 def test_chart_contains_branch_trines():
     request = make_verified_request()
 
@@ -821,6 +822,7 @@ def test_chart_contains_branch_trines():
         branch_trines["status"]
         == "detected_branch_trines"
     )
+
 
 def test_chart_contains_branch_punishments():
     request = make_verified_request()
@@ -1778,3 +1780,4 @@ def test_chart_contains_final_strength_judgment():
         )
         >= 1
     )
+
