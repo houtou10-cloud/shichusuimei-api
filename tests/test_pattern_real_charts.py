@@ -3096,3 +3096,637 @@ def test_verified_1985_useful_gods_v2_climate_is_water():
         ]
         == "水"
     )
+
+# =========================================================
+# pattern_useful_gods_v1 real-chart regression
+# =========================================================
+
+
+def test_real_chart_contains_pattern_useful_gods(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    pattern_useful = result[
+        "pattern_useful_gods"
+    ]
+
+    assert isinstance(
+        pattern_useful,
+        dict,
+    )
+
+    required_keys = {
+        "has_pattern_useful_candidate",
+        "primary_pattern_element",
+        "secondary_pattern_elements",
+        "pattern_elements",
+        "pattern_candidates",
+        "day_master_stem",
+        "day_master_element",
+        "primary_pattern",
+        "technical_pattern",
+        "pattern_overall_judgment",
+        "pattern_confidence",
+        "supported_pattern",
+        "element_relations",
+        "confidence",
+        "reasoning",
+        "evidence",
+        "method",
+        "status",
+        "notes",
+    }
+
+    assert required_keys.issubset(
+        pattern_useful.keys()
+    )
+
+
+def test_real_chart_pattern_useful_gods_metadata(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    pattern_useful = result[
+        "pattern_useful_gods"
+    ]
+
+    assert (
+        pattern_useful[
+            "method"
+        ]
+        == "pattern_useful_gods_v1"
+    )
+
+    assert (
+        pattern_useful[
+            "status"
+        ]
+        == "provisional_pattern_useful_gods"
+    )
+
+    assert (
+        pattern_useful[
+            "confidence"
+        ]
+        in {
+            "high",
+            "medium",
+            "low",
+        }
+    )
+
+
+def test_real_chart_pattern_useful_gods_matches_day_master(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    pattern_useful = result[
+        "pattern_useful_gods"
+    ]
+
+    assert (
+        pattern_useful[
+            "day_master_stem"
+        ]
+        == result[
+            "day_master"
+        ][
+            "stem"
+        ]
+    )
+
+    assert (
+        pattern_useful[
+            "day_master_element"
+        ]
+        in {
+            "木",
+            "火",
+            "土",
+            "金",
+            "水",
+        }
+    )
+
+
+def test_real_chart_pattern_useful_gods_matches_pattern_judgment(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    pattern_useful = result[
+        "pattern_useful_gods"
+    ]
+
+    judgment = result[
+        "pattern_judgment"
+    ]
+
+    assert (
+        pattern_useful[
+            "primary_pattern"
+        ]
+        == judgment.get(
+            "primary_pattern"
+        )
+    )
+
+    assert (
+        pattern_useful[
+            "technical_pattern"
+        ]
+        == judgment.get(
+            "technical_pattern"
+        )
+    )
+
+    assert (
+        pattern_useful[
+            "pattern_overall_judgment"
+        ]
+        == judgment.get(
+            "overall_judgment"
+        )
+    )
+
+    assert (
+        pattern_useful[
+            "pattern_confidence"
+        ]
+        == judgment.get(
+            "confidence"
+        )
+    )
+
+
+def test_real_chart_pattern_useful_gods_candidate_consistency(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    pattern_useful = result[
+        "pattern_useful_gods"
+    ]
+
+    elements = pattern_useful[
+        "pattern_elements"
+    ]
+
+    candidates = pattern_useful[
+        "pattern_candidates"
+    ]
+
+    assert isinstance(
+        elements,
+        list,
+    )
+
+    assert isinstance(
+        candidates,
+        list,
+    )
+
+    assert (
+        len(
+            candidates
+        )
+        == len(
+            elements
+        )
+    )
+
+    if elements:
+        assert (
+            pattern_useful[
+                "has_pattern_useful_candidate"
+            ]
+            is True
+        )
+
+        assert (
+            pattern_useful[
+                "primary_pattern_element"
+            ]
+            == elements[0]
+        )
+
+        assert (
+            pattern_useful[
+                "secondary_pattern_elements"
+            ]
+            == elements[1:]
+        )
+    else:
+        assert (
+            pattern_useful[
+                "has_pattern_useful_candidate"
+            ]
+            is False
+        )
+
+        assert (
+            pattern_useful[
+                "primary_pattern_element"
+            ]
+            is None
+        )
+
+        assert (
+            pattern_useful[
+                "secondary_pattern_elements"
+            ]
+            == []
+        )
+
+
+def test_real_chart_pattern_useful_gods_candidate_priorities(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    pattern_useful = result[
+        "pattern_useful_gods"
+    ]
+
+    for index, candidate in enumerate(
+        pattern_useful[
+            "pattern_candidates"
+        ],
+        start=1,
+    ):
+        assert (
+            candidate[
+                "priority"
+            ]
+            == index
+        )
+
+        assert (
+            candidate[
+                "element"
+            ]
+            == pattern_useful[
+                "pattern_elements"
+            ][
+                index - 1
+            ]
+        )
+
+
+def test_real_chart_pattern_useful_gods_evidence_matches(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    evidence = result[
+        "pattern_useful_gods"
+    ][
+        "evidence"
+    ]
+
+    assert (
+        evidence[
+            "pattern_judgment"
+        ]
+        == result[
+            "pattern_judgment"
+        ]
+    )
+
+    assert (
+        evidence[
+            "weighted_five_elements"
+        ]
+        == result[
+            "weighted_five_elements"
+        ]
+    )
+
+    assert (
+        evidence[
+            "pattern_info"
+        ][
+            "technical_pattern"
+        ]
+        == result[
+            "pattern_judgment"
+        ].get(
+            "technical_pattern"
+        )
+    )
+
+    assert isinstance(
+        evidence[
+            "raw_candidates"
+        ],
+        list,
+    )
+
+
+def test_real_chart_pattern_useful_gods_reasoning_and_notes(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    pattern_useful = result[
+        "pattern_useful_gods"
+    ]
+
+    assert isinstance(
+        pattern_useful[
+            "reasoning"
+        ],
+        list,
+    )
+
+    assert isinstance(
+        pattern_useful[
+            "notes"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            pattern_useful[
+                "notes"
+            ]
+        )
+        >= 1
+    )
+
+
+def test_verified_1985_pattern_useful_gods_metadata():
+    result = calculate_chart(
+        make_verified_request()
+    )
+
+    pattern_useful = result[
+        "pattern_useful_gods"
+    ]
+
+    assert (
+        pattern_useful[
+            "method"
+        ]
+        == "pattern_useful_gods_v1"
+    )
+
+    assert (
+        pattern_useful[
+            "status"
+        ]
+        == "provisional_pattern_useful_gods"
+    )
+
+    assert (
+        pattern_useful[
+            "day_master_stem"
+        ]
+        == "乙"
+    )
+
+    assert (
+        pattern_useful[
+            "day_master_element"
+        ]
+        == "木"
+    )
+
+
+def test_verified_1985_pattern_useful_gods_pattern_matches():
+    result = calculate_chart(
+        make_verified_request()
+    )
+
+    pattern_useful = result[
+        "pattern_useful_gods"
+    ]
+
+    assert (
+        pattern_useful[
+            "primary_pattern"
+        ]
+        == "偏財格"
+    )
+
+    assert (
+        pattern_useful[
+            "technical_pattern"
+        ]
+        == "indirect_wealth"
+    )
+
+    assert (
+        pattern_useful[
+            "pattern_overall_judgment"
+        ]
+        == result[
+            "pattern_judgment"
+        ][
+            "overall_judgment"
+        ]
+    )
+
+    assert (
+        pattern_useful[
+            "pattern_confidence"
+        ]
+        == result[
+            "pattern_judgment"
+        ][
+            "confidence"
+        ]
+    )
+
+
+def test_verified_1985_pattern_useful_gods_elements():
+    result = calculate_chart(
+        make_verified_request()
+    )
+
+    pattern_useful = result[
+        "pattern_useful_gods"
+    ]
+
+    assert (
+        pattern_useful[
+            "supported_pattern"
+        ]
+        is True
+    )
+
+    assert (
+        pattern_useful[
+            "pattern_elements"
+        ]
+        == [
+            "火",
+            "金",
+        ]
+    )
+
+    assert (
+        pattern_useful[
+            "primary_pattern_element"
+        ]
+        == "火"
+    )
+
+    assert (
+        pattern_useful[
+            "secondary_pattern_elements"
+        ]
+        == [
+            "金",
+        ]
+    )
+
+
+def test_verified_1985_pattern_useful_gods_candidate_roles():
+    result = calculate_chart(
+        make_verified_request()
+    )
+
+    candidates = result[
+        "pattern_useful_gods"
+    ][
+        "pattern_candidates"
+    ]
+
+    assert len(
+        candidates
+    ) == 2
+
+    assert (
+        candidates[0][
+            "element"
+        ]
+        == "火"
+    )
+
+    assert (
+        candidates[0][
+            "relations"
+        ]
+        == [
+            "output",
+        ]
+    )
+
+    assert (
+        candidates[0][
+            "roles"
+        ]
+        == [
+            "generate_wealth",
+        ]
+    )
+
+    assert (
+        candidates[0][
+            "priority"
+        ]
+        == 1
+    )
+
+    assert (
+        candidates[1][
+            "element"
+        ]
+        == "金"
+    )
+
+    assert (
+        candidates[1][
+            "relations"
+        ]
+        == [
+            "officer",
+        ]
+    )
+
+    assert (
+        candidates[1][
+            "roles"
+        ]
+        == [
+            "protect_wealth",
+        ]
+    )
+
+    assert (
+        candidates[1][
+            "priority"
+        ]
+        == 2
+    )
+
+
+def test_verified_1985_pattern_useful_gods_evidence_integrity():
+    result = calculate_chart(
+        make_verified_request()
+    )
+
+    pattern_useful = result[
+        "pattern_useful_gods"
+    ]
+
+    evidence = pattern_useful[
+        "evidence"
+    ]
+
+    assert (
+        evidence[
+            "pattern_judgment"
+        ]
+        == result[
+            "pattern_judgment"
+        ]
+    )
+
+    assert (
+        evidence[
+            "weighted_five_elements"
+        ]
+        == result[
+            "weighted_five_elements"
+        ]
+    )
+
+    assert (
+        evidence[
+            "pattern_info"
+        ][
+            "technical_pattern"
+        ]
+        == "indirect_wealth"
+    )
+
+    assert (
+        len(
+            evidence[
+                "raw_candidates"
+            ]
+        )
+        == 2
+    )
