@@ -340,6 +340,8 @@ def get_day_master_element(
 
     return STEM_ELEMENTS[
         day_master_stem
+    ][
+        "element"
     ]
 
 
