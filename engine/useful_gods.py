@@ -1014,6 +1014,915 @@ def evaluate_useful_gods(
     }
 
 
+# =========================================================
+# useful_gods_v2 integration
+# =========================================================
+
+
+USEFUL_GODS_V2_METHOD = (
+    "useful_gods_v2"
+)
+
+USEFUL_GODS_V2_STATUS = (
+    "provisional_useful_gods_v2"
+)
+
+
+SUPPORT_FAVORABLE_WEIGHTS = (
+    3.0,
+    2.0,
+    1.0,
+)
+
+SUPPORT_UNFAVORABLE_WEIGHTS = (
+    -2.5,
+    -1.5,
+    -1.0,
+)
+
+CLIMATE_WEIGHTS = (
+    3.0,
+    1.5,
+    1.0,
+)
+
+AGREEMENT_BONUS = 2.0
+
+
+def validate_climate_useful_gods_result(
+    climate_useful_gods: dict,
+) -> None:
+    """
+    climate_useful_gods_v1 の最低限の構造を検証する。
+    """
+    if not isinstance(
+        climate_useful_gods,
+        dict,
+    ):
+        raise TypeError(
+            "climate_useful_godsは"
+            "dict型で指定してください。"
+        )
+
+    climate_elements = (
+        climate_useful_gods.get(
+            "climate_elements"
+        )
+    )
+
+    if not isinstance(
+        climate_elements,
+        list,
+    ):
+        raise ValueError(
+            "climate_useful_godsに"
+            "climate_elementsがありません。"
+        )
+
+    for element in climate_elements:
+        _validate_element(
+            element
+        )
+
+    primary = (
+        climate_useful_gods.get(
+            "primary_climate_element"
+        )
+    )
+
+    if (
+        primary is not None
+        and primary not in ELEMENTS
+    ):
+        raise ValueError(
+            "不正なprimary_climate_elementです: "
+            f"{primary}"
+        )
+
+
+def build_support_balance_scores(
+    support_balance: dict,
+) -> dict[str, float]:
+    """
+    useful_gods_v1 の扶抑結果を
+    統合用スコアへ変換する。
+
+    favorable:
+        優先順位順に +3 / +2 / +1
+
+    unfavorable:
+        優先順位順に -2.5 / -1.5 / -1
+
+    neutral:
+        0
+    """
+    if not isinstance(
+        support_balance,
+        dict,
+    ):
+        raise TypeError(
+            "support_balanceはdict型で"
+            "指定してください。"
+        )
+
+    scores = {
+        element: 0.0
+        for element in ELEMENTS
+    }
+
+    favorable = support_balance.get(
+        "favorable_elements",
+        [],
+    )
+
+    unfavorable = support_balance.get(
+        "unfavorable_elements",
+        [],
+    )
+
+    if not isinstance(
+        favorable,
+        list,
+    ):
+        raise TypeError(
+            "favorable_elementsはlist型で"
+            "指定してください。"
+        )
+
+    if not isinstance(
+        unfavorable,
+        list,
+    ):
+        raise TypeError(
+            "unfavorable_elementsはlist型で"
+            "指定してください。"
+        )
+
+    for index, element in enumerate(
+        favorable
+    ):
+        _validate_element(
+            element
+        )
+
+        weight = (
+            SUPPORT_FAVORABLE_WEIGHTS[
+                min(
+                    index,
+                    len(
+                        SUPPORT_FAVORABLE_WEIGHTS
+                    )
+                    - 1,
+                )
+            ]
+        )
+
+        scores[
+            element
+        ] += weight
+
+    for index, element in enumerate(
+        unfavorable
+    ):
+        _validate_element(
+            element
+        )
+
+        weight = (
+            SUPPORT_UNFAVORABLE_WEIGHTS[
+                min(
+                    index,
+                    len(
+                        SUPPORT_UNFAVORABLE_WEIGHTS
+                    )
+                    - 1,
+                )
+            ]
+        )
+
+        scores[
+            element
+        ] += weight
+
+    return {
+        element: round(
+            score,
+            2,
+        )
+        for element, score
+        in scores.items()
+    }
+
+
+def build_climate_integration_scores(
+    climate_useful_gods: dict,
+) -> dict[str, float]:
+    """
+    climate_useful_gods_v1 の候補順位を
+    useful_gods_v2 統合用スコアへ変換する。
+    """
+    validate_climate_useful_gods_result(
+        climate_useful_gods
+    )
+
+    scores = {
+        element: 0.0
+        for element in ELEMENTS
+    }
+
+    climate_elements = (
+        climate_useful_gods[
+            "climate_elements"
+        ]
+    )
+
+    for index, element in enumerate(
+        climate_elements
+    ):
+        weight = (
+            CLIMATE_WEIGHTS[
+                min(
+                    index,
+                    len(
+                        CLIMATE_WEIGHTS
+                    )
+                    - 1,
+                )
+            ]
+        )
+
+        scores[
+            element
+        ] += weight
+
+    return {
+        element: round(
+            score,
+            2,
+        )
+        for element, score
+        in scores.items()
+    }
+
+
+def evaluate_useful_gods_agreement(
+    support_balance: dict,
+    climate_useful_gods: dict,
+) -> dict:
+    """
+    扶抑用神と調候用神の一致・競合を評価する。
+
+    agreed_elements:
+        扶抑で favorable かつ
+        調候でも候補となる五行。
+
+    conflicted_elements:
+        扶抑で unfavorable だが
+        調候では候補となる五行。
+    """
+    if not isinstance(
+        support_balance,
+        dict,
+    ):
+        raise TypeError(
+            "support_balanceはdict型で"
+            "指定してください。"
+        )
+
+    validate_climate_useful_gods_result(
+        climate_useful_gods
+    )
+
+    favorable = support_balance.get(
+        "favorable_elements",
+        [],
+    )
+
+    unfavorable = support_balance.get(
+        "unfavorable_elements",
+        [],
+    )
+
+    climate_elements = (
+        climate_useful_gods[
+            "climate_elements"
+        ]
+    )
+
+    favorable_set = set(
+        favorable
+    )
+
+    unfavorable_set = set(
+        unfavorable
+    )
+
+    climate_set = set(
+        climate_elements
+    )
+
+    agreed_elements = [
+        element
+        for element in ELEMENTS
+        if (
+            element
+            in favorable_set
+            and element
+            in climate_set
+        )
+    ]
+
+    conflicted_elements = [
+        element
+        for element in ELEMENTS
+        if (
+            element
+            in unfavorable_set
+            and element
+            in climate_set
+        )
+    ]
+
+    if agreed_elements:
+        agreement_level = (
+            "strong_agreement"
+            if (
+                support_balance.get(
+                    "primary_useful_element"
+                )
+                == climate_useful_gods.get(
+                    "primary_climate_element"
+                )
+            )
+            else "partial_agreement"
+        )
+    elif conflicted_elements:
+        agreement_level = "conflict"
+    elif climate_elements:
+        agreement_level = "independent"
+    else:
+        agreement_level = (
+            "support_balance_only"
+        )
+
+    return {
+        "has_agreement": bool(
+            agreed_elements
+        ),
+        "has_conflict": bool(
+            conflicted_elements
+        ),
+        "agreement_level": (
+            agreement_level
+        ),
+        "agreed_elements": (
+            agreed_elements
+        ),
+        "conflicted_elements": (
+            conflicted_elements
+        ),
+        "support_primary_element": (
+            support_balance.get(
+                "primary_useful_element"
+            )
+        ),
+        "climate_primary_element": (
+            climate_useful_gods.get(
+                "primary_climate_element"
+            )
+        ),
+    }
+
+
+def build_integrated_element_scores(
+    support_balance: dict,
+    climate_useful_gods: dict,
+    agreement: dict,
+) -> dict[str, float]:
+    """
+    扶抑・調候・一致ボーナスを統合する。
+    """
+    support_scores = (
+        build_support_balance_scores(
+            support_balance
+        )
+    )
+
+    climate_scores = (
+        build_climate_integration_scores(
+            climate_useful_gods
+        )
+    )
+
+    agreed_elements = set(
+        agreement.get(
+            "agreed_elements",
+            [],
+        )
+    )
+
+    scores: dict[str, float] = {}
+
+    for element in ELEMENTS:
+        score = (
+            support_scores[element]
+            + climate_scores[element]
+        )
+
+        if element in agreed_elements:
+            score += AGREEMENT_BONUS
+
+        scores[element] = round(
+            score,
+            2,
+        )
+
+    return scores
+
+
+def rank_integrated_useful_elements(
+    integrated_scores: dict[str, float],
+) -> list[str]:
+    """
+    統合スコアが正の五行を
+    高い順に用神候補として返す。
+    """
+    if not isinstance(
+        integrated_scores,
+        dict,
+    ):
+        raise TypeError(
+            "integrated_scoresはdict型で"
+            "指定してください。"
+        )
+
+    candidates: list[str] = []
+
+    for element in ELEMENTS:
+        score = integrated_scores.get(
+            element
+        )
+
+        if not _is_number(
+            score
+        ):
+            raise ValueError(
+                "integrated_scoresの"
+                f"{element}は数値で"
+                "指定してください。"
+            )
+
+        if float(
+            score
+        ) > 0.0:
+            candidates.append(
+                element
+            )
+
+    return sorted(
+        candidates,
+        key=lambda element: (
+            -float(
+                integrated_scores[
+                    element
+                ]
+            ),
+            ELEMENTS.index(
+                element
+            ),
+        ),
+    )
+
+
+def build_integrated_candidate_details(
+    ranked_elements: list[str],
+    integrated_scores: dict[str, float],
+    support_balance: dict,
+    climate_useful_gods: dict,
+    agreement: dict,
+) -> list[dict]:
+    """
+    useful_gods_v2 最終候補の詳細を作る。
+    """
+    if not isinstance(
+        ranked_elements,
+        list,
+    ):
+        raise TypeError(
+            "ranked_elementsはlist型で"
+            "指定してください。"
+        )
+
+    support_scores = (
+        build_support_balance_scores(
+            support_balance
+        )
+    )
+
+    climate_scores = (
+        build_climate_integration_scores(
+            climate_useful_gods
+        )
+    )
+
+    agreed = set(
+        agreement.get(
+            "agreed_elements",
+            [],
+        )
+    )
+
+    conflicted = set(
+        agreement.get(
+            "conflicted_elements",
+            [],
+        )
+    )
+
+    result: list[dict] = []
+
+    for priority, element in enumerate(
+        ranked_elements,
+        start=1,
+    ):
+        result.append(
+            {
+                "element": element,
+                "priority": priority,
+                "integrated_score": (
+                    integrated_scores[
+                        element
+                    ]
+                ),
+                "support_balance_score": (
+                    support_scores[
+                        element
+                    ]
+                ),
+                "climate_score": (
+                    climate_scores[
+                        element
+                    ]
+                ),
+                "agreement_bonus": (
+                    AGREEMENT_BONUS
+                    if element in agreed
+                    else 0.0
+                ),
+                "is_agreed": (
+                    element in agreed
+                ),
+                "is_conflicted": (
+                    element in conflicted
+                ),
+            }
+        )
+
+    return result
+
+
+def determine_useful_gods_v2_confidence(
+    support_balance: dict,
+    climate_useful_gods: dict,
+    agreement: dict,
+) -> str:
+    """
+    扶抑・調候の一致状況から
+    v2の信頼度を決める。
+    """
+    support_confidence = (
+        support_balance.get(
+            "confidence"
+        )
+    )
+
+    climate_confidence = (
+        climate_useful_gods.get(
+            "confidence"
+        )
+    )
+
+    level = agreement.get(
+        "agreement_level"
+    )
+
+    if level == "strong_agreement":
+        if (
+            support_confidence
+            in {"high", "medium"}
+            and climate_confidence
+            in {"high", "medium"}
+        ):
+            return "high"
+
+        return "medium"
+
+    if level == "partial_agreement":
+        return "medium"
+
+    if level == "conflict":
+        return "low"
+
+    if level == "independent":
+        if (
+            support_confidence == "high"
+            and climate_confidence == "high"
+        ):
+            return "medium"
+
+        return "low"
+
+    if support_confidence == "high":
+        return "medium"
+
+    return "low"
+
+
+def build_useful_gods_v2_reasoning(
+    support_balance: dict,
+    climate_useful_gods: dict,
+    agreement: dict,
+    final_elements: list[str],
+) -> list[str]:
+    """
+    統合判定の説明文。
+    """
+    reasoning: list[str] = []
+
+    support_primary = (
+        support_balance.get(
+            "primary_useful_element"
+        )
+    )
+
+    climate_primary = (
+        climate_useful_gods.get(
+            "primary_climate_element"
+        )
+    )
+
+    if support_primary is not None:
+        reasoning.append(
+            "扶抑法の第一候補は"
+            f"{support_primary}です。"
+        )
+
+    if climate_primary is not None:
+        reasoning.append(
+            "調候法の第一候補は"
+            f"{climate_primary}です。"
+        )
+    else:
+        reasoning.append(
+            "調候法では強い第一候補を"
+            "検出していません。"
+        )
+
+    level = agreement.get(
+        "agreement_level"
+    )
+
+    if level == "strong_agreement":
+        reasoning.append(
+            "扶抑と調候の第一候補が一致するため、"
+            "統合判定では強い一致として扱います。"
+        )
+
+    elif level == "partial_agreement":
+        reasoning.append(
+            "扶抑候補と調候候補に共通五行があるため、"
+            "統合判定で一致ボーナスを加えます。"
+        )
+
+    elif level == "conflict":
+        reasoning.append(
+            "調候候補の一部が扶抑上の忌神候補と"
+            "競合するため、信頼度を抑えます。"
+        )
+
+    elif level == "independent":
+        reasoning.append(
+            "扶抑と調候の候補は一致していませんが、"
+            "直接の忌神競合も検出していません。"
+        )
+
+    else:
+        reasoning.append(
+            "調候上の強い候補がないため、"
+            "扶抑結果を中心に統合します。"
+        )
+
+    if final_elements:
+        reasoning.append(
+            "統合スコアでは"
+            f"{final_elements[0]}を"
+            "第一候補とします。"
+        )
+
+    return reasoning
+
+
+def evaluate_useful_gods_v2(
+    day_master_stem: str,
+    weighted_five_elements: dict,
+    final_strength_judgment: dict,
+    pattern_judgment: dict | None,
+    climate_useful_gods: dict,
+) -> dict:
+    """
+    扶抑用神 v1 と調候用神 v1 を統合する
+    useful_gods_v2。
+
+    既存 evaluate_useful_gods() は
+    後方互換のため v1 のまま保持する。
+    chart.py を v2 接続する際は
+    この関数を使用する。
+    """
+    validate_climate_useful_gods_result(
+        climate_useful_gods
+    )
+
+    support_balance = evaluate_useful_gods(
+        day_master_stem,
+        weighted_five_elements,
+        final_strength_judgment,
+        pattern_judgment,
+    )
+
+    climate_day_stem = (
+        climate_useful_gods.get(
+            "day_master_stem"
+        )
+    )
+
+    if (
+        climate_day_stem is not None
+        and climate_day_stem
+        != day_master_stem
+    ):
+        raise ValueError(
+            "扶抑判定と調候判定の"
+            "day_master_stemが一致しません。"
+        )
+
+    agreement = (
+        evaluate_useful_gods_agreement(
+            support_balance,
+            climate_useful_gods,
+        )
+    )
+
+    integrated_scores = (
+        build_integrated_element_scores(
+            support_balance,
+            climate_useful_gods,
+            agreement,
+        )
+    )
+
+    final_elements = (
+        rank_integrated_useful_elements(
+            integrated_scores
+        )
+    )
+
+    primary_useful_element = (
+        final_elements[0]
+        if final_elements
+        else None
+    )
+
+    secondary_useful_elements = (
+        final_elements[1:]
+    )
+
+    final_candidates = (
+        build_integrated_candidate_details(
+            final_elements,
+            integrated_scores,
+            support_balance,
+            climate_useful_gods,
+            agreement,
+        )
+    )
+
+    confidence = (
+        determine_useful_gods_v2_confidence(
+            support_balance,
+            climate_useful_gods,
+            agreement,
+        )
+    )
+
+    reasoning = (
+        build_useful_gods_v2_reasoning(
+            support_balance,
+            climate_useful_gods,
+            agreement,
+            final_elements,
+        )
+    )
+
+    return {
+        "has_useful_candidate": (
+            primary_useful_element
+            is not None
+        ),
+        "primary_useful_element": (
+            primary_useful_element
+        ),
+        "secondary_useful_elements": (
+            secondary_useful_elements
+        ),
+        "final_useful_elements": (
+            final_elements
+        ),
+        "final_candidates": (
+            final_candidates
+        ),
+        "integrated_element_scores": (
+            integrated_scores
+        ),
+        "support_balance": (
+            support_balance
+        ),
+        "climate": (
+            climate_useful_gods
+        ),
+        "agreement": (
+            agreement
+        ),
+        "day_master_stem": (
+            day_master_stem
+        ),
+        "day_master_element": (
+            support_balance[
+                "day_master_element"
+            ]
+        ),
+        "strength_class": (
+            support_balance[
+                "strength_class"
+            ]
+        ),
+        "confidence": (
+            confidence
+        ),
+        "reasoning": (
+            reasoning
+        ),
+        "evidence": {
+            "weighted_five_elements": (
+                weighted_five_elements
+            ),
+            "final_strength_judgment": (
+                final_strength_judgment
+            ),
+            "pattern_judgment": (
+                pattern_judgment
+            ),
+            "support_balance": (
+                support_balance
+            ),
+            "climate_useful_gods": (
+                climate_useful_gods
+            ),
+        },
+        "method": (
+            USEFUL_GODS_V2_METHOD
+        ),
+        "status": (
+            USEFUL_GODS_V2_STATUS
+        ),
+        "notes": [
+            (
+                "v2は扶抑用神v1と"
+                "調候用神v1を統合した"
+                "暫定判定です。"
+            ),
+            (
+                "扶抑と調候が同じ五行を支持する場合、"
+                "一致ボーナスを加えます。"
+            ),
+            (
+                "調候候補が扶抑上の忌神候補と"
+                "重なる場合は競合として保持し、"
+                "信頼度を抑えます。"
+            ),
+            (
+                "通関用神・格局用神・"
+                "日干別詳細調候表は"
+                "後続バージョンで統合します。"
+            ),
+            (
+                "primary_useful_elementは"
+                "古典上の最終確定用神ではなく、"
+                "現在の統合ルールによる第一候補です。"
+            ),
+        ],
+    }
+
+
 __all__ = [
     "USEFUL_GODS_METHOD",
     "USEFUL_GODS_STATUS",
@@ -1036,4 +1945,20 @@ __all__ = [
     "determine_confidence",
     "build_pattern_evidence",
     "evaluate_useful_gods",
+    "USEFUL_GODS_V2_METHOD",
+    "USEFUL_GODS_V2_STATUS",
+    "SUPPORT_FAVORABLE_WEIGHTS",
+    "SUPPORT_UNFAVORABLE_WEIGHTS",
+    "CLIMATE_WEIGHTS",
+    "AGREEMENT_BONUS",
+    "validate_climate_useful_gods_result",
+    "build_support_balance_scores",
+    "build_climate_integration_scores",
+    "evaluate_useful_gods_agreement",
+    "build_integrated_element_scores",
+    "rank_integrated_useful_elements",
+    "build_integrated_candidate_details",
+    "determine_useful_gods_v2_confidence",
+    "build_useful_gods_v2_reasoning",
+    "evaluate_useful_gods_v2",
 ]
