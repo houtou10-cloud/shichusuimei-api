@@ -35,6 +35,9 @@ from engine.pattern_candidates import (
 from engine.pattern_judgment import (
     evaluate_pattern_judgment,
 )
+from engine.pattern_special_rules import (
+    evaluate_pattern_special_rules,
+)
 from engine.pillars import calculate_four_pillars
 from engine.root_strength import find_roots
 from engine.seasonal_strength import (
@@ -380,12 +383,20 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    pattern_special_rules = (
+        evaluate_pattern_special_rules(
+            chart_data,
+            final_strength_judgment,
+        )
+    )
+
     pattern_judgment = (
         evaluate_pattern_judgment(
             pattern_candidates,
             final_strength_judgment,
             stem_transformation_judgment,
             branch_relation_strength,
+            pattern_special_rules,
         )
     )
 
@@ -424,6 +435,9 @@ def calculate_chart(req) -> dict:
         ),
         "pattern_candidates": (
             pattern_candidates
+        ),
+        "pattern_special_rules": (
+            pattern_special_rules
         ),
         "pattern_judgment": (
             pattern_judgment
