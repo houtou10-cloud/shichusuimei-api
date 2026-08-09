@@ -2259,14 +2259,14 @@ def test_chart_contains_pattern_judgment():
         judgment[
             "method"
         ]
-        == "pattern_judgment_v1"
+        == "pattern_judgment_v2"
     )
 
     assert (
         judgment[
             "status"
         ]
-        == "provisional_pattern_judgment"
+        == "provisional_pattern_judgment_v2"
     )
 
     assert isinstance(
