@@ -1613,12 +1613,12 @@ def test_evaluate_pattern_judgment_no_candidate():
 
     assert (
         result["method"]
-        == "pattern_judgment_v1"
+        == "pattern_judgment_v2"
     )
 
     assert (
         result["status"]
-        == "provisional_pattern_judgment"
+        == "provisional_pattern_judgment_v2"
     )
 
 
