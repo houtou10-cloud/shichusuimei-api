@@ -1761,7 +1761,7 @@ def test_chart_contains_final_strength_judgment():
 
     assert (
         judgment["method"]
-        == "final_strength_judgment_v1"
+        == "final_strength_judgment_v2"
     )
 
     assert (
