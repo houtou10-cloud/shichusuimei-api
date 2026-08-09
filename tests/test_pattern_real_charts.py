@@ -62,8 +62,10 @@ REAL_CHART_CASES = [
         "expected_month_branch": "未",
         "expected_main_hidden_stem": "己",
         "expected_ten_god": "偏財",
-        "expected_exposed": False,
-        "expected_exposure_positions": [],
+        "expected_exposed": True,
+        "expected_exposure_positions": [
+            "hour",
+        ],
     },
     {
         "id": "1984_fukuoka_male_afternoon",
@@ -533,12 +535,12 @@ def test_real_chart_pattern_judgment_metadata(
 
     assert (
         judgment["method"]
-        == "pattern_judgment_v1"
+        == "pattern_judgment_v2"
     )
 
     assert (
         judgment["status"]
-        == "provisional_pattern_judgment"
+        == "provisional_pattern_judgment_v2"
     )
 
     assert isinstance(
@@ -726,6 +728,9 @@ def test_real_chart_pattern_score_formula(
         ]
         + primary[
             "branch_adjustment"
+        ]
+        + primary[
+            "special_rule_adjustment"
         ],
         2,
     )
@@ -1356,10 +1361,10 @@ def test_verified_1985_pattern_metadata():
 
     assert (
         judgment["method"]
-        == "pattern_judgment_v1"
+        == "pattern_judgment_v2"
     )
 
     assert (
         judgment["status"]
-        == "provisional_pattern_judgment"
+        == "provisional_pattern_judgment_v2"
     )
