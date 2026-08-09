@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+
 from engine.branch_relation_strength import (
     calculate_branch_relation_strength,
 )
@@ -16,7 +17,9 @@ from engine.day_master_strength import (
     classify_five_elements_for_day_master,
     classify_weighted_elements_for_day_master,
 )
-from engine.five_elements import calculate_five_elements
+from engine.five_elements import (
+    calculate_five_elements,
+)
 from engine.final_strength_judgment import (
     evaluate_final_strength_judgment,
 )
@@ -25,6 +28,9 @@ from engine.integrated_month_strength import (
 )
 from engine.month_command import (
     classify_month_relationship,
+)
+from engine.pattern_candidates import (
+    evaluate_pattern_candidates,
 )
 from engine.pillars import calculate_four_pillars
 from engine.root_strength import find_roots
@@ -255,6 +261,7 @@ def calculate_chart(req) -> dict:
         )
     )
 
+
     branch_clashes = (
         find_branch_clashes(
             chart_data
@@ -301,7 +308,6 @@ def calculate_chart(req) -> dict:
             branch_breaks,
         )
     )
-
     month_command = (
         classify_month_relationship(
             pillars["day_master"]["stem"],
@@ -364,6 +370,13 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    pattern_candidates = (
+        evaluate_pattern_candidates(
+            chart_data,
+            pillars["day_master"]["stem"],
+        )
+    )
+
     return {
         "input": {
             "birth_date": birth_date,
@@ -397,6 +410,9 @@ def calculate_chart(req) -> dict:
         "final_strength_judgment": (
             final_strength_judgment
         ),
+        "pattern_candidates": (
+            pattern_candidates
+        ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
         "weighted_five_elements": (
@@ -418,6 +434,7 @@ def calculate_chart(req) -> dict:
         "branch_combinations": (
             branch_combinations
         ),
+
         "branch_trines": (
             branch_trines
         ),
