@@ -32,6 +32,9 @@ from engine.month_command import (
 from engine.pattern_candidates import (
     evaluate_pattern_candidates,
 )
+from engine.pattern_judgment import (
+    evaluate_pattern_judgment,
+)
 from engine.pillars import calculate_four_pillars
 from engine.root_strength import find_roots
 from engine.seasonal_strength import (
@@ -377,6 +380,15 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    pattern_judgment = (
+        evaluate_pattern_judgment(
+            pattern_candidates,
+            final_strength_judgment,
+            stem_transformation_judgment,
+            branch_relation_strength,
+        )
+    )
+
     return {
         "input": {
             "birth_date": birth_date,
@@ -412,6 +424,9 @@ def calculate_chart(req) -> dict:
         ),
         "pattern_candidates": (
             pattern_candidates
+        ),
+        "pattern_judgment": (
+            pattern_judgment
         ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
