@@ -1766,7 +1766,7 @@ def test_chart_contains_final_strength_judgment():
 
     assert (
         judgment["status"]
-        == "provisional_final_strength_judgment"
+        == "provisional_final_strength_judgment_v2"
     )
 
     assert isinstance(
