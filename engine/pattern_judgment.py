@@ -1,5 +1,5 @@
 """
-格局成立判定エンジン v1。
+格局成立判定エンジン v2。
 
 pattern_candidates.py が抽出した「格局候補」を受け取り、
 既存エンジンの次の情報を統合して暫定的な成立度を判定する。
@@ -17,12 +17,9 @@ v1は「古典上の格局理論を完全実装した最終版」ではない。
 
 特に以下は後続バージョンで拡張する。
 
-- 官殺混雑
-- 食神制殺
-- 傷官見官
-- 財多身弱
-- 印綬の財破
-- 偏印奪食
+- 建禄格・羊刃格の詳細成立条件
+- 従格・化格などの特殊格
+- 地支の刑冲合害による月令損傷の詳細評価
 - 建禄格・羊刃格の詳細成立条件
 - 従格・化格などの特殊格
 - 地支の刑冲合害による月令損傷の詳細評価
@@ -526,6 +523,320 @@ def branch_adjustment(
 
 
 # =========================================================
+# Special-rule integration v2
+# =========================================================
+
+
+PATTERN_SPECIAL_RULE_MAP = {
+    "direct_officer": {
+        "mixed_officer_killing",
+        "hurting_officer_meets_officer",
+    },
+    "seven_killings": {
+        "mixed_officer_killing",
+        "food_god_controls_killing",
+    },
+    "direct_wealth": {
+        "wealth_many_body_weak",
+    },
+    "indirect_wealth": {
+        "wealth_many_body_weak",
+    },
+    "direct_resource": {
+        "wealth_breaks_resource",
+    },
+    "indirect_resource": {
+        "indirect_resource_robs_food",
+    },
+    "eating_god": {
+        "food_god_controls_killing",
+        "indirect_resource_robs_food",
+    },
+    "hurting_officer": {
+        "hurting_officer_meets_officer",
+    },
+}
+
+
+def validate_pattern_special_rules(
+    pattern_special_rules: dict | None,
+) -> None:
+    """
+    pattern_special_rules の最低限の構造を検証する。
+
+    None は「特殊ルール未接続」として許可する。
+    """
+    if pattern_special_rules is None:
+        return
+
+    if not isinstance(
+        pattern_special_rules,
+        dict,
+    ):
+        raise TypeError(
+            "pattern_special_rulesは"
+            "dict型またはNoneで指定してください。"
+        )
+
+    detected_rules = (
+        pattern_special_rules.get(
+            "detected_rules",
+            [],
+        )
+    )
+
+    if not isinstance(
+        detected_rules,
+        list,
+    ):
+        raise TypeError(
+            "pattern_special_rulesの"
+            "detected_rulesはlist型で"
+            "指定してください。"
+        )
+
+    for rule in detected_rules:
+        if not isinstance(
+            rule,
+            dict,
+        ):
+            raise TypeError(
+                "detected_ruleはdict型で"
+                "指定してください。"
+            )
+
+
+def applicable_special_rules(
+    candidate: dict,
+    pattern_special_rules: dict | None,
+) -> list[dict]:
+    """
+    現在の格局候補に関係する特殊ルールだけを返す。
+
+    特殊ルール全体の total_score_adjustment を
+    そのまま全格局へ加算しないことが重要。
+    """
+    if not isinstance(
+        candidate,
+        dict,
+    ):
+        raise TypeError(
+            "candidateはdict型で"
+            "指定してください。"
+        )
+
+    validate_pattern_special_rules(
+        pattern_special_rules
+    )
+
+    if pattern_special_rules is None:
+        return []
+
+    technical_pattern = (
+        candidate.get(
+            "technical_pattern"
+        )
+    )
+
+    applicable_names = (
+        PATTERN_SPECIAL_RULE_MAP.get(
+            technical_pattern,
+            set(),
+        )
+    )
+
+    if not applicable_names:
+        return []
+
+    return [
+        rule
+        for rule in pattern_special_rules.get(
+            "detected_rules",
+            [],
+        )
+        if rule.get(
+            "technical_rule"
+        )
+        in applicable_names
+    ]
+
+
+def special_rule_adjustment(
+    candidate: dict,
+    pattern_special_rules: dict | None,
+) -> float:
+    """
+    格局候補に適用可能な特殊ルール補正を合算する。
+
+    一候補に対する特殊ルール補正は
+    -15 ～ +15 に制限する。
+    """
+    rules = applicable_special_rules(
+        candidate,
+        pattern_special_rules,
+    )
+
+    total = 0.0
+
+    for rule in rules:
+        value = rule.get(
+            "score_adjustment",
+            0.0,
+        )
+
+        if (
+            isinstance(
+                value,
+                (int, float),
+            )
+            and not isinstance(
+                value,
+                bool,
+            )
+        ):
+            total += float(
+                value
+            )
+
+    if total > 15.0:
+        total = 15.0
+
+    if total < -15.0:
+        total = -15.0
+
+    return round(
+        total,
+        2,
+    )
+
+
+def collect_special_breaking_factors(
+    candidate: dict,
+    pattern_special_rules: dict | None,
+) -> list[dict]:
+    """
+    適用された breaking 系特殊ルールを
+    breaking_factors 形式へ変換する。
+    """
+    factors: list[dict] = []
+
+    for rule in applicable_special_rules(
+        candidate,
+        pattern_special_rules,
+    ):
+        if rule.get(
+            "effect"
+        ) != "breaking":
+            continue
+
+        factors.append(
+            {
+                "type": (
+                    "special_rule_"
+                    + str(
+                        rule.get(
+                            "technical_rule",
+                            "unknown",
+                        )
+                    )
+                ),
+                "severity": rule.get(
+                    "severity",
+                    "medium",
+                ),
+                "description": (
+                    rule.get(
+                        "note"
+                    )
+                    or (
+                        "格局に影響する"
+                        "特殊ルールが検出されました。"
+                    )
+                ),
+                "rule": rule.get(
+                    "rule"
+                ),
+                "technical_rule": (
+                    rule.get(
+                        "technical_rule"
+                    )
+                ),
+                "score_adjustment": (
+                    rule.get(
+                        "score_adjustment",
+                        0.0,
+                    )
+                ),
+            }
+        )
+
+    return factors
+
+
+def collect_special_rescue_factors(
+    candidate: dict,
+    pattern_special_rules: dict | None,
+) -> list[dict]:
+    """
+    適用された rescue 系特殊ルールを
+    rescue_factors 形式へ変換する。
+    """
+    factors: list[dict] = []
+
+    for rule in applicable_special_rules(
+        candidate,
+        pattern_special_rules,
+    ):
+        if rule.get(
+            "effect"
+        ) != "rescue":
+            continue
+
+        factors.append(
+            {
+                "type": (
+                    "special_rule_"
+                    + str(
+                        rule.get(
+                            "technical_rule",
+                            "unknown",
+                        )
+                    )
+                ),
+                "strength": rule.get(
+                    "severity",
+                    "medium",
+                ),
+                "description": (
+                    rule.get(
+                        "note"
+                    )
+                    or (
+                        "格局を補助する"
+                        "特殊ルールが検出されました。"
+                    )
+                ),
+                "rule": rule.get(
+                    "rule"
+                ),
+                "technical_rule": (
+                    rule.get(
+                        "technical_rule"
+                    )
+                ),
+                "score_adjustment": (
+                    rule.get(
+                        "score_adjustment",
+                        0.0,
+                    )
+                ),
+            }
+        )
+
+    return factors
+
+
+# =========================================================
 # Factors
 # =========================================================
 
@@ -825,6 +1136,7 @@ def judge_pattern_candidate(
     final_strength_judgment: dict | None = None,
     stem_transformation_judgment: dict | None = None,
     branch_relation_strength: dict | None = None,
+    pattern_special_rules: dict | None = None,
 ) -> dict:
     if not isinstance(
         candidate,
@@ -866,12 +1178,20 @@ def judge_pattern_candidate(
         )
     )
 
+    special_adjustment = (
+        special_rule_adjustment(
+            candidate,
+            pattern_special_rules,
+        )
+    )
+
     raw_score = round(
         base_score
         + exposed_adjustment
         + school_adjustment
         + transform_adjustment
-        + relation_adjustment,
+        + relation_adjustment
+        + special_adjustment,
         2,
     )
 
@@ -901,6 +1221,27 @@ def judge_pattern_candidate(
             candidate,
             final_strength_judgment,
             branch_relation_strength,
+        )
+    )
+
+    breaking_factors.extend(
+        collect_special_breaking_factors(
+            candidate,
+            pattern_special_rules,
+        )
+    )
+
+    rescue_factors.extend(
+        collect_special_rescue_factors(
+            candidate,
+            pattern_special_rules,
+        )
+    )
+
+    applied_special_rules = (
+        applicable_special_rules(
+            candidate,
+            pattern_special_rules,
         )
     )
 
@@ -960,6 +1301,15 @@ def judge_pattern_candidate(
         ),
         "branch_adjustment": (
             relation_adjustment
+        ),
+        "special_rule_adjustment": (
+            special_adjustment
+        ),
+        "applied_special_rule_count": len(
+            applied_special_rules
+        ),
+        "applied_special_rules": (
+            applied_special_rules
         ),
         "raw_score": (
             raw_score
@@ -1102,6 +1452,7 @@ def evaluate_pattern_judgment(
     final_strength_judgment: dict | None = None,
     stem_transformation_judgment: dict | None = None,
     branch_relation_strength: dict | None = None,
+    pattern_special_rules: dict | None = None,
 ) -> dict:
     """
     格局候補を暫定的な成立判定へ変換する。
@@ -1111,6 +1462,10 @@ def evaluate_pattern_judgment(
     """
     validate_pattern_candidates(
         pattern_candidates
+    )
+
+    validate_pattern_special_rules(
+        pattern_special_rules
     )
 
     if not pattern_candidates[
@@ -1145,12 +1500,15 @@ def evaluate_pattern_judgment(
                 "branch_relation_strength": (
                     branch_relation_strength
                 ),
+                "pattern_special_rules": (
+                    pattern_special_rules
+                ),
             },
             "method": (
-                "pattern_judgment_v1"
+                "pattern_judgment_v2"
             ),
             "status": (
-                "provisional_pattern_judgment"
+                "provisional_pattern_judgment_v2"
             ),
             "notes": [
                 (
@@ -1166,6 +1524,7 @@ def evaluate_pattern_judgment(
             final_strength_judgment,
             stem_transformation_judgment,
             branch_relation_strength,
+            pattern_special_rules,
         )
         for candidate in pattern_candidates[
             "candidates"
@@ -1302,12 +1661,15 @@ def evaluate_pattern_judgment(
             "branch_relation_strength": (
                 branch_relation_strength
             ),
+            "pattern_special_rules": (
+                pattern_special_rules
+            ),
         },
         "method": (
-            "pattern_judgment_v1"
+            "pattern_judgment_v2"
         ),
         "status": (
-            "provisional_pattern_judgment"
+            "provisional_pattern_judgment_v2"
         ),
         "notes": [
             (
@@ -1336,9 +1698,15 @@ def evaluate_pattern_judgment(
                 "フラグとして保持します。"
             ),
             (
-                "官殺混雑・食神制殺・"
-                "傷官見官・財多身弱などは"
-                "後続バージョンで実装します。"
+                "官殺混雑・食神制殺・傷官見官・"
+                "財多身弱・印綬の財破・偏印奪食は、"
+                "現在の格局候補に関係するものだけを"
+                "特殊ルール補正として反映します。"
+            ),
+            (
+                "特殊ルール全体のtotal_score_adjustmentを"
+                "全格局へ一律加算せず、"
+                "格局別の対応表で適用対象を限定します。"
             ),
         ],
     }
