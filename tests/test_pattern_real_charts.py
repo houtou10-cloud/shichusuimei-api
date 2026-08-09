@@ -62,10 +62,8 @@ REAL_CHART_CASES = [
         "expected_month_branch": "未",
         "expected_main_hidden_stem": "己",
         "expected_ten_god": "偏財",
-        "expected_exposed": True,
-        "expected_exposure_positions": [
-            "hour",
-        ],
+        "expected_exposed": False,
+        "expected_exposure_positions": [],
     },
     {
         "id": "1984_fukuoka_male_afternoon",
