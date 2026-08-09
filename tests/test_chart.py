@@ -2464,3 +2464,327 @@ def test_chart_pattern_judgment_matches_pattern_candidates():
             "technical_pattern"
         ]
     )
+
+
+def test_chart_contains_pattern_special_rules():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    special_rules = result[
+        "pattern_special_rules"
+    ]
+
+    assert isinstance(
+        special_rules,
+        dict,
+    )
+
+    required_keys = {
+        "has_special_rule",
+        "rule_count",
+        "detected_rule_count",
+        "breaking_rule_count",
+        "rescue_rule_count",
+        "school_rule_count",
+        "overall_status",
+        "total_score_adjustment",
+        "rules",
+        "detected_rules",
+        "breaking_rules",
+        "rescue_rules",
+        "school_rule_items",
+        "ten_god_counts",
+        "ten_god_occurrences",
+        "strength_evidence",
+        "method",
+        "status",
+        "notes",
+    }
+
+    assert required_keys.issubset(
+        special_rules.keys()
+    )
+
+    assert (
+        special_rules[
+            "rule_count"
+        ]
+        == 6
+    )
+
+    assert (
+        special_rules[
+            "method"
+        ]
+        == "pattern_special_rules_v1"
+    )
+
+    assert (
+        special_rules[
+            "status"
+        ]
+        == "provisional_pattern_special_rules"
+    )
+
+    assert isinstance(
+        special_rules[
+            "rules"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            special_rules[
+                "rules"
+            ]
+        )
+        == 6
+    )
+
+    assert isinstance(
+        special_rules[
+            "detected_rules"
+        ],
+        list,
+    )
+
+    assert isinstance(
+        special_rules[
+            "breaking_rules"
+        ],
+        list,
+    )
+
+    assert isinstance(
+        special_rules[
+            "rescue_rules"
+        ],
+        list,
+    )
+
+    assert isinstance(
+        special_rules[
+            "school_rule_items"
+        ],
+        list,
+    )
+
+    assert isinstance(
+        special_rules[
+            "ten_god_counts"
+        ],
+        dict,
+    )
+
+    assert isinstance(
+        special_rules[
+            "ten_god_occurrences"
+        ],
+        list,
+    )
+
+    assert isinstance(
+        special_rules[
+            "strength_evidence"
+        ],
+        dict,
+    )
+
+    assert isinstance(
+        special_rules[
+            "notes"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            special_rules[
+                "notes"
+            ]
+        )
+        >= 1
+    )
+
+
+def test_chart_pattern_special_rule_counts_are_consistent():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    special_rules = result[
+        "pattern_special_rules"
+    ]
+
+    assert (
+        special_rules[
+            "detected_rule_count"
+        ]
+        == len(
+            special_rules[
+                "detected_rules"
+            ]
+        )
+    )
+
+    assert (
+        special_rules[
+            "breaking_rule_count"
+        ]
+        == len(
+            special_rules[
+                "breaking_rules"
+            ]
+        )
+    )
+
+    assert (
+        special_rules[
+            "rescue_rule_count"
+        ]
+        == len(
+            special_rules[
+                "rescue_rules"
+            ]
+        )
+    )
+
+    assert (
+        special_rules[
+            "school_rule_count"
+        ]
+        == len(
+            special_rules[
+                "school_rule_items"
+            ]
+        )
+    )
+
+
+def test_chart_pattern_special_rules_match_strength():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    special_rules = result[
+        "pattern_special_rules"
+    ]
+
+    strength = result[
+        "final_strength_judgment"
+    ]
+
+    evidence = special_rules[
+        "strength_evidence"
+    ]
+
+    assert (
+        evidence[
+            "technical_label"
+        ]
+        == strength.get(
+            "technical_label"
+        )
+    )
+
+    assert (
+        evidence[
+            "final_score"
+        ]
+        == strength.get(
+            "final_score"
+        )
+    )
+
+
+def test_chart_pattern_judgment_receives_special_rules():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    evidence = result[
+        "pattern_judgment"
+    ][
+        "evidence"
+    ]
+
+    assert (
+        evidence[
+            "pattern_special_rules"
+        ]
+        == result[
+            "pattern_special_rules"
+        ]
+    )
+
+
+def test_chart_pattern_special_rules_and_judgment_are_v2_compatible():
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    special_rules = result[
+        "pattern_special_rules"
+    ]
+
+    judgment = result[
+        "pattern_judgment"
+    ]
+
+    assert (
+        special_rules[
+            "method"
+        ]
+        == "pattern_special_rules_v1"
+    )
+
+    assert (
+        judgment[
+            "method"
+        ]
+        == "pattern_judgment_v2"
+    )
+
+    assert (
+        judgment[
+            "status"
+        ]
+        == "provisional_pattern_judgment_v2"
+    )
+
+    primary = judgment[
+        "primary_judgment"
+    ]
+
+    assert primary is not None
+
+    assert (
+        primary[
+            "applied_special_rule_count"
+        ]
+        == len(
+            primary[
+                "applied_special_rules"
+            ]
+        )
+    )
+
+    assert isinstance(
+        primary[
+            "special_rule_adjustment"
+        ],
+        (int, float),
+    )
+
