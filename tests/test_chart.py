@@ -8,6 +8,9 @@ from engine.annual_luck import (
     calculate_annual_luck_for_datetime,
 )
 from engine.chart import calculate_chart
+from engine.integrated_luck import (
+    calculate_integrated_luck,
+)
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -7591,4 +7594,1194 @@ def test_chart_annual_luck_preserves_current_luck_v1():
             "method"
         ]
         == "current_luck_v1"
+    )
+
+# ============================================================
+# Integrated Luck v1 Integration Tests
+# ============================================================
+
+
+def test_chart_contains_integrated_luck():
+    """
+    calculate_chart() の戻り値に
+    integrated_luck が含まれることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert "integrated_luck" in result
+
+    assert isinstance(
+        result[
+            "integrated_luck"
+        ],
+        dict,
+    )
+
+
+def test_chart_integrated_luck_required_keys():
+    """
+    integrated_luck_v1 の主要キーが
+    chart 統合後も存在することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    integrated = result[
+        "integrated_luck"
+    ]
+
+    required_keys = {
+        "current_luck_ganzhi",
+        "annual_luck_ganzhi",
+        "current_luck_elements",
+        "annual_luck_elements",
+        "element_interactions",
+        "current_luck_useful",
+        "annual_luck_useful",
+        "useful_gods_agreement",
+        "annual_ten_god",
+        "annual_twelve_stage",
+        "score",
+        "overall_score",
+        "overall_level",
+        "confidence",
+        "reasoning",
+        "evidence",
+        "method",
+        "status",
+        "notes",
+    }
+
+    assert required_keys.issubset(
+        integrated.keys()
+    )
+
+
+def test_chart_integrated_luck_v1_metadata():
+    """
+    integrated_luck_v1 の method / status を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    integrated = result[
+        "integrated_luck"
+    ]
+
+    assert (
+        integrated[
+            "method"
+        ]
+        == "integrated_luck_v1"
+    )
+
+    assert (
+        integrated[
+            "status"
+        ]
+        == (
+            "provisional_integrated_luck_v1"
+        )
+    )
+
+    assert isinstance(
+        integrated[
+            "notes"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            integrated[
+                "notes"
+            ]
+        )
+        >= 1
+    )
+
+
+def test_chart_integrated_luck_current_ganzhi_matches():
+    """
+    integrated_luck の現在大運干支が、
+    current_luck 本体と一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    integrated = result[
+        "integrated_luck"
+    ]
+
+    current_pillar = result[
+        "current_luck"
+    ][
+        "current_luck_pillar"
+    ]
+
+    assert (
+        integrated[
+            "current_luck_ganzhi"
+        ]
+        == current_pillar[
+            "ganzhi"
+        ]
+    )
+
+
+def test_chart_integrated_luck_annual_ganzhi_matches():
+    """
+    integrated_luck の歳運干支が、
+    annual_luck 本体と一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ][
+            "annual_luck_ganzhi"
+        ]
+        == result[
+            "annual_luck"
+        ][
+            "ganzhi"
+        ]
+    )
+
+
+def test_chart_integrated_luck_2026_annual_ganzhi():
+    """
+    固定基準日時2026-08-10では
+    歳運が丙午であることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ][
+            "annual_luck_ganzhi"
+        ]
+        == "丙午"
+    )
+
+
+def test_chart_integrated_luck_annual_ten_god_matches():
+    """
+    integrated_luck の歳運通変星が
+    annual_luck 本体と一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ][
+            "annual_ten_god"
+        ]
+        == result[
+            "annual_luck"
+        ][
+            "stem_ten_god"
+        ]
+    )
+
+
+def test_chart_integrated_luck_verified_ten_god():
+    """
+    乙日主 × 2026丙 = 傷官を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ][
+            "annual_ten_god"
+        ]
+        == "傷官"
+    )
+
+
+def test_chart_integrated_luck_annual_twelve_stage_matches():
+    """
+    integrated_luck の十二運が
+    annual_luck 本体と一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ][
+            "annual_twelve_stage"
+        ]
+        == result[
+            "annual_luck"
+        ][
+            "twelve_stage"
+        ]
+    )
+
+
+def test_chart_integrated_luck_verified_twelve_stage():
+    """
+    乙日主 × 午 = 長生を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ][
+            "annual_twelve_stage"
+        ]
+        == "長生"
+    )
+
+
+def test_chart_integrated_luck_element_structures():
+    """
+    大運・歳運の五行構造が
+    integrated_luck に存在することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    integrated = result[
+        "integrated_luck"
+    ]
+
+    for key in {
+        "current_luck_elements",
+        "annual_luck_elements",
+    }:
+        assert isinstance(
+            integrated[
+                key
+            ],
+            dict,
+        )
+
+        assert {
+            "stem",
+            "branch",
+        }.issubset(
+            integrated[
+                key
+            ].keys()
+        )
+
+
+def test_chart_integrated_luck_annual_elements_match():
+    """
+    integrated_luck の歳運五行が
+    annual_luck と一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    integrated = result[
+        "integrated_luck"
+    ]
+
+    annual = result[
+        "annual_luck"
+    ]
+
+    assert (
+        integrated[
+            "annual_luck_elements"
+        ][
+            "stem"
+        ]
+        == annual[
+            "stem_element"
+        ]
+    )
+
+    assert (
+        integrated[
+            "annual_luck_elements"
+        ][
+            "branch"
+        ]
+        == annual[
+            "branch_element"
+        ]
+    )
+
+
+def test_chart_integrated_luck_element_interactions_required_keys():
+    """
+    大運×歳運の五行関係構造を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    interactions = result[
+        "integrated_luck"
+    ][
+        "element_interactions"
+    ]
+
+    assert {
+        "current_luck_elements",
+        "annual_luck_elements",
+        "stem_relation",
+        "branch_relation",
+        "score",
+    }.issubset(
+        interactions.keys()
+    )
+
+    for relation_key in {
+        "stem_relation",
+        "branch_relation",
+    }:
+        assert {
+            "source_element",
+            "target_element",
+            "relationship",
+            "score",
+        }.issubset(
+            interactions[
+                relation_key
+            ].keys()
+        )
+
+
+def test_chart_integrated_luck_element_interaction_score_consistency():
+    """
+    element_interactions.score が
+    天干関係score + 地支関係score と一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    interactions = result[
+        "integrated_luck"
+    ][
+        "element_interactions"
+    ]
+
+    expected = (
+        interactions[
+            "stem_relation"
+        ][
+            "score"
+        ]
+        + interactions[
+            "branch_relation"
+        ][
+            "score"
+        ]
+    )
+
+    assert (
+        interactions[
+            "score"
+        ]
+        == expected
+    )
+
+
+def test_chart_integrated_luck_useful_structures():
+    """
+    現在大運・歳運の用神評価構造を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    integrated = result[
+        "integrated_luck"
+    ]
+
+    for key in {
+        "current_luck_useful",
+        "annual_luck_useful",
+    }:
+        useful = integrated[
+            key
+        ]
+
+        assert {
+            "stem_element",
+            "branch_element",
+            "stem_relation",
+            "branch_relation",
+            "stem_score",
+            "branch_score",
+            "score",
+        }.issubset(
+            useful.keys()
+        )
+
+
+def test_chart_integrated_luck_annual_useful_matches_annual_luck():
+    """
+    integrated_luck の歳運用神評価が
+    annual_luck の既存評価と一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    integrated = result[
+        "integrated_luck"
+    ]
+
+    annual = result[
+        "annual_luck"
+    ]
+
+    assert (
+        integrated[
+            "annual_luck_useful"
+        ][
+            "stem_relation"
+        ]
+        == annual[
+            "stem_useful_relation"
+        ]
+    )
+
+    assert (
+        integrated[
+            "annual_luck_useful"
+        ][
+            "branch_relation"
+        ]
+        == annual[
+            "branch_useful_relation"
+        ]
+    )
+
+
+def test_chart_integrated_luck_agreement_structure():
+    """
+    useful_gods_agreement の構造を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    agreement = result[
+        "integrated_luck"
+    ][
+        "useful_gods_agreement"
+    ]
+
+    required_keys = {
+        "agreement_level",
+        "useful_count",
+        "unfavorable_count",
+        "known_count",
+        "has_useful_alignment",
+        "has_unfavorable_alignment",
+        "has_mixed_signal",
+    }
+
+    assert required_keys.issubset(
+        agreement.keys()
+    )
+
+
+def test_chart_integrated_luck_agreement_counts_are_valid():
+    """
+    用神一致判定の件数が4要素以内であることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    agreement = result[
+        "integrated_luck"
+    ][
+        "useful_gods_agreement"
+    ]
+
+    assert (
+        0
+        <= agreement[
+            "known_count"
+        ]
+        <= 4
+    )
+
+    assert (
+        0
+        <= agreement[
+            "useful_count"
+        ]
+        <= 4
+    )
+
+    assert (
+        0
+        <= agreement[
+            "unfavorable_count"
+        ]
+        <= 4
+    )
+
+
+def test_chart_integrated_luck_score_required_keys():
+    """
+    統合スコア構造を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    score = result[
+        "integrated_luck"
+    ][
+        "score"
+    ]
+
+    required_keys = {
+        "element_interaction_score",
+        "current_luck_useful_score",
+        "annual_luck_useful_score",
+        "total_score",
+    }
+
+    assert required_keys.issubset(
+        score.keys()
+    )
+
+
+def test_chart_integrated_luck_overall_score_consistency():
+    """
+    overall_score と score.total_score が
+    一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    integrated = result[
+        "integrated_luck"
+    ]
+
+    assert (
+        integrated[
+            "overall_score"
+        ]
+        == integrated[
+            "score"
+        ][
+            "total_score"
+        ]
+    )
+
+
+def test_chart_integrated_luck_score_sum_consistency():
+    """
+    total_score が各構成スコアの合計と
+    一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    score = result[
+        "integrated_luck"
+    ][
+        "score"
+    ]
+
+    expected = (
+        score[
+            "element_interaction_score"
+        ]
+        + score[
+            "current_luck_useful_score"
+        ]
+        + score[
+            "annual_luck_useful_score"
+        ]
+    )
+
+    assert (
+        score[
+            "total_score"
+        ]
+        == expected
+    )
+
+
+def test_chart_integrated_luck_overall_level_valid():
+    """
+    overall_level がv1の定義済み集合内にあることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ][
+            "overall_level"
+        ]
+        in {
+            "very_supportive",
+            "supportive",
+            "mixed",
+            "challenging",
+            "very_challenging",
+        }
+    )
+
+
+def test_chart_integrated_luck_confidence_structure():
+    """
+    confidence の構造を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    confidence = result[
+        "integrated_luck"
+    ][
+        "confidence"
+    ]
+
+    assert {
+        "available_sources",
+        "total_sources",
+        "ratio",
+        "level",
+    }.issubset(
+        confidence.keys()
+    )
+
+    assert (
+        confidence[
+            "total_sources"
+        ]
+        == 3
+    )
+
+    assert (
+        0.0
+        <= confidence[
+            "ratio"
+        ]
+        <= 1.0
+    )
+
+    assert (
+        confidence[
+            "level"
+        ]
+        in {
+            "low",
+            "medium",
+            "high",
+        }
+    )
+
+
+def test_chart_integrated_luck_verified_confidence_high():
+    """
+    chart統合では current_luck / annual_luck / useful_gods
+    の3ソースが揃うため high になることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    confidence = result[
+        "integrated_luck"
+    ][
+        "confidence"
+    ]
+
+    assert (
+        confidence[
+            "available_sources"
+        ]
+        == 3
+    )
+
+    assert (
+        confidence[
+            "ratio"
+        ]
+        == 1.0
+    )
+
+    assert (
+        confidence[
+            "level"
+        ]
+        == "high"
+    )
+
+
+def test_chart_integrated_luck_reasoning_exists():
+    """
+    reasoning が存在し、
+    主要情報を含むことを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    integrated = result[
+        "integrated_luck"
+    ]
+
+    reasoning = integrated[
+        "reasoning"
+    ]
+
+    assert isinstance(
+        reasoning,
+        list,
+    )
+
+    assert (
+        len(
+            reasoning
+        )
+        >= 1
+    )
+
+    joined = "".join(
+        reasoning
+    )
+
+    assert (
+        integrated[
+            "annual_luck_ganzhi"
+        ]
+        in joined
+    )
+
+    assert "傷官" in joined
+    assert "長生" in joined
+
+
+def test_chart_integrated_luck_evidence_required_keys():
+    """
+    evidence の主要キーを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    evidence = result[
+        "integrated_luck"
+    ][
+        "evidence"
+    ]
+
+    required_keys = {
+        "current_luck_ganzhi",
+        "annual_luck_ganzhi",
+        "element_interactions",
+        "current_luck_useful",
+        "annual_luck_useful",
+        "useful_gods_agreement",
+        "annual_ten_god",
+        "annual_twelve_stage",
+        "score",
+    }
+
+    assert required_keys.issubset(
+        evidence.keys()
+    )
+
+
+def test_chart_integrated_luck_evidence_consistency():
+    """
+    evidence と上位 integrated_luck の結果が
+    一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    integrated = result[
+        "integrated_luck"
+    ]
+
+    evidence = integrated[
+        "evidence"
+    ]
+
+    assert (
+        evidence[
+            "current_luck_ganzhi"
+        ]
+        == integrated[
+            "current_luck_ganzhi"
+        ]
+    )
+
+    assert (
+        evidence[
+            "annual_luck_ganzhi"
+        ]
+        == integrated[
+            "annual_luck_ganzhi"
+        ]
+    )
+
+    assert (
+        evidence[
+            "annual_ten_god"
+        ]
+        == integrated[
+            "annual_ten_god"
+        ]
+    )
+
+    assert (
+        evidence[
+            "annual_twelve_stage"
+        ]
+        == integrated[
+            "annual_twelve_stage"
+        ]
+    )
+
+    assert (
+        evidence[
+            "score"
+        ]
+        == integrated[
+            "score"
+        ]
+    )
+
+
+def test_chart_integrated_luck_matches_direct_engine_call():
+    """
+    chart.py が生成した integrated_luck と、
+    integrated_luckエンジンを直接同条件で呼んだ結果が
+    完全一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    expected = (
+        calculate_integrated_luck(
+            current_luck=result[
+                "current_luck"
+            ],
+            annual_luck=result[
+                "annual_luck"
+            ],
+            useful_gods=result[
+                "useful_gods"
+            ],
+        )
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ]
+        == expected
+    )
+
+
+def test_chart_integrated_luck_fixed_target_is_reproducible():
+    """
+    同じtarget_datetimeなら
+    integrated_luckが完全一致することを確認します。
+    """
+    request = make_verified_request()
+
+    first = calculate_chart(
+        request,
+        target_datetime=(
+            CURRENT_LUCK_TARGET_DATETIME
+        ),
+    )
+
+    second = calculate_chart(
+        request,
+        target_datetime=(
+            CURRENT_LUCK_TARGET_DATETIME
+        ),
+    )
+
+    assert (
+        first[
+            "integrated_luck"
+        ]
+        == second[
+            "integrated_luck"
+        ]
+    )
+
+
+def test_chart_integrated_luck_before_lichun_uses_previous_annual_luck():
+    """
+    2026-02-03 23:59ではannual_luckが2025乙巳になるため、
+    integrated_luck側も乙巳を参照することを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request,
+        target_datetime=datetime(
+            2026,
+            2,
+            3,
+            23,
+            59,
+        ),
+    )
+
+    assert (
+        result[
+            "annual_luck"
+        ][
+            "ganzhi"
+        ]
+        == "乙巳"
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ][
+            "annual_luck_ganzhi"
+        ]
+        == "乙巳"
+    )
+
+
+def test_chart_integrated_luck_at_lichun_uses_new_annual_luck():
+    """
+    2026-02-04 00:00ではannual_luckが丙午へ切り替わり、
+    integrated_luck側も丙午になることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request,
+        target_datetime=datetime(
+            2026,
+            2,
+            4,
+            0,
+            0,
+        ),
+    )
+
+    assert (
+        result[
+            "annual_luck"
+        ][
+            "ganzhi"
+        ]
+        == "丙午"
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ][
+            "annual_luck_ganzhi"
+        ]
+        == "丙午"
+    )
+
+
+def test_chart_integrated_luck_accepts_jst_aware_target():
+    """
+    JST aware datetime でも
+    integrated_luck が生成されることを確認します。
+    """
+    request = make_verified_request()
+
+    target = datetime(
+        2026,
+        8,
+        10,
+        15,
+        36,
+        tzinfo=JST,
+    )
+
+    result = calculate_chart(
+        request,
+        target_datetime=target,
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ][
+            "method"
+        ]
+        == "integrated_luck_v1"
+    )
+
+    assert (
+        result[
+            "integrated_luck"
+        ][
+            "annual_luck_ganzhi"
+        ]
+        == "丙午"
+    )
+
+
+def test_chart_integrated_luck_preserves_verified_chart():
+    """
+    integrated_luck統合後も既存検証命式を
+    変更しないことを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "year"
+        ][
+            "pillar"
+        ]
+        == "乙丑"
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "month"
+        ][
+            "pillar"
+        ]
+        == "癸未"
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "day"
+        ][
+            "pillar"
+        ]
+        == "乙巳"
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "hour"
+        ][
+            "pillar"
+        ]
+        == "丁亥"
+    )
+
+
+def test_chart_integrated_luck_preserves_useful_gods_v3():
+    """
+    integrated_luck統合後も useful_gods_v3 を維持します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "useful_gods"
+        ][
+            "method"
+        ]
+        == "useful_gods_v3"
+    )
+
+
+def test_chart_integrated_luck_preserves_luck_pillars_v2():
+    """
+    integrated_luck統合後も luck_pillars_v2 を維持します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "luck_pillars"
+        ][
+            "method"
+        ]
+        == "luck_pillars_v2"
+    )
+
+
+def test_chart_integrated_luck_preserves_current_luck_v1():
+    """
+    integrated_luck統合後も current_luck_v1 を維持します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "current_luck"
+        ][
+            "method"
+        ]
+        == "current_luck_v1"
+    )
+
+
+def test_chart_integrated_luck_preserves_annual_luck_v1():
+    """
+    integrated_luck統合後も annual_luck_v1 を維持します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "annual_luck"
+        ][
+            "method"
+        ]
+        == "annual_luck_v1"
     )
