@@ -75,7 +75,7 @@ from engine.transformation_root import (
     evaluate_transformation_roots,
 )
 from engine.useful_gods import (
-    evaluate_useful_gods_v2,
+    evaluate_useful_gods_v3,
 )
 from engine.weighted_five_elements import (
     calculate_weighted_five_elements,
@@ -436,7 +436,7 @@ def calculate_chart(req) -> dict:
     )
 
     useful_gods = (
-        evaluate_useful_gods_v2(
+        evaluate_useful_gods_v3(
             pillars[
                 "day_master"
             ][
@@ -446,6 +446,7 @@ def calculate_chart(req) -> dict:
             final_strength_judgment,
             pattern_judgment,
             climate_useful_gods,
+            pattern_useful_gods,
         )
     )
 
