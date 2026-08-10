@@ -2,6 +2,9 @@ from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 
+from engine.annual_luck import (
+    calculate_annual_luck_for_datetime,
+)
 from engine.branch_relation_strength import (
     calculate_branch_relation_strength,
 )
@@ -560,6 +563,33 @@ def calculate_chart(
         )
     )
 
+    # annual_luck_v1
+    #
+    # current_luck と同じ target_datetime を使用し、
+    # 「現在大運」と「現在歳運」の基準時刻を統一する。
+    #
+    # calculate_annual_luck_for_datetime() 側では、
+    # year.py と同じ暫定立春境界
+    # （2月4日00:00）を使用する。
+    annual_luck = (
+        calculate_annual_luck_for_datetime(
+            target_datetime=(
+                current_target_datetime
+            ),
+            day_master_stem=pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            useful_gods=(
+                useful_gods
+            ),
+            current_luck=(
+                current_luck
+            ),
+        )
+    )
+
     return {
         "input": {
             "birth_date": birth_date,
@@ -616,6 +646,9 @@ def calculate_chart(
         ),
         "current_luck": (
             current_luck
+        ),
+        "annual_luck": (
+            annual_luck
         ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
