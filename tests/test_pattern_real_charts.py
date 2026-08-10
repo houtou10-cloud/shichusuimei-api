@@ -1808,7 +1808,7 @@ def test_verified_1985_pattern_judgment_special_rules_evidence():
     )
 
 # =========================================================
-# climate_useful_gods_v1 / useful_gods_v2
+# climate_useful_gods_v1 / pattern_useful_gods_v1 / useful_gods_v3
 # real-chart regression
 # =========================================================
 
@@ -2043,7 +2043,7 @@ def test_real_chart_climate_candidate_priorities(
         )
 
 
-def test_real_chart_contains_useful_gods_v2(
+def test_real_chart_contains_useful_gods_v3(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2068,6 +2068,8 @@ def test_real_chart_contains_useful_gods_v2(
         "integrated_element_scores",
         "support_balance",
         "climate",
+        "pattern",
+        "v2_baseline",
         "agreement",
         "day_master_stem",
         "day_master_element",
@@ -2085,7 +2087,7 @@ def test_real_chart_contains_useful_gods_v2(
     )
 
 
-def test_real_chart_useful_gods_v2_metadata(
+def test_real_chart_useful_gods_v3_metadata(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2100,14 +2102,14 @@ def test_real_chart_useful_gods_v2_metadata(
         useful_gods[
             "method"
         ]
-        == "useful_gods_v2"
+        == "useful_gods_v3"
     )
 
     assert (
         useful_gods[
             "status"
         ]
-        == "provisional_useful_gods_v2"
+        == "provisional_useful_gods_v3"
     )
 
     assert (
@@ -2122,7 +2124,7 @@ def test_real_chart_useful_gods_v2_metadata(
     )
 
 
-def test_real_chart_useful_gods_v2_matches_day_master(
+def test_real_chart_useful_gods_v3_matches_day_master(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2158,7 +2160,7 @@ def test_real_chart_useful_gods_v2_matches_day_master(
     )
 
 
-def test_real_chart_useful_gods_v2_evidence_matches_results(
+def test_real_chart_useful_gods_v3_evidence_matches_results(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2209,6 +2211,26 @@ def test_real_chart_useful_gods_v2_evidence_matches_results(
 
     assert (
         evidence[
+            "pattern_useful_gods"
+        ]
+        == result[
+            "pattern_useful_gods"
+        ]
+    )
+
+    assert (
+        evidence[
+            "v2_baseline"
+        ]
+        == result[
+            "useful_gods"
+        ][
+            "v2_baseline"
+        ]
+    )
+
+    assert (
+        evidence[
             "support_balance"
         ]
         == result[
@@ -2219,7 +2241,7 @@ def test_real_chart_useful_gods_v2_evidence_matches_results(
     )
 
 
-def test_real_chart_useful_gods_v2_support_balance_is_v1(
+def test_real_chart_useful_gods_v3_support_balance_is_v1(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2258,7 +2280,7 @@ def test_real_chart_useful_gods_v2_support_balance_is_v1(
     )
 
 
-def test_real_chart_useful_gods_v2_strength_summary_matches(
+def test_real_chart_useful_gods_v3_strength_summary_matches(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2307,7 +2329,7 @@ def test_real_chart_useful_gods_v2_strength_summary_matches(
     )
 
 
-def test_real_chart_useful_gods_v2_pattern_summary_matches(
+def test_real_chart_useful_gods_v3_pattern_summary_matches(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2372,7 +2394,7 @@ def test_real_chart_useful_gods_v2_pattern_summary_matches(
     )
 
 
-def test_real_chart_useful_gods_v2_climate_matches_top_level(
+def test_real_chart_useful_gods_v3_climate_matches_top_level(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2391,7 +2413,7 @@ def test_real_chart_useful_gods_v2_climate_matches_top_level(
     )
 
 
-def test_real_chart_useful_gods_v2_primary_matches_final(
+def test_real_chart_useful_gods_v3_primary_matches_final(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2455,7 +2477,7 @@ def test_real_chart_useful_gods_v2_primary_matches_final(
         )
 
 
-def test_real_chart_useful_gods_v2_final_candidate_priorities(
+def test_real_chart_useful_gods_v3_final_candidate_priorities(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2517,7 +2539,7 @@ def test_real_chart_useful_gods_v2_final_candidate_priorities(
         )
 
 
-def test_real_chart_useful_gods_v2_integrated_scores(
+def test_real_chart_useful_gods_v3_integrated_scores(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2552,7 +2574,7 @@ def test_real_chart_useful_gods_v2_integrated_scores(
         )
 
 
-def test_real_chart_useful_gods_v2_support_element_scores_match(
+def test_real_chart_useful_gods_v3_support_element_scores_match(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2594,7 +2616,7 @@ def test_real_chart_useful_gods_v2_support_element_scores_match(
     )
 
 
-def test_real_chart_useful_gods_v2_support_primary_consistency(
+def test_real_chart_useful_gods_v3_support_primary_consistency(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2638,7 +2660,7 @@ def test_real_chart_useful_gods_v2_support_primary_consistency(
     )
 
 
-def test_real_chart_useful_gods_v2_support_unfavorable_consistency(
+def test_real_chart_useful_gods_v3_support_unfavorable_consistency(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2676,7 +2698,7 @@ def test_real_chart_useful_gods_v2_support_unfavorable_consistency(
         )
 
 
-def test_real_chart_useful_gods_v2_support_candidate_priorities(
+def test_real_chart_useful_gods_v3_support_candidate_priorities(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2734,7 +2756,7 @@ def test_real_chart_useful_gods_v2_support_candidate_priorities(
         )
 
 
-def test_real_chart_useful_gods_v2_support_groups_are_disjoint(
+def test_real_chart_useful_gods_v3_support_groups_are_disjoint(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2778,7 +2800,7 @@ def test_real_chart_useful_gods_v2_support_groups_are_disjoint(
     )
 
 
-def test_real_chart_useful_gods_v2_agreement_structure(
+def test_real_chart_useful_gods_v3_agreement_structure(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2792,13 +2814,18 @@ def test_real_chart_useful_gods_v2_agreement_structure(
     ]
 
     required_keys = {
-        "has_agreement",
-        "has_conflict",
         "agreement_level",
-        "agreed_elements",
+        "has_triple_agreement",
+        "has_double_agreement",
+        "has_conflict",
+        "triple_agreement_elements",
+        "double_agreement_elements",
+        "single_source_elements",
         "conflicted_elements",
+        "by_element",
         "support_primary_element",
         "climate_primary_element",
+        "pattern_primary_element",
     }
 
     assert required_keys.issubset(
@@ -2810,16 +2837,15 @@ def test_real_chart_useful_gods_v2_agreement_structure(
             "agreement_level"
         ]
         in {
-            "strong_agreement",
-            "partial_agreement",
-            "conflict",
-            "independent",
-            "support_balance_only",
+            "triple_agreement",
+            "double_agreement",
+            "single_source_only",
+            "no_candidate",
         }
     )
 
 
-def test_real_chart_useful_gods_v2_agreement_references_sources(
+def test_real_chart_useful_gods_v3_agreement_references_sources(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2842,6 +2868,10 @@ def test_real_chart_useful_gods_v2_agreement_references_sources(
         "climate"
     ]
 
+    pattern = useful_gods[
+        "pattern"
+    ]
+
     assert (
         agreement[
             "support_primary_element"
@@ -2860,8 +2890,84 @@ def test_real_chart_useful_gods_v2_agreement_references_sources(
         )
     )
 
+    assert (
+        agreement[
+            "pattern_primary_element"
+        ]
+        == pattern.get(
+            "primary_pattern_element"
+        )
+    )
 
-def test_real_chart_useful_gods_v2_reasoning_and_notes(
+
+def test_real_chart_useful_gods_v3_pattern_matches_top_level(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    assert (
+        result[
+            "useful_gods"
+        ][
+            "pattern"
+        ]
+        == result[
+            "pattern_useful_gods"
+        ]
+    )
+
+
+def test_real_chart_useful_gods_v3_preserves_v2_baseline(
+    real_chart_case,
+):
+    result = calculate_real_chart(
+        real_chart_case
+    )
+
+    useful_gods = result[
+        "useful_gods"
+    ]
+
+    baseline = useful_gods[
+        "v2_baseline"
+    ]
+
+    assert (
+        baseline[
+            "method"
+        ]
+        == "useful_gods_v2"
+    )
+
+    assert (
+        baseline[
+            "status"
+        ]
+        == "provisional_useful_gods_v2"
+    )
+
+    assert (
+        baseline[
+            "support_balance"
+        ]
+        == useful_gods[
+            "support_balance"
+        ]
+    )
+
+    assert (
+        baseline[
+            "climate"
+        ]
+        == useful_gods[
+            "climate"
+        ]
+    )
+
+
+def test_real_chart_useful_gods_v3_reasoning_and_notes(
     real_chart_case,
 ):
     result = calculate_real_chart(
@@ -2964,7 +3070,7 @@ def test_verified_1985_climate_useful_gods_metadata():
     )
 
 
-def test_verified_1985_useful_gods_v2_metadata():
+def test_verified_1985_useful_gods_v3_metadata():
     result = calculate_chart(
         make_verified_request()
     )
@@ -2977,14 +3083,14 @@ def test_verified_1985_useful_gods_v2_metadata():
         useful_gods[
             "method"
         ]
-        == "useful_gods_v2"
+        == "useful_gods_v3"
     )
 
     assert (
         useful_gods[
             "status"
         ]
-        == "provisional_useful_gods_v2"
+        == "provisional_useful_gods_v3"
     )
 
     assert (
@@ -3011,7 +3117,7 @@ def test_verified_1985_useful_gods_v2_metadata():
     )
 
 
-def test_verified_1985_useful_gods_v2_evidence_integrity():
+def test_verified_1985_useful_gods_v3_evidence_integrity():
     result = calculate_chart(
         make_verified_request()
     )
@@ -3070,7 +3176,7 @@ def test_verified_1985_useful_gods_v2_evidence_integrity():
     )
 
 
-def test_verified_1985_useful_gods_v2_climate_is_water():
+def test_verified_1985_useful_gods_v3_climate_is_water():
     result = calculate_chart(
         make_verified_request()
     )
