@@ -825,6 +825,7 @@ def judge_pattern_candidate(
     final_strength_judgment: dict | None = None,
     stem_transformation_judgment: dict | None = None,
     branch_relation_strength: dict | None = None,
+    pattern_special_rules: dict | None = None,
 ) -> dict:
     if not isinstance(
         candidate,
@@ -1045,6 +1046,18 @@ def determine_primary_judgment(
     judgments: list[dict],
     preferred_candidate: dict | None = None,
 ) -> dict | None:
+    """
+    複数の格局成立判定からprimary_judgmentを選択する。
+
+    優先順位:
+    1. establishment_status
+    2. establishment_score
+    3. preferred_candidateとの一致
+
+    preferred_candidateは絶対指定ではなく、
+    成立状態と成立スコアが同等の場合の
+    タイブレークとしてのみ利用する。
+    """
     if not isinstance(
         judgments,
         list,
@@ -1067,6 +1080,8 @@ def determine_primary_judgment(
                 "指定してください。"
             )
 
+    preferred_pattern = None
+
     if isinstance(
         preferred_candidate,
         dict,
@@ -1077,20 +1092,37 @@ def determine_primary_judgment(
             )
         )
 
-        for judgment in judgments:
+    def primary_priority(
+        judgment: dict,
+    ) -> tuple:
+        base_priority = (
+            judgment_priority(
+                judgment
+            )
+        )
+
+        preferred_bonus = (
+            1
             if (
-                judgment.get(
+                preferred_pattern is not None
+                and judgment.get(
                     "technical_pattern"
                 )
                 == preferred_pattern
-            ):
-                return judgment
+            )
+            else 0
+        )
+
+        return (
+            base_priority[0],
+            base_priority[1],
+            preferred_bonus,
+        )
 
     return max(
         judgments,
-        key=judgment_priority,
+        key=primary_priority,
     )
-
 
 # =========================================================
 # Main evaluator
@@ -1102,6 +1134,7 @@ def evaluate_pattern_judgment(
     final_strength_judgment: dict | None = None,
     stem_transformation_judgment: dict | None = None,
     branch_relation_strength: dict | None = None,
+    pattern_special_rules: dict | None = None,
 ) -> dict:
     """
     格局候補を暫定的な成立判定へ変換する。
@@ -1145,6 +1178,9 @@ def evaluate_pattern_judgment(
                 "branch_relation_strength": (
                     branch_relation_strength
                 ),
+                "pattern_special_rules": (
+                    pattern_special_rules
+                ),
             },
             "method": (
                 "pattern_judgment_v1"
@@ -1166,6 +1202,7 @@ def evaluate_pattern_judgment(
             final_strength_judgment,
             stem_transformation_judgment,
             branch_relation_strength,
+            pattern_special_rules,
         )
         for candidate in pattern_candidates[
             "candidates"
@@ -1301,6 +1338,9 @@ def evaluate_pattern_judgment(
             ),
             "branch_relation_strength": (
                 branch_relation_strength
+            ),
+            "pattern_special_rules": (
+                pattern_special_rules
             ),
         },
         "method": (
