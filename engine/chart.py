@@ -5,7 +5,7 @@ from engine.annual_luck import (
     calculate_annual_luck_for_datetime,
 )
 from engine.climate_useful_gods import (
-    calculate_climate_useful_gods,
+     evaluate_climate_useful_gods,
 )
 from engine.current_luck import (
     evaluate_current_luck,
