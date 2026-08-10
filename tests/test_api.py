@@ -71,7 +71,7 @@ VERIFIED_REQUEST = {
 EXPECTED_PILLARS = {
     "year": "乙丑",
     "month": "癸未",
-    "day": "乙巳",
+    "day": "丁巳",
     "hour": "丁亥",
 }
 
@@ -239,7 +239,7 @@ def test_chart_api_day_master():
         ][
             "stem"
         ]
-        == "乙"
+        == "丁"
     )
 
 
