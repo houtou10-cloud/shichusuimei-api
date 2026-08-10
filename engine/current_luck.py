@@ -29,7 +29,9 @@ from typing import Any, Dict, List, Optional
 # Constants
 # =========================================================
 
+
 DAYS_PER_YEAR = 365.2425
+
 
 SUPPORTED_LUCK_METHODS = {
     "luck_pillars_v1",
@@ -92,7 +94,9 @@ def _validate_luck_pillars(
             "list 型である必要があります。"
         )
 
-    if len(pillars) == 0:
+    if len(
+        pillars
+    ) == 0:
         raise ValueError(
             "luck_pillars['pillars'] が空です。"
         )
@@ -150,9 +154,25 @@ def _validate_age_range(
             "start_age は数値である必要があります。"
         )
 
+    if isinstance(
+        start_age,
+        bool,
+    ):
+        raise TypeError(
+            "start_age は数値である必要があります。"
+        )
+
     if not isinstance(
         end_age,
         (int, float),
+    ):
+        raise TypeError(
+            "end_age は数値である必要があります。"
+        )
+
+    if isinstance(
+        end_age,
+        bool,
     ):
         raise TypeError(
             "end_age は数値である必要があります。"
@@ -186,8 +206,7 @@ def normalize_datetime_pair(
     datetime 同士を比較できる状態へ揃える。
 
     現在のプロジェクトでは、
-    JST aware datetime と
-    timezone-naive datetime が
+    timezone-aware と timezone-naive が
     混在する可能性がある。
 
     片方だけ timezone-aware の場合は、
@@ -271,8 +290,7 @@ def calculate_exact_age(
         "target_datetime",
     )
 
-    birth,
-    target = normalize_datetime_pair(
+    birth, target = normalize_datetime_pair(
         birth_datetime,
         target_datetime,
     )
@@ -325,8 +343,7 @@ def calculate_calendar_age(
         "target_datetime",
     )
 
-    birth,
-    target = normalize_datetime_pair(
+    birth, target = normalize_datetime_pair(
         birth_datetime,
         target_datetime,
     )
@@ -395,6 +412,14 @@ def is_age_in_luck_pillar(
             "age は数値である必要があります。"
         )
 
+    if isinstance(
+        age,
+        bool,
+    ):
+        raise TypeError(
+            "age は数値である必要があります。"
+        )
+
     start_age = pillar[
         "start_age"
     ]
@@ -458,6 +483,30 @@ def find_next_luck_index(
     最初の大運 index を返す。
     """
 
+    if not isinstance(
+        age,
+        (int, float),
+    ):
+        raise TypeError(
+            "age は数値である必要があります。"
+        )
+
+    if isinstance(
+        age,
+        bool,
+    ):
+        raise TypeError(
+            "age は数値である必要があります。"
+        )
+
+    if not isinstance(
+        pillars,
+        list,
+    ):
+        raise TypeError(
+            "pillars は list 型で指定してください。"
+        )
+
     for index, pillar in enumerate(
         pillars
     ):
@@ -497,6 +546,14 @@ def build_luck_pillar_view(
     if pillar is None:
         return None
 
+    if not isinstance(
+        pillar,
+        dict,
+    ):
+        raise TypeError(
+            "pillar は dict 型で指定してください。"
+        )
+
     result = deepcopy(
         pillar
     )
@@ -528,6 +585,30 @@ def calculate_luck_progress(
     """
     現在大運内の進行状況を計算する。
     """
+
+    if not isinstance(
+        age,
+        (int, float),
+    ):
+        raise TypeError(
+            "age は数値である必要があります。"
+        )
+
+    if isinstance(
+        age,
+        bool,
+    ):
+        raise TypeError(
+            "age は数値である必要があります。"
+        )
+
+    if not isinstance(
+        pillar,
+        dict,
+    ):
+        raise TypeError(
+            "pillar は dict 型で指定してください。"
+        )
 
     start_age = float(
         pillar[
@@ -638,13 +719,11 @@ def evaluate_current_luck(
     target_datetime:
         判定したい日時。
 
-        現在時点を判定する場合は
-        呼び出し側から現在日時を渡す。
-
         この関数内では datetime.now() を
         呼ばない。
 
-        これによりテスト再現性を保つ。
+        呼び出し側から対象日時を渡すことで、
+        テスト再現性を維持する。
 
     luck_pillars:
         calculate_luck_pillars()
@@ -693,7 +772,7 @@ def evaluate_current_luck(
     )
 
     # -----------------------------------------------------
-    # 起運前
+    # 現在大運が見つからない
     # -----------------------------------------------------
 
     if current_index is None:
@@ -703,6 +782,10 @@ def evaluate_current_luck(
                 pillars,
             )
         )
+
+        # -------------------------------------------------
+        # 起運前
+        # -------------------------------------------------
 
         if next_index is not None:
             next_pillar = (
@@ -715,19 +798,25 @@ def evaluate_current_luck(
             )
 
             years_until_start = (
-                pillars[
-                    next_index
-                ][
-                    "start_age"
-                ]
+                float(
+                    pillars[
+                        next_index
+                    ][
+                        "start_age"
+                    ]
+                )
                 - exact_age
             )
 
             return {
                 "has_current_luck": False,
-                "phase": "before_first_luck",
+                "phase": (
+                    "before_first_luck"
+                ),
                 "exact_age": exact_age,
-                "calendar_age": calendar_age,
+                "calendar_age": (
+                    calendar_age
+                ),
                 "current_luck_pillar": None,
                 "previous_luck_pillar": None,
                 "next_luck_pillar": (
@@ -741,7 +830,9 @@ def evaluate_current_luck(
                     ),
                     6,
                 ),
-                "method": "current_luck_v1",
+                "method": (
+                    "current_luck_v1"
+                ),
                 "status": (
                     "before_first_luck"
                 ),
@@ -759,7 +850,7 @@ def evaluate_current_luck(
             }
 
         # -------------------------------------------------
-        # 登録済み大運の終了後
+        # 登録済み大運終了後
         # -------------------------------------------------
 
         previous_pillar = (
@@ -771,9 +862,13 @@ def evaluate_current_luck(
 
         return {
             "has_current_luck": False,
-            "phase": "after_last_luck",
+            "phase": (
+                "after_last_luck"
+            ),
             "exact_age": exact_age,
-            "calendar_age": calendar_age,
+            "calendar_age": (
+                calendar_age
+            ),
             "current_luck_pillar": None,
             "previous_luck_pillar": (
                 previous_pillar
@@ -781,7 +876,9 @@ def evaluate_current_luck(
             "next_luck_pillar": None,
             "progress": None,
             "years_until_next_luck": None,
-            "method": "current_luck_v1",
+            "method": (
+                "current_luck_v1"
+            ),
             "status": (
                 "after_last_luck"
             ),
@@ -860,9 +957,13 @@ def evaluate_current_luck(
 
     return {
         "has_current_luck": True,
-        "phase": "in_luck_pillar",
+        "phase": (
+            "in_luck_pillar"
+        ),
         "exact_age": exact_age,
-        "calendar_age": calendar_age,
+        "calendar_age": (
+            calendar_age
+        ),
         "current_luck_pillar": (
             current_pillar
         ),
@@ -876,7 +977,9 @@ def evaluate_current_luck(
         "years_until_next_luck": (
             years_until_next_luck
         ),
-        "method": "current_luck_v1",
+        "method": (
+            "current_luck_v1"
+        ),
         "status": (
             "current_luck_resolved"
         ),
@@ -939,10 +1042,18 @@ def get_current_luck_pillar(
     簡易インターフェース。
     """
 
-    result = evaluate_current_luck(
-        birth_datetime=birth_datetime,
-        target_datetime=target_datetime,
-        luck_pillars=luck_pillars,
+    result = (
+        evaluate_current_luck(
+            birth_datetime=(
+                birth_datetime
+            ),
+            target_datetime=(
+                target_datetime
+            ),
+            luck_pillars=(
+                luck_pillars
+            ),
+        )
     )
 
     return result[
