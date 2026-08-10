@@ -78,6 +78,20 @@ from engine.useful_gods import (
     rank_integrated_useful_elements,
     validate_climate_useful_gods_result,
     validate_weighted_five_elements,
+    USEFUL_GODS_V3_METHOD,
+    USEFUL_GODS_V3_STATUS,
+    PATTERN_INTEGRATION_WEIGHTS,
+    DOUBLE_SOURCE_BONUS,
+    TRIPLE_SOURCE_BONUS,
+    SUPPORT_CONFLICT_PENALTY,
+    validate_pattern_useful_gods_result,
+    build_pattern_integration_scores,
+    evaluate_useful_gods_v3_agreement,
+    build_integrated_element_scores_v3,
+    build_integrated_candidate_details_v3,
+    determine_useful_gods_v3_confidence,
+    build_useful_gods_v3_reasoning,
+    evaluate_useful_gods_v3,
 )
 
 
@@ -2889,3 +2903,2123 @@ def test_evaluate_useful_gods_v2_confidence_valid():
             "low",
         }
     )
+
+# =========================================================
+# v3 helpers
+# =========================================================
+
+
+def make_pattern_useful(
+    elements,
+    *,
+    day_master_stem="乙",
+    confidence="medium",
+    primary_pattern="偏財格",
+    technical_pattern="indirect_wealth",
+):
+    elements = list(
+        elements
+    )
+
+    primary = (
+        elements[0]
+        if elements
+        else None
+    )
+
+    candidates = []
+
+    for priority, element in enumerate(
+        elements,
+        start=1,
+    ):
+        candidates.append(
+            {
+                "element": element,
+                "priority": priority,
+                "integrated_score": float(
+                    len(elements)
+                    - priority
+                    + 1
+                ),
+            }
+        )
+
+    return {
+        "has_pattern_useful_candidate": (
+            primary is not None
+        ),
+        "primary_pattern_element": (
+            primary
+        ),
+        "secondary_pattern_elements": (
+            elements[1:]
+        ),
+        "pattern_elements": elements,
+        "pattern_candidates": candidates,
+        "day_master_stem": (
+            day_master_stem
+        ),
+        "day_master_element": "木",
+        "primary_pattern": (
+            primary_pattern
+        ),
+        "technical_pattern": (
+            technical_pattern
+        ),
+        "pattern_overall_judgment": (
+            "provisional_possible"
+        ),
+        "pattern_confidence": (
+            confidence
+        ),
+        "supported_pattern": True,
+        "element_relations": {},
+        "confidence": confidence,
+        "reasoning": [
+            "test pattern useful reasoning",
+        ],
+        "evidence": {},
+        "method": (
+            "pattern_useful_gods_v1"
+        ),
+        "status": (
+            "provisional_pattern_useful_gods"
+        ),
+        "notes": [
+            "test pattern useful note",
+        ],
+    }
+
+
+# =========================================================
+# v3 constants
+# =========================================================
+
+
+def test_v3_metadata_constants():
+    assert (
+        USEFUL_GODS_V3_METHOD
+        == "useful_gods_v3"
+    )
+
+    assert (
+        USEFUL_GODS_V3_STATUS
+        == "provisional_useful_gods_v3"
+    )
+
+
+def test_v3_weight_constants():
+    assert (
+        PATTERN_INTEGRATION_WEIGHTS
+        == (
+            3.0,
+            2.0,
+            1.0,
+        )
+    )
+
+    assert (
+        DOUBLE_SOURCE_BONUS
+        == 1.5
+    )
+
+    assert (
+        TRIPLE_SOURCE_BONUS
+        == 3.0
+    )
+
+    assert (
+        SUPPORT_CONFLICT_PENALTY
+        == 1.5
+    )
+
+
+# =========================================================
+# v3 pattern input validation
+# =========================================================
+
+
+def test_validate_pattern_useful_gods_result_valid():
+    assert (
+        validate_pattern_useful_gods_result(
+            make_pattern_useful(
+                [
+                    "火",
+                    "金",
+                ]
+            )
+        )
+        is None
+    )
+
+
+def test_validate_pattern_useful_gods_result_type_error():
+    with pytest.raises(
+        TypeError
+    ):
+        validate_pattern_useful_gods_result(
+            []
+        )
+
+
+def test_validate_pattern_useful_gods_result_missing_elements():
+    with pytest.raises(
+        ValueError
+    ):
+        validate_pattern_useful_gods_result(
+            {}
+        )
+
+
+def test_validate_pattern_useful_gods_result_invalid_element():
+    pattern_useful = (
+        make_pattern_useful(
+            [
+                "火",
+            ]
+        )
+    )
+
+    pattern_useful[
+        "pattern_elements"
+    ] = [
+        "空",
+    ]
+
+    with pytest.raises(
+        ValueError
+    ):
+        validate_pattern_useful_gods_result(
+            pattern_useful
+        )
+
+
+def test_validate_pattern_useful_gods_result_primary_mismatch():
+    pattern_useful = (
+        make_pattern_useful(
+            [
+                "火",
+                "金",
+            ]
+        )
+    )
+
+    pattern_useful[
+        "primary_pattern_element"
+    ] = "金"
+
+    with pytest.raises(
+        ValueError
+    ):
+        validate_pattern_useful_gods_result(
+            pattern_useful
+        )
+
+
+def test_validate_pattern_useful_gods_result_empty_with_primary():
+    pattern_useful = (
+        make_pattern_useful(
+            []
+        )
+    )
+
+    pattern_useful[
+        "primary_pattern_element"
+    ] = "火"
+
+    with pytest.raises(
+        ValueError
+    ):
+        validate_pattern_useful_gods_result(
+            pattern_useful
+        )
+
+
+# =========================================================
+# v3 pattern integration scores
+# =========================================================
+
+
+def test_build_pattern_integration_scores():
+    result = (
+        build_pattern_integration_scores(
+            make_pattern_useful(
+                [
+                    "水",
+                    "木",
+                    "火",
+                ]
+            )
+        )
+    )
+
+    assert result == {
+        "木": 2.0,
+        "火": 1.0,
+        "土": 0.0,
+        "金": 0.0,
+        "水": 3.0,
+    }
+
+
+def test_build_pattern_integration_scores_fourth_and_later_use_one():
+    result = (
+        build_pattern_integration_scores(
+            make_pattern_useful(
+                [
+                    "水",
+                    "木",
+                    "火",
+                    "土",
+                    "金",
+                ]
+            )
+        )
+    )
+
+    assert (
+        result[
+            "水"
+        ]
+        == 3.0
+    )
+
+    assert (
+        result[
+            "木"
+        ]
+        == 2.0
+    )
+
+    assert (
+        result[
+            "火"
+        ]
+        == 1.0
+    )
+
+    assert (
+        result[
+            "土"
+        ]
+        == 1.0
+    )
+
+    assert (
+        result[
+            "金"
+        ]
+        == 1.0
+    )
+
+
+def test_build_pattern_integration_scores_empty():
+    result = (
+        build_pattern_integration_scores(
+            make_pattern_useful(
+                []
+            )
+        )
+    )
+
+    assert result == {
+        element: 0.0
+        for element in ELEMENTS
+    }
+
+
+# =========================================================
+# v3 agreement
+# =========================================================
+
+
+def test_v3_agreement_triple():
+    support = evaluate_useful_gods(
+        "乙",
+        make_weighted(),
+        make_strength(
+            label="weak",
+            confidence="high",
+        ),
+        make_pattern(),
+    )
+
+    result = (
+        evaluate_useful_gods_v3_agreement(
+            support,
+            make_climate(
+                [
+                    "水",
+                ],
+                confidence="high",
+            ),
+            make_pattern_useful(
+                [
+                    "水",
+                ],
+                confidence="high",
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "agreement_level"
+        ]
+        == "triple_agreement"
+    )
+
+    assert (
+        result[
+            "has_triple_agreement"
+        ]
+        is True
+    )
+
+    assert (
+        result[
+            "triple_agreement_elements"
+        ]
+        == [
+            "水",
+        ]
+    )
+
+    assert (
+        result[
+            "by_element"
+        ][
+            "水"
+        ][
+            "source_count"
+        ]
+        == 3
+    )
+
+    assert (
+        result[
+            "by_element"
+        ][
+            "水"
+        ][
+            "sources"
+        ]
+        == [
+            "support_balance",
+            "climate",
+            "pattern",
+        ]
+    )
+
+
+def test_v3_agreement_double():
+    support = evaluate_useful_gods(
+        "乙",
+        make_weighted(),
+        make_strength(
+            label="weak",
+        ),
+        make_pattern(),
+    )
+
+    result = (
+        evaluate_useful_gods_v3_agreement(
+            support,
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
+            make_pattern_useful(
+                [
+                    "火",
+                ]
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "agreement_level"
+        ]
+        == "double_agreement"
+    )
+
+    assert (
+        result[
+            "has_double_agreement"
+        ]
+        is True
+    )
+
+    assert (
+        "水"
+        in result[
+            "double_agreement_elements"
+        ]
+    )
+
+
+def test_v3_agreement_conflict():
+    support = evaluate_useful_gods(
+        "乙",
+        make_weighted(),
+        make_strength(
+            label="strong",
+            confidence="high",
+        ),
+        make_pattern(),
+    )
+
+    assert (
+        "水"
+        in support[
+            "unfavorable_elements"
+        ]
+    )
+
+    result = (
+        evaluate_useful_gods_v3_agreement(
+            support,
+            make_climate(
+                [
+                    "水",
+                ],
+                confidence="high",
+            ),
+            make_pattern_useful(
+                [
+                    "水",
+                ],
+                confidence="high",
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "has_conflict"
+        ]
+        is True
+    )
+
+    assert (
+        "水"
+        in result[
+            "conflicted_elements"
+        ]
+    )
+
+    assert (
+        result[
+            "by_element"
+        ][
+            "水"
+        ][
+            "is_support_conflict"
+        ]
+        is True
+    )
+
+
+def test_v3_agreement_single_source_only():
+    support = {
+        "favorable_elements": [
+            "木",
+        ],
+        "unfavorable_elements": [],
+        "primary_useful_element": "木",
+    }
+
+    result = (
+        evaluate_useful_gods_v3_agreement(
+            support,
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
+            make_pattern_useful(
+                [
+                    "火",
+                ]
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "agreement_level"
+        ]
+        == "single_source_only"
+    )
+
+    assert (
+        result[
+            "has_triple_agreement"
+        ]
+        is False
+    )
+
+    assert (
+        result[
+            "has_double_agreement"
+        ]
+        is False
+    )
+
+    assert set(
+        result[
+            "single_source_elements"
+        ]
+    ) == {
+        "木",
+        "火",
+        "水",
+    }
+
+
+def test_v3_agreement_no_candidate():
+    support = {
+        "favorable_elements": [],
+        "unfavorable_elements": [],
+        "primary_useful_element": None,
+    }
+
+    result = (
+        evaluate_useful_gods_v3_agreement(
+            support,
+            make_climate(
+                []
+            ),
+            make_pattern_useful(
+                []
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "agreement_level"
+        ]
+        == "no_candidate"
+    )
+
+
+# =========================================================
+# v3 integrated scores
+# =========================================================
+
+
+def test_v3_integrated_scores_triple_bonus():
+    support = evaluate_useful_gods(
+        "乙",
+        make_weighted(),
+        make_strength(
+            label="weak",
+        ),
+        make_pattern(),
+    )
+
+    climate = make_climate(
+        [
+            "水",
+        ]
+    )
+
+    pattern_useful = (
+        make_pattern_useful(
+            [
+                "水",
+            ]
+        )
+    )
+
+    agreement = (
+        evaluate_useful_gods_v3_agreement(
+            support,
+            climate,
+            pattern_useful,
+        )
+    )
+
+    result = (
+        build_integrated_element_scores_v3(
+            support,
+            climate,
+            pattern_useful,
+            agreement,
+        )
+    )
+
+    support_scores = (
+        build_support_balance_scores(
+            support
+        )
+    )
+
+    climate_scores = (
+        build_climate_integration_scores(
+            climate
+        )
+    )
+
+    pattern_scores = (
+        build_pattern_integration_scores(
+            pattern_useful
+        )
+    )
+
+    expected_water = round(
+        support_scores[
+            "水"
+        ]
+        + climate_scores[
+            "水"
+        ]
+        + pattern_scores[
+            "水"
+        ]
+        + TRIPLE_SOURCE_BONUS,
+        2,
+    )
+
+    assert (
+        result[
+            "水"
+        ]
+        == expected_water
+    )
+
+
+def test_v3_integrated_scores_double_bonus():
+    support = evaluate_useful_gods(
+        "乙",
+        make_weighted(),
+        make_strength(
+            label="weak",
+        ),
+        make_pattern(),
+    )
+
+    climate = make_climate(
+        [
+            "水",
+        ]
+    )
+
+    pattern_useful = (
+        make_pattern_useful(
+            [
+                "火",
+            ]
+        )
+    )
+
+    agreement = (
+        evaluate_useful_gods_v3_agreement(
+            support,
+            climate,
+            pattern_useful,
+        )
+    )
+
+    result = (
+        build_integrated_element_scores_v3(
+            support,
+            climate,
+            pattern_useful,
+            agreement,
+        )
+    )
+
+    support_scores = (
+        build_support_balance_scores(
+            support
+        )
+    )
+
+    climate_scores = (
+        build_climate_integration_scores(
+            climate
+        )
+    )
+
+    expected_water = round(
+        support_scores[
+            "水"
+        ]
+        + climate_scores[
+            "水"
+        ]
+        + DOUBLE_SOURCE_BONUS,
+        2,
+    )
+
+    assert (
+        result[
+            "水"
+        ]
+        == expected_water
+    )
+
+
+def test_v3_integrated_scores_conflict_penalty():
+    support = evaluate_useful_gods(
+        "乙",
+        make_weighted(),
+        make_strength(
+            label="strong",
+        ),
+        make_pattern(),
+    )
+
+    climate = make_climate(
+        [
+            "水",
+        ]
+    )
+
+    pattern_useful = (
+        make_pattern_useful(
+            [
+                "水",
+            ]
+        )
+    )
+
+    agreement = (
+        evaluate_useful_gods_v3_agreement(
+            support,
+            climate,
+            pattern_useful,
+        )
+    )
+
+    result = (
+        build_integrated_element_scores_v3(
+            support,
+            climate,
+            pattern_useful,
+            agreement,
+        )
+    )
+
+    support_scores = (
+        build_support_balance_scores(
+            support
+        )
+    )
+
+    climate_scores = (
+        build_climate_integration_scores(
+            climate
+        )
+    )
+
+    pattern_scores = (
+        build_pattern_integration_scores(
+            pattern_useful
+        )
+    )
+
+    # 水は扶抑では忌神なので、
+    # 調候+格局の2系統一致ボーナスを受けた後、
+    # conflict penaltyも受ける。
+    expected_water = round(
+        support_scores[
+            "水"
+        ]
+        + climate_scores[
+            "水"
+        ]
+        + pattern_scores[
+            "水"
+        ]
+        + DOUBLE_SOURCE_BONUS
+        - SUPPORT_CONFLICT_PENALTY,
+        2,
+    )
+
+    assert (
+        result[
+            "水"
+        ]
+        == expected_water
+    )
+
+
+def test_v3_all_integrated_scores_are_numeric():
+    support = evaluate_useful_gods(
+        "乙",
+        make_weighted(),
+        make_strength(
+            label="weak",
+        ),
+        make_pattern(),
+    )
+
+    climate = make_climate(
+        [
+            "水",
+        ]
+    )
+
+    pattern_useful = (
+        make_pattern_useful(
+            [
+                "火",
+                "金",
+            ]
+        )
+    )
+
+    agreement = (
+        evaluate_useful_gods_v3_agreement(
+            support,
+            climate,
+            pattern_useful,
+        )
+    )
+
+    result = (
+        build_integrated_element_scores_v3(
+            support,
+            climate,
+            pattern_useful,
+            agreement,
+        )
+    )
+
+    assert set(
+        result.keys()
+    ) == set(
+        ELEMENTS
+    )
+
+    for value in result.values():
+        assert isinstance(
+            value,
+            (int, float),
+        )
+
+        assert not isinstance(
+            value,
+            bool,
+        )
+
+
+# =========================================================
+# v3 candidate details
+# =========================================================
+
+
+def test_v3_candidate_details():
+    support = evaluate_useful_gods(
+        "乙",
+        make_weighted(),
+        make_strength(
+            label="weak",
+        ),
+        make_pattern(),
+    )
+
+    climate = make_climate(
+        [
+            "水",
+        ]
+    )
+
+    pattern_useful = (
+        make_pattern_useful(
+            [
+                "水",
+                "火",
+            ]
+        )
+    )
+
+    agreement = (
+        evaluate_useful_gods_v3_agreement(
+            support,
+            climate,
+            pattern_useful,
+        )
+    )
+
+    scores = (
+        build_integrated_element_scores_v3(
+            support,
+            climate,
+            pattern_useful,
+            agreement,
+        )
+    )
+
+    ranked = (
+        rank_integrated_useful_elements(
+            scores
+        )
+    )
+
+    result = (
+        build_integrated_candidate_details_v3(
+            ranked,
+            scores,
+            support,
+            climate,
+            pattern_useful,
+            agreement,
+        )
+    )
+
+    assert len(
+        result
+    ) == len(
+        ranked
+    )
+
+    for index, candidate in enumerate(
+        result,
+        start=1,
+    ):
+        assert (
+            candidate[
+                "priority"
+            ]
+            == index
+        )
+
+        assert (
+            candidate[
+                "element"
+            ]
+            == ranked[
+                index - 1
+            ]
+        )
+
+        assert (
+            candidate[
+                "integrated_score"
+            ]
+            == scores[
+                candidate[
+                    "element"
+                ]
+            ]
+        )
+
+        assert (
+            "support_balance_score"
+            in candidate
+        )
+
+        assert (
+            "climate_score"
+            in candidate
+        )
+
+        assert (
+            "pattern_score"
+            in candidate
+        )
+
+        assert (
+            "agreement_bonus"
+            in candidate
+        )
+
+        assert (
+            "conflict_penalty"
+            in candidate
+        )
+
+        assert (
+            "support_sources"
+            in candidate
+        )
+
+        assert (
+            "source_count"
+            in candidate
+        )
+
+
+def test_v3_candidate_details_marks_triple():
+    support = evaluate_useful_gods(
+        "乙",
+        make_weighted(),
+        make_strength(
+            label="weak",
+        ),
+        make_pattern(),
+    )
+
+    climate = make_climate(
+        [
+            "水",
+        ]
+    )
+
+    pattern_useful = (
+        make_pattern_useful(
+            [
+                "水",
+            ]
+        )
+    )
+
+    agreement = (
+        evaluate_useful_gods_v3_agreement(
+            support,
+            climate,
+            pattern_useful,
+        )
+    )
+
+    scores = (
+        build_integrated_element_scores_v3(
+            support,
+            climate,
+            pattern_useful,
+            agreement,
+        )
+    )
+
+    result = (
+        build_integrated_candidate_details_v3(
+            [
+                "水",
+            ],
+            scores,
+            support,
+            climate,
+            pattern_useful,
+            agreement,
+        )
+    )
+
+    assert (
+        result[0][
+            "is_triple_agreement"
+        ]
+        is True
+    )
+
+    assert (
+        result[0][
+            "agreement_bonus"
+        ]
+        == TRIPLE_SOURCE_BONUS
+    )
+
+
+# =========================================================
+# v3 confidence
+# =========================================================
+
+
+def test_v3_confidence_no_primary():
+    assert (
+        determine_useful_gods_v3_confidence(
+            {
+                "confidence": "high",
+            },
+            {
+                "confidence": "high",
+            },
+            {
+                "confidence": "high",
+            },
+            {
+                "by_element": {},
+            },
+            None,
+        )
+        == "low"
+    )
+
+
+def test_v3_confidence_conflict_is_low():
+    assert (
+        determine_useful_gods_v3_confidence(
+            {
+                "confidence": "high",
+            },
+            {
+                "confidence": "high",
+            },
+            {
+                "confidence": "high",
+            },
+            {
+                "by_element": {
+                    "水": {
+                        "source_count": 2,
+                        "is_support_conflict": True,
+                    },
+                },
+            },
+            "水",
+        )
+        == "low"
+    )
+
+
+def test_v3_confidence_triple_is_high():
+    assert (
+        determine_useful_gods_v3_confidence(
+            {
+                "confidence": "high",
+            },
+            {
+                "confidence": "medium",
+            },
+            {
+                "confidence": "medium",
+            },
+            {
+                "by_element": {
+                    "水": {
+                        "source_count": 3,
+                        "is_support_conflict": False,
+                    },
+                },
+            },
+            "水",
+        )
+        == "high"
+    )
+
+
+def test_v3_confidence_double_is_medium():
+    assert (
+        determine_useful_gods_v3_confidence(
+            {
+                "confidence": "medium",
+            },
+            {
+                "confidence": "medium",
+            },
+            {
+                "confidence": "medium",
+            },
+            {
+                "by_element": {
+                    "水": {
+                        "source_count": 2,
+                        "is_support_conflict": False,
+                    },
+                },
+            },
+            "水",
+        )
+        == "medium"
+    )
+
+
+def test_v3_confidence_double_all_high_is_high():
+    assert (
+        determine_useful_gods_v3_confidence(
+            {
+                "confidence": "high",
+            },
+            {
+                "confidence": "high",
+            },
+            {
+                "confidence": "high",
+            },
+            {
+                "by_element": {
+                    "水": {
+                        "source_count": 2,
+                        "is_support_conflict": False,
+                    },
+                },
+            },
+            "水",
+        )
+        == "high"
+    )
+
+
+def test_v3_confidence_single_medium():
+    assert (
+        determine_useful_gods_v3_confidence(
+            {
+                "confidence": "medium",
+            },
+            {
+                "confidence": "medium",
+            },
+            {
+                "confidence": "medium",
+            },
+            {
+                "by_element": {
+                    "水": {
+                        "source_count": 1,
+                        "is_support_conflict": False,
+                    },
+                },
+            },
+            "水",
+        )
+        == "medium"
+    )
+
+
+# =========================================================
+# v3 reasoning
+# =========================================================
+
+
+def test_v3_reasoning_triple_agreement():
+    result = (
+        build_useful_gods_v3_reasoning(
+            {
+                "primary_useful_element": "水",
+            },
+            {
+                "primary_climate_element": "水",
+            },
+            {
+                "primary_pattern_element": "水",
+            },
+            {
+                "triple_agreement_elements": [
+                    "水",
+                ],
+                "double_agreement_elements": [],
+                "conflicted_elements": [],
+            },
+            [
+                "水",
+            ],
+        )
+    )
+
+    assert any(
+        "3系統すべて"
+        in item
+        for item in result
+    )
+
+    assert any(
+        "水"
+        in item
+        for item in result
+    )
+
+
+def test_v3_reasoning_double_agreement():
+    result = (
+        build_useful_gods_v3_reasoning(
+            {
+                "primary_useful_element": "水",
+            },
+            {
+                "primary_climate_element": "水",
+            },
+            {
+                "primary_pattern_element": "火",
+            },
+            {
+                "triple_agreement_elements": [],
+                "double_agreement_elements": [
+                    "水",
+                ],
+                "conflicted_elements": [],
+            },
+            [
+                "水",
+                "火",
+            ],
+        )
+    )
+
+    assert any(
+        "2系統"
+        in item
+        for item in result
+    )
+
+
+def test_v3_reasoning_conflict():
+    result = (
+        build_useful_gods_v3_reasoning(
+            {
+                "primary_useful_element": "土",
+            },
+            {
+                "primary_climate_element": "水",
+            },
+            {
+                "primary_pattern_element": "水",
+            },
+            {
+                "triple_agreement_elements": [],
+                "double_agreement_elements": [
+                    "水",
+                ],
+                "conflicted_elements": [
+                    "水",
+                ],
+            },
+            [
+                "土",
+                "水",
+            ],
+        )
+    )
+
+    assert any(
+        "競合"
+        in item
+        for item in result
+    )
+
+
+# =========================================================
+# v3 main evaluator
+# =========================================================
+
+
+def test_evaluate_useful_gods_v3_structure():
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(
+                label="weak",
+                confidence="high",
+            ),
+            make_pattern(
+                confidence="medium"
+            ),
+            make_climate(
+                [
+                    "水",
+                ],
+                confidence="high",
+            ),
+            make_pattern_useful(
+                [
+                    "水",
+                    "火",
+                ],
+                confidence="high",
+            ),
+        )
+    )
+
+    required_keys = {
+        "has_useful_candidate",
+        "primary_useful_element",
+        "secondary_useful_elements",
+        "final_useful_elements",
+        "final_candidates",
+        "integrated_element_scores",
+        "support_balance",
+        "climate",
+        "pattern",
+        "v2_baseline",
+        "agreement",
+        "day_master_stem",
+        "day_master_element",
+        "strength_class",
+        "confidence",
+        "reasoning",
+        "evidence",
+        "method",
+        "status",
+        "notes",
+    }
+
+    assert required_keys.issubset(
+        result.keys()
+    )
+
+
+def test_evaluate_useful_gods_v3_metadata():
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(
+                label="weak",
+            ),
+            make_pattern(),
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
+            make_pattern_useful(
+                [
+                    "火",
+                    "金",
+                ]
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "method"
+        ]
+        == "useful_gods_v3"
+    )
+
+    assert (
+        result[
+            "status"
+        ]
+        == "provisional_useful_gods_v3"
+    )
+
+    assert (
+        result[
+            "day_master_stem"
+        ]
+        == "乙"
+    )
+
+    assert (
+        result[
+            "day_master_element"
+        ]
+        == "木"
+    )
+
+
+def test_evaluate_useful_gods_v3_triple_agreement():
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(
+                label="weak",
+                confidence="high",
+            ),
+            make_pattern(
+                confidence="high"
+            ),
+            make_climate(
+                [
+                    "水",
+                ],
+                confidence="high",
+            ),
+            make_pattern_useful(
+                [
+                    "水",
+                ],
+                confidence="high",
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "agreement"
+        ][
+            "agreement_level"
+        ]
+        == "triple_agreement"
+    )
+
+    assert (
+        result[
+            "primary_useful_element"
+        ]
+        == "水"
+    )
+
+    assert (
+        result[
+            "final_useful_elements"
+        ][0]
+        == "水"
+    )
+
+    assert (
+        result[
+            "confidence"
+        ]
+        == "high"
+    )
+
+
+def test_evaluate_useful_gods_v3_double_agreement():
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(
+                label="weak",
+                confidence="medium",
+            ),
+            make_pattern(),
+            make_climate(
+                [
+                    "水",
+                ],
+                confidence="medium",
+            ),
+            make_pattern_useful(
+                [
+                    "火",
+                ],
+                confidence="medium",
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "agreement"
+        ][
+            "agreement_level"
+        ]
+        == "double_agreement"
+    )
+
+    assert (
+        "水"
+        in result[
+            "agreement"
+        ][
+            "double_agreement_elements"
+        ]
+    )
+
+
+def test_evaluate_useful_gods_v3_conflict_preserved():
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(
+                label="strong",
+                confidence="high",
+            ),
+            make_pattern(
+                confidence="high"
+            ),
+            make_climate(
+                [
+                    "水",
+                ],
+                confidence="high",
+            ),
+            make_pattern_useful(
+                [
+                    "水",
+                ],
+                confidence="high",
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "agreement"
+        ][
+            "has_conflict"
+        ]
+        is True
+    )
+
+    assert (
+        "水"
+        in result[
+            "agreement"
+        ][
+            "conflicted_elements"
+        ]
+    )
+
+
+def test_evaluate_useful_gods_v3_primary_consistency():
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(
+                label="weak",
+            ),
+            make_pattern(),
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
+            make_pattern_useful(
+                [
+                    "火",
+                    "金",
+                ]
+            ),
+        )
+    )
+
+    final_elements = result[
+        "final_useful_elements"
+    ]
+
+    assert final_elements
+
+    assert (
+        result[
+            "primary_useful_element"
+        ]
+        == final_elements[0]
+    )
+
+    assert (
+        result[
+            "secondary_useful_elements"
+        ]
+        == final_elements[1:]
+    )
+
+    assert (
+        result[
+            "has_useful_candidate"
+        ]
+        is True
+    )
+
+
+def test_evaluate_useful_gods_v3_candidate_priorities():
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(
+                label="weak",
+            ),
+            make_pattern(),
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
+            make_pattern_useful(
+                [
+                    "火",
+                    "金",
+                ]
+            ),
+        )
+    )
+
+    for index, candidate in enumerate(
+        result[
+            "final_candidates"
+        ],
+        start=1,
+    ):
+        assert (
+            candidate[
+                "priority"
+            ]
+            == index
+        )
+
+        assert (
+            candidate[
+                "element"
+            ]
+            == result[
+                "final_useful_elements"
+            ][
+                index - 1
+            ]
+        )
+
+
+def test_evaluate_useful_gods_v3_evidence():
+    weighted = make_weighted()
+    strength = make_strength(
+        label="weak"
+    )
+    pattern = make_pattern()
+    climate = make_climate(
+        [
+            "水",
+        ]
+    )
+    pattern_useful = (
+        make_pattern_useful(
+            [
+                "火",
+                "金",
+            ]
+        )
+    )
+
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            weighted,
+            strength,
+            pattern,
+            climate,
+            pattern_useful,
+        )
+    )
+
+    evidence = result[
+        "evidence"
+    ]
+
+    assert (
+        evidence[
+            "weighted_five_elements"
+        ]
+        == weighted
+    )
+
+    assert (
+        evidence[
+            "final_strength_judgment"
+        ]
+        == strength
+    )
+
+    assert (
+        evidence[
+            "pattern_judgment"
+        ]
+        == pattern
+    )
+
+    assert (
+        evidence[
+            "climate_useful_gods"
+        ]
+        == climate
+    )
+
+    assert (
+        evidence[
+            "pattern_useful_gods"
+        ]
+        == pattern_useful
+    )
+
+    assert (
+        evidence[
+            "support_balance"
+        ]
+        == result[
+            "support_balance"
+        ]
+    )
+
+    assert (
+        evidence[
+            "v2_baseline"
+        ]
+        == result[
+            "v2_baseline"
+        ]
+    )
+
+
+def test_evaluate_useful_gods_v3_preserves_v2_baseline():
+    weighted = make_weighted()
+    strength = make_strength(
+        label="weak"
+    )
+    pattern = make_pattern()
+    climate = make_climate(
+        [
+            "水",
+        ]
+    )
+
+    expected_v2 = (
+        evaluate_useful_gods_v2(
+            "乙",
+            weighted,
+            strength,
+            pattern,
+            climate,
+        )
+    )
+
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            weighted,
+            strength,
+            pattern,
+            climate,
+            make_pattern_useful(
+                [
+                    "火",
+                    "金",
+                ]
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "v2_baseline"
+        ]
+        == expected_v2
+    )
+
+    assert (
+        result[
+            "support_balance"
+        ]
+        == expected_v2[
+            "support_balance"
+        ]
+    )
+
+
+def test_evaluate_useful_gods_v3_climate_day_master_mismatch():
+    with pytest.raises(
+        ValueError
+    ):
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(),
+            make_pattern(),
+            make_climate(
+                [
+                    "水",
+                ],
+                day_master_stem="甲",
+            ),
+            make_pattern_useful(
+                [
+                    "火",
+                ]
+            ),
+        )
+
+
+def test_evaluate_useful_gods_v3_pattern_day_master_mismatch():
+    with pytest.raises(
+        ValueError
+    ):
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(),
+            make_pattern(),
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
+            make_pattern_useful(
+                [
+                    "火",
+                ],
+                day_master_stem="甲",
+            ),
+        )
+
+
+def test_evaluate_useful_gods_v3_reasoning_and_notes_exist():
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(
+                label="weak",
+            ),
+            make_pattern(),
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
+            make_pattern_useful(
+                [
+                    "火",
+                    "金",
+                ]
+            ),
+        )
+    )
+
+    assert isinstance(
+        result[
+            "reasoning"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            result[
+                "reasoning"
+            ]
+        )
+        >= 1
+    )
+
+    assert isinstance(
+        result[
+            "notes"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            result[
+                "notes"
+            ]
+        )
+        >= 1
+    )
+
+
+# =========================================================
+# v3 realistic 1985 regression style
+# 乙丑 / 癸未 / 乙巳 / 丁亥
+#
+# 現行の既知レイヤー:
+# 日主 = 乙(木)
+# 調候 = 水
+# 格局 = 偏財格
+# 格局用神 = 火・金
+# =========================================================
+
+
+def test_v3_realistic_1985_pattern_layer():
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(
+                label="balanced",
+                confidence="medium",
+            ),
+            make_pattern(
+                confidence="medium"
+            ),
+            make_climate(
+                [
+                    "水",
+                ],
+                confidence="high",
+            ),
+            make_pattern_useful(
+                [
+                    "火",
+                    "金",
+                ],
+                confidence="medium",
+                primary_pattern="偏財格",
+                technical_pattern=(
+                    "indirect_wealth"
+                ),
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "pattern"
+        ][
+            "primary_pattern"
+        ]
+        == "偏財格"
+    )
+
+    assert (
+        result[
+            "pattern"
+        ][
+            "technical_pattern"
+        ]
+        == "indirect_wealth"
+    )
+
+    assert (
+        result[
+            "pattern"
+        ][
+            "pattern_elements"
+        ]
+        == [
+            "火",
+            "金",
+        ]
+    )
+
+    assert (
+        result[
+            "climate"
+        ][
+            "primary_climate_element"
+        ]
+        == "水"
+    )
+
+    assert (
+        result[
+            "method"
+        ]
+        == "useful_gods_v3"
+    )
+
+
+def test_v3_realistic_1985_all_scores_numeric():
+    result = (
+        evaluate_useful_gods_v3(
+            "乙",
+            make_weighted(),
+            make_strength(
+                label="balanced",
+            ),
+            make_pattern(),
+            make_climate(
+                [
+                    "水",
+                ]
+            ),
+            make_pattern_useful(
+                [
+                    "火",
+                    "金",
+                ]
+            ),
+        )
+    )
+
+    assert set(
+        result[
+            "integrated_element_scores"
+        ].keys()
+    ) == set(
+        ELEMENTS
+    )
+
+    for value in result[
+        "integrated_element_scores"
+    ].values():
+        assert isinstance(
+            value,
+            (int, float),
+        )
+
+        assert not isinstance(
+            value,
+            bool,
+        )
