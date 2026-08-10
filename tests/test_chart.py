@@ -4597,8 +4597,9 @@ def test_chart_pattern_useful_gods_reasoning_and_notes_exist():
         )
         >= 1
     )
-    # ============================================================
-# Luck Pillars Integration Tests
+
+# ============================================================
+# Luck Pillars v2 Integration Tests
 # ============================================================
 
 
@@ -4609,11 +4610,15 @@ def test_chart_contains_luck_pillars():
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
 
     assert "luck_pillars" in result
 
-    luck_pillars = result["luck_pillars"]
+    luck_pillars = result[
+        "luck_pillars"
+    ]
 
     assert isinstance(
         luck_pillars,
@@ -4623,12 +4628,14 @@ def test_chart_contains_luck_pillars():
 
 def test_chart_luck_pillars_required_keys():
     """
-    luck_pillars が統合結果として必要な
-    基本キーを持つことを確認します。
+    luck_pillars_v2 の主要キーが
+    chart 統合後も存在することを確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
 
     luck_pillars = result[
         "luck_pillars"
@@ -4636,10 +4643,25 @@ def test_chart_luck_pillars_required_keys():
 
     required_keys = {
         "direction",
-        "direction_label",
+        "direction_japanese",
+        "year_stem",
+        "year_stem_yin_yang",
+        "gender",
+        "month_ganzhi",
+        "day_master_stem",
+        "day_master_element",
+        "birth_datetime",
+        "target_term_datetime",
+        "target_term_name",
+        "target_term_month",
+        "target_term_branch",
+        "target_term_source",
+        "term_distance_days",
         "start_age",
         "start_age_detail",
         "pillars",
+        "pillar_count",
+        "calculation_rules",
         "method",
         "status",
         "notes",
@@ -4652,41 +4674,59 @@ def test_chart_luck_pillars_required_keys():
 
 def test_chart_luck_pillars_v2_metadata():
     """
-    chart 統合後も luck_pillars_v2 の
-    metadata が維持されることを確認します。
+    luck_pillars_v2 の method / status を確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
 
     luck_pillars = result[
         "luck_pillars"
     ]
 
     assert (
-        luck_pillars["method"]
+        luck_pillars[
+            "method"
+        ]
         == "luck_pillars_v2"
     )
 
-    assert isinstance(
-        luck_pillars["status"],
-        str,
+    assert (
+        luck_pillars[
+            "status"
+        ]
+        == "provisional_luck_pillars_v2"
     )
 
     assert isinstance(
-        luck_pillars["notes"],
+        luck_pillars[
+            "notes"
+        ],
         list,
+    )
+
+    assert (
+        len(
+            luck_pillars[
+                "notes"
+            ]
+        )
+        >= 1
     )
 
 
 def test_chart_luck_pillars_direction_exists():
     """
-    大運の順行・逆行が
-    正しく統合されていることを確認します。
+    direction と direction_japanese が
+    正常な値であることを確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
 
     luck_pillars = result[
         "luck_pillars"
@@ -4700,32 +4740,25 @@ def test_chart_luck_pillars_direction_exists():
     }
 
     assert luck_pillars[
-        "direction_label"
+        "direction_japanese"
     ] in {
         "順行",
         "逆行",
     }
 
 
-def test_chart_luck_pillars_direction_label_consistency():
+def test_chart_luck_pillars_direction_japanese_consistency():
     """
-    direction と direction_label の
-    対応が一致することを確認します。
+    direction と日本語表示の対応を確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
 
     luck_pillars = result[
         "luck_pillars"
-    ]
-
-    direction = luck_pillars[
-        "direction"
-    ]
-
-    direction_label = luck_pillars[
-        "direction_label"
     ]
 
     expected = {
@@ -4734,25 +4767,221 @@ def test_chart_luck_pillars_direction_label_consistency():
     }
 
     assert (
-        direction_label
-        == expected[direction]
+        luck_pillars[
+            "direction_japanese"
+        ]
+        == expected[
+            luck_pillars[
+                "direction"
+            ]
+        ]
     )
 
 
-def test_chart_luck_pillars_start_age_exists():
+def test_chart_luck_pillars_verified_1985_direction():
     """
-    起運年齢が存在し、
-    数値として扱えることを確認します。
+    検証命式:
+    1985年 乙年・女性。
+
+    陰年女性なので順行になることを確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
 
     luck_pillars = result[
         "luck_pillars"
     ]
 
-    start_age = luck_pillars[
+    assert (
+        luck_pillars[
+            "year_stem"
+        ]
+        == "乙"
+    )
+
+    assert (
+        luck_pillars[
+            "year_stem_yin_yang"
+        ]
+        == "陰"
+    )
+
+    assert (
+        luck_pillars[
+            "gender"
+        ]
+        == "female"
+    )
+
+    assert (
+        luck_pillars[
+            "direction"
+        ]
+        == "forward"
+    )
+
+    assert (
+        luck_pillars[
+            "direction_japanese"
+        ]
+        == "順行"
+    )
+
+
+def test_chart_luck_pillars_chart_identity_consistency():
+    """
+    大運計算へ渡した年干・月柱・日主が
+    chart 本体と一致することを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    luck_pillars = result[
+        "luck_pillars"
+    ]
+
+    assert (
+        luck_pillars[
+            "year_stem"
+        ]
+        == result[
+            "chart"
+        ][
+            "year"
+        ][
+            "stem"
+        ]
+    )
+
+    assert (
+        luck_pillars[
+            "month_ganzhi"
+        ]
+        == result[
+            "chart"
+        ][
+            "month"
+        ][
+            "pillar"
+        ]
+    )
+
+    assert (
+        luck_pillars[
+            "day_master_stem"
+        ]
+        == result[
+            "day_master"
+        ][
+            "stem"
+        ]
+    )
+
+    assert (
+        luck_pillars[
+            "day_master_element"
+        ]
+        == "木"
+    )
+
+
+def test_chart_luck_pillars_uses_solar_terms_v2():
+    """
+    chart からの通常計算では
+    solar_terms_v2 により対象節が
+    自動選択されることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    luck_pillars = result[
+        "luck_pillars"
+    ]
+
+    assert (
+        luck_pillars[
+            "target_term_source"
+        ]
+        == "solar_terms_v2"
+    )
+
+    assert (
+        luck_pillars[
+            "calculation_rules"
+        ][
+            "term_datetime_source"
+        ]
+        == "solar_terms_v2"
+    )
+
+
+def test_chart_luck_pillars_verified_1985_target_term():
+    """
+    1985-07-17 21:50 は順行なので、
+    固定節入り仕様の solar_terms_v2 では
+    次節の立秋を対象にすることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    luck_pillars = result[
+        "luck_pillars"
+    ]
+
+    assert (
+        luck_pillars[
+            "target_term_name"
+        ]
+        == "立秋"
+    )
+
+    assert (
+        luck_pillars[
+            "target_term_month"
+        ]
+        == 8
+    )
+
+    assert (
+        luck_pillars[
+            "target_term_branch"
+        ]
+        == "申"
+    )
+
+    assert (
+        luck_pillars[
+            "target_term_datetime"
+        ]
+        == "1985-08-08T00:00:00"
+    )
+
+
+def test_chart_luck_pillars_start_age_exists():
+    """
+    起運年齢が数値で存在することを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    start_age = result[
+        "luck_pillars"
+    ][
         "start_age"
     ]
 
@@ -4761,21 +4990,24 @@ def test_chart_luck_pillars_start_age_exists():
         (int, float),
     )
 
-    assert start_age >= 0
+    assert not isinstance(
+        start_age,
+        bool,
+    )
+
+    assert start_age >= 0.0
 
 
 def test_chart_luck_pillars_start_age_is_reasonable():
     """
-    起運年齢が現実的な範囲に
-    収まっていることを確認します。
-
-    四柱推命の起運計算として、
-    異常値を検出するための
-    integration guard です。
+    起運年齢が大きく逸脱していないことを
+    integration guard として確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
 
     start_age = result[
         "luck_pillars"
@@ -4790,14 +5022,49 @@ def test_chart_luck_pillars_start_age_is_reasonable():
     )
 
 
-def test_chart_luck_pillars_start_age_detail_exists():
+def test_chart_luck_pillars_start_age_matches_term_distance():
     """
-    起運計算の詳細情報が
-    保存されていることを確認します。
+    三日一年法:
+        start_age = term_distance_days / 3
+
+    が chart 統合後も成立することを確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
+
+    luck_pillars = result[
+        "luck_pillars"
+    ]
+
+    expected = round(
+        luck_pillars[
+            "term_distance_days"
+        ]
+        / 3.0,
+        6,
+    )
+
+    assert (
+        luck_pillars[
+            "start_age"
+        ]
+        == expected
+    )
+
+
+def test_chart_luck_pillars_start_age_detail():
+    """
+    起運年齢の年・月・日表示が
+    保持されていることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
 
     detail = result[
         "luck_pillars"
@@ -4805,87 +5072,107 @@ def test_chart_luck_pillars_start_age_detail_exists():
         "start_age_detail"
     ]
 
-    assert isinstance(
-        detail,
-        dict,
+    required_keys = {
+        "years",
+        "months",
+        "days",
+    }
+
+    assert required_keys.issubset(
+        detail.keys()
     )
 
-    assert len(detail) >= 1
-
-
-def test_chart_luck_pillars_has_multiple_pillars():
-    """
-    大運が複数期間生成されることを
-    確認します。
-    """
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-
-    pillars = result[
-        "luck_pillars"
-    ][
-        "pillars"
-    ]
-
-    assert isinstance(
-        pillars,
-        list,
+    assert all(
+        isinstance(
+            detail[key],
+            int,
+        )
+        for key in required_keys
     )
-
-    assert len(pillars) >= 8
 
 
 def test_chart_luck_pillars_generates_ten_periods():
     """
-    現在の実装方針では
-    大運10本を生成することを確認します。
-    """
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-
-    pillars = result[
-        "luck_pillars"
-    ][
-        "pillars"
-    ]
-
-    assert len(pillars) == 10
-
-
-def test_chart_luck_pillars_each_item_is_dict():
-    """
-    各大運が辞書形式で
-    格納されていることを確認します。
-    """
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-
-    pillars = result[
-        "luck_pillars"
-    ][
-        "pillars"
-    ]
-
-    assert all(
-        isinstance(
-            pillar,
-            dict,
-        )
-        for pillar in pillars
-    )
-
-
-def test_chart_luck_pillars_each_item_has_pillar():
-    """
-    各大運に干支が存在することを
+    デフォルトで大運10本が生成されることを
     確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
+
+    luck_pillars = result[
+        "luck_pillars"
+    ]
+
+    assert (
+        luck_pillars[
+            "pillar_count"
+        ]
+        == 10
+    )
+
+    assert (
+        len(
+            luck_pillars[
+                "pillars"
+            ]
+        )
+        == 10
+    )
+
+
+def test_chart_luck_pillars_each_item_required_keys():
+    """
+    各大運データの主要キーを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    pillars = result[
+        "luck_pillars"
+    ][
+        "pillars"
+    ]
+
+    required_keys = {
+        "index",
+        "ganzhi",
+        "stem",
+        "branch",
+        "stem_element",
+        "branch_element",
+        "stem_yin_yang",
+        "stem_ten_god",
+        "start_age",
+        "end_age",
+        "start_age_detail",
+        "end_age_detail",
+        "start_datetime",
+        "end_datetime",
+        "stem_useful_relation",
+        "branch_useful_relation",
+    }
+
+    for pillar in pillars:
+        assert required_keys.issubset(
+            pillar.keys()
+        )
+
+
+def test_chart_luck_pillars_each_item_has_ganzhi():
+    """
+    各大運に2文字の干支があることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
 
     pillars = result[
         "luck_pillars"
@@ -4894,64 +5181,32 @@ def test_chart_luck_pillars_each_item_has_pillar():
     ]
 
     for pillar in pillars:
-        assert "pillar" in pillar
-
         assert isinstance(
-            pillar["pillar"],
+            pillar[
+                "ganzhi"
+            ],
             str,
         )
 
-        assert len(
-            pillar["pillar"]
-        ) == 2
+        assert (
+            len(
+                pillar[
+                    "ganzhi"
+                ]
+            )
+            == 2
+        )
 
 
-def test_chart_luck_pillars_each_item_has_stem_and_branch():
+def test_chart_luck_pillars_ganzhi_matches_stem_branch():
     """
-    各大運の天干・地支が
-    保存されていることを確認します。
+    ganzhi == stem + branch を確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
-
-    pillars = result[
-        "luck_pillars"
-    ][
-        "pillars"
-    ]
-
-    for pillar in pillars:
-        assert "stem" in pillar
-        assert "branch" in pillar
-
-        assert isinstance(
-            pillar["stem"],
-            str,
-        )
-
-        assert isinstance(
-            pillar["branch"],
-            str,
-        )
-
-        assert len(
-            pillar["stem"]
-        ) == 1
-
-        assert len(
-            pillar["branch"]
-        ) == 1
-
-
-def test_chart_luck_pillars_pillar_matches_stem_branch():
-    """
-    pillar が stem + branch と
-    一致することを確認します。
-    """
-    request = make_verified_request()
-
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
 
     pillars = result[
         "luck_pillars"
@@ -4961,22 +5216,29 @@ def test_chart_luck_pillars_pillar_matches_stem_branch():
 
     for pillar in pillars:
         assert (
-            pillar["pillar"]
+            pillar[
+                "ganzhi"
+            ]
             == (
-                pillar["stem"]
-                + pillar["branch"]
+                pillar[
+                    "stem"
+                ]
+                + pillar[
+                    "branch"
+                ]
             )
         )
 
 
-def test_chart_luck_pillars_each_item_has_index():
+def test_chart_luck_pillars_indexes_are_sequential():
     """
-    大運番号が連続していることを
-    確認します。
+    index が1～10で連続することを確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
 
     pillars = result[
         "luck_pillars"
@@ -4984,15 +5246,15 @@ def test_chart_luck_pillars_each_item_has_index():
         "pillars"
     ]
 
-    indexes = [
-        pillar["index"]
+    assert [
+        pillar[
+            "index"
+        ]
         for pillar in pillars
-    ]
-
-    assert indexes == list(
+    ] == list(
         range(
             1,
-            len(pillars) + 1,
+            11,
         )
     )
 
@@ -5000,205 +5262,53 @@ def test_chart_luck_pillars_each_item_has_index():
 def test_chart_luck_pillars_age_ranges_are_ordered():
     """
     大運の年齢範囲が
-    時系列順になっていることを確認します。
+    時系列順であることを確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
+    result = calculate_chart(
+        request
+    )
 
     pillars = result[
         "luck_pillars"
     ][
         "pillars"
     ]
-
-    previous_start_age = None
 
     for pillar in pillars:
-        assert "start_age" in pillar
-        assert "end_age" in pillar
-
-        start_age = pillar[
-            "start_age"
-        ]
-
-        end_age = pillar[
-            "end_age"
-        ]
-
         assert (
-            start_age
-            <= end_age
+            pillar[
+                "start_age"
+            ]
+            < pillar[
+                "end_age"
+            ]
         )
-
-        if previous_start_age is not None:
-            assert (
-                start_age
-                > previous_start_age
-            )
-
-        previous_start_age = start_age
-
-
-def test_chart_luck_pillars_are_ten_year_intervals():
-    """
-    各大運の開始年齢が
-    10年ずつ進むことを確認します。
-    """
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-
-    pillars = result[
-        "luck_pillars"
-    ][
-        "pillars"
-    ]
 
     for previous, current in zip(
         pillars,
         pillars[1:],
     ):
-        difference = (
-            current["start_age"]
-            - previous["start_age"]
-        )
-
-        assert round(
-            difference,
-            6,
-        ) == 10.0
-
-
-def test_chart_luck_pillars_day_master_consistency():
-    """
-    luck_pillars 内の日主情報がある場合、
-    chart の日主と一致することを確認します。
-    """
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-
-    luck_pillars = result[
-        "luck_pillars"
-    ]
-
-    if "day_master_stem" in luck_pillars:
         assert (
-            luck_pillars[
-                "day_master_stem"
+            previous[
+                "start_age"
             ]
-            == result[
-                "day_master"
-            ][
-                "stem"
+            < current[
+                "start_age"
             ]
         )
 
 
-def test_chart_luck_pillars_month_pillar_consistency():
+def test_chart_luck_pillars_are_ten_year_intervals():
     """
-    luck_pillars 内に基準月柱がある場合、
-    chart の月柱と一致することを確認します。
-    """
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-
-    luck_pillars = result[
-        "luck_pillars"
-    ]
-
-    if "month_pillar" in luck_pillars:
-        assert (
-            luck_pillars[
-                "month_pillar"
-            ]
-            == result[
-                "chart"
-            ][
-                "month"
-            ][
-                "pillar"
-            ]
-        )
-
-
-def test_chart_luck_pillars_verified_chart():
-    """
-    1985-07-17 21:50 石川県女性の
-    検証命式で大運が正常に
-    統合されることを確認します。
+    各大運が10年区切りであることを確認します。
     """
     request = make_verified_request()
 
-    result = calculate_chart(request)
-
-    assert (
-        result["chart"]["year"]["pillar"]
-        == "乙丑"
+    result = calculate_chart(
+        request
     )
-
-    assert (
-        result["chart"]["month"]["pillar"]
-        == "癸未"
-    )
-
-    assert (
-        result["chart"]["day"]["pillar"]
-        == "乙巳"
-    )
-
-    assert (
-        result["chart"]["hour"]["pillar"]
-        == "丁亥"
-    )
-
-    luck_pillars = result[
-        "luck_pillars"
-    ]
-
-    assert (
-        luck_pillars["method"]
-        == "luck_pillars_v2"
-    )
-
-    assert len(
-        luck_pillars["pillars"]
-    ) == 10
-
-
-def test_chart_luck_pillars_notes_exist():
-    """
-    大運計算に関する注記が
-    最低1件存在することを確認します。
-    """
-    request = make_verified_request()
-
-    result = calculate_chart(request)
-
-    notes = result[
-        "luck_pillars"
-    ][
-        "notes"
-    ]
-
-    assert isinstance(
-        notes,
-        list,
-    )
-
-    assert len(notes) >= 1
-
-
-def test_chart_luck_pillars_no_duplicate_pillars():
-    """
-    10本の大運干支が
-    不自然に重複していないことを確認します。
-    """
-    request = make_verified_request()
-
-    result = calculate_chart(request)
 
     pillars = result[
         "luck_pillars"
@@ -5206,12 +5316,377 @@ def test_chart_luck_pillars_no_duplicate_pillars():
         "pillars"
     ]
 
-    pillar_names = [
-        pillar["pillar"]
+    for pillar in pillars:
+        assert (
+            round(
+                pillar[
+                    "end_age"
+                ]
+                - pillar[
+                    "start_age"
+                ],
+                6,
+            )
+            == 10.0
+        )
+
+    for previous, current in zip(
+        pillars,
+        pillars[1:],
+    ):
+        assert (
+            round(
+                current[
+                    "start_age"
+                ]
+                - previous[
+                    "start_age"
+                ],
+                6,
+            )
+            == 10.0
+        )
+
+
+def test_chart_luck_pillars_first_period_matches_start_age():
+    """
+    第1大運の開始年齢が
+    luck_pillars.start_age と一致することを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    luck_pillars = result[
+        "luck_pillars"
+    ]
+
+    first = luck_pillars[
+        "pillars"
+    ][0]
+
+    assert (
+        first[
+            "start_age"
+        ]
+        == luck_pillars[
+            "start_age"
+        ]
+    )
+
+
+def test_chart_luck_pillars_verified_1985_first_ganzhi():
+    """
+    癸未月・順行の第1大運が
+    甲申になることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    first = result[
+        "luck_pillars"
+    ][
+        "pillars"
+    ][0]
+
+    assert (
+        first[
+            "ganzhi"
+        ]
+        == "甲申"
+    )
+
+    assert (
+        first[
+            "stem"
+        ]
+        == "甲"
+    )
+
+    assert (
+        first[
+            "branch"
+        ]
+        == "申"
+    )
+
+
+def test_chart_luck_pillars_verified_1985_first_ten_god():
+    """
+    乙日主に対する第1大運甲の通変星が
+    劫財であることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    first = result[
+        "luck_pillars"
+    ][
+        "pillars"
+    ][0]
+
+    assert (
+        first[
+            "stem_ten_god"
+        ]
+        == "劫財"
+    )
+
+
+def test_chart_luck_pillars_elements_exist():
+    """
+    各大運の天干・地支五行が
+    五行集合内にあることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    pillars = result[
+        "luck_pillars"
+    ][
+        "pillars"
+    ]
+
+    elements = {
+        "木",
+        "火",
+        "土",
+        "金",
+        "水",
+    }
+
+    for pillar in pillars:
+        assert (
+            pillar[
+                "stem_element"
+            ]
+            in elements
+        )
+
+        assert (
+            pillar[
+                "branch_element"
+            ]
+            in elements
+        )
+
+
+def test_chart_luck_pillars_useful_gods_relations_exist():
+    """
+    useful_gods_v3 との関係判定が
+    各大運へ統合されていることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    pillars = result[
+        "luck_pillars"
+    ][
+        "pillars"
+    ]
+
+    relation_keys = {
+        "is_useful",
+        "is_primary_useful",
+        "priority",
+        "relationship",
+    }
+
+    for pillar in pillars:
+        assert relation_keys.issubset(
+            pillar[
+                "stem_useful_relation"
+            ].keys()
+        )
+
+        assert relation_keys.issubset(
+            pillar[
+                "branch_useful_relation"
+            ].keys()
+        )
+
+
+def test_chart_luck_pillars_useful_relation_labels():
+    """
+    用神関係ラベルが想定集合内にあることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    pillars = result[
+        "luck_pillars"
+    ][
+        "pillars"
+    ]
+
+    valid_relationships = {
+        "unknown",
+        "primary_useful",
+        "secondary_useful",
+        "support_unfavorable",
+        "neutral",
+    }
+
+    for pillar in pillars:
+        assert (
+            pillar[
+                "stem_useful_relation"
+            ][
+                "relationship"
+            ]
+            in valid_relationships
+        )
+
+        assert (
+            pillar[
+                "branch_useful_relation"
+            ][
+                "relationship"
+            ]
+            in valid_relationships
+        )
+
+
+def test_chart_luck_pillars_calculation_rules():
+    """
+    大運計算ルールのmetadataを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    rules = result[
+        "luck_pillars"
+    ][
+        "calculation_rules"
+    ]
+
+    assert (
+        rules[
+            "direction_rule"
+        ]
+        == "陽男陰女順行・陰男陽女逆行"
+    )
+
+    assert (
+        rules[
+            "start_age_rule"
+        ]
+        == "三日一年法"
+    )
+
+    assert (
+        rules[
+            "month_pillar_rule"
+        ]
+        == "月柱の次干支から第1大運"
+    )
+
+    assert (
+        rules[
+            "pillar_duration_years"
+        ]
+        == 10
+    )
+
+
+def test_chart_luck_pillars_no_duplicate_ganzhi():
+    """
+    最初の10大運に同じ干支が
+    重複しないことを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    pillars = result[
+        "luck_pillars"
+    ][
+        "pillars"
+    ]
+
+    ganzhi_list = [
+        pillar[
+            "ganzhi"
+        ]
         for pillar in pillars
     ]
 
     assert (
-        len(pillar_names)
-        == len(set(pillar_names))
+        len(
+            ganzhi_list
+        )
+        == len(
+            set(
+                ganzhi_list
+            )
+        )
     )
+
+
+def test_chart_luck_pillars_start_and_end_datetime_exist():
+    """
+    各大運に概算開始・終了日時が
+    ISO文字列として存在することを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    pillars = result[
+        "luck_pillars"
+    ][
+        "pillars"
+    ]
+
+    for pillar in pillars:
+        assert isinstance(
+            pillar[
+                "start_datetime"
+            ],
+            str,
+        )
+
+        assert isinstance(
+            pillar[
+                "end_datetime"
+            ],
+            str,
+        )
+
+        assert (
+            "T"
+            in pillar[
+                "start_datetime"
+            ]
+        )
+
+        assert (
+            "T"
+            in pillar[
+                "end_datetime"
+            ]
+        )
