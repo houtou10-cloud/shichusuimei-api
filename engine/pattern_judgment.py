@@ -1395,6 +1395,18 @@ def determine_primary_judgment(
     judgments: list[dict],
     preferred_candidate: dict | None = None,
 ) -> dict | None:
+    """
+    複数の格局成立判定からprimary_judgmentを選択する。
+
+    優先順位:
+    1. establishment_status
+    2. establishment_score
+    3. preferred_candidateとの一致
+
+    preferred_candidateは絶対指定ではなく、
+    成立状態と成立スコアが同等の場合の
+    タイブレークとしてのみ利用する。
+    """
     if not isinstance(
         judgments,
         list,
@@ -1417,6 +1429,8 @@ def determine_primary_judgment(
                 "指定してください。"
             )
 
+    preferred_pattern = None
+
     if isinstance(
         preferred_candidate,
         dict,
@@ -1427,18 +1441,36 @@ def determine_primary_judgment(
             )
         )
 
-        for judgment in judgments:
+    def primary_priority(
+        judgment: dict,
+    ) -> tuple:
+        base_priority = (
+            judgment_priority(
+                judgment
+            )
+        )
+
+        preferred_bonus = (
+            1
             if (
-                judgment.get(
+                preferred_pattern is not None
+                and judgment.get(
                     "technical_pattern"
                 )
                 == preferred_pattern
-            ):
-                return judgment
+            )
+            else 0
+        )
+
+        return (
+            base_priority[0],
+            base_priority[1],
+            preferred_bonus,
+        )
 
     return max(
         judgments,
-        key=judgment_priority,
+        key=primary_priority,
     )
 
 
