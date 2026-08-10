@@ -1,6 +1,4 @@
 """
-engine/luck_pillars.py
-
 四柱推命 大運計算エンジン v2
 
 担当範囲
@@ -1140,15 +1138,27 @@ def calculate_luck_pillars(
     明示指定された場合は、その日時を優先する。
     """
 
-    _validate_stem(year_stem)
-    _validate_stem(day_master_stem)
-    split_ganzhi(month_ganzhi)
+    _validate_stem(
+        year_stem
+    )
+
+    _validate_stem(
+        day_master_stem
+    )
+
+    split_ganzhi(
+        month_ganzhi
+    )
+
     _validate_datetime(
         birth_datetime,
         "birth_datetime",
     )
 
-    if not isinstance(count, int):
+    if not isinstance(
+        count,
+        int,
+    ):
         raise TypeError(
             "count は整数で指定してください"
         )
@@ -1158,8 +1168,10 @@ def calculate_luck_pillars(
             "count は1以上である必要があります"
         )
 
-    normalized_gender = _normalize_gender(
-        gender
+    normalized_gender = (
+        _normalize_gender(
+            gender
+        )
     )
 
     direction = determine_luck_direction(
@@ -1173,24 +1185,30 @@ def calculate_luck_pillars(
         target_term_datetime=target_term_datetime,
     )
 
-    resolved_target_datetime = target_term_info[
-        "target_term_datetime"
-    ]
+    resolved_target_datetime = (
+        target_term_info[
+            "target_term_datetime"
+        ]
+    )
 
     start_age = calculate_start_age(
         birth_datetime,
         resolved_target_datetime,
     )
 
-    term_distance_days = calculate_term_distance_days(
-        birth_datetime,
-        resolved_target_datetime,
+    term_distance_days = (
+        calculate_term_distance_days(
+            birth_datetime,
+            resolved_target_datetime,
+        )
     )
 
-    luck_ganzhi_list = generate_luck_ganzhi(
-        month_ganzhi,
-        direction,
-        count=count,
+    luck_ganzhi_list = (
+        generate_luck_ganzhi(
+            month_ganzhi,
+            direction,
+            count=count,
+        )
     )
 
     pillars = [
@@ -1247,23 +1265,31 @@ def calculate_luck_pillars(
             6,
         ),
         "start_age": start_age,
-        "start_age_detail": age_to_year_month_day(
-            start_age
+        "start_age_detail": (
+            age_to_year_month_day(
+                start_age
+            )
         ),
         "pillars": pillars,
-        "pillar_count": len(pillars),
+        "pillar_count": len(
+            pillars
+        ),
         "calculation_rules": {
             "direction_rule": (
                 "陽男陰女順行・陰男陽女逆行"
             ),
-            "start_age_rule": "三日一年法",
+            "start_age_rule": (
+                "三日一年法"
+            ),
             "month_pillar_rule": (
                 "月柱の次干支から第1大運"
             ),
             "pillar_duration_years": 10,
-            "term_datetime_source": target_term_info[
-                "target_term_source"
-            ],
+            "term_datetime_source": (
+                target_term_info[
+                    "target_term_source"
+                ]
+            ),
             "automatic_term_rule": (
                 "順行は出生後の次節、"
                 "逆行は出生前の前節"
