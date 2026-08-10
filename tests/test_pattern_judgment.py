@@ -1472,7 +1472,17 @@ def test_determine_primary_judgment_empty():
     )
 
 
-def test_determine_primary_judgment_prefers_candidate():
+def test_determine_primary_judgment_prefers_stronger_judgment():
+    """
+    preferred_candidate が指定されていても、
+    成立状態と成立スコアが明確に上回る候補を
+    primary_judgment として採用することを確認する。
+
+    現在の選択ルール:
+    1. establishment_status
+    2. establishment_score
+    3. 必要に応じて preferred_candidate を補助的に参照
+    """
     a = make_judgment(
         technical_pattern="direct_officer",
         status="strong",
@@ -1499,7 +1509,7 @@ def test_determine_primary_judgment_prefers_candidate():
         )
     )
 
-    assert result is b
+    assert result is a
 
 
 def test_determine_primary_judgment_fallback_highest():
