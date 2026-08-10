@@ -72,7 +72,7 @@ EXPECTED_PILLARS = {
     "year": "乙丑",
     "month": "癸未",
     "day": "丁巳",
-    "hour": "丁亥",
+    "hour": "辛亥",
 }
 
 
