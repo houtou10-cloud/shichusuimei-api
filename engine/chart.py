@@ -29,6 +29,9 @@ from engine.final_strength_judgment import (
 from engine.integrated_month_strength import (
     calculate_integrated_month_strength,
 )
+from engine.luck_pillars import (
+    calculate_luck_pillars,
+)
 from engine.month_command import (
     classify_month_relationship,
 )
@@ -450,6 +453,42 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    # solar_terms_v2 は現在 timezone-naive の
+    # ローカル日時を使用する。
+    # chart.py の birth_datetime は JST aware なので、
+    # 大運計算へ渡す際は「日本時間の壁時計値」を保ったまま
+    # tzinfo のみ外して互換化する。
+    luck_birth_datetime = (
+        birth_datetime.replace(
+            tzinfo=None
+        )
+    )
+
+    luck_pillars = (
+        calculate_luck_pillars(
+            year_stem=pillars[
+                "year"
+            ][
+                "stem"
+            ],
+            month_ganzhi=pillars[
+                "month"
+            ][
+                "pillar"
+            ],
+            day_master_stem=pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            gender=req.gender,
+            birth_datetime=(
+                luck_birth_datetime
+            ),
+            useful_gods=useful_gods,
+        )
+    )
+
     return {
         "input": {
             "birth_date": birth_date,
@@ -500,6 +539,9 @@ def calculate_chart(req) -> dict:
         ),
         "useful_gods": (
             useful_gods
+        ),
+        "luck_pillars": (
+            luck_pillars
         ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
