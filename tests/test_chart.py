@@ -5690,3 +5690,959 @@ def test_chart_luck_pillars_start_and_end_datetime_exist():
                 "end_datetime"
             ]
         )
+
+# ============================================================
+# Current Luck v1 Integration Tests
+# ============================================================
+
+
+CURRENT_LUCK_TARGET_DATETIME = datetime(
+    2026,
+    8,
+    10,
+    15,
+    36,
+)
+
+
+def calculate_verified_chart_with_current_luck():
+    """
+    current_luck_v1 の chart 統合テストで使用する
+    固定日時つき検証結果を返します。
+
+    datetime.now() に依存させず、
+    テストの再現性を維持します。
+    """
+    request = make_verified_request()
+
+    return calculate_chart(
+        request,
+        target_datetime=(
+            CURRENT_LUCK_TARGET_DATETIME
+        ),
+    )
+
+
+def test_chart_contains_current_luck():
+    """
+    calculate_chart() の戻り値に
+    current_luck が含まれることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert "current_luck" in result
+
+    assert isinstance(
+        result[
+            "current_luck"
+        ],
+        dict,
+    )
+
+
+def test_chart_current_luck_required_keys():
+    """
+    current_luck_v1 の主要キーが
+    chart 統合後も存在することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_luck = result[
+        "current_luck"
+    ]
+
+    required_keys = {
+        "has_current_luck",
+        "phase",
+        "exact_age",
+        "calendar_age",
+        "current_luck_pillar",
+        "previous_luck_pillar",
+        "next_luck_pillar",
+        "progress",
+        "years_until_next_luck",
+        "method",
+        "status",
+        "notes",
+    }
+
+    assert required_keys.issubset(
+        current_luck.keys()
+    )
+
+
+def test_chart_current_luck_v1_metadata():
+    """
+    current_luck_v1 の method / status を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_luck = result[
+        "current_luck"
+    ]
+
+    assert (
+        current_luck[
+            "method"
+        ]
+        == "current_luck_v1"
+    )
+
+    assert (
+        current_luck[
+            "status"
+        ]
+        in {
+            "current_luck_resolved",
+            "before_first_luck",
+            "after_last_luck",
+        }
+    )
+
+    assert isinstance(
+        current_luck[
+            "notes"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            current_luck[
+                "notes"
+            ]
+        )
+        >= 1
+    )
+
+
+def test_chart_current_luck_fixed_target_is_reproducible():
+    """
+    同じ target_datetime を指定した場合、
+    current_luck の結果が再現されることを確認します。
+    """
+    request = make_verified_request()
+
+    first = calculate_chart(
+        request,
+        target_datetime=(
+            CURRENT_LUCK_TARGET_DATETIME
+        ),
+    )
+
+    second = calculate_chart(
+        request,
+        target_datetime=(
+            CURRENT_LUCK_TARGET_DATETIME
+        ),
+    )
+
+    assert (
+        first[
+            "current_luck"
+        ]
+        == second[
+            "current_luck"
+        ]
+    )
+
+
+def test_chart_current_luck_age_fields_exist():
+    """
+    exact_age / calendar_age が
+    正常な型と範囲であることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_luck = result[
+        "current_luck"
+    ]
+
+    assert isinstance(
+        current_luck[
+            "exact_age"
+        ],
+        (int, float),
+    )
+
+    assert not isinstance(
+        current_luck[
+            "exact_age"
+        ],
+        bool,
+    )
+
+    assert (
+        current_luck[
+            "exact_age"
+        ]
+        >= 0.0
+    )
+
+    assert isinstance(
+        current_luck[
+            "calendar_age"
+        ],
+        int,
+    )
+
+    assert not isinstance(
+        current_luck[
+            "calendar_age"
+        ],
+        bool,
+    )
+
+    assert (
+        current_luck[
+            "calendar_age"
+        ]
+        >= 0
+    )
+
+
+def test_chart_current_luck_verified_calendar_age():
+    """
+    1985-07-17 生まれを
+    2026-08-10 時点で判定すると
+    満41歳であることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "current_luck"
+        ][
+            "calendar_age"
+        ]
+        == 41
+    )
+
+
+def test_chart_current_luck_exact_age_is_consistent():
+    """
+    exact_age が満年齢以上かつ、
+    次の誕生日までの範囲にあることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_luck = result[
+        "current_luck"
+    ]
+
+    exact_age = current_luck[
+        "exact_age"
+    ]
+
+    calendar_age = current_luck[
+        "calendar_age"
+    ]
+
+    assert (
+        calendar_age
+        <= exact_age
+        < calendar_age + 1.1
+    )
+
+
+def test_chart_current_luck_phase_is_valid():
+    """
+    phase が current_luck_v1 の
+    想定集合内にあることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "current_luck"
+        ][
+            "phase"
+        ]
+        in {
+            "before_first_luck",
+            "in_luck_pillar",
+            "after_last_luck",
+        }
+    )
+
+
+def test_chart_current_luck_verified_is_in_luck():
+    """
+    2026年時点では生成済み大運範囲内にあるため、
+    現在大運が取得できることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_luck = result[
+        "current_luck"
+    ]
+
+    assert (
+        current_luck[
+            "has_current_luck"
+        ]
+        is True
+    )
+
+    assert (
+        current_luck[
+            "phase"
+        ]
+        == "in_luck_pillar"
+    )
+
+    assert (
+        current_luck[
+            "current_luck_pillar"
+        ]
+        is not None
+    )
+
+
+def test_chart_current_luck_pillar_required_keys():
+    """
+    現在大運に必要な主要キーを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_pillar = result[
+        "current_luck"
+    ][
+        "current_luck_pillar"
+    ]
+
+    required_keys = {
+        "index",
+        "ganzhi",
+        "stem",
+        "branch",
+        "start_age",
+        "end_age",
+        "is_current",
+        "is_previous",
+        "is_next",
+    }
+
+    assert required_keys.issubset(
+        current_pillar.keys()
+    )
+
+
+def test_chart_current_luck_current_flag():
+    """
+    current_luck_pillar のフラグを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_pillar = result[
+        "current_luck"
+    ][
+        "current_luck_pillar"
+    ]
+
+    assert (
+        current_pillar[
+            "is_current"
+        ]
+        is True
+    )
+
+    assert (
+        current_pillar[
+            "is_previous"
+        ]
+        is False
+    )
+
+    assert (
+        current_pillar[
+            "is_next"
+        ]
+        is False
+    )
+
+
+def test_chart_current_luck_matches_luck_pillars():
+    """
+    current_luck_pillar が
+    luck_pillars 内の同一 index の大運と一致することを
+    確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_pillar = result[
+        "current_luck"
+    ][
+        "current_luck_pillar"
+    ]
+
+    index = current_pillar[
+        "index"
+    ]
+
+    source_pillar = result[
+        "luck_pillars"
+    ][
+        "pillars"
+    ][
+        index - 1
+    ]
+
+    for key in {
+        "index",
+        "ganzhi",
+        "stem",
+        "branch",
+        "start_age",
+        "end_age",
+    }:
+        assert (
+            current_pillar[
+                key
+            ]
+            == source_pillar[
+                key
+            ]
+        )
+
+
+def test_chart_current_luck_ganzhi_matches_stem_branch():
+    """
+    現在大運の ganzhi == stem + branch を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_pillar = result[
+        "current_luck"
+    ][
+        "current_luck_pillar"
+    ]
+
+    assert (
+        current_pillar[
+            "ganzhi"
+        ]
+        == (
+            current_pillar[
+                "stem"
+            ]
+            + current_pillar[
+                "branch"
+            ]
+        )
+    )
+
+
+def test_chart_current_luck_age_inside_current_period():
+    """
+    exact_age が現在大運の
+    start_age <= age < end_age
+    を満たすことを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_luck = result[
+        "current_luck"
+    ]
+
+    age = current_luck[
+        "exact_age"
+    ]
+
+    pillar = current_luck[
+        "current_luck_pillar"
+    ]
+
+    assert (
+        pillar[
+            "start_age"
+        ]
+        <= age
+        < pillar[
+            "end_age"
+        ]
+    )
+
+
+def test_chart_current_luck_previous_consistency():
+    """
+    previous_luck_pillar がある場合、
+    現在大運の1つ前であることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_luck = result[
+        "current_luck"
+    ]
+
+    current_pillar = current_luck[
+        "current_luck_pillar"
+    ]
+
+    previous_pillar = current_luck[
+        "previous_luck_pillar"
+    ]
+
+    if current_pillar[
+        "index"
+    ] == 1:
+        assert previous_pillar is None
+    else:
+        assert previous_pillar is not None
+
+        assert (
+            previous_pillar[
+                "index"
+            ]
+            == current_pillar[
+                "index"
+            ]
+            - 1
+        )
+
+        assert (
+            previous_pillar[
+                "is_previous"
+            ]
+            is True
+        )
+
+        assert (
+            previous_pillar[
+                "is_current"
+            ]
+            is False
+        )
+
+
+def test_chart_current_luck_next_consistency():
+    """
+    next_luck_pillar がある場合、
+    現在大運の1つ後であることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_luck = result[
+        "current_luck"
+    ]
+
+    current_pillar = current_luck[
+        "current_luck_pillar"
+    ]
+
+    next_pillar = current_luck[
+        "next_luck_pillar"
+    ]
+
+    pillar_count = result[
+        "luck_pillars"
+    ][
+        "pillar_count"
+    ]
+
+    if current_pillar[
+        "index"
+    ] == pillar_count:
+        assert next_pillar is None
+    else:
+        assert next_pillar is not None
+
+        assert (
+            next_pillar[
+                "index"
+            ]
+            == current_pillar[
+                "index"
+            ]
+            + 1
+        )
+
+        assert (
+            next_pillar[
+                "is_next"
+            ]
+            is True
+        )
+
+        assert (
+            next_pillar[
+                "is_current"
+            ]
+            is False
+        )
+
+
+def test_chart_current_luck_progress_exists():
+    """
+    現在大運がある場合に progress が
+    辞書として返ることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    progress = result[
+        "current_luck"
+    ][
+        "progress"
+    ]
+
+    assert isinstance(
+        progress,
+        dict,
+    )
+
+    required_keys = {
+        "start_age",
+        "end_age",
+        "duration_years",
+        "elapsed_years",
+        "remaining_years",
+        "progress_ratio",
+        "progress_percent",
+    }
+
+    assert required_keys.issubset(
+        progress.keys()
+    )
+
+
+def test_chart_current_luck_progress_range():
+    """
+    進行率が0～100%の範囲に収まることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    progress = result[
+        "current_luck"
+    ][
+        "progress"
+    ]
+
+    assert (
+        0.0
+        <= progress[
+            "progress_ratio"
+        ]
+        <= 1.0
+    )
+
+    assert (
+        0.0
+        <= progress[
+            "progress_percent"
+        ]
+        <= 100.0
+    )
+
+
+def test_chart_current_luck_progress_matches_period():
+    """
+    progress の開始・終了年齢が
+    current_luck_pillar と一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_luck = result[
+        "current_luck"
+    ]
+
+    progress = current_luck[
+        "progress"
+    ]
+
+    pillar = current_luck[
+        "current_luck_pillar"
+    ]
+
+    assert (
+        progress[
+            "start_age"
+        ]
+        == pillar[
+            "start_age"
+        ]
+    )
+
+    assert (
+        progress[
+            "end_age"
+        ]
+        == pillar[
+            "end_age"
+        ]
+    )
+
+    assert (
+        progress[
+            "duration_years"
+        ]
+        == 10.0
+    )
+
+
+def test_chart_current_luck_remaining_matches_years_until_next():
+    """
+    現在大運中では progress.remaining_years と
+    years_until_next_luck が一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    current_luck = result[
+        "current_luck"
+    ]
+
+    assert (
+        current_luck[
+            "years_until_next_luck"
+        ]
+        == current_luck[
+            "progress"
+        ][
+            "remaining_years"
+        ]
+    )
+
+
+def test_chart_current_luck_does_not_mutate_luck_pillars():
+    """
+    current_luck 用の is_current 等のフラグが、
+    元の luck_pillars データへ混入しないことを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    for pillar in result[
+        "luck_pillars"
+    ][
+        "pillars"
+    ]:
+        assert (
+            "is_current"
+            not in pillar
+        )
+
+        assert (
+            "is_previous"
+            not in pillar
+        )
+
+        assert (
+            "is_next"
+            not in pillar
+        )
+
+
+def test_chart_current_luck_target_datetime_accepts_jst_aware():
+    """
+    JST aware datetime を指定しても
+    current_luck を計算できることを確認します。
+    """
+    request = make_verified_request()
+
+    target = datetime(
+        2026,
+        8,
+        10,
+        15,
+        36,
+        tzinfo=JST,
+    )
+
+    result = calculate_chart(
+        request,
+        target_datetime=target,
+    )
+
+    assert (
+        result[
+            "current_luck"
+        ][
+            "method"
+        ]
+        == "current_luck_v1"
+    )
+
+
+def test_chart_current_luck_target_datetime_invalid_type():
+    """
+    target_datetime が datetime 以外なら
+    TypeError になることを確認します。
+    """
+    request = make_verified_request()
+
+    with pytest.raises(
+        TypeError
+    ):
+        calculate_chart(
+            request,
+            target_datetime=(
+                "2026-08-10 15:36"
+            ),
+        )
+
+
+def test_chart_current_luck_default_target_works():
+    """
+    target_datetime=None の通常API経路でも
+    current_luck が生成されることを確認します。
+
+    現在時刻依存なので具体的な大運番号は固定しません。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request
+    )
+
+    assert (
+        "current_luck"
+        in result
+    )
+
+    assert (
+        result[
+            "current_luck"
+        ][
+            "method"
+        ]
+        == "current_luck_v1"
+    )
+
+
+def test_chart_current_luck_verified_chart_is_preserved():
+    """
+    current_luck 統合後も、
+    既存の検証命式が変わらないことを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "year"
+        ][
+            "pillar"
+        ]
+        == "乙丑"
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "month"
+        ][
+            "pillar"
+        ]
+        == "癸未"
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "day"
+        ][
+            "pillar"
+        ]
+        == "乙巳"
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "hour"
+        ][
+            "pillar"
+        ]
+        == "丁亥"
+    )
+
+
+def test_chart_current_luck_preserves_useful_gods_v3():
+    """
+    current_luck 統合後も
+    useful_gods_v3 が維持されることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "useful_gods"
+        ][
+            "method"
+        ]
+        == "useful_gods_v3"
+    )
+
+
+def test_chart_current_luck_preserves_luck_pillars_v2():
+    """
+    current_luck 統合後も
+    luck_pillars_v2 が維持されることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "luck_pillars"
+        ][
+            "method"
+        ]
+        == "luck_pillars_v2"
+    )
+
+    assert (
+        result[
+            "luck_pillars"
+        ][
+            "pillar_count"
+        ]
+        == 10
+    )
