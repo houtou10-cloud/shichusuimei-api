@@ -1,36 +1,59 @@
 """
 engine/solar_terms.py
 
-四柱推命 節入り・節気エンジン v2
+四柱推命 節入り・節気エンジン v3
 
 目的
 ----
-1. 月柱判定に必要な12節を管理する
-2. 出生日時より前の節入りを取得する
-3. 出生日時より後の節入りを取得する
-4. 大運の順行・逆行に応じた対象節入りを取得する
-5. 将来の天文計算エンジンへの差し替え口を統一する
+1. 四柱推命の月境界として使用する12節を管理する
+2. Skyfield により太陽黄経から節入り日時を計算する
+3. 出生日時より前の直近節入りを取得する
+4. 出生日時より後の直近節入りを取得する
+5. 大運の順行・逆行に応じた対象節入りを取得する
+6. 月支・四柱推命上の月番号を取得する
+7. 節入りからの経過日数を取得する
+8. 既存 solar_terms_v2 API との互換性を維持する
 
-重要
-----
-現在は「固定月日・固定時刻」による暫定計算。
+計算方針
+--------
+四柱推命で月境界として使用する12の「節」は、
+太陽の視黄経ではなく、地球から見た太陽の
+黄道座標上の黄経を基準として求める。
 
-実際の節入り日時は年ごとに変動するため、
-鑑定実用版では Skyfield 等による
-太陽黄経計算へ置き換える必要がある。
+各節の黄経:
+    小寒   285°
+    立春   315°
+    啓蟄   345°
+    清明    15°
+    立夏    45°
+    芒種    75°
+    小暑   105°
+    立秋   135°
+    白露   165°
+    寒露   195°
+    立冬   225°
+    大雪   255°
 
-ただし公開APIは維持し、
-内部計算だけ差し替えられる設計とする。
+Skyfield内部ではUTCで計算し、
+公開APIでは日本標準時相当の
+timezone-naive datetime を返す。
+
+これは既存エンジンとの互換性を維持するためである。
 
 Version:
-    solar_terms_v2
+    solar_terms_v3
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Dict, List, Optional
+from datetime import datetime, timedelta, timezone
+from functools import lru_cache
+from pathlib import Path
+from typing import Dict, List
+
+from skyfield.api import load
+from skyfield.framelib import ecliptic_frame
 
 
 # =========================================================
@@ -38,22 +61,33 @@ from typing import Dict, List, Optional
 # =========================================================
 
 
-SOLAR_TERM_METHOD = "fixed_solar_terms_v2"
+SOLAR_TERM_METHOD = "skyfield_solar_longitude_v3"
 
-SOLAR_TERM_STATUS = "provisional"
+SOLAR_TERM_STATUS = "astronomical"
+
+
+JST = timezone(
+    timedelta(
+        hours=9
+    )
+)
 
 
 # ---------------------------------------------------------
-# 四柱推命で月境界として使う「節」12個
+# 四柱推命で月境界として使用する12節
+#
+# longitude:
+#   太陽黄経
 #
 # month_branch:
 #   その節入り後に始まる月支
 #
 # month_number:
-#   寅月を1として数えた四柱推命上の月番号
+#   寅月を1として数える
 #
-# 現在は固定日時。
-# 将来は太陽黄経計算へ置換する。
+# approximate_month/day:
+#   天文探索範囲を作るためだけの概算日。
+#   実際の節入り日時には使用しない。
 # ---------------------------------------------------------
 
 
@@ -64,6 +98,7 @@ SOLAR_TERMS = [
         "day": 6,
         "hour": 0,
         "minute": 0,
+        "longitude": 285.0,
         "month_branch": "丑",
         "month_number": 12,
     },
@@ -73,6 +108,7 @@ SOLAR_TERMS = [
         "day": 4,
         "hour": 0,
         "minute": 0,
+        "longitude": 315.0,
         "month_branch": "寅",
         "month_number": 1,
     },
@@ -82,6 +118,7 @@ SOLAR_TERMS = [
         "day": 6,
         "hour": 0,
         "minute": 0,
+        "longitude": 345.0,
         "month_branch": "卯",
         "month_number": 2,
     },
@@ -91,6 +128,7 @@ SOLAR_TERMS = [
         "day": 5,
         "hour": 0,
         "minute": 0,
+        "longitude": 15.0,
         "month_branch": "辰",
         "month_number": 3,
     },
@@ -100,6 +138,7 @@ SOLAR_TERMS = [
         "day": 6,
         "hour": 0,
         "minute": 0,
+        "longitude": 45.0,
         "month_branch": "巳",
         "month_number": 4,
     },
@@ -109,6 +148,7 @@ SOLAR_TERMS = [
         "day": 6,
         "hour": 0,
         "minute": 0,
+        "longitude": 75.0,
         "month_branch": "午",
         "month_number": 5,
     },
@@ -118,6 +158,7 @@ SOLAR_TERMS = [
         "day": 7,
         "hour": 0,
         "minute": 0,
+        "longitude": 105.0,
         "month_branch": "未",
         "month_number": 6,
     },
@@ -127,6 +168,7 @@ SOLAR_TERMS = [
         "day": 8,
         "hour": 0,
         "minute": 0,
+        "longitude": 135.0,
         "month_branch": "申",
         "month_number": 7,
     },
@@ -136,6 +178,7 @@ SOLAR_TERMS = [
         "day": 8,
         "hour": 0,
         "minute": 0,
+        "longitude": 165.0,
         "month_branch": "酉",
         "month_number": 8,
     },
@@ -145,6 +188,7 @@ SOLAR_TERMS = [
         "day": 8,
         "hour": 0,
         "minute": 0,
+        "longitude": 195.0,
         "month_branch": "戌",
         "month_number": 9,
     },
@@ -154,6 +198,7 @@ SOLAR_TERMS = [
         "day": 7,
         "hour": 0,
         "minute": 0,
+        "longitude": 225.0,
         "month_branch": "亥",
         "month_number": 10,
     },
@@ -163,6 +208,7 @@ SOLAR_TERMS = [
         "day": 7,
         "hour": 0,
         "minute": 0,
+        "longitude": 255.0,
         "month_branch": "子",
         "month_number": 11,
     },
@@ -206,6 +252,7 @@ class SolarTerm:
     datetime: datetime
     month_branch: str
     month_number: int
+    longitude: float
     method: str = SOLAR_TERM_METHOD
     status: str = SOLAR_TERM_STATUS
 
@@ -312,26 +359,325 @@ def get_solar_term_by_month(
 
 
 # =========================================================
+# Skyfield resources
+# =========================================================
+
+
+@lru_cache(
+    maxsize=1
+)
+def _get_timescale():
+    """
+    Skyfield Timescale をキャッシュする。
+    """
+
+    return load.timescale()
+
+
+@lru_cache(
+    maxsize=1
+)
+def _get_ephemeris():
+    """
+    JPL DE421 暦を取得する。
+
+    Skyfield標準キャッシュを使用するため、
+    初回のみファイル取得が必要になる場合がある。
+
+    2回目以降はキャッシュを使用する。
+    """
+
+    return load(
+        "de421.bsp"
+    )
+
+
+# =========================================================
+# Longitude helpers
+# =========================================================
+
+
+def _normalize_longitude(
+    longitude: float,
+) -> float:
+    """
+    黄経を0以上360未満へ正規化する。
+    """
+
+    return (
+        longitude
+        % 360.0
+    )
+
+
+def _angular_difference(
+    current: float,
+    target: float,
+) -> float:
+    """
+    target に対する current の符号付き角度差。
+
+    戻り値:
+        -180 <= value < 180
+    """
+
+    return (
+        (
+            current
+            - target
+            + 180.0
+        )
+        % 360.0
+    ) - 180.0
+
+
+def _sun_ecliptic_longitude(
+    utc_datetime: datetime,
+) -> float:
+    """
+    指定UTC日時における地心視太陽黄経を返す。
+    """
+
+    if utc_datetime.tzinfo is None:
+        utc_datetime = (
+            utc_datetime.replace(
+                tzinfo=timezone.utc
+            )
+        )
+    else:
+        utc_datetime = (
+            utc_datetime.astimezone(
+                timezone.utc
+            )
+        )
+
+    ts = _get_timescale()
+    eph = _get_ephemeris()
+
+    earth = eph["earth"]
+    sun = eph["sun"]
+
+    t = ts.from_datetime(
+        utc_datetime
+    )
+
+    apparent = (
+        earth.at(
+            t
+        )
+        .observe(
+            sun
+        )
+        .apparent()
+    )
+
+    _, longitude, _ = (
+        apparent.frame_latlon(
+            ecliptic_frame
+        )
+    )
+
+    return _normalize_longitude(
+        longitude.degrees
+    )
+
+
+# =========================================================
+# Astronomical search
+# =========================================================
+
+
+def _find_longitude_crossing(
+    *,
+    target_longitude: float,
+    start_utc: datetime,
+    end_utc: datetime,
+) -> datetime:
+    """
+    指定範囲内で太陽黄経が target_longitude に
+    到達する時刻を二分探索で求める。
+
+    太陽は通常1日約1度進むため、
+    節入り付近の短い探索区間では
+    単調増加として扱える。
+    """
+
+    if start_utc.tzinfo is None:
+        start_utc = start_utc.replace(
+            tzinfo=timezone.utc
+        )
+
+    if end_utc.tzinfo is None:
+        end_utc = end_utc.replace(
+            tzinfo=timezone.utc
+        )
+
+    if start_utc >= end_utc:
+        raise ValueError(
+            "探索開始日時は終了日時より前である必要があります"
+        )
+
+    target_longitude = (
+        _normalize_longitude(
+            target_longitude
+        )
+    )
+
+    # -----------------------------------------------------
+    # まず粗探索。
+    #
+    # 6時間刻みで符号反転区間を探す。
+    # -----------------------------------------------------
+
+    step = timedelta(
+        hours=6
+    )
+
+    previous_time = start_utc
+    previous_diff = (
+        _angular_difference(
+            _sun_ecliptic_longitude(
+                previous_time
+            ),
+            target_longitude,
+        )
+    )
+
+    current_time = (
+        previous_time
+        + step
+    )
+
+    bracket_start = None
+    bracket_end = None
+
+    while current_time <= end_utc:
+        current_diff = (
+            _angular_difference(
+                _sun_ecliptic_longitude(
+                    current_time
+                ),
+                target_longitude,
+            )
+        )
+
+        if previous_diff == 0:
+            return previous_time
+
+        if current_diff == 0:
+            return current_time
+
+        # ±180°のラップを跨いだだけの
+        # 偽の符号反転を除外する。
+        normal_crossing = (
+            previous_diff < 0
+            and current_diff > 0
+            and abs(
+                current_diff
+                - previous_diff
+            ) < 180.0
+        )
+
+        if normal_crossing:
+            bracket_start = (
+                previous_time
+            )
+            bracket_end = (
+                current_time
+            )
+            break
+
+        previous_time = (
+            current_time
+        )
+
+        previous_diff = (
+            current_diff
+        )
+
+        current_time = (
+            current_time
+            + step
+        )
+
+    if (
+        bracket_start is None
+        or bracket_end is None
+    ):
+        raise ValueError(
+            "指定範囲内で太陽黄経の到達時刻を"
+            "検出できませんでした"
+        )
+
+    # -----------------------------------------------------
+    # 二分探索。
+    #
+    # 1秒程度まで絞り込む。
+    # -----------------------------------------------------
+
+    left = bracket_start
+    right = bracket_end
+
+    while (
+        right - left
+    ).total_seconds() > 1.0:
+        middle = (
+            left
+            + (
+                right - left
+            )
+            / 2
+        )
+
+        middle_diff = (
+            _angular_difference(
+                _sun_ecliptic_longitude(
+                    middle
+                ),
+                target_longitude,
+            )
+        )
+
+        if middle_diff < 0:
+            left = middle
+        else:
+            right = middle
+
+    return (
+        left
+        + (
+            right - left
+        )
+        / 2
+    )
+
+
+# =========================================================
 # Solar-term datetime
 # =========================================================
 
 
+@lru_cache(
+    maxsize=512
+)
 def get_solar_term_datetime(
     year: int,
     name: str,
 ) -> datetime:
     """
-    指定年・指定節の節入り日時を返す。
+    指定年・指定節の実際の節入り日時を返す。
 
-    現在は固定日時。
+    内部:
+        Skyfield / JPL DE421
+        太陽黄経
 
-    Example
-    -------
-    >>> get_solar_term_datetime(
-    ...     1984,
-    ...     "小暑",
-    ... )
-    datetime(1984, 7, 7, 0, 0)
+    出力:
+        日本標準時相当の
+        timezone-naive datetime
+
+    timezone-naive として返すのは、
+    既存の四柱推命エンジンとの互換性を
+    維持するため。
     """
 
     _validate_year(
@@ -344,12 +690,65 @@ def get_solar_term_datetime(
         )
     )
 
-    return datetime(
+    target_longitude = (
+        float(
+            definition[
+                "longitude"
+            ]
+        )
+    )
+
+    # 概算日の前後5日を探索する。
+    #
+    # JSTの概算日をUTCへ変換して
+    # 探索範囲を作る。
+
+    approximate_jst = datetime(
         year,
         definition["month"],
         definition["day"],
-        definition["hour"],
-        definition["minute"],
+        12,
+        0,
+        tzinfo=JST,
+    )
+
+    approximate_utc = (
+        approximate_jst.astimezone(
+            timezone.utc
+        )
+    )
+
+    start_utc = (
+        approximate_utc
+        - timedelta(
+            days=5
+        )
+    )
+
+    end_utc = (
+        approximate_utc
+        + timedelta(
+            days=5
+        )
+    )
+
+    crossing_utc = (
+        _find_longitude_crossing(
+            target_longitude=target_longitude,
+            start_utc=start_utc,
+            end_utc=end_utc,
+        )
+    )
+
+    crossing_jst = (
+        crossing_utc.astimezone(
+            JST
+        )
+    )
+
+    # 既存API互換のためtzinfoを外す。
+    return crossing_jst.replace(
+        tzinfo=None
     )
 
 
@@ -383,6 +782,11 @@ def build_solar_term(
         month_number=definition[
             "month_number"
         ],
+        longitude=float(
+            definition[
+                "longitude"
+            ]
+        ),
     )
 
 
@@ -391,11 +795,14 @@ def build_solar_term(
 # =========================================================
 
 
-def get_year_solar_terms(
+@lru_cache(
+    maxsize=128
+)
+def _get_year_solar_terms_cached(
     year: int,
-) -> List[SolarTerm]:
+) -> tuple[SolarTerm, ...]:
     """
-    指定年の12節を時系列で返す。
+    内部キャッシュ版。
     """
 
     _validate_year(
@@ -405,15 +812,35 @@ def get_year_solar_terms(
     terms = [
         build_solar_term(
             year,
-            definition["name"],
+            definition[
+                "name"
+            ],
         )
         for definition
         in SOLAR_TERMS
     ]
 
-    return sorted(
-        terms,
-        key=lambda item: item.datetime,
+    return tuple(
+        sorted(
+            terms,
+            key=lambda item: (
+                item.datetime
+            ),
+        )
+    )
+
+
+def get_year_solar_terms(
+    year: int,
+) -> List[SolarTerm]:
+    """
+    指定年の12節を時系列で返す。
+    """
+
+    return list(
+        _get_year_solar_terms_cached(
+            year
+        )
     )
 
 
@@ -466,8 +893,15 @@ def solar_term_to_dict(
         "month_number": (
             term.month_number
         ),
-        "method": term.method,
-        "status": term.status,
+        "longitude": (
+            term.longitude
+        ),
+        "method": (
+            term.method
+        ),
+        "status": (
+            term.status
+        ),
     }
 
 
@@ -511,7 +945,9 @@ def get_surrounding_solar_terms(
 
     return sorted(
         terms,
-        key=lambda item: item.datetime,
+        key=lambda item: (
+            item.datetime
+        ),
     )
 
 
@@ -572,7 +1008,9 @@ def get_previous_solar_term(
 
     return max(
         candidates,
-        key=lambda item: item.datetime,
+        key=lambda item: (
+            item.datetime
+        ),
     )
 
 
@@ -628,7 +1066,9 @@ def get_next_solar_term(
 
     return min(
         candidates,
-        key=lambda item: item.datetime,
+        key=lambda item: (
+            item.datetime
+        ),
     )
 
 
@@ -653,11 +1093,11 @@ def get_luck_pillar_target_term(
         出生前の直前の節入り。
 
     節入りちょうどの出生では、
-    現在はその節そのものではなく
-    「次」または「前」を使う。
+    その節そのものではなく
+    次節または前節を使用する。
 
-    この境界ルールは将来、
-    流派設定として分離可能。
+    将来的には流派設定として
+    分離可能。
     """
 
     _validate_datetime(
@@ -686,9 +1126,7 @@ def get_luck_pillar_target_datetime(
     direction: str,
 ) -> datetime:
     """
-    大運用対象節入りの datetime だけを返す。
-
-    luck_pillars.py との接続用。
+    大運用対象節入りのdatetimeだけを返す。
     """
 
     term = (
@@ -712,7 +1150,8 @@ def get_current_solar_term(
     """
     対象日時が属する四柱推命上の節月を返す。
 
-    節入り時刻そのものは新しい月として扱う。
+    節入り時刻そのものは
+    新しい月として扱う。
     """
 
     return get_previous_solar_term(
@@ -810,6 +1249,128 @@ def get_distance_to_next_term_days(
     )
 
 
+def get_solar_term_position(
+    target_datetime: datetime,
+) -> Dict:
+    """
+    現在の節月内での位置を返す。
+
+    月令精密化で使用するための
+    補助情報。
+
+    Returns
+    -------
+    {
+        current_term,
+        next_term,
+        days_from_current_term,
+        days_to_next_term,
+        term_span_days,
+        progress_ratio,
+        is_just_after_term,
+    }
+    """
+
+    _validate_datetime(
+        target_datetime,
+        "target_datetime",
+    )
+
+    current_term = (
+        get_current_solar_term(
+            target_datetime
+        )
+    )
+
+    next_term = (
+        get_next_solar_term(
+            target_datetime,
+            inclusive=False,
+        )
+    )
+
+    elapsed = (
+        target_datetime
+        - current_term.datetime
+    )
+
+    remaining = (
+        next_term.datetime
+        - target_datetime
+    )
+
+    span = (
+        next_term.datetime
+        - current_term.datetime
+    )
+
+    elapsed_days = (
+        elapsed.total_seconds()
+        / 86400.0
+    )
+
+    remaining_days = (
+        remaining.total_seconds()
+        / 86400.0
+    )
+
+    span_days = (
+        span.total_seconds()
+        / 86400.0
+    )
+
+    if span_days <= 0:
+        progress_ratio = 0.0
+    else:
+        progress_ratio = (
+            elapsed_days
+            / span_days
+        )
+
+    progress_ratio = max(
+        0.0,
+        min(
+            1.0,
+            progress_ratio,
+        ),
+    )
+
+    return {
+        "current_term": (
+            solar_term_to_dict(
+                current_term
+            )
+        ),
+        "next_term": (
+            solar_term_to_dict(
+                next_term
+            )
+        ),
+        "days_from_current_term": round(
+            elapsed_days,
+            8,
+        ),
+        "days_to_next_term": round(
+            remaining_days,
+            8,
+        ),
+        "term_span_days": round(
+            span_days,
+            8,
+        ),
+        "progress_ratio": round(
+            progress_ratio,
+            8,
+        ),
+        "is_just_after_term": (
+            elapsed_days
+            < 3.0
+        ),
+        "method": SOLAR_TERM_METHOD,
+        "status": SOLAR_TERM_STATUS,
+    }
+
+
 # =========================================================
 # Debug / metadata
 # =========================================================
@@ -834,33 +1395,34 @@ def get_solar_terms_metadata() -> Dict:
             "12_month_boundary_terms"
         ),
         "precision": (
-            "fixed_day_time"
+            "astronomical_solar_longitude"
         ),
         "timezone": (
-            "naive_local_datetime"
+            "JST_naive_public_api"
+        ),
+        "ephemeris": (
+            "JPL DE421"
         ),
         "supports": [
             "month_boundary",
             "previous_term",
             "next_term",
             "luck_pillar_target_term",
+            "solar_term_position",
+            "astronomical_longitude",
         ],
         "limitations": [
             (
-                "節入り日時は固定月日・"
-                "固定時刻による暫定値です。"
+                "公開APIでは既存コードとの互換性のため"
+                "JST相当のtimezone-naive datetimeを返します。"
             ),
             (
-                "実際の節入り日時は"
-                "年ごとに変動します。"
+                "出生地による真太陽時補正は"
+                "このモジュールでは行いません。"
             ),
             (
-                "高精度鑑定では太陽黄経による"
-                "天文計算への置換が必要です。"
-            ),
-            (
-                "現在のdatetimeは"
-                "timezone-naiveです。"
+                "大運開始年齢の流派差は"
+                "luck_pillars側で扱います。"
             ),
         ],
     }
@@ -940,6 +1502,7 @@ __all__ = [
     "get_month_number_by_datetime",
     "get_distance_to_previous_term_days",
     "get_distance_to_next_term_days",
+    "get_solar_term_position",
     "get_solar_terms_metadata",
     "get_previous_term",
     "get_next_term",
