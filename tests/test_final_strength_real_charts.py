@@ -36,6 +36,12 @@ def make_request(
     )
 
 
+# 日柱回帰基準:
+# 1984-07-10 = 乙巳
+# 1984-07-21 = 丙辰
+# 1984-07-22 = 丁巳
+# 1985-07-17 = 丁巳
+# 日干変更に伴い時柱も再計算する。
 REAL_CHART_CASES = [
     {
         "id": "1984_hokkaido_female_early_hour",
@@ -46,10 +52,10 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "甲子",
             "month": "辛未",
-            "day": "乙巳",
-            "hour": "戊寅",
+            "day": "丁巳",
+            "hour": "壬寅",
         },
-        "day_master": "乙",
+        "day_master": "丁",
     },
     {
         "id": "1984_fukuoka_male_afternoon",
@@ -60,10 +66,10 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "甲子",
             "month": "辛未",
-            "day": "乙巳",
-            "hour": "癸未",
+            "day": "丁巳",
+            "hour": "丁未",
         },
-        "day_master": "乙",
+        "day_master": "丁",
     },
     {
         "id": "1985_ishikawa_female_verified",
@@ -74,10 +80,10 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "乙丑",
             "month": "癸未",
-            "day": "乙巳",
-            "hour": "丁亥",
+            "day": "丁巳",
+            "hour": "辛亥",
         },
-        "day_master": "乙",
+        "day_master": "丁",
     },
 ]
 
@@ -628,14 +634,14 @@ def test_verified_1985_chart_pillars():
         result["chart"]["day"][
             "pillar"
         ]
-        == "乙巳"
+        == "丁巳"
     )
 
     assert (
         result["chart"]["hour"][
             "pillar"
         ]
-        == "丁亥"
+        == "辛亥"
     )
 
 
