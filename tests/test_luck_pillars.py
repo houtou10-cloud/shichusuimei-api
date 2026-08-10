@@ -1096,14 +1096,14 @@ def test_calculate_luck_pillars_forward():
         result[
             "method"
         ]
-        == "luck_pillars_v1"
+        == "luck_pillars_v2"
     )
 
     assert (
         result[
             "status"
         ]
-        == "provisional_luck_pillars_v1"
+        == "provisional_luck_pillars_v2"
     )
 
 
