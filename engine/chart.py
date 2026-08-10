@@ -2,6 +2,9 @@ from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 
+from engine.annual_luck import (
+    calculate_annual_luck_for_datetime,
+)
 from engine.branch_relation_strength import (
     calculate_branch_relation_strength,
 )
@@ -12,6 +15,15 @@ from engine.branch_relations import (
     find_branch_harms,
     find_branch_punishments,
     find_branch_trines,
+)
+from engine.climate_useful_gods import (
+    evaluate_climate_useful_gods,
+)
+from engine.current_luck import (
+    evaluate_current_luck,
+)
+from engine.integrated_luck import (
+    calculate_integrated_luck,
 )
 from engine.day_master_strength import (
     classify_five_elements_for_day_master,
@@ -26,8 +38,23 @@ from engine.final_strength_judgment import (
 from engine.integrated_month_strength import (
     calculate_integrated_month_strength,
 )
+from engine.luck_pillars import (
+    calculate_luck_pillars,
+)
 from engine.month_command import (
     classify_month_relationship,
+)
+from engine.pattern_candidates import (
+    evaluate_pattern_candidates,
+)
+from engine.pattern_judgment import (
+    evaluate_pattern_judgment,
+)
+from engine.pattern_useful_gods import (
+    evaluate_pattern_useful_gods,
+)
+from engine.pattern_special_rules import (
+    evaluate_pattern_special_rules,
 )
 from engine.pillars import calculate_four_pillars
 from engine.root_strength import find_roots
@@ -58,6 +85,9 @@ from engine.transformation_exposure import (
 )
 from engine.transformation_root import (
     evaluate_transformation_roots,
+)
+from engine.useful_gods import (
+    evaluate_useful_gods_v3,
 )
 from engine.weighted_five_elements import (
     calculate_weighted_five_elements,
@@ -127,9 +157,18 @@ def normalize_birth_time(
     return value
 
 
-def calculate_chart(req) -> dict:
+def calculate_chart(
+    req,
+    target_datetime: datetime | None = None,
+) -> dict:
     """
     APIの入力情報から命式と各種分析データを作成します。
+
+    target_datetime:
+        現在大運を判定する基準日時。
+
+        None の場合は Asia/Tokyo の現在日時を使用します。
+        テストでは固定日時を渡すことで再現性を確保できます。
     """
     birth_date = normalize_birth_date(
         req.birth_date
@@ -221,7 +260,6 @@ def calculate_chart(req) -> dict:
         )
     )
 
-
     five_elements = calculate_five_elements(
         chart_data
     )
@@ -257,7 +295,6 @@ def calculate_chart(req) -> dict:
             chart_data,
         )
     )
-
 
     branch_clashes = (
         find_branch_clashes(
@@ -305,6 +342,7 @@ def calculate_chart(req) -> dict:
             branch_breaks,
         )
     )
+
     month_command = (
         classify_month_relationship(
             pillars["day_master"]["stem"],
@@ -367,6 +405,212 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    pattern_candidates = (
+        evaluate_pattern_candidates(
+            chart_data,
+            pillars["day_master"]["stem"],
+        )
+    )
+
+    pattern_special_rules = (
+        evaluate_pattern_special_rules(
+            chart_data,
+            final_strength_judgment,
+        )
+    )
+
+    pattern_judgment = (
+        evaluate_pattern_judgment(
+            pattern_candidates,
+            final_strength_judgment,
+            stem_transformation_judgment,
+            branch_relation_strength,
+            pattern_special_rules,
+        )
+    )
+
+    pattern_useful_gods = (
+        evaluate_pattern_useful_gods(
+            pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            pattern_judgment,
+            weighted_five_elements,
+        )
+    )
+
+    climate_useful_gods = (
+        evaluate_climate_useful_gods(
+            pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            pillars[
+                "month"
+            ][
+                "branch"
+            ],
+        )
+    )
+
+    useful_gods = (
+        evaluate_useful_gods_v3(
+            pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            weighted_five_elements,
+            final_strength_judgment,
+            pattern_judgment,
+            climate_useful_gods,
+            pattern_useful_gods,
+        )
+    )
+
+    # solar_terms_v2 は現在 timezone-naive の
+    # ローカル日時を使用する。
+    # chart.py の birth_datetime は JST aware なので、
+    # 大運計算へ渡す際は「日本時間の壁時計値」を保ったまま
+    # tzinfo のみ外して互換化する。
+    luck_birth_datetime = (
+        birth_datetime.replace(
+            tzinfo=None
+        )
+    )
+
+    luck_pillars = (
+        calculate_luck_pillars(
+            year_stem=pillars[
+                "year"
+            ][
+                "stem"
+            ],
+            month_ganzhi=pillars[
+                "month"
+            ][
+                "pillar"
+            ],
+            day_master_stem=pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            gender=req.gender,
+            birth_datetime=(
+                luck_birth_datetime
+            ),
+            useful_gods=useful_gods,
+        )
+    )
+
+    # current_luck_v1 の判定基準日時。
+    #
+    # 通常API:
+    #   target_datetime=None
+    #   -> Asia/Tokyo の現在日時
+    #
+    # テスト:
+    #   target_datetime に固定日時を指定
+    #   -> 再現可能な現在大運判定
+    if target_datetime is None:
+        current_target_datetime = (
+            datetime.now(
+                JST
+            )
+        )
+    else:
+        if not isinstance(
+            target_datetime,
+            datetime,
+        ):
+            raise TypeError(
+                "target_datetimeはdatetime型で指定してください。"
+            )
+
+        current_target_datetime = (
+            target_datetime
+        )
+
+    # birth_datetime / solar_terms_v2 / current_luck_v1 の
+    # 現行仕様に合わせ、日本時間の壁時計値を保持した
+    # timezone-naive datetime へ揃える。
+    if (
+        current_target_datetime.tzinfo
+        is not None
+        and current_target_datetime.utcoffset()
+        is not None
+    ):
+        current_target_datetime = (
+            current_target_datetime.astimezone(
+                JST
+            ).replace(
+                tzinfo=None
+            )
+        )
+
+    current_luck = (
+        evaluate_current_luck(
+            birth_datetime=(
+                luck_birth_datetime
+            ),
+            target_datetime=(
+                current_target_datetime
+            ),
+            luck_pillars=(
+                luck_pillars
+            ),
+        )
+    )
+
+    # annual_luck_v1
+    #
+    # current_luck と同じ target_datetime を使用し、
+    # 「現在大運」と「現在歳運」の基準時刻を統一する。
+    #
+    # calculate_annual_luck_for_datetime() 側では、
+    # year.py と同じ暫定立春境界
+    # （2月4日00:00）を使用する。
+    annual_luck = (
+        calculate_annual_luck_for_datetime(
+            target_datetime=(
+                current_target_datetime
+            ),
+            day_master_stem=pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            useful_gods=(
+                useful_gods
+            ),
+            current_luck=(
+                current_luck
+            ),
+        )
+    )
+
+    # integrated_luck_v1
+    #
+    # 現在大運・歳運・useful_gods_v3 を
+    # 既存結果からそのまま統合する。
+    integrated_luck = (
+        calculate_integrated_luck(
+            current_luck=(
+                current_luck
+            ),
+            annual_luck=(
+                annual_luck
+            ),
+            useful_gods=(
+                useful_gods
+            ),
+        )
+    )
+
     return {
         "input": {
             "birth_date": birth_date,
@@ -400,6 +644,36 @@ def calculate_chart(req) -> dict:
         "final_strength_judgment": (
             final_strength_judgment
         ),
+        "pattern_candidates": (
+            pattern_candidates
+        ),
+        "pattern_special_rules": (
+            pattern_special_rules
+        ),
+        "pattern_judgment": (
+            pattern_judgment
+        ),
+        "pattern_useful_gods": (
+            pattern_useful_gods
+        ),
+        "climate_useful_gods": (
+            climate_useful_gods
+        ),
+        "useful_gods": (
+            useful_gods
+        ),
+        "luck_pillars": (
+            luck_pillars
+        ),
+        "current_luck": (
+            current_luck
+        ),
+        "annual_luck": (
+            annual_luck
+        ),
+        "integrated_luck": (
+            integrated_luck
+        ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
         "weighted_five_elements": (
@@ -421,7 +695,6 @@ def calculate_chart(req) -> dict:
         "branch_combinations": (
             branch_combinations
         ),
-
         "branch_trines": (
             branch_trines
         ),

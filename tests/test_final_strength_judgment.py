@@ -6,86 +6,89 @@ from engine.final_strength_judgment import (
     calculate_month_adjustment,
     calculate_root_adjustment,
     calculate_transformation_adjustment,
-    clamp_score,
     classify_final_strength,
+    clamp_score,
     evaluate_final_strength_judgment,
     extract_base_score,
+    extract_branch_evidence,
+    extract_month_evidence,
+    extract_root_evidence,
     safe_number,
 )
 
 
 def make_weighted_strength_judgment(
-    final_score=55.0,
+    final_score=50.0,
+    score=None,
 ):
-    return {
-        "label": "やや身強寄り",
+    result = {
         "final_score": final_score,
-        "base_supporting_ratio": 55.0,
+        "label": "中和",
         "method": (
             "weighted_provisional_strength_v3"
         ),
-        "status": (
-            "provisional_weighted_judgment"
-        ),
     }
+
+    if score is not None:
+        result["score"] = score
+
+    return result
 
 
 def make_weighted_root_strength(
-    root_strength="strong",
+    adjustment=None,
     has_root=True,
 ):
-    return {
-        "day_stem": "乙",
-        "day_element": "木",
+    result = {
         "has_root": has_root,
         "root_count": (
-            2 if has_root else 0
+            1 if has_root else 0
         ),
-        "root_strength": root_strength,
-        "total_root_score": (
-            0.45 if has_root else 0.0
-        ),
-    }
-
-
-def make_integrated_month_strength(
-    adjustment=None,
-    strength=None,
-):
-    result = {
-        "seasonal_state": "囚",
-        "seasonal_score": -6.0,
-        "supporting_ratio": 10.0,
-        "draining_ratio": 90.0,
-        "hidden_stem_balance": -0.8,
-        "hidden_stem_adjustment": -3.2,
-        "integrated_score": -9.2,
     }
 
     if adjustment is not None:
         result["adjustment"] = adjustment
 
-    if strength is not None:
-        result["strength"] = strength
+    return result
+
+
+def make_integrated_month_strength(
+    adjustment=None,
+    strength="neutral",
+):
+    result = {
+        "strength": strength,
+    }
+
+    if adjustment is not None:
+        result["adjustment"] = adjustment
 
     return result
 
 
 def make_branch_relations(
+    strength_adjustment=None,
+    day_master_adjustment=None,
     adjustment=None,
+    total_score=None,
 ):
-    result = {
-        "total_relation_count": 2,
-        "positive_score": 0.0,
-        "negative_score": 4.0,
-        "total_score": -4.0,
-        "balance": "negative",
-    }
+    result = {}
 
-    if adjustment is not None:
+    if strength_adjustment is not None:
         result[
             "strength_adjustment"
-        ] = adjustment
+        ] = strength_adjustment
+
+    if day_master_adjustment is not None:
+        result[
+            "day_master_adjustment"
+        ] = day_master_adjustment
+
+    if adjustment is not None:
+        result["adjustment"] = adjustment
+
+    if total_score is not None:
+        result["total_score"] = total_score
 
     return result
 
@@ -97,17 +100,12 @@ def make_transformation_judgment(
     return {
         "judgments": [
             {
-                "combination_name": "甲己",
-                "result_element": "土",
                 "judgment": judgment,
                 "conflict_severity": (
                     conflict_severity
                 ),
             },
         ],
-        "method": (
-            "stem_transformation_judgment_v3"
-        ),
     }
 
 
@@ -116,16 +114,31 @@ def make_transformation_judgment(
 # =========================================================
 
 
-def test_clamp_score_inside_range():
-    assert clamp_score(55.678) == 55.68
+def test_clamp_score_normal():
+    assert (
+        clamp_score(
+            55.123
+        )
+        == 55.12
+    )
 
 
-def test_clamp_score_lower_bound():
-    assert clamp_score(-10) == 0.0
+def test_clamp_score_upper_limit():
+    assert (
+        clamp_score(
+            120
+        )
+        == 100.0
+    )
 
 
-def test_clamp_score_upper_bound():
-    assert clamp_score(120) == 100.0
+def test_clamp_score_lower_limit():
+    assert (
+        clamp_score(
+            -20
+        )
+        == 0.0
+    )
 
 
 def test_clamp_score_invalid_type():
@@ -133,7 +146,9 @@ def test_clamp_score_invalid_type():
         TypeError,
         match="scoreは数値",
     ):
-        clamp_score("55")
+        clamp_score(
+            "50"
+        )
 
 
 # =========================================================
@@ -142,27 +157,42 @@ def test_clamp_score_invalid_type():
 
 
 def test_safe_number_int():
-    assert safe_number(5) == 5.0
+    assert (
+        safe_number(
+            10
+        )
+        == 10.0
+    )
 
 
 def test_safe_number_float():
-    assert safe_number(5.5) == 5.5
+    assert (
+        safe_number(
+            10.5
+        )
+        == 10.5
+    )
 
 
 def test_safe_number_none():
-    assert safe_number(
-        None,
-        default=3.0,
-    ) == 3.0
+    assert (
+        safe_number(
+            None,
+            default=3.5,
+        )
+        == 3.5
+    )
 
 
 def test_safe_number_invalid_type():
     with pytest.raises(
         TypeError,
-        match="数値項目はintまたはfloat型",
+        match=(
+            "数値項目はintまたは"
+        ),
     ):
         safe_number(
-            "5"
+            "10"
         )
 
 
@@ -173,28 +203,39 @@ def test_safe_number_invalid_type():
 
 def test_extract_base_score_from_final_score():
     result = extract_base_score(
-        make_weighted_strength_judgment(
-            final_score=50.3
-        )
+        {
+            "final_score": 50.3,
+        }
     )
 
     assert result == 50.3
 
 
-def test_extract_base_score_from_score():
+def test_extract_base_score_from_score_fallback():
     result = extract_base_score(
         {
-            "score": 61.2,
+            "score": 44.0,
         }
     )
 
-    assert result == 61.2
+    assert result == 44.0
 
 
-def test_extract_base_score_clamps():
+def test_extract_base_score_final_score_priority():
     result = extract_base_score(
         {
-            "final_score": 150,
+            "score": 45.0,
+            "final_score": 60.0,
+        }
+    )
+
+    assert result == 60.0
+
+
+def test_extract_base_score_clamps_value():
+    result = extract_base_score(
+        {
+            "final_score": 120.0,
         }
     )
 
@@ -217,7 +258,9 @@ def test_extract_base_score_invalid_type():
 def test_extract_base_score_missing():
     with pytest.raises(
         ValueError,
-        match="基礎スコアを取得できません",
+        match=(
+            "基礎スコアを取得できません"
+        ),
     ):
         extract_base_score(
             {}
@@ -225,131 +268,126 @@ def test_extract_base_score_missing():
 
 
 # =========================================================
-# root adjustment
+# root evidence / no double counting
 # =========================================================
 
 
-def test_root_adjustment_none():
+def test_extract_root_evidence_none():
+    result = extract_root_evidence(
+        None
+    )
+
+    assert (
+        result["available"]
+        is False
+    )
+
+    assert (
+        result[
+            "applied_to_final_score"
+        ]
+        is False
+    )
+
+    assert (
+        result["reason"]
+        == "not_available"
+    )
+
+    assert (
+        result["data"]
+        is None
+    )
+
+
+def test_extract_root_evidence_available():
+    data = (
+        make_weighted_root_strength(
+            adjustment=4.5,
+        )
+    )
+
+    result = extract_root_evidence(
+        data
+    )
+
+    assert (
+        result["available"]
+        is True
+    )
+
+    assert (
+        result[
+            "applied_to_final_score"
+        ]
+        is False
+    )
+
+    assert (
+        result["reason"]
+        == (
+            "already_reflected_in_"
+            "weighted_strength_judgment"
+        )
+    )
+
+    assert (
+        result["data"]
+        == data
+    )
+
+
+def test_extract_root_evidence_invalid_type():
+    with pytest.raises(
+        TypeError,
+        match=(
+            "weighted_root_strengthは"
+            "dict型またはNone"
+        ),
+    ):
+        extract_root_evidence(
+            []
+        )
+
+
+def test_root_adjustment_is_zero_even_when_explicit():
     assert (
         calculate_root_adjustment(
-            None
+            make_weighted_root_strength(
+                adjustment=4.5,
+            )
         )
         == 0.0
     )
 
 
-def test_root_adjustment_direct_value():
+def test_root_adjustment_is_zero_when_strong():
     assert (
         calculate_root_adjustment(
             {
-                "adjustment": 4.5,
-            }
-        )
-        == 4.5
-    )
-
-
-def test_root_adjustment_direct_value_clamped_high():
-    assert (
-        calculate_root_adjustment(
-            {
-                "adjustment": 20.0,
-            }
-        )
-        == 8.0
-    )
-
-
-def test_root_adjustment_direct_value_clamped_low():
-    assert (
-        calculate_root_adjustment(
-            {
-                "adjustment": -20.0,
-            }
-        )
-        == -8.0
-    )
-
-
-@pytest.mark.parametrize(
-    (
-        "root_strength",
-        "expected",
-    ),
-    [
-        (
-            "very_strong",
-            8.0,
-        ),
-        (
-            "strong",
-            6.0,
-        ),
-        (
-            "medium",
-            3.0,
-        ),
-        (
-            "moderate",
-            3.0,
-        ),
-        (
-            "weak",
-            1.0,
-        ),
-        (
-            "none",
-            -3.0,
-        ),
-    ],
-)
-def test_root_adjustment_mapping(
-    root_strength,
-    expected,
-):
-    result = (
-        calculate_root_adjustment(
-            {
-                "root_strength": (
-                    root_strength
-                ),
-            }
-        )
-    )
-
-    assert result == expected
-
-
-def test_root_adjustment_fallback_has_root_true():
-    assert (
-        calculate_root_adjustment(
-            {
+                "root_strength": "strong",
                 "has_root": True,
             }
         )
-        == 3.0
+        == 0.0
     )
 
 
-def test_root_adjustment_fallback_has_root_false():
+def test_root_adjustment_is_zero_when_no_root():
     assert (
         calculate_root_adjustment(
             {
                 "has_root": False,
             }
         )
-        == -3.0
+        == 0.0
     )
 
 
-def test_root_adjustment_unknown_returns_zero():
+def test_root_adjustment_none():
     assert (
         calculate_root_adjustment(
-            {
-                "root_strength": (
-                    "unknown"
-                ),
-            }
+            None
         )
         == 0.0
     )
@@ -369,104 +407,125 @@ def test_root_adjustment_invalid_type():
 
 
 # =========================================================
-# month adjustment
+# month evidence / no double counting
 # =========================================================
+
+
+def test_extract_month_evidence_none():
+    result = extract_month_evidence(
+        None
+    )
+
+    assert (
+        result["available"]
+        is False
+    )
+
+    assert (
+        result[
+            "applied_to_final_score"
+        ]
+        is False
+    )
+
+    assert (
+        result["reason"]
+        == "not_available"
+    )
+
+    assert (
+        result["data"]
+        is None
+    )
+
+
+def test_extract_month_evidence_available():
+    data = (
+        make_integrated_month_strength(
+            adjustment=-9.2,
+        )
+    )
+
+    result = extract_month_evidence(
+        data
+    )
+
+    assert (
+        result["available"]
+        is True
+    )
+
+    assert (
+        result[
+            "applied_to_final_score"
+        ]
+        is False
+    )
+
+    assert (
+        result["reason"]
+        == (
+            "already_reflected_in_"
+            "weighted_strength_judgment"
+        )
+    )
+
+    assert (
+        result["data"]
+        == data
+    )
+
+
+def test_extract_month_evidence_invalid_type():
+    with pytest.raises(
+        TypeError,
+        match=(
+            "integrated_month_strengthは"
+            "dict型またはNone"
+        ),
+    ):
+        extract_month_evidence(
+            []
+        )
+
+
+def test_month_adjustment_is_zero_even_when_explicit():
+    assert (
+        calculate_month_adjustment(
+            make_integrated_month_strength(
+                adjustment=-9.2,
+            )
+        )
+        == 0.0
+    )
+
+
+def test_month_adjustment_is_zero_when_supportive():
+    assert (
+        calculate_month_adjustment(
+            make_integrated_month_strength(
+                strength="supportive",
+            )
+        )
+        == 0.0
+    )
+
+
+def test_month_adjustment_is_zero_when_very_weak():
+    assert (
+        calculate_month_adjustment(
+            make_integrated_month_strength(
+                strength="very_weak",
+            )
+        )
+        == 0.0
+    )
 
 
 def test_month_adjustment_none():
     assert (
         calculate_month_adjustment(
             None
-        )
-        == 0.0
-    )
-
-
-def test_month_adjustment_direct_value():
-    assert (
-        calculate_month_adjustment(
-            {
-                "adjustment": -9.2,
-            }
-        )
-        == -9.2
-    )
-
-
-def test_month_adjustment_clamped_high():
-    assert (
-        calculate_month_adjustment(
-            {
-                "adjustment": 30.0,
-            }
-        )
-        == 15.0
-    )
-
-
-def test_month_adjustment_clamped_low():
-    assert (
-        calculate_month_adjustment(
-            {
-                "adjustment": -30.0,
-            }
-        )
-        == -15.0
-    )
-
-
-@pytest.mark.parametrize(
-    (
-        "level",
-        "expected",
-    ),
-    [
-        (
-            "very_strong",
-            12.0,
-        ),
-        (
-            "strong",
-            9.0,
-        ),
-        (
-            "supportive",
-            5.0,
-        ),
-        (
-            "neutral",
-            0.0,
-        ),
-        (
-            "weak",
-            -6.0,
-        ),
-        (
-            "very_weak",
-            -10.0,
-        ),
-    ],
-)
-def test_month_adjustment_mapping(
-    level,
-    expected,
-):
-    assert (
-        calculate_month_adjustment(
-            {
-                "strength": level,
-            }
-        )
-        == expected
-    )
-
-
-def test_month_adjustment_unknown_returns_zero():
-    assert (
-        calculate_month_adjustment(
-            {
-                "strength": "unknown",
-            }
         )
         == 0.0
     )
@@ -499,45 +558,96 @@ def test_branch_adjustment_none():
     )
 
 
-def test_branch_adjustment_direct_value():
-    assert (
+def test_branch_adjustment_strength_adjustment():
+    result = (
         calculate_branch_adjustment(
-            {
-                "strength_adjustment": -1.6,
-            }
+            make_branch_relations(
+                strength_adjustment=-1.6,
+            )
         )
-        == -1.6
     )
+
+    assert result == -1.6
+
+
+def test_branch_adjustment_day_master_adjustment():
+    result = (
+        calculate_branch_adjustment(
+            make_branch_relations(
+                day_master_adjustment=2.5,
+            )
+        )
+    )
+
+    assert result == 2.5
+
+
+def test_branch_adjustment_generic_adjustment():
+    result = (
+        calculate_branch_adjustment(
+            make_branch_relations(
+                adjustment=-2.0,
+            )
+        )
+    )
+
+    assert result == -2.0
+
+
+def test_branch_adjustment_priority():
+    result = (
+        calculate_branch_adjustment(
+            make_branch_relations(
+                strength_adjustment=1.0,
+                day_master_adjustment=2.0,
+                adjustment=3.0,
+            )
+        )
+    )
+
+    assert result == 1.0
 
 
 def test_branch_adjustment_clamped_high():
-    assert (
+    result = (
         calculate_branch_adjustment(
-            {
-                "adjustment": 20.0,
-            }
+            make_branch_relations(
+                strength_adjustment=20.0,
+            )
         )
-        == 6.0
     )
+
+    assert result == 6.0
 
 
 def test_branch_adjustment_clamped_low():
-    assert (
+    result = (
         calculate_branch_adjustment(
-            {
-                "adjustment": -20.0,
-            }
+            make_branch_relations(
+                strength_adjustment=-20.0,
+            )
         )
-        == -6.0
     )
 
+    assert result == -6.0
 
-def test_branch_adjustment_missing_returns_zero():
+
+def test_branch_total_score_only_is_not_applied():
+    result = (
+        calculate_branch_adjustment(
+            make_branch_relations(
+                total_score=-4.0,
+            )
+        )
+    )
+
+    assert result == 0.0
+
+
+def test_branch_adjustment_missing():
     assert (
         calculate_branch_adjustment(
-            {
-                "total_score": -4.0,
-            }
+            {}
         )
         == 0.0
     )
@@ -552,6 +662,147 @@ def test_branch_adjustment_invalid_type():
         ),
     ):
         calculate_branch_adjustment(
+            []
+        )
+
+
+# =========================================================
+# branch evidence
+# =========================================================
+
+
+def test_branch_evidence_none():
+    result = extract_branch_evidence(
+        None
+    )
+
+    assert (
+        result["available"]
+        is False
+    )
+
+    assert (
+        result[
+            "applied_to_final_score"
+        ]
+        is False
+    )
+
+    assert (
+        result["adjustment"]
+        == 0.0
+    )
+
+    assert (
+        result["total_score"]
+        is None
+    )
+
+    assert (
+        result["reason"]
+        == "not_available"
+    )
+
+
+def test_branch_evidence_total_score_only():
+    data = (
+        make_branch_relations(
+            total_score=-4.0,
+        )
+    )
+
+    result = extract_branch_evidence(
+        data
+    )
+
+    assert (
+        result["available"]
+        is True
+    )
+
+    assert (
+        result[
+            "applied_to_final_score"
+        ]
+        is False
+    )
+
+    assert (
+        result["adjustment"]
+        == 0.0
+    )
+
+    assert (
+        result["total_score"]
+        == -4.0
+    )
+
+    assert (
+        result["reason"]
+        == (
+            "no_explicit_day_master_"
+            "adjustment"
+        )
+    )
+
+    assert (
+        result["data"]
+        == data
+    )
+
+
+def test_branch_evidence_explicit_adjustment():
+    data = (
+        make_branch_relations(
+            strength_adjustment=-1.6,
+            total_score=-4.0,
+        )
+    )
+
+    result = extract_branch_evidence(
+        data
+    )
+
+    assert (
+        result["available"]
+        is True
+    )
+
+    assert (
+        result[
+            "applied_to_final_score"
+        ]
+        is True
+    )
+
+    assert (
+        result["adjustment"]
+        == -1.6
+    )
+
+    assert (
+        result["total_score"]
+        == -4.0
+    )
+
+    assert (
+        result["reason"]
+        == (
+            "explicit_day_master_"
+            "adjustment"
+        )
+    )
+
+
+def test_branch_evidence_invalid_type():
+    with pytest.raises(
+        TypeError,
+        match=(
+            "branch_relationsは"
+            "dict型またはNone"
+        ),
+    ):
+        extract_branch_evidence(
             []
         )
 
@@ -694,7 +945,9 @@ def test_transformation_adjustment_invalid_type():
 def test_transformation_adjustment_invalid_judgments_type():
     with pytest.raises(
         TypeError,
-        match="judgmentsはlist型",
+        match=(
+            "judgmentsはlist型"
+        ),
     ):
         calculate_transformation_adjustment(
             {
@@ -717,6 +970,21 @@ def test_transformation_adjustment_invalid_item():
                     [],
                 ],
             }
+        )
+
+
+def test_transformation_adjustment_invalid_severity():
+    with pytest.raises(
+        ValueError,
+        match=(
+            "不正なconflict_severity"
+        ),
+    ):
+        calculate_transformation_adjustment(
+            make_transformation_judgment(
+                judgment="strong_candidate",
+                conflict_severity="invalid",
+            )
         )
 
 
@@ -855,28 +1123,16 @@ def test_confidence_low_with_no_optional_data():
 
 
 # =========================================================
-# integrated final judgment
+# integrated final judgment v2
 # =========================================================
 
 
-def test_final_strength_judgment_balanced():
+def test_final_strength_judgment_no_optional_adjustments():
     result = (
         evaluate_final_strength_judgment(
             make_weighted_strength_judgment(
-                final_score=50.0
-            ),
-            {
-                "adjustment": 2.0,
-            },
-            {
-                "adjustment": -5.0,
-            },
-            {
-                "strength_adjustment": -1.0,
-            },
-            {
-                "judgments": [],
-            },
+                final_score=50.0,
+            )
         )
     )
 
@@ -887,17 +1143,17 @@ def test_final_strength_judgment_balanced():
 
     assert (
         result["root_adjustment"]
-        == 2.0
+        == 0.0
     )
 
     assert (
         result["month_adjustment"]
-        == -5.0
+        == 0.0
     )
 
     assert (
         result["branch_adjustment"]
-        == -1.0
+        == 0.0
     )
 
     assert (
@@ -909,17 +1165,17 @@ def test_final_strength_judgment_balanced():
 
     assert (
         result["adjustment_total"]
-        == -4.0
+        == 0.0
     )
 
     assert (
         result["raw_final_score"]
-        == 46.0
+        == 50.0
     )
 
     assert (
         result["final_score"]
-        == 46.0
+        == 50.0
     )
 
     assert (
@@ -934,151 +1190,275 @@ def test_final_strength_judgment_balanced():
 
     assert (
         result["confidence"]
+        == "low"
+    )
+
+
+def test_final_strength_does_not_reapply_root_or_month():
+    result = (
+        evaluate_final_strength_judgment(
+            make_weighted_strength_judgment(
+                final_score=50.3,
+            ),
+            make_weighted_root_strength(
+                adjustment=4.5,
+            ),
+            make_integrated_month_strength(
+                adjustment=-9.2,
+            ),
+            None,
+            None,
+        )
+    )
+
+    assert (
+        result["base_score"]
+        == 50.3
+    )
+
+    assert (
+        result["root_adjustment"]
+        == 0.0
+    )
+
+    assert (
+        result["month_adjustment"]
+        == 0.0
+    )
+
+    assert (
+        result["adjustment_total"]
+        == 0.0
+    )
+
+    assert (
+        result["raw_final_score"]
+        == 50.3
+    )
+
+    assert (
+        result["final_score"]
+        == 50.3
+    )
+
+
+def test_final_strength_total_score_only_branch_not_applied():
+    result = (
+        evaluate_final_strength_judgment(
+            make_weighted_strength_judgment(
+                final_score=50.3,
+            ),
+            make_weighted_root_strength(
+                adjustment=4.5,
+            ),
+            make_integrated_month_strength(
+                adjustment=-9.2,
+            ),
+            make_branch_relations(
+                total_score=-4.0,
+            ),
+            {
+                "judgments": [],
+            },
+        )
+    )
+
+    assert (
+        result["branch_adjustment"]
+        == 0.0
+    )
+
+    assert (
+        result["adjustment_total"]
+        == 0.0
+    )
+
+    assert (
+        result["final_score"]
+        == 50.3
+    )
+
+    assert (
+        result["components"][
+            "branch_relations"
+        ][
+            "total_score"
+        ]
+        == -4.0
+    )
+
+    assert (
+        result["components"][
+            "branch_relations"
+        ][
+            "applied_to_final_score"
+        ]
+        is False
+    )
+
+
+def test_final_strength_explicit_branch_adjustment_applied():
+    result = (
+        evaluate_final_strength_judgment(
+            make_weighted_strength_judgment(
+                final_score=50.3,
+            ),
+            make_weighted_root_strength(
+                adjustment=4.5,
+            ),
+            make_integrated_month_strength(
+                adjustment=-9.2,
+            ),
+            make_branch_relations(
+                strength_adjustment=-1.6,
+                total_score=-4.0,
+            ),
+            {
+                "judgments": [],
+            },
+        )
+    )
+
+    assert (
+        result["branch_adjustment"]
+        == -1.6
+    )
+
+    assert (
+        result["adjustment_total"]
+        == -1.6
+    )
+
+    assert (
+        result["raw_final_score"]
+        == 48.7
+    )
+
+    assert (
+        result["final_score"]
+        == 48.7
+    )
+
+
+def test_final_strength_transformation_adjustment_applied():
+    result = (
+        evaluate_final_strength_judgment(
+            make_weighted_strength_judgment(
+                final_score=50.3,
+            ),
+            make_weighted_root_strength(
+                adjustment=4.5,
+            ),
+            make_integrated_month_strength(
+                adjustment=-9.2,
+            ),
+            None,
+            make_transformation_judgment(
+                judgment="possible",
+                conflict_severity="none",
+            ),
+        )
+    )
+
+    assert (
+        result[
+            "transformation_adjustment"
+        ]
+        == 1.5
+    )
+
+    assert (
+        result["adjustment_total"]
+        == 1.5
+    )
+
+    assert (
+        result["raw_final_score"]
+        == 51.8
+    )
+
+    assert (
+        result["final_score"]
+        == 51.8
+    )
+
+
+def test_final_strength_branch_and_transformation():
+    result = (
+        evaluate_final_strength_judgment(
+            make_weighted_strength_judgment(
+                final_score=50.3,
+            ),
+            make_weighted_root_strength(
+                adjustment=4.5,
+            ),
+            make_integrated_month_strength(
+                adjustment=-9.2,
+            ),
+            make_branch_relations(
+                strength_adjustment=-1.6,
+            ),
+            make_transformation_judgment(
+                judgment="possible",
+                conflict_severity="none",
+            ),
+        )
+    )
+
+    assert (
+        result["root_adjustment"]
+        == 0.0
+    )
+
+    assert (
+        result["month_adjustment"]
+        == 0.0
+    )
+
+    assert (
+        result["branch_adjustment"]
+        == -1.6
+    )
+
+    assert (
+        result[
+            "transformation_adjustment"
+        ]
+        == 1.5
+    )
+
+    assert (
+        result["adjustment_total"]
+        == -0.1
+    )
+
+    assert (
+        result["raw_final_score"]
+        == 50.2
+    )
+
+    assert (
+        result["final_score"]
+        == 50.2
+    )
+
+    assert (
+        result["confidence"]
         == "high"
     )
 
 
-def test_final_strength_judgment_very_strong():
+def test_final_strength_upper_clamp():
     result = (
         evaluate_final_strength_judgment(
             make_weighted_strength_judgment(
-                final_score=65.0
-            ),
-            {
-                "adjustment": 6.0,
-            },
-            {
-                "adjustment": 5.0,
-            },
-            None,
-            None,
-        )
-    )
-
-    assert (
-        result["final_score"]
-        == 76.0
-    )
-
-    assert (
-        result["technical_label"]
-        == "very_strong"
-    )
-
-    assert (
-        result["label"]
-        == "極身強"
-    )
-
-
-def test_final_strength_judgment_strong():
-    result = (
-        evaluate_final_strength_judgment(
-            make_weighted_strength_judgment(
-                final_score=55.0
-            ),
-            {
-                "adjustment": 3.0,
-            },
-            None,
-            None,
-            None,
-        )
-    )
-
-    assert (
-        result["final_score"]
-        == 58.0
-    )
-
-    assert (
-        result["technical_label"]
-        == "strong"
-    )
-
-    assert (
-        result["label"]
-        == "身強"
-    )
-
-
-def test_final_strength_judgment_weak():
-    result = (
-        evaluate_final_strength_judgment(
-            make_weighted_strength_judgment(
-                final_score=45.0
+                final_score=99.0,
             ),
             None,
-            {
-                "adjustment": -5.0,
-            },
             None,
-            None,
-        )
-    )
-
-    assert (
-        result["final_score"]
-        == 40.0
-    )
-
-    assert (
-        result["technical_label"]
-        == "weak"
-    )
-
-    assert (
-        result["label"]
-        == "身弱"
-    )
-
-
-def test_final_strength_judgment_very_weak():
-    result = (
-        evaluate_final_strength_judgment(
-            make_weighted_strength_judgment(
-                final_score=30.0
+            make_branch_relations(
+                strength_adjustment=6.0,
             ),
-            None,
-            {
-                "adjustment": -6.0,
-            },
-            None,
-            None,
-        )
-    )
-
-    assert (
-        result["final_score"]
-        == 24.0
-    )
-
-    assert (
-        result["technical_label"]
-        == "very_weak"
-    )
-
-    assert (
-        result["label"]
-        == "極身弱"
-    )
-
-
-def test_final_strength_judgment_upper_clamp():
-    result = (
-        evaluate_final_strength_judgment(
-            make_weighted_strength_judgment(
-                final_score=99.0
-            ),
-            {
-                "adjustment": 8.0,
-            },
-            {
-                "adjustment": 15.0,
-            },
-            {
-                "strength_adjustment": 6.0,
-            },
             make_transformation_judgment(
                 judgment="strong_candidate",
                 conflict_severity="none",
@@ -1088,7 +1468,7 @@ def test_final_strength_judgment_upper_clamp():
 
     assert (
         result["raw_final_score"]
-        > 100.0
+        == 108.0
     )
 
     assert (
@@ -1096,29 +1476,30 @@ def test_final_strength_judgment_upper_clamp():
         == 100.0
     )
 
+    assert (
+        result["technical_label"]
+        == "very_strong"
+    )
 
-def test_final_strength_judgment_lower_clamp():
+
+def test_final_strength_lower_clamp():
     result = (
         evaluate_final_strength_judgment(
             make_weighted_strength_judgment(
-                final_score=5.0
+                final_score=3.0,
             ),
-            {
-                "adjustment": -8.0,
-            },
-            {
-                "adjustment": -15.0,
-            },
-            {
-                "strength_adjustment": -6.0,
-            },
+            None,
+            None,
+            make_branch_relations(
+                strength_adjustment=-6.0,
+            ),
             None,
         )
     )
 
     assert (
         result["raw_final_score"]
-        < 0.0
+        == -3.0
     )
 
     assert (
@@ -1126,73 +1507,248 @@ def test_final_strength_judgment_lower_clamp():
         == 0.0
     )
 
+    assert (
+        result["technical_label"]
+        == "very_weak"
+    )
 
-def test_final_strength_judgment_components():
+
+# =========================================================
+# components / evidence / double counting
+# =========================================================
+
+
+def test_final_strength_components():
+    root = (
+        make_weighted_root_strength(
+            adjustment=4.5,
+        )
+    )
+
+    month = (
+        make_integrated_month_strength(
+            adjustment=-9.2,
+        )
+    )
+
+    branches = (
+        make_branch_relations(
+            total_score=-4.0,
+        )
+    )
+
+    transformation = {
+        "judgments": [],
+    }
+
     result = (
         evaluate_final_strength_judgment(
             make_weighted_strength_judgment(
-                final_score=50.0
+                final_score=50.3,
             ),
-            {
-                "adjustment": 2.0,
-            },
-            {
-                "adjustment": -5.0,
-            },
-            {
-                "strength_adjustment": -1.0,
-            },
-            make_transformation_judgment(
-                judgment="possible",
-                conflict_severity="medium",
-            ),
+            root,
+            month,
+            branches,
+            transformation,
         )
     )
 
     assert (
-        result["components"]["base"]
-        == {
-            "score": 50.0,
-        }
+        result["components"]["base"][
+            "score"
+        ]
+        == 50.3
     )
 
     assert (
-        result["components"]["root"]
-        == {
-            "adjustment": 2.0,
-            "available": True,
-        }
+        result["components"]["base"][
+            "contains"
+        ]
+        == [
+            "weighted_five_elements",
+            "weighted_root_strength",
+            "integrated_month_strength",
+        ]
     )
 
     assert (
-        result["components"]["month"]
-        == {
-            "adjustment": -5.0,
-            "available": True,
-        }
+        result["components"]["root"][
+            "adjustment"
+        ]
+        == 0.0
     )
 
     assert (
-        result[
-            "components"
-        ][
+        result["components"]["root"][
+            "available"
+        ]
+        is True
+    )
+
+    assert (
+        result["components"]["root"][
+            "applied_to_final_score"
+        ]
+        is False
+    )
+
+    assert (
+        result["components"]["month"][
+            "adjustment"
+        ]
+        == 0.0
+    )
+
+    assert (
+        result["components"]["month"][
+            "available"
+        ]
+        is True
+    )
+
+    assert (
+        result["components"]["month"][
+            "applied_to_final_score"
+        ]
+        is False
+    )
+
+    assert (
+        result["components"][
             "branch_relations"
-        ] == {
-            "adjustment": -1.0,
-            "available": True,
-        }
+        ][
+            "total_score"
+        ]
+        == -4.0
     )
 
     assert (
-        result[
-            "components"
-        ][
+        result["components"][
             "stem_transformation"
         ][
             "available"
         ]
         is True
     )
+
+
+def test_final_strength_evidence_preserved():
+    weighted = (
+        make_weighted_strength_judgment(
+            final_score=50.3,
+        )
+    )
+
+    root = (
+        make_weighted_root_strength(
+            adjustment=4.5,
+        )
+    )
+
+    month = (
+        make_integrated_month_strength(
+            adjustment=-9.2,
+        )
+    )
+
+    branches = (
+        make_branch_relations(
+            total_score=-4.0,
+        )
+    )
+
+    transformation = {
+        "judgments": [],
+    }
+
+    result = (
+        evaluate_final_strength_judgment(
+            weighted,
+            root,
+            month,
+            branches,
+            transformation,
+        )
+    )
+
+    assert (
+        result["evidence"][
+            "weighted_strength_judgment"
+        ]
+        == weighted
+    )
+
+    assert (
+        result["evidence"][
+            "weighted_root_strength"
+        ]
+        == root
+    )
+
+    assert (
+        result["evidence"][
+            "integrated_month_strength"
+        ]
+        == month
+    )
+
+    assert (
+        result["evidence"][
+            "branch_relations"
+        ]
+        == branches
+    )
+
+    assert (
+        result["evidence"][
+            "stem_transformation_judgment"
+        ]
+        == transformation
+    )
+
+
+def test_double_count_prevention():
+    result = (
+        evaluate_final_strength_judgment(
+            make_weighted_strength_judgment(
+                final_score=50.3,
+            ),
+            make_weighted_root_strength(
+                adjustment=4.5,
+            ),
+            make_integrated_month_strength(
+                adjustment=-9.2,
+            ),
+        )
+    )
+
+    prevention = result[
+        "double_count_prevention"
+    ]
+
+    assert (
+        prevention["root_reapplied"]
+        is False
+    )
+
+    assert (
+        prevention["month_reapplied"]
+        is False
+    )
+
+    assert (
+        prevention["reason"]
+        == (
+            "root_and_month_are_already_"
+            "included_in_weighted_"
+            "strength_judgment"
+        )
+    )
+
+
+# =========================================================
+# metadata
+# =========================================================
 
 
 def test_final_strength_judgment_metadata():
@@ -1204,12 +1760,15 @@ def test_final_strength_judgment_metadata():
 
     assert (
         result["method"]
-        == "final_strength_judgment_v1"
+        == "final_strength_judgment_v2"
     )
 
     assert (
         result["status"]
-        == "provisional_final_strength_judgment"
+        == (
+            "provisional_final_strength_"
+            "judgment_v2"
+        )
     )
 
     assert isinstance(
