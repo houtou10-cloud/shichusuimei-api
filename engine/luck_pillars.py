@@ -1,33 +1,49 @@
 """
 engine/luck_pillars.py
 
-四柱推命 大運計算エンジン v1
+四柱推命 大運計算エンジン v2
 
 担当範囲
 --------
 1. 大運の順行・逆行判定
 2. 月柱を基準とした大運干支生成
-3. 大運開始年齢の計算
-4. 大運開始日時の概算
-5. 各大運の年齢範囲
-6. 各大運の十神
-7. 各大運の五行
-8. useful_gods との簡易関係判定
+3. solar_terms_v2 から対象節入りを自動取得
+4. 外部指定 target_term_datetime との後方互換
+5. 大運開始年齢の計算
+6. 大運開始日時の概算
+7. 各大運の年齢範囲
+8. 各大運の十神
+9. 各大運の五行
+10. useful_gods との簡易関係判定
 
 重要
 ----
 大運開始年齢は節入り日時に依存する。
 
-現在のプロジェクトでは solar_terms.py が
-完全な天文計算へ移行する前の段階であるため、
-本モジュールでは節入り日時を外部から受け取れる
-設計を採用する。
+v2 では通常、
+target_term_datetime を指定する必要はない。
 
-これにより将来 Skyfield 等を導入しても、
-大運ロジック本体を変更せず差し替え可能。
+年干・性別から順行／逆行を判定し、
+engine.solar_terms の
+get_luck_pillar_target_term()
+を利用して対象節入りを自動取得する。
+
+ただし既存コードとの互換性を維持するため、
+target_term_datetime を明示的に指定した場合は
+その値を優先する。
+
+これにより、
+
+    target_term_datetime 指定あり
+        -> external_input
+
+    target_term_datetime 指定なし
+        -> solar_terms_v2
+
+という2つの経路を利用できる。
 
 Version:
-    luck_pillars_v1
+    luck_pillars_v2
 """
 
 from __future__ import annotations
@@ -35,6 +51,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
+
+from engine.solar_terms import (
+    get_luck_pillar_target_term,
+)
 
 
 # =========================================================
@@ -230,6 +250,19 @@ def _validate_gender(
         )
 
 
+def _validate_datetime(
+    value: datetime,
+    name: str,
+) -> None:
+    if not isinstance(
+        value,
+        datetime,
+    ):
+        raise TypeError(
+            f"{name} は datetime が必要です"
+        )
+
+
 def _normalize_gender(
     gender: str,
 ) -> str:
@@ -396,6 +429,95 @@ def determine_luck_direction(
 
 
 # =========================================================
+# Solar-term integration
+# =========================================================
+
+
+def resolve_target_term(
+    *,
+    birth_datetime: datetime,
+    direction: str,
+    target_term_datetime: Optional[
+        datetime
+    ] = None,
+) -> Dict[str, Any]:
+    """
+    大運開始年齢計算に使う対象節入りを決定する。
+
+    target_term_datetime が指定された場合:
+        外部指定値を優先する。
+
+    target_term_datetime が None の場合:
+        solar_terms_v2 から自動取得する。
+
+    Returns
+    -------
+    dict
+        target_term_datetime
+        target_term_name
+        target_term_month
+        target_term_branch
+        target_term_source
+    """
+
+    _validate_datetime(
+        birth_datetime,
+        "birth_datetime",
+    )
+
+    if direction not in {
+        "forward",
+        "backward",
+    }:
+        raise ValueError(
+            f"不正な大運方向です: {direction}"
+        )
+
+    if target_term_datetime is not None:
+        _validate_datetime(
+            target_term_datetime,
+            "target_term_datetime",
+        )
+
+        return {
+            "target_term_datetime": (
+                target_term_datetime
+            ),
+            "target_term_name": None,
+            "target_term_month": None,
+            "target_term_branch": None,
+            "target_term_source": (
+                "external_input"
+            ),
+        }
+
+    target_term = (
+        get_luck_pillar_target_term(
+            birth_datetime,
+            direction,
+        )
+    )
+
+    return {
+        "target_term_datetime": (
+            target_term.datetime
+        ),
+        "target_term_name": (
+            target_term.name
+        ),
+        "target_term_month": (
+            target_term.month
+        ),
+        "target_term_branch": (
+            target_term.month_branch
+        ),
+        "target_term_source": (
+            "solar_terms_v2"
+        ),
+    }
+
+
+# =========================================================
 # Start-age calculation
 # =========================================================
 
@@ -409,21 +531,15 @@ def calculate_term_distance_days(
     日数差の絶対値を返す。
     """
 
-    if not isinstance(
+    _validate_datetime(
         birth_datetime,
-        datetime,
-    ):
-        raise TypeError(
-            "birth_datetime は datetime が必要です"
-        )
+        "birth_datetime",
+    )
 
-    if not isinstance(
+    _validate_datetime(
         target_term_datetime,
-        datetime,
-    ):
-        raise TypeError(
-            "target_term_datetime は datetime が必要です"
-        )
+        "target_term_datetime",
+    )
 
     delta = (
         target_term_datetime
@@ -542,6 +658,16 @@ def estimate_start_datetime(
     正確な暦日というより、
     API表示・範囲管理用の概算値。
     """
+
+    _validate_datetime(
+        birth_datetime,
+        "birth_datetime",
+    )
+
+    if start_age < 0:
+        raise ValueError(
+            "start_age は0以上である必要があります"
+        )
 
     days = (
         start_age
@@ -1021,7 +1147,9 @@ def calculate_luck_pillars(
     day_master_stem: str,
     gender: str,
     birth_datetime: datetime,
-    target_term_datetime: datetime,
+    target_term_datetime: Optional[
+        datetime
+    ] = None,
     count: int = 10,
     useful_gods: Optional[
         Dict[str, Any]
@@ -1048,17 +1176,21 @@ def calculate_luck_pillars(
         出生日時。
 
     target_term_datetime:
-        順行・逆行に応じた
-        対象節入り日時。
+        任意。
 
-        本関数では節入りそのものを
-        自動検索しない。
+        指定した場合:
+            指定値を対象節入りとして使用する。
+
+        None の場合:
+            順行・逆行を判定後、
+            solar_terms_v2 から対象節入りを
+            自動取得する。
 
         forward:
-            出生後の対象節入り
+            出生後の次の節入り。
 
         backward:
-            出生前の対象節入り
+            出生前の直前の節入り。
 
     count:
         大運本数。
@@ -1085,6 +1217,24 @@ def calculate_luck_pillars(
         month_ganzhi
     )
 
+    _validate_datetime(
+        birth_datetime,
+        "birth_datetime",
+    )
+
+    if not isinstance(
+        count,
+        int,
+    ):
+        raise TypeError(
+            "count は整数で指定してください"
+        )
+
+    if count <= 0:
+        raise ValueError(
+            "count は1以上である必要があります"
+        )
+
     normalized_gender = (
         _normalize_gender(
             gender
@@ -1098,10 +1248,33 @@ def calculate_luck_pillars(
         )
     )
 
+    target_term_info = (
+        resolve_target_term(
+            birth_datetime=birth_datetime,
+            direction=direction,
+            target_term_datetime=(
+                target_term_datetime
+            ),
+        )
+    )
+
+    resolved_target_datetime = (
+        target_term_info[
+            "target_term_datetime"
+        ]
+    )
+
     start_age = (
         calculate_start_age(
             birth_datetime,
-            target_term_datetime,
+            resolved_target_datetime,
+        )
+    )
+
+    term_distance_days = (
+        calculate_term_distance_days(
+            birth_datetime,
+            resolved_target_datetime,
         )
     )
 
@@ -1156,16 +1329,31 @@ def calculate_luck_pillars(
             birth_datetime.isoformat()
         ),
         "target_term_datetime": (
-            target_term_datetime.isoformat()
+            resolved_target_datetime.isoformat()
         ),
-        "term_distance_days": (
-            round(
-                calculate_term_distance_days(
-                    birth_datetime,
-                    target_term_datetime,
-                ),
-                6,
-            )
+        "target_term_name": (
+            target_term_info[
+                "target_term_name"
+            ]
+        ),
+        "target_term_month": (
+            target_term_info[
+                "target_term_month"
+            ]
+        ),
+        "target_term_branch": (
+            target_term_info[
+                "target_term_branch"
+            ]
+        ),
+        "target_term_source": (
+            target_term_info[
+                "target_term_source"
+            ]
+        ),
+        "term_distance_days": round(
+            term_distance_days,
+            6,
         ),
         "start_age": start_age,
         "start_age_detail": (
@@ -1189,14 +1377,24 @@ def calculate_luck_pillars(
             ),
             "pillar_duration_years": 10,
             "term_datetime_source": (
-                "external_input"
+                target_term_info[
+                    "target_term_source"
+                ]
+            ),
+            "automatic_term_rule": (
+                "順行は出生後の次節、"
+                "逆行は出生前の前節"
+            ),
+            "term_boundary_rule": (
+                "節入り同時刻はその節を含めず、"
+                "順行は次節・逆行は前節を使用"
             ),
         },
         "method": (
-            "luck_pillars_v1"
+            "luck_pillars_v2"
         ),
         "status": (
-            "provisional_luck_pillars_v1"
+            "provisional_luck_pillars_v2"
         ),
         "notes": [
             (
@@ -1204,18 +1402,26 @@ def calculate_luck_pillars(
                 "依存します。"
             ),
             (
-                "target_term_datetime は順行なら"
-                "出生後、逆行なら出生前の"
-                "対象節入りを指定してください。"
+                "target_term_datetime を省略した場合は"
+                "solar_terms_v2 から対象節入りを"
+                "自動取得します。"
+            ),
+            (
+                "target_term_datetime を指定した場合は"
+                "後方互換のため指定値を優先します。"
             ),
             (
                 "開始日時は365.2425日/年による"
                 "概算表示です。"
             ),
             (
-                "節入り天文計算の高精度化後も"
-                "本モジュールの主要APIを"
-                "維持できる設計です。"
+                "現在の solar_terms_v2 の節入り日時は"
+                "固定月日・固定時刻による暫定値です。"
+            ),
+            (
+                "将来 solar_terms が天文計算へ"
+                "高精度化されても、本モジュールの"
+                "公開APIを維持できる設計です。"
             ),
         ],
     }
@@ -1233,7 +1439,9 @@ def evaluate_luck_pillars(
     day_master_stem: str,
     gender: str,
     birth_datetime: datetime,
-    target_term_datetime: datetime,
+    target_term_datetime: Optional[
+        datetime
+    ] = None,
     count: int = 10,
     useful_gods: Optional[
         Dict[str, Any]
@@ -1241,6 +1449,9 @@ def evaluate_luck_pillars(
 ) -> Dict[str, Any]:
     """
     calculate_luck_pillars の別名。
+
+    v2 では target_term_datetime を
+    省略可能。
 
     他モジュールで evaluate_* 命名へ
     統一したい場合に使用する。
@@ -1252,10 +1463,17 @@ def evaluate_luck_pillars(
         day_master_stem=day_master_stem,
         gender=gender,
         birth_datetime=birth_datetime,
-        target_term_datetime=target_term_datetime,
+        target_term_datetime=(
+            target_term_datetime
+        ),
         count=count,
         useful_gods=useful_gods,
     )
+
+
+# =========================================================
+# Public API
+# =========================================================
 
 
 __all__ = [
@@ -1275,6 +1493,7 @@ __all__ = [
     "get_sexagenary_index",
     "shift_ganzhi",
     "determine_luck_direction",
+    "resolve_target_term",
     "calculate_term_distance_days",
     "calculate_start_age",
     "age_to_year_month_day",
