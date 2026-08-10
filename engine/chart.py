@@ -16,6 +16,9 @@ from engine.branch_relations import (
 from engine.climate_useful_gods import (
     evaluate_climate_useful_gods,
 )
+from engine.current_luck import (
+    evaluate_current_luck,
+)
 from engine.day_master_strength import (
     classify_five_elements_for_day_master,
     classify_weighted_elements_for_day_master,
@@ -148,9 +151,18 @@ def normalize_birth_time(
     return value
 
 
-def calculate_chart(req) -> dict:
+def calculate_chart(
+    req,
+    target_datetime: datetime | None = None,
+) -> dict:
     """
     APIの入力情報から命式と各種分析データを作成します。
+
+    target_datetime:
+        現在大運を判定する基準日時。
+
+        None の場合は Asia/Tokyo の現在日時を使用します。
+        テストでは固定日時を渡すことで再現性を確保できます。
     """
     birth_date = normalize_birth_date(
         req.birth_date
@@ -489,6 +501,65 @@ def calculate_chart(req) -> dict:
         )
     )
 
+    # current_luck_v1 の判定基準日時。
+    #
+    # 通常API:
+    #   target_datetime=None
+    #   -> Asia/Tokyo の現在日時
+    #
+    # テスト:
+    #   target_datetime に固定日時を指定
+    #   -> 再現可能な現在大運判定
+    if target_datetime is None:
+        current_target_datetime = (
+            datetime.now(
+                JST
+            )
+        )
+    else:
+        if not isinstance(
+            target_datetime,
+            datetime,
+        ):
+            raise TypeError(
+                "target_datetimeはdatetime型で指定してください。"
+            )
+
+        current_target_datetime = (
+            target_datetime
+        )
+
+    # birth_datetime / solar_terms_v2 / current_luck_v1 の
+    # 現行仕様に合わせ、日本時間の壁時計値を保持した
+    # timezone-naive datetime へ揃える。
+    if (
+        current_target_datetime.tzinfo
+        is not None
+        and current_target_datetime.utcoffset()
+        is not None
+    ):
+        current_target_datetime = (
+            current_target_datetime.astimezone(
+                JST
+            ).replace(
+                tzinfo=None
+            )
+        )
+
+    current_luck = (
+        evaluate_current_luck(
+            birth_datetime=(
+                luck_birth_datetime
+            ),
+            target_datetime=(
+                current_target_datetime
+            ),
+            luck_pillars=(
+                luck_pillars
+            ),
+        )
+    )
+
     return {
         "input": {
             "birth_date": birth_date,
@@ -542,6 +613,9 @@ def calculate_chart(req) -> dict:
         ),
         "luck_pillars": (
             luck_pillars
+        ),
+        "current_luck": (
+            current_luck
         ),
         "day_master": pillars["day_master"],
         "five_elements": five_elements,
