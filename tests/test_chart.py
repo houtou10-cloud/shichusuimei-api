@@ -1,16 +1,16 @@
 from datetime import datetime
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import pytest
 
+from engine.annual_luck import (
+    calculate_annual_luck_for_datetime,
+)
 from engine.chart import calculate_chart
 
 
 JST = ZoneInfo("Asia/Tokyo")
-
-from types import SimpleNamespace
-
-from engine.chart import calculate_chart
 
 
 def make_request(
@@ -6655,4 +6655,940 @@ def test_chart_current_luck_preserves_luck_pillars_v2():
             "pillar_count"
         ]
         == 10
+    )
+
+# ============================================================
+# Annual Luck v1 Integration Tests
+# ============================================================
+
+
+def test_chart_contains_annual_luck():
+    """
+    calculate_chart() の戻り値に
+    annual_luck が含まれることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert "annual_luck" in result
+
+    assert isinstance(
+        result[
+            "annual_luck"
+        ],
+        dict,
+    )
+
+
+def test_chart_annual_luck_required_keys():
+    """
+    annual_luck_v1 の主要キーが
+    chart 統合後も存在することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    required_keys = {
+        "year",
+        "ganzhi",
+        "stem",
+        "branch",
+        "stem_element",
+        "stem_yin_yang",
+        "branch_element",
+        "day_master_stem",
+        "day_master_element",
+        "stem_ten_god",
+        "twelve_stage",
+        "hidden_stems",
+        "main_hidden_stem",
+        "main_hidden_stem_ten_god",
+        "main_hidden_stem_element",
+        "hidden_stem_ten_gods",
+        "stem_useful_relation",
+        "branch_useful_relation",
+        "current_luck_relation",
+        "reasoning",
+        "evidence",
+        "method",
+        "status",
+        "notes",
+        "target_datetime",
+        "calendar_year",
+        "effective_year",
+        "year_boundary_applied",
+        "year_boundary_rule",
+    }
+
+    assert required_keys.issubset(
+        annual_luck.keys()
+    )
+
+
+def test_chart_annual_luck_v1_metadata():
+    """
+    annual_luck_v1 の method / status を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    assert (
+        annual_luck[
+            "method"
+        ]
+        == "annual_luck_v1"
+    )
+
+    assert (
+        annual_luck[
+            "status"
+        ]
+        == "provisional_annual_luck_v1"
+    )
+
+    assert isinstance(
+        annual_luck[
+            "notes"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            annual_luck[
+                "notes"
+            ]
+        )
+        >= 1
+    )
+
+
+def test_chart_annual_luck_verified_2026_ganzhi():
+    """
+    固定 target_datetime が 2026-08-10 のため、
+    歳運が丙午になることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    assert (
+        annual_luck[
+            "calendar_year"
+        ]
+        == 2026
+    )
+
+    assert (
+        annual_luck[
+            "effective_year"
+        ]
+        == 2026
+    )
+
+    assert (
+        annual_luck[
+            "year"
+        ]
+        == 2026
+    )
+
+    assert (
+        annual_luck[
+            "ganzhi"
+        ]
+        == "丙午"
+    )
+
+    assert (
+        annual_luck[
+            "stem"
+        ]
+        == "丙"
+    )
+
+    assert (
+        annual_luck[
+            "branch"
+        ]
+        == "午"
+    )
+
+
+def test_chart_annual_luck_verified_2026_elements():
+    """
+    丙・午ともに火であることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    assert (
+        annual_luck[
+            "stem_element"
+        ]
+        == "火"
+    )
+
+    assert (
+        annual_luck[
+            "branch_element"
+        ]
+        == "火"
+    )
+
+    assert (
+        annual_luck[
+            "stem_yin_yang"
+        ]
+        == "陽"
+    )
+
+
+def test_chart_annual_luck_matches_day_master():
+    """
+    annual_luck の日主情報が
+    chart 本体と一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    assert (
+        annual_luck[
+            "day_master_stem"
+        ]
+        == result[
+            "day_master"
+        ][
+            "stem"
+        ]
+    )
+
+    assert (
+        annual_luck[
+            "day_master_stem"
+        ]
+        == "乙"
+    )
+
+    assert (
+        annual_luck[
+            "day_master_element"
+        ]
+        == "木"
+    )
+
+
+def test_chart_annual_luck_verified_2026_ten_god():
+    """
+    乙日主に対する2026年の丙は
+    傷官になることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "annual_luck"
+        ][
+            "stem_ten_god"
+        ]
+        == "傷官"
+    )
+
+
+def test_chart_annual_luck_verified_2026_twelve_stage():
+    """
+    乙日主 × 午 = 長生を確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "annual_luck"
+        ][
+            "twelve_stage"
+        ]
+        == "長生"
+    )
+
+
+def test_chart_annual_luck_hidden_stems_exist():
+    """
+    歳運地支の蔵干情報が
+    chart 統合後も保持されることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    assert isinstance(
+        annual_luck[
+            "hidden_stems"
+        ],
+        list,
+    )
+
+    assert (
+        len(
+            annual_luck[
+                "hidden_stems"
+            ]
+        )
+        >= 1
+    )
+
+    assert (
+        annual_luck[
+            "main_hidden_stem"
+        ]
+        in annual_luck[
+            "hidden_stems"
+        ]
+    )
+
+
+def test_chart_annual_luck_hidden_stem_ten_gods_consistent():
+    """
+    蔵干数と蔵干通変星データ数が
+    一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    assert (
+        len(
+            annual_luck[
+                "hidden_stem_ten_gods"
+            ]
+        )
+        == len(
+            annual_luck[
+                "hidden_stems"
+            ]
+        )
+    )
+
+    for item in annual_luck[
+        "hidden_stem_ten_gods"
+    ]:
+        assert {
+            "stem",
+            "ten_god",
+            "element",
+            "yin_yang",
+        }.issubset(
+            item.keys()
+        )
+
+
+def test_chart_annual_luck_uses_same_target_datetime():
+    """
+    current_luck と annual_luck が
+    同じ固定基準日時から計算されることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    assert (
+        annual_luck[
+            "target_datetime"
+        ]
+        == (
+            CURRENT_LUCK_TARGET_DATETIME
+            .isoformat()
+        )
+    )
+
+
+def test_chart_annual_luck_year_boundary_metadata():
+    """
+    歳運の立春境界metadataを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    assert (
+        annual_luck[
+            "year_boundary_applied"
+        ]
+        is True
+    )
+
+    assert (
+        annual_luck[
+            "year_boundary_rule"
+        ]
+        == "暫定：立春2月4日00:00"
+    )
+
+
+def test_chart_annual_luck_useful_relations_exist():
+    """
+    useful_gods_v3 との関係評価が
+    歳運へ統合されていることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    relation_keys = {
+        "is_useful",
+        "is_primary_useful",
+        "is_unfavorable",
+        "priority",
+        "relationship",
+    }
+
+    assert relation_keys.issubset(
+        annual_luck[
+            "stem_useful_relation"
+        ].keys()
+    )
+
+    assert relation_keys.issubset(
+        annual_luck[
+            "branch_useful_relation"
+        ].keys()
+    )
+
+
+def test_chart_annual_luck_current_luck_relation_exists():
+    """
+    current_luck_v1 との関係評価が
+    annual_luck に含まれることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    relation = result[
+        "annual_luck"
+    ][
+        "current_luck_relation"
+    ]
+
+    required_keys = {
+        "has_current_luck",
+        "current_luck_ganzhi",
+        "current_luck_stem_element",
+        "current_luck_branch_element",
+        "stem_element_relation",
+        "branch_element_relation",
+        "status",
+    }
+
+    assert required_keys.issubset(
+        relation.keys()
+    )
+
+    assert (
+        relation[
+            "has_current_luck"
+        ]
+        is True
+    )
+
+    assert (
+        relation[
+            "status"
+        ]
+        == "evaluated"
+    )
+
+
+def test_chart_annual_luck_current_luck_ganzhi_matches():
+    """
+    annual_luck 側に記録された現在大運干支が、
+    current_luck 本体と一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_relation = result[
+        "annual_luck"
+    ][
+        "current_luck_relation"
+    ]
+
+    current_pillar = result[
+        "current_luck"
+    ][
+        "current_luck_pillar"
+    ]
+
+    assert (
+        annual_relation[
+            "current_luck_ganzhi"
+        ]
+        == current_pillar[
+            "ganzhi"
+        ]
+    )
+
+    assert (
+        annual_relation[
+            "current_luck_index"
+        ]
+        == current_pillar[
+            "index"
+        ]
+    )
+
+
+def test_chart_annual_luck_evidence_consistency():
+    """
+    evidence が上位の歳運結果と
+    一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    evidence = annual_luck[
+        "evidence"
+    ]
+
+    assert (
+        evidence[
+            "year"
+        ]
+        == annual_luck[
+            "year"
+        ]
+    )
+
+    assert (
+        evidence[
+            "ganzhi"
+        ]
+        == annual_luck[
+            "ganzhi"
+        ]
+    )
+
+    assert (
+        evidence[
+            "day_master_stem"
+        ]
+        == annual_luck[
+            "day_master_stem"
+        ]
+    )
+
+    assert (
+        evidence[
+            "stem_ten_god"
+        ]
+        == annual_luck[
+            "stem_ten_god"
+        ]
+    )
+
+    assert (
+        evidence[
+            "twelve_stage"
+        ]
+        == annual_luck[
+            "twelve_stage"
+        ]
+    )
+
+
+def test_chart_annual_luck_reasoning_exists():
+    """
+    AI鑑定前段階の reasoning が
+    保持されていることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    reasoning = result[
+        "annual_luck"
+    ][
+        "reasoning"
+    ]
+
+    assert isinstance(
+        reasoning,
+        list,
+    )
+
+    assert (
+        len(
+            reasoning
+        )
+        >= 5
+    )
+
+    joined = "".join(
+        reasoning
+    )
+
+    assert "2026" in joined
+    assert "丙午" in joined
+    assert "傷官" in joined
+    assert "長生" in joined
+
+
+def test_chart_annual_luck_matches_direct_engine_call():
+    """
+    chart.py で生成した annual_luck と、
+    annual_luck エンジンを同条件で直接呼んだ結果が
+    完全一致することを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    expected = (
+        calculate_annual_luck_for_datetime(
+            target_datetime=(
+                CURRENT_LUCK_TARGET_DATETIME
+            ),
+            day_master_stem=result[
+                "day_master"
+            ][
+                "stem"
+            ],
+            useful_gods=result[
+                "useful_gods"
+            ],
+            current_luck=result[
+                "current_luck"
+            ],
+        )
+    )
+
+    assert (
+        result[
+            "annual_luck"
+        ]
+        == expected
+    )
+
+
+def test_chart_annual_luck_fixed_target_is_reproducible():
+    """
+    同じ target_datetime なら
+    annual_luck の結果が完全一致することを確認します。
+    """
+    request = make_verified_request()
+
+    first = calculate_chart(
+        request,
+        target_datetime=(
+            CURRENT_LUCK_TARGET_DATETIME
+        ),
+    )
+
+    second = calculate_chart(
+        request,
+        target_datetime=(
+            CURRENT_LUCK_TARGET_DATETIME
+        ),
+    )
+
+    assert (
+        first[
+            "annual_luck"
+        ]
+        == second[
+            "annual_luck"
+        ]
+    )
+
+
+def test_chart_annual_luck_before_lichun():
+    """
+    2026-02-03 23:59 は暫定立春前なので、
+    2025年乙巳として扱うことを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request,
+        target_datetime=datetime(
+            2026,
+            2,
+            3,
+            23,
+            59,
+        ),
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    assert (
+        annual_luck[
+            "calendar_year"
+        ]
+        == 2026
+    )
+
+    assert (
+        annual_luck[
+            "effective_year"
+        ]
+        == 2025
+    )
+
+    assert (
+        annual_luck[
+            "year"
+        ]
+        == 2025
+    )
+
+    assert (
+        annual_luck[
+            "ganzhi"
+        ]
+        == "乙巳"
+    )
+
+
+def test_chart_annual_luck_at_lichun():
+    """
+    2026-02-04 00:00 は暫定立春境界なので、
+    2026年丙午へ切り替わることを確認します。
+    """
+    request = make_verified_request()
+
+    result = calculate_chart(
+        request,
+        target_datetime=datetime(
+            2026,
+            2,
+            4,
+            0,
+            0,
+        ),
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    assert (
+        annual_luck[
+            "effective_year"
+        ]
+        == 2026
+    )
+
+    assert (
+        annual_luck[
+            "ganzhi"
+        ]
+        == "丙午"
+    )
+
+
+def test_chart_annual_luck_accepts_jst_aware_target():
+    """
+    JST aware datetime でも
+    annual_luck が計算できることを確認します。
+    """
+    request = make_verified_request()
+
+    target = datetime(
+        2026,
+        8,
+        10,
+        15,
+        36,
+        tzinfo=JST,
+    )
+
+    result = calculate_chart(
+        request,
+        target_datetime=target,
+    )
+
+    annual_luck = result[
+        "annual_luck"
+    ]
+
+    assert (
+        annual_luck[
+            "ganzhi"
+        ]
+        == "丙午"
+    )
+
+    assert (
+        annual_luck[
+            "method"
+        ]
+        == "annual_luck_v1"
+    )
+
+
+def test_chart_annual_luck_preserves_verified_chart():
+    """
+    annual_luck 統合後も既存検証命式が
+    変化しないことを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "year"
+        ][
+            "pillar"
+        ]
+        == "乙丑"
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "month"
+        ][
+            "pillar"
+        ]
+        == "癸未"
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "day"
+        ][
+            "pillar"
+        ]
+        == "乙巳"
+    )
+
+    assert (
+        result[
+            "chart"
+        ][
+            "hour"
+        ][
+            "pillar"
+        ]
+        == "丁亥"
+    )
+
+
+def test_chart_annual_luck_preserves_useful_gods_v3():
+    """
+    annual_luck 統合後も useful_gods_v3 が
+    維持されることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "useful_gods"
+        ][
+            "method"
+        ]
+        == "useful_gods_v3"
+    )
+
+
+def test_chart_annual_luck_preserves_luck_pillars_v2():
+    """
+    annual_luck 統合後も luck_pillars_v2 が
+    維持されることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "luck_pillars"
+        ][
+            "method"
+        ]
+        == "luck_pillars_v2"
+    )
+
+
+def test_chart_annual_luck_preserves_current_luck_v1():
+    """
+    annual_luck 統合後も current_luck_v1 が
+    維持されることを確認します。
+    """
+    result = (
+        calculate_verified_chart_with_current_luck()
+    )
+
+    assert (
+        result[
+            "current_luck"
+        ][
+            "method"
+        ]
+        == "current_luck_v1"
     )
