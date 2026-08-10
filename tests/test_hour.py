@@ -23,8 +23,8 @@ def test_hour_pillar_hai_for_all_day_stems(
     expected,
 ):
     result = calculate_hour_pillar(
-        birth_time="21:50",
         day_stem=day_stem,
+        hour=21,
     )
 
     assert result == expected
