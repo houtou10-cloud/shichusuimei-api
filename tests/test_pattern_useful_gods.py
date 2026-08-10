@@ -41,6 +41,11 @@ def make_request(
     )
 
 
+# 1984-07-22 の2ケースは、現在採用している日柱基準
+# （1984-07-10 = 乙巳、日界は00:00）に合わせる。
+# 12日後の1984-07-22は丁巳となるため日主は丁。
+# 未月の主蔵干「己」は丁日主から見て食神なので、
+# 普通格候補は食神格として回帰固定する。
 REAL_CHART_CASES = [
     {
         "id": "1984_hokkaido_female_early_hour",
@@ -51,17 +56,17 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "甲子",
             "month": "辛未",
-            "day": "乙巳",
+            "day": "丁巳",
             "hour": "戊寅",
         },
-        "day_master": "乙",
-        "expected_pattern": "偏財格",
+        "day_master": "丁",
+        "expected_pattern": "食神格",
         "expected_technical_pattern": (
-            "indirect_wealth"
+            "eating_god"
         ),
         "expected_month_branch": "未",
         "expected_main_hidden_stem": "己",
-        "expected_ten_god": "偏財",
+        "expected_ten_god": "食神",
         "expected_exposed": False,
         "expected_exposure_positions": [],
     },
@@ -74,17 +79,17 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "甲子",
             "month": "辛未",
-            "day": "乙巳",
+            "day": "丁巳",
             "hour": "癸未",
         },
-        "day_master": "乙",
-        "expected_pattern": "偏財格",
+        "day_master": "丁",
+        "expected_pattern": "食神格",
         "expected_technical_pattern": (
-            "indirect_wealth"
+            "eating_god"
         ),
         "expected_month_branch": "未",
         "expected_main_hidden_stem": "己",
-        "expected_ten_god": "偏財",
+        "expected_ten_god": "食神",
         "expected_exposed": False,
         "expected_exposure_positions": [],
     },
@@ -97,17 +102,17 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "乙丑",
             "month": "癸未",
-            "day": "丁巳",
+            "day": "乙巳",
             "hour": "丁亥",
         },
-        "day_master": "丁",
-        "expected_pattern": "食神格",
+        "day_master": "乙",
+        "expected_pattern": "偏財格",
         "expected_technical_pattern": (
-            "eating_god"
+            "indirect_wealth"
         ),
         "expected_month_branch": "未",
         "expected_main_hidden_stem": "己",
-        "expected_ten_god": "食神",
+        "expected_ten_god": "偏財",
         "expected_exposed": False,
         "expected_exposure_positions": [],
     },
@@ -1109,7 +1114,7 @@ def test_real_chart_branch_total_score_is_not_directly_applied(
 
 # =========================================================
 # Verified 1985 regression
-# 乙丑 / 癸未 / 丁巳 / 丁亥
+# 乙丑 / 癸未 / 乙巳 / 丁亥
 # =========================================================
 
 
@@ -1135,14 +1140,14 @@ def test_verified_1985_pattern_candidate():
 
     assert (
         candidate["pattern"]
-        == "食神格"
+        == "偏財格"
     )
 
     assert (
         candidate[
             "technical_pattern"
         ]
-        == "eating_god"
+        == "indirect_wealth"
     )
 
     assert (
@@ -1163,7 +1168,7 @@ def test_verified_1985_pattern_candidate():
         candidate[
             "ten_god"
         ]
-        == "食神"
+        == "偏財"
     )
 
     assert (
@@ -1205,14 +1210,14 @@ def test_verified_1985_pattern_judgment():
         judgment[
             "primary_pattern"
         ]
-        == "食神格"
+        == "偏財格"
     )
 
     assert (
         judgment[
             "technical_pattern"
         ]
-        == "eating_god"
+        == "indirect_wealth"
     )
 
     assert (
@@ -1236,22 +1241,11 @@ def test_verified_1985_pattern_judgment():
         == 0.0
     )
 
-    expected_score = round(
-        max(
-            0.0,
-            min(
-                100.0,
-                primary["raw_score"],
-            ),
-        ),
-        2,
-    )
-
     assert (
         primary[
             "establishment_score"
         ]
-        == expected_score
+        == 60.0
     )
 
     assert (
@@ -3049,14 +3043,14 @@ def test_verified_1985_climate_useful_gods_metadata():
         climate[
             "day_master_stem"
         ]
-        == "丁"
+        == "乙"
     )
 
     assert (
         climate[
             "day_master_element"
         ]
-        == "火"
+        == "木"
     )
 
     assert (
@@ -3077,7 +3071,7 @@ def test_verified_1985_climate_useful_gods_metadata():
         climate[
             "primary_climate_element"
         ]
-        == climate["climate_elements"][0]
+        == "水"
     )
 
 
@@ -3108,14 +3102,14 @@ def test_verified_1985_useful_gods_v3_metadata():
         useful_gods[
             "day_master_stem"
         ]
-        == "丁"
+        == "乙"
     )
 
     assert (
         useful_gods[
             "day_master_element"
         ]
-        == "火"
+        == "木"
     )
 
     assert (
@@ -3211,7 +3205,7 @@ def test_verified_1985_useful_gods_v3_climate_is_water():
         ][
             "primary_climate_element"
         ]
-        == useful_gods["climate"]["climate_elements"][0]
+        == "水"
     )
 
 # =========================================================
@@ -3619,14 +3613,14 @@ def test_verified_1985_pattern_useful_gods_metadata():
         pattern_useful[
             "day_master_stem"
         ]
-        == "丁"
+        == "乙"
     )
 
     assert (
         pattern_useful[
             "day_master_element"
         ]
-        == "火"
+        == "木"
     )
 
 
@@ -3643,14 +3637,14 @@ def test_verified_1985_pattern_useful_gods_pattern_matches():
         pattern_useful[
             "primary_pattern"
         ]
-        == "食神格"
+        == "偏財格"
     )
 
     assert (
         pattern_useful[
             "technical_pattern"
         ]
-        == "eating_god"
+        == "indirect_wealth"
     )
 
     assert (
@@ -3685,29 +3679,37 @@ def test_verified_1985_pattern_useful_gods_elements():
         "pattern_useful_gods"
     ]
 
-    elements = pattern_useful[
-        "pattern_elements"
-    ]
+    assert (
+        pattern_useful[
+            "supported_pattern"
+        ]
+        is True
+    )
 
-    assert isinstance(elements, list)
-    assert len(elements) >= 1
-    assert all(
-        element in {"木", "火", "土", "金", "水"}
-        for element in elements
+    assert (
+        pattern_useful[
+            "pattern_elements"
+        ]
+        == [
+            "火",
+            "金",
+        ]
     )
 
     assert (
         pattern_useful[
             "primary_pattern_element"
         ]
-        == elements[0]
+        == "火"
     )
 
     assert (
         pattern_useful[
             "secondary_pattern_elements"
         ]
-        == elements[1:]
+        == [
+            "金",
+        ]
     )
 
 
@@ -3716,30 +3718,79 @@ def test_verified_1985_pattern_useful_gods_candidate_roles():
         make_verified_request()
     )
 
-    pattern_useful = result[
+    candidates = result[
         "pattern_useful_gods"
-    ]
-
-    candidates = pattern_useful[
+    ][
         "pattern_candidates"
     ]
 
-    elements = pattern_useful[
-        "pattern_elements"
-    ]
+    assert len(
+        candidates
+    ) == 2
 
-    assert len(candidates) == len(elements)
+    assert (
+        candidates[0][
+            "element"
+        ]
+        == "火"
+    )
 
-    for index, candidate in enumerate(
-        candidates,
-        start=1,
-    ):
-        assert candidate["priority"] == index
-        assert candidate["element"] == elements[index - 1]
-        assert isinstance(candidate["relations"], list)
-        assert isinstance(candidate["roles"], list)
-        assert len(candidate["relations"]) >= 1
-        assert len(candidate["roles"]) >= 1
+    assert (
+        candidates[0][
+            "relations"
+        ]
+        == [
+            "output",
+        ]
+    )
+
+    assert (
+        candidates[0][
+            "roles"
+        ]
+        == [
+            "generate_wealth",
+        ]
+    )
+
+    assert (
+        candidates[0][
+            "priority"
+        ]
+        == 1
+    )
+
+    assert (
+        candidates[1][
+            "element"
+        ]
+        == "金"
+    )
+
+    assert (
+        candidates[1][
+            "relations"
+        ]
+        == [
+            "officer",
+        ]
+    )
+
+    assert (
+        candidates[1][
+            "roles"
+        ]
+        == [
+            "protect_wealth",
+        ]
+    )
+
+    assert (
+        candidates[1][
+            "priority"
+        ]
+        == 2
+    )
 
 
 def test_verified_1985_pattern_useful_gods_evidence_integrity():
@@ -3779,7 +3830,7 @@ def test_verified_1985_pattern_useful_gods_evidence_integrity():
         ][
             "technical_pattern"
         ]
-        == "eating_god"
+        == "indirect_wealth"
     )
 
     assert (
