@@ -1,408 +1,589 @@
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
+
 
 from engine.annual_luck import (
     calculate_annual_luck_for_datetime,
 )
+from engine.branch_relation_strength import (
+    calculate_branch_relation_strength,
+)
+from engine.branch_relations import (
+    find_branch_breaks,
+    find_branch_clashes,
+    find_branch_combinations,
+    find_branch_harms,
+    find_branch_punishments,
+    find_branch_trines,
+)
 from engine.climate_useful_gods import (
-     evaluate_climate_useful_gods,
+    evaluate_climate_useful_gods,
 )
 from engine.current_luck import (
     evaluate_current_luck,
 )
-from engine.final_strength import (
-    calculate_final_strength_judgment,
-)
 from engine.integrated_luck import (
     calculate_integrated_luck,
+)
+from engine.day_master_strength import (
+    classify_five_elements_for_day_master,
+    classify_weighted_elements_for_day_master,
+)
+from engine.five_elements import (
+    calculate_five_elements,
+)
+from engine.final_strength_judgment import (
+    evaluate_final_strength_judgment,
+)
+from engine.integrated_month_strength import (
+    calculate_integrated_month_strength,
 )
 from engine.luck_pillars import (
     calculate_luck_pillars,
 )
-from engine.pattern import (
-    calculate_pattern_candidates,
-    calculate_pattern_judgment,
-    calculate_pattern_special_rules,
+from engine.month_command import (
+    classify_month_relationship,
+)
+from engine.pattern_candidates import (
+    evaluate_pattern_candidates,
+)
+from engine.pattern_judgment import (
+    evaluate_pattern_judgment,
 )
 from engine.pattern_useful_gods import (
-    calculate_pattern_useful_gods,
+    evaluate_pattern_useful_gods,
 )
-from engine.pillars import (
-    calculate_four_pillars,
+from engine.pattern_special_rules import (
+    evaluate_pattern_special_rules,
 )
-from engine.strength import (
-    calculate_strength,
+from engine.pillars import calculate_four_pillars
+from engine.root_strength import find_roots
+from engine.seasonal_strength import (
+    evaluate_seasonal_strength,
+)
+from engine.stem_combination_conflict_types import (
+    evaluate_stem_combination_conflict_types,
+)
+from engine.stem_combination_conflicts import (
+    evaluate_stem_combination_conflicts,
+)
+from engine.stem_combinations import (
+    find_stem_combinations,
+)
+from engine.stem_transformation_judgment import (
+    evaluate_stem_transformation_judgment,
+)
+from engine.stem_transformation import (
+    evaluate_stem_transformations,
+)
+from engine.strength_judgment import (
+    calculate_provisional_strength,
+    calculate_weighted_provisional_strength,
+)
+from engine.transformation_exposure import (
+    evaluate_transformation_exposures,
+)
+from engine.transformation_root import (
+    evaluate_transformation_roots,
 )
 from engine.useful_gods import (
-    calculate_useful_gods,
+    evaluate_useful_gods_v3,
+)
+from engine.weighted_five_elements import (
+    calculate_weighted_five_elements,
+)
+from engine.weighted_month_command import (
+    calculate_weighted_month_command,
+)
+from engine.weighted_root_strength import (
+    calculate_weighted_roots,
 )
 
 
 JST = ZoneInfo("Asia/Tokyo")
 
 
-def _normalize_target_datetime(
-    target_datetime: datetime | None,
-) -> datetime:
+def normalize_birth_date(
+    value: str | date,
+) -> str:
     """
-    target_datetime を
-    四柱推命エンジン内部で扱う
-    JSTベースのnaive datetimeへ変換します。
-
-    ルール
-    ------
-    None:
-        現在の日本時間を使用。
-
-    timezone-aware:
-        JSTへ変換した後、
-        tzinfoを除去。
-
-    timezone-naive:
-        そのまま使用。
-
-    注意
-    ----
-    現在の四柱推命エンジンでは、
-    timezone-naiveな日本標準時を
-    基準として計算します。
+    birth_dateをYYYY-MM-DD形式の文字列へ統一します。
     """
+    if isinstance(value, date):
+        return value.isoformat()
 
-    if target_datetime is None:
-        return datetime.now(
-            JST
-        ).replace(
-            tzinfo=None
-        )
-
-    if not isinstance(
-        target_datetime,
-        datetime,
-    ):
-        raise TypeError(
-            "target_datetimeはdatetime型で指定してください。"
-        )
-
-    if (
-        target_datetime.tzinfo
-        is not None
-    ):
-        return (
-            target_datetime
-            .astimezone(JST)
-            .replace(
-                tzinfo=None
+    if isinstance(value, str):
+        try:
+            datetime.strptime(
+                value,
+                "%Y-%m-%d",
             )
-        )
+        except ValueError as error:
+            raise ValueError(
+                "birth_dateはYYYY-MM-DD形式で指定してください。"
+            ) from error
 
-    return target_datetime
+        return value
+
+    raise TypeError(
+        "birth_dateは文字列またはdate型で指定してください。"
+    )
 
 
-def _normalize_birth_datetime_for_luck(
-    birth_datetime: datetime,
-) -> datetime:
+def normalize_birth_time(
+    value: str | None,
+) -> str | None:
     """
-    大運・現在大運計算用に
-    birth_datetime を
-    timezone-naiveへ変換します。
-
-    timezone-awareの場合は、
-    入力されたローカル時刻を保持したまま
-    tzinfoのみ除去します。
-
-    これは四柱計算側の出生時刻と
-    大運計算側の出生時刻を
-    同じwall-clock timeとして扱うためです。
+    birth_timeをHH:MM形式として検証します。
     """
+    if value is None:
+        return None
 
-    if not isinstance(
-        birth_datetime,
-        datetime,
-    ):
+    if not isinstance(value, str):
         raise TypeError(
-            "birth_datetimeはdatetime型で指定してください。"
+            "birth_timeはHH:MM形式の文字列で指定してください。"
         )
 
-    if (
-        birth_datetime.tzinfo
-        is not None
-    ):
-        return birth_datetime.replace(
-            tzinfo=None
+    try:
+        datetime.strptime(
+            value,
+            "%H:%M",
         )
+    except ValueError as error:
+        raise ValueError(
+            "birth_timeはHH:MM形式で指定してください。"
+        ) from error
 
-    return birth_datetime
+    return value
 
 
 def calculate_chart(
-    birth_datetime: datetime,
-    gender: str | None = None,
+    req,
     target_datetime: datetime | None = None,
 ) -> dict:
     """
-    四柱推命命式を総合計算します。
-
-    現在の計算フロー
-    ----------------
-
-    1. 四柱
-    2. 身強身弱
-    3. 最終身強身弱判定
-    4. 格局候補
-    5. 格局特殊ルール
-    6. 格局判定
-    7. 調候用神
-    8. 格局用神
-    9. 総合用神 useful_gods_v3
-    10. 大運 luck_pillars_v2
-    11. 現在大運 current_luck_v1
-    12. 歳運 annual_luck_v1
-    13. 大運×歳運×用神統合
-        integrated_luck_v1
-
-    Parameters
-    ----------
-    birth_datetime:
-        出生日時。
-
-    gender:
-        性別。
-        大運の順逆判定に使用します。
+    APIの入力情報から命式と各種分析データを作成します。
 
     target_datetime:
-        現在大運・歳運・統合運を
-        評価する対象日時。
+        現在大運を判定する基準日時。
 
-        Noneの場合は現在の日本時間を使用。
-
-    Returns
-    -------
-    dict
-        四柱推命の総合計算結果。
+        None の場合は Asia/Tokyo の現在日時を使用します。
+        テストでは固定日時を渡すことで再現性を確保できます。
     """
+    birth_date = normalize_birth_date(
+        req.birth_date
+    )
 
-    if not isinstance(
-        birth_datetime,
-        datetime,
-    ):
-        raise TypeError(
-            "birth_datetimeはdatetime型で指定してください。"
+    birth_time = normalize_birth_time(
+        req.birth_time
+    )
+
+    warnings: list[str] = []
+
+    if birth_time is None:
+        time_text = "12:00"
+
+        warnings.append(
+            "出生時間が不明なため、時柱は計算していません。"
         )
+    else:
+        time_text = birth_time
 
-    # =====================================================
-    # 1. 四柱
-    # =====================================================
+    birth_datetime = datetime.strptime(
+        f"{birth_date} {time_text}",
+        "%Y-%m-%d %H:%M",
+    ).replace(
+        tzinfo=JST
+    )
 
     pillars = calculate_four_pillars(
         birth_datetime
     )
 
-    day_master_stem = (
-        pillars[
-            "day_master"
-        ][
-            "stem"
-        ]
+    if birth_time is None:
+        pillars["hour"] = None
+
+    chart_data = {
+        "year": pillars["year"],
+        "month": pillars["month"],
+        "day": pillars["day"],
+        "hour": pillars["hour"],
+    }
+
+    stem_combinations = (
+        find_stem_combinations(
+            chart_data
+        )
     )
 
-    year_stem = (
-        pillars[
-            "year"
-        ][
-            "stem"
-        ]
+    stem_combination_conflicts = (
+        evaluate_stem_combination_conflicts(
+            stem_combinations,
+            chart_data,
+        )
     )
 
-    month_ganzhi = (
-        pillars[
-            "month"
-        ][
-            "pillar"
-        ]
+    stem_combination_conflict_types = (
+        evaluate_stem_combination_conflict_types(
+            stem_combination_conflicts
+        )
     )
 
-    # =====================================================
-    # 2. 身強身弱
-    # =====================================================
-
-    strength = calculate_strength(
-        pillars
+    stem_transformations = (
+        evaluate_stem_transformations(
+            stem_combinations,
+            chart_data,
+        )
     )
 
-    # =====================================================
-    # 3. 最終身強身弱判定
-    # =====================================================
+    transformation_roots = (
+        evaluate_transformation_roots(
+            stem_transformations,
+            chart_data,
+        )
+    )
+
+    transformation_exposures = (
+        evaluate_transformation_exposures(
+            stem_transformations,
+            chart_data,
+        )
+    )
+
+    stem_transformation_judgment = (
+        evaluate_stem_transformation_judgment(
+            stem_transformations,
+            transformation_roots,
+            transformation_exposures,
+            stem_combination_conflicts,
+            stem_combination_conflict_types,
+        )
+    )
+
+    five_elements = calculate_five_elements(
+        chart_data
+    )
+
+    weighted_five_elements = (
+        calculate_weighted_five_elements(
+            chart_data
+        )
+    )
+
+    day_master_balance = (
+        classify_five_elements_for_day_master(
+            pillars["day_master"]["stem"],
+            five_elements,
+        )
+    )
+
+    weighted_day_master_balance = (
+        classify_weighted_elements_for_day_master(
+            pillars["day_master"]["stem"],
+            weighted_five_elements,
+        )
+    )
+
+    root_strength = find_roots(
+        pillars["day_master"]["stem"],
+        chart_data,
+    )
+
+    weighted_root_strength = (
+        calculate_weighted_roots(
+            pillars["day_master"]["stem"],
+            chart_data,
+        )
+    )
+
+    branch_clashes = (
+        find_branch_clashes(
+            chart_data
+        )
+    )
+
+    branch_combinations = (
+        find_branch_combinations(
+            chart_data
+        )
+    )
+
+    branch_trines = (
+        find_branch_trines(
+            chart_data
+        )
+    )
+
+    branch_punishments = (
+        find_branch_punishments(
+            chart_data
+        )
+    )
+
+    branch_harms = (
+        find_branch_harms(
+            chart_data
+        )
+    )
+
+    branch_breaks = (
+        find_branch_breaks(
+            chart_data
+        )
+    )
+
+    branch_relation_strength = (
+        calculate_branch_relation_strength(
+            branch_clashes,
+            branch_combinations,
+            branch_trines,
+            branch_punishments,
+            branch_harms,
+            branch_breaks,
+        )
+    )
+
+    month_command = (
+        classify_month_relationship(
+            pillars["day_master"]["stem"],
+            pillars["month"]["branch"],
+        )
+    )
+
+    weighted_month_command = (
+        calculate_weighted_month_command(
+            pillars["day_master"]["stem"],
+            pillars["month"],
+        )
+    )
+
+    seasonal_strength = (
+        evaluate_seasonal_strength(
+            pillars["day_master"]["stem"],
+            pillars["month"]["branch"],
+        )
+    )
+
+    integrated_month_strength = (
+        calculate_integrated_month_strength(
+            seasonal_strength,
+            weighted_month_command,
+        )
+    )
+
+    strength_judgment = (
+        calculate_provisional_strength(
+            day_master_balance,
+            root_strength,
+            month_command,
+        )
+    )
+
+    weighted_strength_judgment = (
+        calculate_weighted_provisional_strength(
+            weighted_day_master_balance,
+            weighted_root_strength,
+            month_command,
+            integrated_month_strength,
+        )
+    )
+
+    warnings.extend(
+        pillars.get(
+            "warnings",
+            [],
+        )
+    )
 
     final_strength_judgment = (
-        calculate_final_strength_judgment(
-            pillars=pillars,
-            strength=strength,
+        evaluate_final_strength_judgment(
+            weighted_strength_judgment,
+            weighted_root_strength,
+            integrated_month_strength,
+            branch_relation_strength,
+            stem_transformation_judgment,
         )
     )
-
-    # =====================================================
-    # 4. 格局候補
-    # =====================================================
 
     pattern_candidates = (
-        calculate_pattern_candidates(
-            pillars
+        evaluate_pattern_candidates(
+            chart_data,
+            pillars["day_master"]["stem"],
         )
     )
-
-    # =====================================================
-    # 5. 格局特殊ルール
-    # =====================================================
 
     pattern_special_rules = (
-        calculate_pattern_special_rules(
-            pillars=pillars,
-            strength=(
-                final_strength_judgment
-            ),
-            pattern_candidates=(
-                pattern_candidates
-            ),
+        evaluate_pattern_special_rules(
+            chart_data,
+            final_strength_judgment,
         )
     )
-
-    # =====================================================
-    # 6. 格局判定
-    # =====================================================
 
     pattern_judgment = (
-        calculate_pattern_judgment(
-            pillars=pillars,
-            pattern_candidates=(
-                pattern_candidates
-            ),
-            strength=(
-                final_strength_judgment
-            ),
-            special_rules=(
-                pattern_special_rules
-            ),
+        evaluate_pattern_judgment(
+            pattern_candidates,
+            final_strength_judgment,
+            stem_transformation_judgment,
+            branch_relation_strength,
+            pattern_special_rules,
         )
     )
-
-    # =====================================================
-    # 7. 調候用神
-    # =====================================================
-
-    climate_useful_gods = (
-        calculate_climate_useful_gods(
-            pillars
-        )
-    )
-
-    # =====================================================
-    # 8. 格局用神
-    # =====================================================
 
     pattern_useful_gods = (
-        calculate_pattern_useful_gods(
-            pillars=pillars,
-            pattern_judgment=(
-                pattern_judgment
-            ),
+        evaluate_pattern_useful_gods(
+            pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            pattern_judgment,
+            weighted_five_elements,
         )
     )
 
-    # =====================================================
-    # 9. 総合用神 useful_gods_v3
-    # =====================================================
+    climate_useful_gods = (
+        evaluate_climate_useful_gods(
+            pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            pillars[
+                "month"
+            ][
+                "branch"
+            ],
+        )
+    )
 
     useful_gods = (
-        calculate_useful_gods(
-            pillars=pillars,
-            final_strength_judgment=(
-                final_strength_judgment
-            ),
-            climate_useful_gods=(
-                climate_useful_gods
-            ),
-            pattern_useful_gods=(
-                pattern_useful_gods
-            ),
-            pattern_judgment=(
-                pattern_judgment
-            ),
+        evaluate_useful_gods_v3(
+            pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            weighted_five_elements,
+            final_strength_judgment,
+            pattern_judgment,
+            climate_useful_gods,
+            pattern_useful_gods,
         )
     )
 
-    # =====================================================
-    # 10. 大運
-    # =====================================================
-
+    # solar_terms_v2 は現在 timezone-naive の
+    # ローカル日時を使用する。
+    # chart.py の birth_datetime は JST aware なので、
+    # 大運計算へ渡す際は「日本時間の壁時計値」を保ったまま
+    # tzinfo のみ外して互換化する。
     luck_birth_datetime = (
-        _normalize_birth_datetime_for_luck(
-            birth_datetime
+        birth_datetime.replace(
+            tzinfo=None
         )
     )
 
-    luck_pillars = None
+    luck_pillars = (
+        calculate_luck_pillars(
+            year_stem=pillars[
+                "year"
+            ][
+                "stem"
+            ],
+            month_ganzhi=pillars[
+                "month"
+            ][
+                "pillar"
+            ],
+            day_master_stem=pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
+            gender=req.gender,
+            birth_datetime=(
+                luck_birth_datetime
+            ),
+            useful_gods=useful_gods,
+        )
+    )
 
-    if gender is not None:
-        luck_pillars = (
-            calculate_luck_pillars(
-                year_stem=year_stem,
-                month_ganzhi=month_ganzhi,
-                day_master_stem=(
-                    day_master_stem
-                ),
-                gender=gender,
-                birth_datetime=(
-                    luck_birth_datetime
-                ),
-                useful_gods=(
-                    useful_gods
-                ),
+    # current_luck_v1 の判定基準日時。
+    #
+    # 通常API:
+    #   target_datetime=None
+    #   -> Asia/Tokyo の現在日時
+    #
+    # テスト:
+    #   target_datetime に固定日時を指定
+    #   -> 再現可能な現在大運判定
+    if target_datetime is None:
+        current_target_datetime = (
+            datetime.now(
+                JST
             )
         )
+    else:
+        if not isinstance(
+            target_datetime,
+            datetime,
+        ):
+            raise TypeError(
+                "target_datetimeはdatetime型で指定してください。"
+            )
 
-    # =====================================================
-    # 11. target datetime
-    # =====================================================
-
-    current_target_datetime = (
-        _normalize_target_datetime(
+        current_target_datetime = (
             target_datetime
         )
-    )
 
-    # =====================================================
-    # 12. 現在大運
-    # =====================================================
-
-    current_luck = None
-
-    if luck_pillars is not None:
-        current_luck = (
-            evaluate_current_luck(
-                birth_datetime=(
-                    luck_birth_datetime
-                ),
-                target_datetime=(
-                    current_target_datetime
-                ),
-                luck_pillars=(
-                    luck_pillars
-                ),
+    # birth_datetime / solar_terms_v2 / current_luck_v1 の
+    # 現行仕様に合わせ、日本時間の壁時計値を保持した
+    # timezone-naive datetime へ揃える。
+    if (
+        current_target_datetime.tzinfo
+        is not None
+        and current_target_datetime.utcoffset()
+        is not None
+    ):
+        current_target_datetime = (
+            current_target_datetime.astimezone(
+                JST
+            ).replace(
+                tzinfo=None
             )
         )
 
-    # =====================================================
-    # 13. 歳運 annual_luck_v1
-    # =====================================================
+    current_luck = (
+        evaluate_current_luck(
+            birth_datetime=(
+                luck_birth_datetime
+            ),
+            target_datetime=(
+                current_target_datetime
+            ),
+            luck_pillars=(
+                luck_pillars
+            ),
+        )
+    )
 
+    # annual_luck_v1
+    #
+    # current_luck と同じ target_datetime を使用し、
+    # 「現在大運」と「現在歳運」の基準時刻を統一する。
+    #
+    # calculate_annual_luck_for_datetime() 側では、
+    # year.py と同じ暫定立春境界
+    # （2月4日00:00）を使用する。
     annual_luck = (
         calculate_annual_luck_for_datetime(
             target_datetime=(
                 current_target_datetime
             ),
-            day_master_stem=(
-                day_master_stem
-            ),
+            day_master_stem=pillars[
+                "day_master"
+            ][
+                "stem"
+            ],
             useful_gods=(
                 useful_gods
             ),
@@ -412,121 +593,144 @@ def calculate_chart(
         )
     )
 
-    # =====================================================
-    # 14. 統合運 integrated_luck_v1
-    # =====================================================
-
-    integrated_luck = None
-
-    if current_luck is not None:
-        integrated_luck = (
-            calculate_integrated_luck(
-                current_luck=(
-                    current_luck
-                ),
-                annual_luck=(
-                    annual_luck
-                ),
-                useful_gods=(
-                    useful_gods
-                ),
-            )
+    # integrated_luck_v1
+    #
+    # 現在大運・歳運・useful_gods_v3 を
+    # 既存結果からそのまま統合する。
+    integrated_luck = (
+        calculate_integrated_luck(
+            current_luck=(
+                current_luck
+            ),
+            annual_luck=(
+                annual_luck
+            ),
+            useful_gods=(
+                useful_gods
+            ),
         )
+    )
 
-    # =====================================================
-    # 15. 結果
-    # =====================================================
-
-    result = {
-        **pillars,
-
-        "strength": (
-            strength
+    return {
+        "input": {
+            "birth_date": birth_date,
+            "birth_time": birth_time,
+            "birth_place": req.birth_place,
+            "gender": req.gender,
+            "timezone": "Asia/Tokyo",
+        },
+        "chart": chart_data,
+        "stem_combinations": (
+            stem_combinations
         ),
-
+        "stem_combination_conflicts": (
+            stem_combination_conflicts
+        ),
+        "stem_combination_conflict_types": (
+            stem_combination_conflict_types
+        ),
+        "stem_transformations": (
+            stem_transformations
+        ),
+        "transformation_roots": (
+            transformation_roots
+        ),
+        "transformation_exposures": (
+            transformation_exposures
+        ),
+        "stem_transformation_judgment": (
+            stem_transformation_judgment
+        ),
         "final_strength_judgment": (
             final_strength_judgment
         ),
-
         "pattern_candidates": (
             pattern_candidates
         ),
-
         "pattern_special_rules": (
             pattern_special_rules
         ),
-
         "pattern_judgment": (
             pattern_judgment
         ),
-
-        "climate_useful_gods": (
-            climate_useful_gods
-        ),
-
         "pattern_useful_gods": (
             pattern_useful_gods
         ),
-
+        "climate_useful_gods": (
+            climate_useful_gods
+        ),
         "useful_gods": (
             useful_gods
         ),
-
         "luck_pillars": (
             luck_pillars
         ),
-
         "current_luck": (
             current_luck
         ),
-
         "annual_luck": (
             annual_luck
         ),
-
         "integrated_luck": (
             integrated_luck
         ),
+        "day_master": pillars["day_master"],
+        "five_elements": five_elements,
+        "weighted_five_elements": (
+            weighted_five_elements
+        ),
+        "day_master_balance": (
+            day_master_balance
+        ),
+        "weighted_day_master_balance": (
+            weighted_day_master_balance
+        ),
+        "root_strength": root_strength,
+        "weighted_root_strength": (
+            weighted_root_strength
+        ),
+        "branch_clashes": (
+            branch_clashes
+        ),
+        "branch_combinations": (
+            branch_combinations
+        ),
+        "branch_trines": (
+            branch_trines
+        ),
+        "branch_punishments": (
+            branch_punishments
+        ),
+        "branch_harms": (
+            branch_harms
+        ),
+        "branch_breaks": (
+            branch_breaks
+        ),
+        "branch_relation_strength": (
+            branch_relation_strength
+        ),
+        "month_command": month_command,
+        "weighted_month_command": (
+            weighted_month_command
+        ),
+        "seasonal_strength": (
+            seasonal_strength
+        ),
+        "integrated_month_strength": (
+            integrated_month_strength
+        ),
+        "strength_judgment": (
+            strength_judgment
+        ),
+        "weighted_strength_judgment": (
+            weighted_strength_judgment
+        ),
+        "calculation_rules": (
+            pillars["calculation_rules"]
+        ),
+        "calculation_status": (
+            pillars["calculation_status"]
+        ),
+        "warnings": warnings,
     }
-
-    return result
-
-
-def build_chart(
-    birth_datetime: datetime,
-    gender: str | None = None,
-    target_datetime: datetime | None = None,
-) -> dict:
-    """
-    calculate_chart の互換alias。
-    """
-
-    return calculate_chart(
-        birth_datetime=(
-            birth_datetime
-        ),
-        gender=gender,
-        target_datetime=(
-            target_datetime
-        ),
-    )
-
-
-def create_chart(
-    birth_datetime: datetime,
-    gender: str | None = None,
-    target_datetime: datetime | None = None,
-) -> dict:
-    """
-    calculate_chart の互換alias。
-    """
-
-    return calculate_chart(
-        birth_datetime=(
-            birth_datetime
-        ),
-        gender=gender,
-        target_datetime=(
-            target_datetime
-        ),
-    )
