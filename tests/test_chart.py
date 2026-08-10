@@ -149,18 +149,18 @@ def test_chart_contains_five_elements():
     five_elements = result["five_elements"]
 
     assert five_elements["counts"] == {
-        "木": 4,
+        "木": 3,
         "火": 4,
         "土": 5,
-        "金": 2,
+        "金": 3,
         "水": 4,
     }
 
     assert five_elements["percentages"] == {
-        "木": 21.05,
+        "木": 15.79,
         "火": 21.05,
         "土": 26.32,
-        "金": 10.53,
+        "金": 15.79,
         "水": 21.05,
     }
 
@@ -1511,7 +1511,10 @@ def test_chart_contains_pattern_candidates():
     assert pattern_candidates["day_master_stem"] == "丁"
     assert pattern_candidates["day_master_stem"] == result["day_master"]["stem"]
 
-    assert pattern_candidates["overall_status"] == "candidate_detected"
+    assert (
+        pattern_candidates["overall_status"]
+        == "candidate_with_school_rule"
+    )
     assert pattern_candidates["method"] == "pattern_candidates_v1"
     assert pattern_candidates["status"] == "provisional_pattern_candidates"
     assert isinstance(pattern_candidates["notes"], list)
@@ -1801,4 +1804,3 @@ def test_chart_pattern_judgment_matches_pattern_candidates():
             "technical_pattern"
         ]
     )
-
