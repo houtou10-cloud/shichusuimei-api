@@ -26,7 +26,7 @@ tests/test_final_real_charts.py
 - 一方で、既知の四柱・格局・バージョン・evidence整合性は固定する。
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
@@ -34,6 +34,7 @@ import pytest
 
 from engine.chart import calculate_chart
 from engine.integrated_luck import calculate_integrated_luck
+from engine.solar_terms import get_solar_term_datetime
 
 
 JST = ZoneInfo("Asia/Tokyo")
@@ -57,12 +58,12 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "甲子",
             "month": "辛未",
-            "day": "乙巳",
-            "hour": "戊寅",
+            "day": "丁巳",
+            "hour": "壬寅",
         },
-        "day_master": "乙",
-        "pattern": "偏財格",
-        "technical_pattern": "indirect_wealth",
+        "day_master": "丁",
+        "pattern": "食神格",
+        "technical_pattern": "eating_god",
     },
     {
         "id": "1984_fukuoka_male_afternoon",
@@ -73,12 +74,12 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "甲子",
             "month": "辛未",
-            "day": "乙巳",
-            "hour": "癸未",
+            "day": "丁巳",
+            "hour": "丁未",
         },
-        "day_master": "乙",
-        "pattern": "偏財格",
-        "technical_pattern": "indirect_wealth",
+        "day_master": "丁",
+        "pattern": "食神格",
+        "technical_pattern": "eating_god",
     },
     {
         "id": "1985_ishikawa_female_verified",
@@ -89,12 +90,12 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "乙丑",
             "month": "癸未",
-            "day": "乙巳",
-            "hour": "丁亥",
+            "day": "丁巳",
+            "hour": "辛亥",
         },
-        "day_master": "乙",
-        "pattern": "偏財格",
-        "technical_pattern": "indirect_wealth",
+        "day_master": "丁",
+        "pattern": "食神格",
+        "technical_pattern": "eating_god",
     },
 ]
 
@@ -684,22 +685,26 @@ def test_final_real_chart_2026_annual_luck(
 def test_final_real_chart_2026_annual_ten_god(
     real_chart_result,
 ):
+    """
+    現在の正式日柱基準では3命式とも日主は丁。
+    2026年の天干は丙なので、丁日主に対する丙は劫財。
+    """
     assert (
-        real_chart_result[
-            "annual_luck"
-        ]["stem_ten_god"]
-        == "傷官"
+        real_chart_result["annual_luck"]["stem_ten_god"]
+        == "劫財"
     )
 
 
 def test_final_real_chart_2026_annual_twelve_stage(
     real_chart_result,
 ):
+    """
+    現在の正式日柱基準では3命式とも日主は丁。
+    2026年の地支は午なので、丁×午の十二運は建禄。
+    """
     assert (
-        real_chart_result[
-            "annual_luck"
-        ]["twelve_stage"]
-        == "長生"
+        real_chart_result["annual_luck"]["twelve_stage"]
+        == "建禄"
     )
 
 
@@ -1012,6 +1017,10 @@ def test_final_verified_chart_accepts_jst_aware_target():
 
 
 def test_final_verified_chart_before_lichun_uses_previous_year():
+    """
+    天文学的に求めた2026年立春の1秒前は、
+    まだ2025年の歳運（乙巳）として扱う。
+    """
     request = make_request(
         birth_date="1985-07-17",
         birth_time="21:50",
@@ -1019,22 +1028,31 @@ def test_final_verified_chart_before_lichun_uses_previous_year():
         gender="female",
     )
 
+    lichun = get_solar_term_datetime(
+        2026,
+        "立春",
+    )
+
     result = calculate_chart(
         request,
-        target_datetime=datetime(
-            2026,
-            2,
-            3,
-            23,
-            59,
+        target_datetime=(
+            lichun - timedelta(seconds=1)
         ),
     )
 
+    assert result["annual_luck"]["effective_year"] == 2025
     assert result["annual_luck"]["ganzhi"] == "乙巳"
-    assert result["integrated_luck"]["annual_luck_ganzhi"] == "乙巳"
+    assert (
+        result["integrated_luck"]["annual_luck_ganzhi"]
+        == "乙巳"
+    )
 
 
 def test_final_verified_chart_at_lichun_uses_new_year():
+    """
+    天文学的な立春時刻ちょうどから、
+    2026年の歳運（丙午）として扱う。
+    """
     request = make_request(
         birth_date="1985-07-17",
         birth_time="21:50",
@@ -1042,19 +1060,50 @@ def test_final_verified_chart_at_lichun_uses_new_year():
         gender="female",
     )
 
+    lichun = get_solar_term_datetime(
+        2026,
+        "立春",
+    )
+
     result = calculate_chart(
         request,
-        target_datetime=datetime(
-            2026,
-            2,
-            4,
-            0,
-            0,
+        target_datetime=lichun,
+    )
+
+    assert result["annual_luck"]["effective_year"] == 2026
+    assert result["annual_luck"]["ganzhi"] == "丙午"
+    assert (
+        result["integrated_luck"]["annual_luck_ganzhi"]
+        == "丙午"
+    )
+
+
+def test_final_verified_chart_after_lichun_uses_new_year():
+    """
+    天文学的に求めた2026年立春の1秒後も、
+    2026年の歳運（丙午）として扱う。
+    """
+    request = make_request(
+        birth_date="1985-07-17",
+        birth_time="21:50",
+        birth_place="石川県",
+        gender="female",
+    )
+
+    lichun = get_solar_term_datetime(
+        2026,
+        "立春",
+    )
+
+    result = calculate_chart(
+        request,
+        target_datetime=(
+            lichun + timedelta(seconds=1)
         ),
     )
 
+    assert result["annual_luck"]["effective_year"] == 2026
     assert result["annual_luck"]["ganzhi"] == "丙午"
-    assert result["integrated_luck"]["annual_luck_ganzhi"] == "丙午"
 
 
 # ============================================================
@@ -1077,23 +1126,23 @@ def test_final_verified_1985_end_to_end():
 
     assert result["chart"]["year"]["pillar"] == "乙丑"
     assert result["chart"]["month"]["pillar"] == "癸未"
-    assert result["chart"]["day"]["pillar"] == "乙巳"
-    assert result["chart"]["hour"]["pillar"] == "丁亥"
-    assert result["day_master"]["stem"] == "乙"
+    assert result["chart"]["day"]["pillar"] == "丁巳"
+    assert result["chart"]["hour"]["pillar"] == "辛亥"
+    assert result["day_master"]["stem"] == "丁"
 
     assert (
         result["final_strength_judgment"]["method"]
         == "final_strength_judgment_v2"
     )
-    assert result["pattern_judgment"]["primary_pattern"] == "偏財格"
+    assert result["pattern_judgment"]["primary_pattern"] == "食神格"
     assert (
         result["pattern_judgment"]["technical_pattern"]
-        == "indirect_wealth"
+        == "eating_god"
     )
     assert result["useful_gods"]["method"] == "useful_gods_v3"
     assert result["luck_pillars"]["method"] == "luck_pillars_v2"
     assert result["current_luck"]["method"] == "current_luck_v1"
     assert result["annual_luck"]["ganzhi"] == "丙午"
-    assert result["annual_luck"]["stem_ten_god"] == "傷官"
+    assert result["annual_luck"]["stem_ten_god"] == "劫財"
     assert result["integrated_luck"]["method"] == "integrated_luck_v1"
     assert result["integrated_luck"]["annual_luck_ganzhi"] == "丙午"
