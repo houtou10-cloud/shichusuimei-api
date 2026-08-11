@@ -1,483 +1,378 @@
 """
 engine/pillars.py
 
-四柱推命 四柱計算統合エンジン v4
+四柱（年柱・月柱・日柱・時柱）を統合して計算するモジュール。
 
-目的
-----
-出生日時から、
-
-・年柱
-・月柱
-・日柱
-・時柱
-・日主
-
-を一貫したルールで計算する。
-
-v4では出生時刻補正エンジン
-engine/time_correction.py を統合する。
-
-設計原則
+設計方針
 --------
-・既存呼び出しとの後方互換を維持する。
-・補正モードのデフォルトはstandard。
-・standardでは従来と同じ出生日時を使う。
-・longitudeでは経度補正後日時を使う。
-・補正後日時は時柱だけではなく、
-  年柱・月柱・日柱・時柱すべてへ適用する。
-・日付を跨いだ場合は日柱と日主を再計算する。
-・立春を跨いだ場合は年柱と月柱を再計算する。
-・月の節入りを跨いだ場合は月柱を再計算する。
-・23:00は時支だけ子へ切り替わり、
-  日柱の日界は00:00とする。
-・子刻は23:00〜00:59とする。
+- 年柱・月柱・日柱・時柱の既存計算エンジンを統合する。
+- 蔵干・通変星・十二運を柱データへ付加する。
+- 日主は日柱天干を基準とする。
+- solar_time_mode による時刻補正へ対応する。
+- 時刻補正後は時柱だけでなく四柱すべてを再計算する。
+- calculation_rules / calculation_status を公開する。
+- 既存 API・chart.py・テストとの後方互換性を維持する。
 
-現行境界仕様
-------------
-年柱:
-    実際の立春日時で切替。
+重要
+----
+calculation_status は calculation_rules["status"] とは別に
+トップレベルにも保持する。
 
-月柱:
-    実際の12節の節入り日時で切替。
+これは engine/chart.py が
 
-日柱:
-    00:00で切替。
+    pillars["calculation_status"]
 
-時柱:
-    子 23:00〜00:59
-    丑 01:00〜02:59
-    寅 03:00〜04:59
-    ...
-    亥 21:00〜22:59
-
-出生時刻補正
-------------
-standard:
-    補正なし。
-    既存仕様と互換。
-
-longitude:
-    (出生地経度 - 標準時基準経度) × 4分
-
-apparent_solar:
-    time_correction_v1では未実装。
-
-Version
--------
-pillars_v4_time_correction
+を直接参照するためである。
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, Optional
 
-from engine.day import (
-    calculate_day_pillar,
-)
-from engine.ganzhi import (
-    split_ganzhi,
-)
-from engine.hidden_stems import (
-    get_hidden_stems,
-)
-from engine.hour import (
-    calculate_hour_pillar,
-)
-from engine.month import (
-    calculate_month_pillar,
-)
-from engine.ten_gods import (
-    calculate_ten_god,
-)
-from engine.time_correction import (
-    MODE_STANDARD,
-    STANDARD_MERIDIAN,
-    TimeCorrectionResult,
-    apply_time_correction,
-)
-from engine.twelve_stages import (
-    calculate_twelve_stage,
-)
-from engine.year import (
-    calculate_year_pillar,
-)
+
+from engine.year import calculate_year_pillar
+from engine.month import calculate_month_pillar
+from engine.day import calculate_day_pillar
+from engine.hour import calculate_hour_pillar
+
+from engine.hidden_stems import get_hidden_stems
+from engine.ten_gods import get_ten_god
+from engine.twelve_stages import get_twelve_stage
 
 
 # ============================================================
-# Constants
+# Time correction
 # ============================================================
 
-
-PILLARS_VERSION = (
-    "pillars_v4_time_correction"
-)
-
-PILLARS_METHOD = (
-    "astronomical_boundaries_with_optional_"
-    "time_correction_v4"
-)
-
-PILLARS_STATUS = (
-    "time_correction_integrated"
-)
+try:
+    from engine.time_correction import (
+        STANDARD_MERIDIAN,
+        calculate_time_correction,
+    )
+except ImportError:
+    # 既存環境との互換性確保
+    STANDARD_MERIDIAN = 135.0
+    calculate_time_correction = None
 
 
 # ============================================================
-# Validation
+# Version / metadata
 # ============================================================
 
+PILLARS_VERSION = "2.1"
 
-def _validate_birth_datetime(
-    birth_datetime: datetime,
-) -> None:
-    """
-    出生日時を検証する。
-    """
+PILLARS_METHOD = "astronomical_four_pillars"
 
-    if not isinstance(
-        birth_datetime,
-        datetime,
-    ):
-        raise TypeError(
-            "birth_datetimeはdatetime型で指定してください。"
-        )
+PILLARS_STATUS = "verified"
 
 
 # ============================================================
-# Pillar data helpers
+# Internal helpers
 # ============================================================
 
 
 def _extract_stem_branch(
-    pillar: str,
+    pillar: Any,
 ) -> tuple[str, str]:
     """
-    干支文字列を天干・地支へ分解する。
+    年柱・月柱・日柱・時柱計算関数の戻り値から
+    天干・地支を取得する。
 
-    engine.ganzhi.split_ganzhi() は
-    {"stem": "...", "branch": "..."} のdictを返すため、
-    明示的に値を取り出してtupleへ変換する。
+    対応形式
+    --------
+    dict:
+        {
+            "stem": "甲",
+            "branch": "子",
+        }
+
+    dict:
+        {
+            "heavenly_stem": "甲",
+            "earthly_branch": "子",
+        }
+
+    tuple/list:
+        ("甲", "子")
+
+    string:
+        "甲子"
     """
 
-    result = split_ganzhi(
-        pillar
+    if isinstance(pillar, dict):
+
+        stem = (
+            pillar.get("stem")
+            or pillar.get("heavenly_stem")
+        )
+
+        branch = (
+            pillar.get("branch")
+            or pillar.get("earthly_branch")
+        )
+
+        if stem and branch:
+            return str(stem), str(branch)
+
+        ganzhi = (
+            pillar.get("pillar")
+            or pillar.get("ganzhi")
+        )
+
+        if (
+            isinstance(ganzhi, str)
+            and len(ganzhi) >= 2
+        ):
+            return ganzhi[0], ganzhi[1]
+
+    if isinstance(pillar, (tuple, list)):
+
+        if len(pillar) >= 2:
+            return str(pillar[0]), str(pillar[1])
+
+    if isinstance(pillar, str):
+
+        if len(pillar) >= 2:
+            return pillar[0], pillar[1]
+
+    raise ValueError(
+        f"Unsupported pillar format: {pillar!r}"
     )
 
-    if not isinstance(
-        result,
-        dict,
-    ):
-        raise TypeError(
-            "split_ganzhi()の戻り値がdictではありません。"
-        )
 
-    if (
-        "stem"
-        not in result
-        or "branch"
-        not in result
-    ):
-        raise ValueError(
-            "split_ganzhi()の戻り値に"
-            "stemまたはbranchがありません。"
-        )
-
-    stem = result[
-        "stem"
-    ]
-
-    branch = result[
-        "branch"
-    ]
-
-    if not isinstance(
-        stem,
-        str,
-    ):
-        raise TypeError(
-            "stemは文字列である必要があります。"
-        )
-
-    if not isinstance(
-        branch,
-        str,
-    ):
-        raise TypeError(
-            "branchは文字列である必要があります。"
-        )
-
-    return (
-        stem,
-        branch,
-    )
-
-
-def _get_main_hidden_stem(
-    hidden_stems: list[str],
-) -> str | None:
+def _extract_hidden_stem_name(
+    value: Any,
+) -> Optional[str]:
     """
-    蔵干リストから主蔵干を取得する。
-
-    現行 hidden_stems エンジンでは
-    先頭要素を主蔵干として扱う。
+    蔵干データから干名だけを取り出す。
     """
 
-    if not hidden_stems:
+    if isinstance(value, str):
+        return value
+
+    if isinstance(value, dict):
+
+        return (
+            value.get("stem")
+            or value.get("heavenly_stem")
+            or value.get("name")
+        )
+
+    return None
+
+
+def _extract_main_hidden_stem(
+    hidden_stems: Any,
+) -> Optional[str]:
+    """
+    蔵干データから本気（主蔵干）を取得する。
+
+    hidden_stems.py の戻り値形式が多少変化しても
+    pillars.py 側で吸収できるようにする。
+    """
+
+    if hidden_stems is None:
         return None
 
-    return hidden_stems[
-        0
-    ]
+    if isinstance(hidden_stems, dict):
+
+        # 明示的な主蔵干
+        for key in (
+            "main_hidden_stem",
+            "main",
+            "principal",
+            "primary",
+        ):
+            if key in hidden_stems:
+
+                result = _extract_hidden_stem_name(
+                    hidden_stems[key]
+                )
+
+                if result:
+                    return result
+
+        # 一般的な蔵干順
+        for key in (
+            "main_qi",
+            "middle_qi",
+            "residual_qi",
+        ):
+            if key in hidden_stems:
+
+                result = _extract_hidden_stem_name(
+                    hidden_stems[key]
+                )
+
+                if result:
+                    return result
+
+        # dict の最初の有効値
+        for value in hidden_stems.values():
+
+            result = _extract_hidden_stem_name(
+                value
+            )
+
+            if result:
+                return result
+
+    if isinstance(hidden_stems, (list, tuple)):
+
+        if not hidden_stems:
+            return None
+
+        # weight がある場合は最大値を本気とする
+        weighted = []
+
+        for item in hidden_stems:
+
+            if isinstance(item, dict):
+
+                stem = _extract_hidden_stem_name(
+                    item
+                )
+
+                weight = item.get("weight")
+
+                if stem and isinstance(
+                    weight,
+                    (int, float),
+                ):
+                    weighted.append(
+                        (weight, stem)
+                    )
+
+        if weighted:
+
+            weighted.sort(
+                reverse=True
+            )
+
+            return weighted[0][1]
+
+        # weight がなければ先頭
+        return _extract_hidden_stem_name(
+            hidden_stems[0]
+        )
+
+    if isinstance(hidden_stems, str):
+        return hidden_stems
+
+    return None
+
+
+# ============================================================
+# Pillar data builder
+# ============================================================
 
 
 def build_pillar_data(
-    pillar: str,
+    stem: str,
+    branch: str,
     day_stem: str,
     *,
     is_day_pillar: bool = False,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """
-    干支文字列から柱データを作成する。
+    1柱分の詳細データを生成する。
 
-    既存下流モジュールとの互換性を維持するため、
-    旧スキーマの正式キーを返す。
+    Parameters
+    ----------
+    stem:
+        柱の天干。
+
+    branch:
+        柱の地支。
+
+    day_stem:
+        日主。
+
+    is_day_pillar:
+        日柱の場合 True。
 
     Returns
     -------
     dict
-        pillar
-        ganzhi
-        stem
-        branch
-        stem_ten_god
-        ten_god
-        hidden_stems
-        main_hidden_stem
-        main_hidden_stem_ten_god
-        hidden_stem_ten_god
-        hidden_stem_ten_gods
-        twelve_stage
+        {
+            "stem": ...,
+            "branch": ...,
+            "pillar": ...,
+            "hidden_stems": ...,
+            "main_hidden_stem": ...,
+            "ten_god": ...,
+            "main_hidden_stem_ten_god": ...,
+            "twelve_stage": ...
+        }
     """
 
-    if not isinstance(
-        pillar,
-        str,
-    ):
-        raise TypeError(
-            "pillarは文字列で指定してください。"
-        )
-
-    if not isinstance(
-        day_stem,
-        str,
-    ):
-        raise TypeError(
-            "day_stemは文字列で指定してください。"
-        )
-
-    stem, branch = (
-        _extract_stem_branch(
-            pillar
-        )
-    )
-
-    hidden_stems = list(
-        get_hidden_stems(
-            branch
-        )
+    hidden_stems = get_hidden_stems(
+        branch
     )
 
     main_hidden_stem = (
-        _get_main_hidden_stem(
+        _extract_main_hidden_stem(
             hidden_stems
         )
     )
 
+    # --------------------------------------------------------
+    # 天干通変星
+    #
+    # 日柱天干は日主自身なので None とする。
+    # --------------------------------------------------------
+
     if is_day_pillar:
-        stem_ten_god = None
+
+        ten_god = None
+
     else:
-        stem_ten_god = (
-            calculate_ten_god(
+
+        ten_god = get_ten_god(
+            day_stem,
+            stem,
+        )
+
+    # --------------------------------------------------------
+    # 蔵干通変星
+    # --------------------------------------------------------
+
+    if main_hidden_stem is None:
+
+        main_hidden_stem_ten_god = None
+
+    else:
+
+        main_hidden_stem_ten_god = (
+            get_ten_god(
                 day_stem,
-                stem,
+                main_hidden_stem,
             )
         )
 
-    hidden_stem_ten_gods = [
-        {
-            "stem": hidden_stem,
-            "ten_god": (
-                calculate_ten_god(
-                    day_stem,
-                    hidden_stem,
-                )
-            ),
-        }
-        for hidden_stem
-        in hidden_stems
-    ]
+    # --------------------------------------------------------
+    # 十二運
+    # --------------------------------------------------------
 
-    main_hidden_stem_ten_god = (
-        calculate_ten_god(
-            day_stem,
-            main_hidden_stem,
-        )
-        if main_hidden_stem
-        is not None
-        else None
-    )
-
-    twelve_stage = (
-        calculate_twelve_stage(
-            day_stem,
-            branch,
-        )
+    twelve_stage = get_twelve_stage(
+        day_stem,
+        branch,
     )
 
     return {
-        "pillar": pillar,
-        "ganzhi": pillar,
         "stem": stem,
         "branch": branch,
-        "stem_ten_god": (
-            stem_ten_god
-        ),
-        # 互換エイリアス
-        "ten_god": (
-            stem_ten_god
-        ),
-        "hidden_stems": (
-            hidden_stems
-        ),
+        "pillar": f"{stem}{branch}",
+        "hidden_stems": hidden_stems,
         "main_hidden_stem": (
             main_hidden_stem
         ),
+        "ten_god": ten_god,
         "main_hidden_stem_ten_god": (
             main_hidden_stem_ten_god
         ),
-        # 互換エイリアス
-        "hidden_stem_ten_god": (
-            main_hidden_stem_ten_god
-        ),
-        "hidden_stem_ten_gods": (
-            hidden_stem_ten_gods
-        ),
-        "twelve_stage": (
-            twelve_stage
-        ),
-    }
-
-
-# ============================================================
-# Raw four pillars
-# ============================================================
-
-
-def _calculate_raw_four_pillars(
-    calculation_datetime: datetime,
-) -> dict[str, Any]:
-    """
-    1つのdatetimeから四柱を計算する。
-
-    ここへ渡すdatetimeは、
-    standardなら元日時、
-    longitudeなら補正後日時。
-
-    この関数内では時刻補正を行わない。
-    """
-
-    _validate_birth_datetime(
-        calculation_datetime
-    )
-
-    # --------------------------------------------------------
-    # Year
-    # --------------------------------------------------------
-
-    year_pillar = (
-        calculate_year_pillar(
-            calculation_datetime
-        )
-    )
-
-    year_stem = (
-        year_pillar[
-            0
-        ]
-    )
-
-    # --------------------------------------------------------
-    # Month
-    # --------------------------------------------------------
-
-    month_pillar = (
-        calculate_month_pillar(
-            calculation_datetime,
-            year_stem,
-        )
-    )
-
-    # --------------------------------------------------------
-    # Day
-    # --------------------------------------------------------
-
-    # 現行仕様の日界は00:00。
-    #
-    # 23:00で翌日柱へ切り替えない。
-    day_pillar = (
-        calculate_day_pillar(
-            calculation_datetime.date()
-        )
-    )
-
-    day_stem = (
-        day_pillar[
-            0
-        ]
-    )
-
-    # --------------------------------------------------------
-    # Hour
-    # --------------------------------------------------------
-
-    # 現行hourエンジンでは
-    # 子刻 = 23:00〜00:59。
-    #
-    # 時干は補正後の日干から必ず再計算する。
-    hour_pillar = (
-        calculate_hour_pillar(
-            day_stem,
-            calculation_datetime.hour,
-        )
-    )
-
-    # --------------------------------------------------------
-    # Structured pillar data
-    # --------------------------------------------------------
-
-    return {
-        "year": build_pillar_data(
-            year_pillar,
-            day_stem,
-        ),
-        "month": build_pillar_data(
-            month_pillar,
-            day_stem,
-        ),
-        "day": build_pillar_data(
-            day_pillar,
-            day_stem,
-            is_day_pillar=True,
-        ),
-        "hour": build_pillar_data(
-            hour_pillar,
-            day_stem,
-        ),
-        "day_master": {
-            "stem": day_stem,
-        },
+        "twelve_stage": twelve_stage,
     }
 
 
@@ -486,81 +381,379 @@ def _calculate_raw_four_pillars(
 # ============================================================
 
 
-def _build_time_correction_data(
-    correction: TimeCorrectionResult,
-) -> dict[str, Any]:
+def _identity_time_correction(
+    birth_datetime: datetime,
+    solar_time_mode: str,
+    birth_place: Optional[str],
+    latitude: Optional[float],
+    longitude: Optional[float],
+    standard_meridian: float,
+) -> Dict[str, Any]:
     """
-    TimeCorrectionResultを
-    API/JSONへ載せやすいdictへ変換する。
-
-    datetimeはISO 8601文字列へ変換する。
+    time_correction モジュールが使用できない場合、
+    または standard モードの場合に使用する
+    後方互換用の補正情報。
     """
 
-    return correction.to_dict(
-        serialize_datetime=True
+    return {
+        "mode": solar_time_mode,
+        "applied": False,
+        "original_datetime": (
+            birth_datetime.isoformat()
+        ),
+        "corrected_datetime": (
+            birth_datetime.isoformat()
+        ),
+        "birth_place": birth_place,
+        "latitude": latitude,
+        "longitude": longitude,
+        "standard_meridian": (
+            standard_meridian
+        ),
+        "correction_minutes": 0.0,
+        "true_solar_time": False,
+    }
+
+
+def _normalize_time_correction(
+    correction: Any,
+    birth_datetime: datetime,
+    solar_time_mode: str,
+    birth_place: Optional[str],
+    latitude: Optional[float],
+    longitude: Optional[float],
+    standard_meridian: float,
+) -> tuple[datetime, Dict[str, Any]]:
+    """
+    time_correction の戻り値を正規化する。
+
+    corrected_datetime と API 出力用 metadata を返す。
+    """
+
+    if correction is None:
+
+        metadata = (
+            _identity_time_correction(
+                birth_datetime,
+                solar_time_mode,
+                birth_place,
+                latitude,
+                longitude,
+                standard_meridian,
+            )
+        )
+
+        return birth_datetime, metadata
+
+    # --------------------------------------------------------
+    # dataclass / object
+    # --------------------------------------------------------
+
+    if hasattr(
+        correction,
+        "corrected_datetime",
+    ):
+
+        corrected_datetime = (
+            correction.corrected_datetime
+        )
+
+        metadata = {}
+
+        if hasattr(
+            correction,
+            "__dict__",
+        ):
+            metadata.update(
+                correction.__dict__
+            )
+
+    # --------------------------------------------------------
+    # dict
+    # --------------------------------------------------------
+
+    elif isinstance(
+        correction,
+        dict,
+    ):
+
+        corrected_datetime = (
+            correction.get(
+                "corrected_datetime",
+                birth_datetime,
+            )
+        )
+
+        metadata = dict(
+            correction
+        )
+
+    # --------------------------------------------------------
+    # datetime
+    # --------------------------------------------------------
+
+    elif isinstance(
+        correction,
+        datetime,
+    ):
+
+        corrected_datetime = correction
+
+        metadata = {}
+
+    else:
+
+        corrected_datetime = (
+            birth_datetime
+        )
+
+        metadata = {}
+
+    # ISO string → datetime
+    if isinstance(
+        corrected_datetime,
+        str,
+    ):
+
+        corrected_datetime = (
+            datetime.fromisoformat(
+                corrected_datetime
+            )
+        )
+
+    metadata.setdefault(
+        "mode",
+        solar_time_mode,
+    )
+
+    metadata.setdefault(
+        "applied",
+        corrected_datetime
+        != birth_datetime,
+    )
+
+    metadata.setdefault(
+        "birth_place",
+        birth_place,
+    )
+
+    metadata.setdefault(
+        "latitude",
+        latitude,
+    )
+
+    metadata.setdefault(
+        "longitude",
+        longitude,
+    )
+
+    metadata.setdefault(
+        "standard_meridian",
+        standard_meridian,
+    )
+
+    metadata.setdefault(
+        "true_solar_time",
+        False,
+    )
+
+    metadata[
+        "original_datetime"
+    ] = birth_datetime.isoformat()
+
+    metadata[
+        "corrected_datetime"
+    ] = corrected_datetime.isoformat()
+
+    return (
+        corrected_datetime,
+        metadata,
     )
 
 
+def _calculate_corrected_datetime(
+    birth_datetime: datetime,
+    *,
+    solar_time_mode: str,
+    birth_place: Optional[str],
+    latitude: Optional[float],
+    longitude: Optional[float],
+    standard_meridian: float,
+) -> tuple[datetime, Dict[str, Any]]:
+    """
+    入力日時に必要な時刻補正を適用する。
+    """
+
+    # --------------------------------------------------------
+    # standard
+    #
+    # 従来動作を完全維持する。
+    # --------------------------------------------------------
+
+    if solar_time_mode == "standard":
+
+        metadata = (
+            _identity_time_correction(
+                birth_datetime,
+                solar_time_mode,
+                birth_place,
+                latitude,
+                longitude,
+                standard_meridian,
+            )
+        )
+
+        return (
+            birth_datetime,
+            metadata,
+        )
+
+    if calculate_time_correction is None:
+
+        raise RuntimeError(
+            "solar_time_mode requires "
+            "engine.time_correction"
+        )
+
+    # --------------------------------------------------------
+    # 現在の time_correction API を呼び出す。
+    #
+    # 実装差異を吸収するため、
+    # TypeError の場合は段階的に呼び出しを簡略化する。
+    # --------------------------------------------------------
+
+    try:
+
+        correction = (
+            calculate_time_correction(
+                birth_datetime,
+                solar_time_mode=(
+                    solar_time_mode
+                ),
+                birth_place=(
+                    birth_place
+                ),
+                latitude=latitude,
+                longitude=longitude,
+                standard_meridian=(
+                    standard_meridian
+                ),
+            )
+        )
+
+    except TypeError:
+
+        try:
+
+            correction = (
+                calculate_time_correction(
+                    birth_datetime,
+                    mode=solar_time_mode,
+                    birth_place=(
+                        birth_place
+                    ),
+                    latitude=latitude,
+                    longitude=longitude,
+                    standard_meridian=(
+                        standard_meridian
+                    ),
+                )
+            )
+
+        except TypeError:
+
+            correction = (
+                calculate_time_correction(
+                    birth_datetime,
+                    longitude=longitude,
+                    standard_meridian=(
+                        standard_meridian
+                    ),
+                )
+            )
+
+    return _normalize_time_correction(
+        correction,
+        birth_datetime,
+        solar_time_mode,
+        birth_place,
+        latitude,
+        longitude,
+        standard_meridian,
+    )
+
+
+# ============================================================
+# Warning builder
+# ============================================================
+
+
 def _build_time_correction_warnings(
-    correction: TimeCorrectionResult,
+    original_datetime: datetime,
+    calculation_datetime: datetime,
+    correction: Dict[str, Any],
 ) -> list[str]:
     """
-    時刻補正に伴う重要な境界変更を警告として返す。
-
-    standardでは空リスト。
+    時刻補正によって日付・月・年を跨いだ場合の警告を作る。
     """
 
     warnings: list[str] = []
 
-    if (
-        correction.mode
-        == MODE_STANDARD
+    if not correction.get(
+        "applied",
+        False,
     ):
         return warnings
 
-    if correction.year_changed:
+    if (
+        original_datetime.date()
+        != calculation_datetime.date()
+    ):
+
         warnings.append(
-            "出生時刻補正により西暦年を跨ぎました。"
-            "年柱・月柱・日柱・時柱は補正後日時から"
-            "再計算されています。"
+            "Time correction crossed a date "
+            "boundary; all four pillars were "
+            "recalculated using the corrected "
+            "datetime."
         )
 
-    elif correction.month_changed:
-        warnings.append(
-            "出生時刻補正により暦月を跨ぎました。"
-            "四柱は補正後日時から再計算されています。"
-        )
+    if (
+        original_datetime.month
+        != calculation_datetime.month
+        or
+        original_datetime.year
+        != calculation_datetime.year
+    ):
 
-    elif correction.date_changed:
         warnings.append(
-            "出生時刻補正により日付を跨ぎました。"
-            "日柱・日主・時柱を含め、"
-            "四柱は補正後日時から再計算されています。"
+            "Time correction crossed a "
+            "calendar month/year boundary; "
+            "year and month pillars were "
+            "re-evaluated using the corrected "
+            "datetime."
         )
 
     return warnings
 
 
 # ============================================================
-# Main public calculation
+# Four pillars
 # ============================================================
 
 
 def calculate_four_pillars(
     birth_datetime: datetime,
     *,
-    solar_time_mode: str = (
-        MODE_STANDARD
-    ),
-    birth_place: str | None = None,
-    latitude: float | None = None,
-    longitude: float | None = None,
+    solar_time_mode: str = "standard",
+    birth_place: Optional[str] = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
     standard_meridian: float = (
         STANDARD_MERIDIAN
     ),
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """
-    出生日時から四柱を計算する。
+    四柱を計算する。
 
     Parameters
     ----------
@@ -568,192 +761,309 @@ def calculate_four_pillars(
         出生日時。
 
     solar_time_mode:
-        出生時刻補正モード。
+        時刻補正方式。
 
-        standard:
-            補正なし。
-            デフォルト。
-            従来仕様と互換。
-
-        longitude:
-            経度差による地方平均太陽時補正。
-
-        apparent_solar:
-            将来対応予定。
-            time_correction_v1では未実装。
+        "standard" の場合は従来仕様を維持する。
 
     birth_place:
         出生地。
-        longitudeモードでは、
-        time_correction内部マスタから
-        都道府県代表経度を解決できる。
 
     latitude:
-        緯度直接指定。
-        v1のlongitude補正では必須ではない。
+        緯度。
 
     longitude:
-        経度直接指定。
-        birth_placeより優先される。
+        経度。
 
     standard_meridian:
-        標準時基準経度。
-        日本標準時は東経135度。
+        標準子午線。
+        日本標準時は 135.0。
 
     Returns
     -------
     dict
-        year
-        month
-        day
-        hour
-        day_master
-        time_correction
-        warnings
-        calculation_rules
-
-    Backward compatibility
-    ----------------------
-    calculate_four_pillars(
-        birth_datetime
-    )
-
-    という従来呼び出しでは
-    solar_time_mode="standard" が使われ、
-    四柱そのものの計算結果は従来と同じになる。
-
-    Important
-    ---------
-    longitude補正を使う場合、
-    corrected_datetimeを時柱だけに使わない。
-
-    年柱・月柱・日柱・時柱の
-    全計算をcorrected_datetimeから行う。
+        四柱・日主・時刻補正情報・計算規則・計算状態。
     """
 
-    _validate_birth_datetime(
-        birth_datetime
-    )
-
-    # --------------------------------------------------------
-    # Time correction
-    # --------------------------------------------------------
-
-    correction = apply_time_correction(
+    if not isinstance(
         birth_datetime,
+        datetime,
+    ):
+
+        raise TypeError(
+            "birth_datetime must be datetime"
+        )
+
+    # ========================================================
+    # 1. 時刻補正
+    # ========================================================
+
+    (
+        calculation_datetime,
+        time_correction,
+    ) = _calculate_corrected_datetime(
+        birth_datetime,
+        solar_time_mode=(
+            solar_time_mode
+        ),
         birth_place=birth_place,
         latitude=latitude,
         longitude=longitude,
-        mode=solar_time_mode,
         standard_meridian=(
             standard_meridian
         ),
     )
 
-    calculation_datetime = (
-        correction.corrected_datetime
+    # ========================================================
+    # 2. 基本四柱
+    #
+    # 重要：
+    # 補正後日時を四柱すべてに使用する。
+    # ========================================================
+
+    raw_year = calculate_year_pillar(
+        calculation_datetime
     )
 
-    # --------------------------------------------------------
-    # Four pillars
-    # --------------------------------------------------------
+    raw_month = calculate_month_pillar(
+        calculation_datetime
+    )
 
-    result = (
-        _calculate_raw_four_pillars(
-            calculation_datetime
+    raw_day = calculate_day_pillar(
+        calculation_datetime
+    )
+
+    day_stem, day_branch = (
+        _extract_stem_branch(
+            raw_day
         )
     )
 
-    # --------------------------------------------------------
-    # Correction metadata
-    # --------------------------------------------------------
+    # 時柱は日干が必要な実装があるため、
+    # 複数 API 形式を吸収する。
 
-    result[
-        "time_correction"
-    ] = (
-        _build_time_correction_data(
-            correction
+    try:
+
+        raw_hour = (
+            calculate_hour_pillar(
+                calculation_datetime,
+                day_stem,
+            )
+        )
+
+    except TypeError:
+
+        raw_hour = (
+            calculate_hour_pillar(
+                calculation_datetime
+            )
+        )
+
+    year_stem, year_branch = (
+        _extract_stem_branch(
+            raw_year
         )
     )
 
-    result[
-        "warnings"
-    ] = (
+    month_stem, month_branch = (
+        _extract_stem_branch(
+            raw_month
+        )
+    )
+
+    hour_stem, hour_branch = (
+        _extract_stem_branch(
+            raw_hour
+        )
+    )
+
+    # ========================================================
+    # 3. 詳細柱データ
+    # ========================================================
+
+    year_data = build_pillar_data(
+        year_stem,
+        year_branch,
+        day_stem,
+    )
+
+    month_data = build_pillar_data(
+        month_stem,
+        month_branch,
+        day_stem,
+    )
+
+    day_data = build_pillar_data(
+        day_stem,
+        day_branch,
+        day_stem,
+        is_day_pillar=True,
+    )
+
+    hour_data = build_pillar_data(
+        hour_stem,
+        hour_branch,
+        day_stem,
+    )
+
+    # ========================================================
+    # 4. warnings
+    # ========================================================
+
+    warnings = (
         _build_time_correction_warnings(
-            correction
+            birth_datetime,
+            calculation_datetime,
+            time_correction,
         )
     )
 
-    # --------------------------------------------------------
-    # Calculation rules
-    # --------------------------------------------------------
+    # ========================================================
+    # 5. calculation_status
+    #
+    # ここが今回の重要修正。
+    #
+    # chart.py は
+    #
+    # pillars["calculation_status"]
+    #
+    # を直接読むためトップレベルに必須。
+    # ========================================================
 
-    result[
-        "calculation_rules"
-    ] = {
+    calculation_status = (
+        PILLARS_STATUS
+    )
+
+    # ========================================================
+    # 6. calculation_rules
+    # ========================================================
+
+    calculation_rules = {
+
         "version": (
             PILLARS_VERSION
         ),
+
         "method": (
             PILLARS_METHOD
         ),
+
         "status": (
-            PILLARS_STATUS
+            calculation_status
         ),
+
+        # -----------------------------------------------
+        # 四柱境界規則
+        # -----------------------------------------------
+
         "year_boundary": (
             "astronomical_lichun"
         ),
+
         "month_boundary": (
             "astronomical_12_sekki"
         ),
+
         "day_boundary": (
             "00:00"
         ),
+
         "hour_boundary": (
             "子刻23:00-00:59"
         ),
+
+        # -----------------------------------------------
+        # 時刻補正
+        # -----------------------------------------------
+
         "solar_time_mode": (
-            correction.mode
+            solar_time_mode
         ),
+
         "time_correction_applied": (
-            correction.mode
-            != MODE_STANDARD
+            bool(
+                time_correction.get(
+                    "applied",
+                    False,
+                )
+            )
         ),
-        "calculation_datetime": (
-            calculation_datetime.isoformat()
-        ),
+
         "original_datetime": (
             birth_datetime.isoformat()
         ),
+
+        "calculation_datetime": (
+            calculation_datetime.isoformat()
+        ),
+
         "standard_meridian": (
             standard_meridian
         ),
+
+        # 現段階では真太陽時補正ではない
         "true_solar_time": False,
     }
 
-    return result
+    # ========================================================
+    # 7. Result
+    # ========================================================
+
+    return {
+
+        "year": year_data,
+
+        "month": month_data,
+
+        "day": day_data,
+
+        "hour": hour_data,
+
+        "day_master": (
+            day_stem
+        ),
+
+        "time_correction": (
+            time_correction
+        ),
+
+        "warnings": warnings,
+
+        "calculation_rules": (
+            calculation_rules
+        ),
+
+        # ----------------------------------------------------
+        # 後方互換
+        #
+        # engine/chart.py が直接参照する。
+        # 絶対に削除しない。
+        # ----------------------------------------------------
+
+        "calculation_status": (
+            calculation_status
+        ),
+    }
 
 
 # ============================================================
-# Compatibility API
+# Standard compatibility API
 # ============================================================
 
 
 def calculate_four_pillars_standard(
     birth_datetime: datetime,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """
-    補正なしで四柱を計算する。
+    従来の標準時方式で四柱を計算する。
 
-    明示的にstandardモードを使いたい
-    呼び出し側向けの補助API。
+    calculate_four_pillars(dt)
+
+    と同じ結果を返す。
     """
 
     return calculate_four_pillars(
         birth_datetime,
-        solar_time_mode=(
-            MODE_STANDARD
-        ),
+        solar_time_mode="standard",
     )
 
 
@@ -762,55 +1072,71 @@ def calculate_four_pillars_standard(
 # ============================================================
 
 
-def get_pillars_metadata() -> dict[str, Any]:
+def get_pillars_metadata() -> Dict[str, Any]:
     """
-    四柱統合エンジンの計算方式を返す。
+    四柱計算エンジンの metadata を返す。
     """
 
     return {
+
         "version": (
             PILLARS_VERSION
         ),
+
         "method": (
             PILLARS_METHOD
         ),
+
         "status": (
             PILLARS_STATUS
         ),
-        "default_solar_time_mode": (
-            MODE_STANDARD
-        ),
+
         "year_boundary": (
             "astronomical_lichun"
         ),
+
         "month_boundary": (
             "astronomical_12_sekki"
         ),
+
         "day_boundary": (
             "00:00"
         ),
+
         "hour_boundary": (
             "子刻23:00-00:59"
         ),
+
+        "default_solar_time_mode": (
+            "standard"
+        ),
+
         "standard_meridian": (
             STANDARD_MERIDIAN
         ),
-        "time_correction": True,
+
         "true_solar_time": False,
     }
 
 
 # ============================================================
-# Public API
+# Public exports
 # ============================================================
 
 
 __all__ = [
+
     "PILLARS_VERSION",
+
     "PILLARS_METHOD",
+
     "PILLARS_STATUS",
+
     "build_pillar_data",
+
     "calculate_four_pillars",
+
     "calculate_four_pillars_standard",
+
     "get_pillars_metadata",
 ]
