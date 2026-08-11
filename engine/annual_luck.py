@@ -245,7 +245,7 @@ def calculate_annual_ganzhi_for_datetime(
     有効な歳運年・干支を返す。
 
     現在の year.py に合わせ、
-    立春は暫定的に2月4日00:00。
+    天文学的に計算された実際の立春時刻を使用する。
 
     例:
         2026-01-20
@@ -1104,7 +1104,7 @@ def build_annual_luck(
             ),
             (
                 "立春境界は現在の year.py に合わせて"
-                "2月4日00:00の暫定値です。"
+                "天文学的に計算された実際の立春時刻です。"
             ),
             (
                 "current_luck_relation は現段階では"
@@ -1180,7 +1180,7 @@ def calculate_annual_luck_for_datetime(
     """
     指定日時時点の歳運を計算する。
 
-    year.py の暫定立春境界を利用する。
+    year.py の天文学的な立春境界を利用する。
 
     例
     ----
@@ -1234,13 +1234,14 @@ def calculate_annual_luck_for_datetime(
     result[
         "year_boundary_applied"
     ] = (
-        True
+        year_info["effective_year"]
+        != year_info["calendar_year"]
     )
 
     result[
         "year_boundary_rule"
     ] = (
-        "暫定：立春2月4日00:00"
+        "astronomical_lichun"
     )
 
     return result
