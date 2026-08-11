@@ -213,7 +213,7 @@ LIVE_OUTPUT_FORMAT = "json"
 # 通常の鑑定より小さめ。
 # ただしsummary + section + disclaimerを
 # 返せる余裕は残す。
-LIVE_MAX_OUTPUT_TOKENS = 4000
+LIVE_MAX_OUTPUT_TOKENS = 8000
 
 # 推論コストを抑える。
 LIVE_REASONING_EFFORT = "minimal"
