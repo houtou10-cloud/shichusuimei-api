@@ -156,11 +156,61 @@ def _extract_stem_branch(
     """
     干支文字列を天干・地支へ分解する。
 
-    engine.ganzhi.split_ganzhi() を利用する。
+    engine.ganzhi.split_ganzhi() は
+    {"stem": "...", "branch": "..."} のdictを返すため、
+    明示的に値を取り出してtupleへ変換する。
     """
 
-    return split_ganzhi(
+    result = split_ganzhi(
         pillar
+    )
+
+    if not isinstance(
+        result,
+        dict,
+    ):
+        raise TypeError(
+            "split_ganzhi()の戻り値がdictではありません。"
+        )
+
+    if (
+        "stem"
+        not in result
+        or "branch"
+        not in result
+    ):
+        raise ValueError(
+            "split_ganzhi()の戻り値に"
+            "stemまたはbranchがありません。"
+        )
+
+    stem = result[
+        "stem"
+    ]
+
+    branch = result[
+        "branch"
+    ]
+
+    if not isinstance(
+        stem,
+        str,
+    ):
+        raise TypeError(
+            "stemは文字列である必要があります。"
+        )
+
+    if not isinstance(
+        branch,
+        str,
+    ):
+        raise TypeError(
+            "branchは文字列である必要があります。"
+        )
+
+    return (
+        stem,
+        branch,
     )
 
 
