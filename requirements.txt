@@ -2,7 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 pytest
-httpx2
+httpx
 
 skyfield
 jplephem
