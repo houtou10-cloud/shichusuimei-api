@@ -20,5 +20,5 @@ jobs:
           python-version: "3.12"
 
       - run: pip install -r requirements.txt
-      - name: Run tests with fail fast
-        run: PYTHONPATH=. pytest -x -vv
+　    - name: Run tests
+        run: PYTHONPATH=. pytest
