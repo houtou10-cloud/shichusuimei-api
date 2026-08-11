@@ -49,6 +49,10 @@ target_datetime:
 
 歳運:
 丙午
+
+Version
+-------
+reading_generator_real_chart_v2
 """
 
 from __future__ import annotations
@@ -61,7 +65,9 @@ from typing import Any, Dict
 import pytest
 
 from engine.chart import calculate_chart
-from engine.reading_context import build_reading_context
+from engine.reading_context import (
+    build_reading_context,
+)
 from engine.reading_generator import (
     ReadingGenerationResult,
     build_generation_payload,
@@ -167,9 +173,15 @@ class FakeUsage:
         self,
     ) -> Dict[str, Any]:
         return {
-            "input_tokens": self.input_tokens,
-            "output_tokens": self.output_tokens,
-            "total_tokens": self.total_tokens,
+            "input_tokens": (
+                self.input_tokens
+            ),
+            "output_tokens": (
+                self.output_tokens
+            ),
+            "total_tokens": (
+                self.total_tokens
+            ),
         }
 
 
@@ -229,7 +241,11 @@ class FakeJSONResponse:
             section_data[
                 section
             ] = {
-                "title": titles[section],
+                "title": (
+                    titles[
+                        section
+                    ]
+                ),
                 "summary": (
                     f"{titles[section]}の要約です。"
                 ),
@@ -252,16 +268,20 @@ class FakeJSONResponse:
                 "計算済みの四柱推命データを基にした"
                 "総合鑑定です。"
             ),
-            "sections": section_data,
+            "sections": (
+                section_data
+            ),
             "disclaimer": (
                 "四柱推命は将来を確定するものではなく、"
                 "傾向を考えるための参考情報です。"
             ),
         }
 
-        self.output_text = json.dumps(
-            payload,
-            ensure_ascii=False,
+        self.output_text = (
+            json.dumps(
+                payload,
+                ensure_ascii=False,
+            )
         )
 
 
@@ -275,7 +295,9 @@ class FakeResponses:
         *,
         response_type: str = "text",
     ):
-        self.response_type = response_type
+        self.response_type = (
+            response_type
+        )
         self.calls = []
 
     def create(
@@ -287,11 +309,18 @@ class FakeResponses:
         Fake responseを返す。
         """
 
-        self.calls.append(kwargs)
+        self.calls.append(
+            kwargs
+        )
 
-        if self.response_type == "json":
-            sections = _extract_sections_from_payload(
-                kwargs
+        if (
+            self.response_type
+            == "json"
+        ):
+            sections = (
+                _extract_sections_from_payload(
+                    kwargs
+                )
             )
 
             return FakeJSONResponse(
@@ -311,8 +340,12 @@ class FakeClient:
         *,
         response_type: str = "text",
     ):
-        self.responses = FakeResponses(
-            response_type=response_type
+        self.responses = (
+            FakeResponses(
+                response_type=(
+                    response_type
+                )
+            )
         )
 
 
@@ -372,17 +405,26 @@ def test_real_chart_pillars_are_verified(
     """
     AI層へ渡す前に、
     元の命式そのものが正式基準と一致することを確認。
+
+    calculate_chart() の正式構造は
+    result["chart"][position]["pillar"]。
     """
 
-    pillars = real_chart_result[
-        "pillars"
-    ]
+    pillars = (
+        real_chart_result[
+            "chart"
+        ]
+    )
 
     for name, expected in (
         EXPECTED_PILLARS.items()
     ):
         assert (
-            pillars[name]["ganzhi"]
+            pillars[
+                name
+            ][
+                "pillar"
+            ]
             == expected
         )
 
@@ -392,11 +434,16 @@ def test_real_chart_day_master_is_verified(
 ):
     """
     日主が丁であることを確認。
+
+    calculate_chart() のday_masterは
+    {"stem": "丁"} 形式。
     """
 
     assert (
         real_chart_result[
             "day_master"
+        ][
+            "stem"
         ]
         == EXPECTED_DAY_MASTER
     )
@@ -429,9 +476,11 @@ def test_real_reading_context_day_master(
     reading_contextでも日主丁が維持される。
     """
 
-    day_master = real_reading_context[
-        "day_master"
-    ]
+    day_master = (
+        real_reading_context[
+            "day_master"
+        ]
+    )
 
     assert isinstance(
         day_master,
@@ -439,17 +488,9 @@ def test_real_reading_context_day_master(
     )
 
     assert (
-        day_master.get(
+        day_master[
             "stem"
-        )
-        == EXPECTED_DAY_MASTER
-        or day_master.get(
-            "day_master"
-        )
-        == EXPECTED_DAY_MASTER
-        or day_master.get(
-            "value"
-        )
+        ]
         == EXPECTED_DAY_MASTER
     )
 
@@ -462,30 +503,25 @@ def test_real_reading_context_pillars(
     元命式から変化していないことを確認。
     """
 
-    pillars = real_reading_context[
-        "natal_chart"
-    ][
-        "pillars"
-    ]
+    pillars = (
+        real_reading_context[
+            "natal_chart"
+        ][
+            "pillars"
+        ]
+    )
 
     for name, expected in (
         EXPECTED_PILLARS.items()
     ):
-        pillar = pillars[name]
-
-        if isinstance(
-            pillar,
-            dict,
-        ):
-            actual = (
-                pillar.get("ganzhi")
-                or pillar.get("pillar")
-                or pillar.get("value")
-            )
-        else:
-            actual = pillar
-
-        assert actual == expected
+        assert (
+            pillars[
+                name
+            ][
+                "pillar"
+            ]
+            == expected
+        )
 
 
 def test_real_reading_context_annual_luck(
@@ -495,11 +531,13 @@ def test_real_reading_context_annual_luck(
     2026年歳運が丙午であることを確認。
     """
 
-    annual = real_reading_context[
-        "luck"
-    ][
-        "annual_luck"
-    ]
+    annual = (
+        real_reading_context[
+            "luck"
+        ][
+            "annual_luck"
+        ]
+    )
 
     assert (
         annual[
@@ -522,16 +560,18 @@ def test_real_chart_build_generation_payload(
     Responses API payloadを生成できる。
     """
 
-    result = build_generation_payload(
-        real_reading_context,
-        model=TEST_MODEL,
-        sections=[
-            "core_personality",
-            "career",
-            "advice",
-        ],
-        output_format="text",
-        store=False,
+    result = (
+        build_generation_payload(
+            real_reading_context,
+            model=TEST_MODEL,
+            sections=[
+                "core_personality",
+                "career",
+                "advice",
+            ],
+            output_format="text",
+            store=False,
+        )
     )
 
     assert (
@@ -556,9 +596,11 @@ def test_real_chart_build_generation_payload(
         "advice",
     ]
 
-    payload = result[
-        "payload"
-    ]
+    payload = (
+        result[
+            "payload"
+        ]
+    )
 
     assert (
         payload[
@@ -590,9 +632,11 @@ def test_real_chart_build_generation_payload(
         str,
     )
 
-    assert payload[
-        "instructions"
-    ]
+    assert (
+        payload[
+            "instructions"
+        ]
+    )
 
     assert isinstance(
         payload[
@@ -610,26 +654,33 @@ def test_real_chart_prompt_contains_verified_day_master(
     日主丁が含まれていることを確認。
     """
 
-    result = build_generation_payload(
-        real_reading_context,
-        model=TEST_MODEL,
-        sections=[
-            "core_personality",
-        ],
-        output_format="text",
+    result = (
+        build_generation_payload(
+            real_reading_context,
+            model=TEST_MODEL,
+            sections=[
+                "core_personality",
+            ],
+            output_format="text",
+        )
     )
 
-    payload = result[
-        "payload"
-    ]
+    user_content = (
+        result[
+            "payload"
+        ][
+            "input"
+        ][
+            0
+        ][
+            "content"
+        ]
+    )
 
-    user_content = payload[
-        "input"
-    ][0][
-        "content"
-    ]
-
-    assert "丁" in user_content
+    assert (
+        "丁"
+        in user_content
+    )
 
 
 def test_real_chart_prompt_contains_verified_pillars(
@@ -640,22 +691,28 @@ def test_real_chart_prompt_contains_verified_pillars(
     正式な四柱が保持されていることを確認。
     """
 
-    result = build_generation_payload(
-        real_reading_context,
-        model=TEST_MODEL,
-        sections=[
-            "core_personality",
-        ],
-        output_format="text",
+    result = (
+        build_generation_payload(
+            real_reading_context,
+            model=TEST_MODEL,
+            sections=[
+                "core_personality",
+            ],
+            output_format="text",
+        )
     )
 
-    user_content = result[
-        "payload"
-    ][
-        "input"
-    ][0][
-        "content"
-    ]
+    user_content = (
+        result[
+            "payload"
+        ][
+            "input"
+        ][
+            0
+        ][
+            "content"
+        ]
+    )
 
     for ganzhi in (
         "乙丑",
@@ -663,39 +720,47 @@ def test_real_chart_prompt_contains_verified_pillars(
         "丁巳",
         "辛亥",
     ):
-        assert ganzhi in user_content
+        assert (
+            ganzhi
+            in user_content
+        )
 
 
 def test_real_chart_prompt_does_not_replace_day_pillar(
     real_reading_context,
 ):
     """
-    過去の誤期待値だった乙巳へ
-    日柱が置換されていないことを確認。
-
-    単純な全文非包含ではなく、
-    正式日柱丁巳が含まれることを
-    主たる回帰条件とする。
+    正式日柱丁巳が
+    AI入力まで保持されていることを確認。
     """
 
-    result = build_generation_payload(
-        real_reading_context,
-        model=TEST_MODEL,
-        sections=[
-            "core_personality",
-        ],
-        output_format="text",
+    result = (
+        build_generation_payload(
+            real_reading_context,
+            model=TEST_MODEL,
+            sections=[
+                "core_personality",
+            ],
+            output_format="text",
+        )
     )
 
-    user_content = result[
-        "payload"
-    ][
-        "input"
-    ][0][
-        "content"
-    ]
+    user_content = (
+        result[
+            "payload"
+        ][
+            "input"
+        ][
+            0
+        ][
+            "content"
+        ]
+    )
 
-    assert "丁巳" in user_content
+    assert (
+        "丁巳"
+        in user_content
+    )
 
 
 def test_prepare_ai_generation_payload_real_chart(
@@ -706,14 +771,16 @@ def test_prepare_ai_generation_payload_real_chart(
     実命式payloadを生成できる。
     """
 
-    result = prepare_ai_generation_payload(
-        real_reading_context,
-        model=TEST_MODEL,
-        sections=[
-            "career",
-            "advice",
-        ],
-        output_format="text",
+    result = (
+        prepare_ai_generation_payload(
+            real_reading_context,
+            model=TEST_MODEL,
+            sections=[
+                "career",
+                "advice",
+            ],
+            output_format="text",
+        )
     )
 
     assert (
@@ -804,7 +871,10 @@ def test_generate_reading_real_chart_text(
 
     assert result.text
 
-    assert "丁" in result.text
+    assert (
+        "丁"
+        in result.text
+    )
 
     assert (
         result.parsed
@@ -866,9 +936,11 @@ def test_generate_reading_real_chart_payload_reaches_client(
         store=False,
     )
 
-    call = client.responses.calls[
-        0
-    ]
+    call = (
+        client.responses.calls[
+            0
+        ]
+    )
 
     assert (
         call[
@@ -930,7 +1002,10 @@ def test_generate_reading_text_real_chart(
 
     assert text
 
-    assert "丁" in text
+    assert (
+        "丁"
+        in text
+    )
 
 
 # ============================================================
@@ -1068,13 +1143,17 @@ def test_json_generation_uses_strict_schema(
         output_format="json",
     )
 
-    call = client.responses.calls[
-        0
-    ]
+    call = (
+        client.responses.calls[
+            0
+        ]
+    )
 
-    text_config = call[
-        "text"
-    ]
+    text_config = (
+        call[
+            "text"
+        ]
+    )
 
     assert (
         text_config[
@@ -1094,11 +1173,13 @@ def test_json_generation_uses_strict_schema(
         is True
     )
 
-    schema = text_config[
-        "format"
-    ][
-        "schema"
-    ]
+    schema = (
+        text_config[
+            "format"
+        ][
+            "schema"
+        ]
+    )
 
     assert (
         schema[
@@ -1175,9 +1256,11 @@ def test_generate_reading_from_context_real_chart(
         str,
     )
 
-    assert result[
-        "text"
-    ]
+    assert (
+        result[
+            "text"
+        ]
+    )
 
 
 def test_calculate_ai_reading_real_chart(
@@ -1258,7 +1341,10 @@ def test_generation_does_not_mutate_real_reading_context(
         default=str,
     )
 
-    assert after == before
+    assert (
+        after
+        == before
+    )
 
 
 def test_generation_is_reproducible_with_fake_client(
@@ -1336,7 +1422,9 @@ def test_api_key_is_not_exposed_in_generation_result(
         output_format="text",
     )
 
-    result_dict = result.to_dict()
+    result_dict = (
+        result.to_dict()
+    )
 
     serialized = json.dumps(
         result_dict,
@@ -1382,55 +1470,64 @@ def test_real_chart_to_ai_generation_end_to_end(
     を一気通貫で確認する。
     """
 
-    chart_result = calculate_chart(
-        verified_request,
-        target_datetime=TARGET_DATETIME,
+    chart_result = (
+        calculate_chart(
+            verified_request,
+            target_datetime=(
+                TARGET_DATETIME
+            ),
+        )
     )
 
     # ----------------------------------------
     # Natal chart verification
+    #
+    # calculate_chart() の正式構造:
+    #
+    # chart_result["chart"][position]["pillar"]
+    # chart_result["day_master"]["stem"]
     # ----------------------------------------
 
     assert (
         chart_result[
-            "pillars"
+            "chart"
         ][
             "year"
         ][
-            "ganzhi"
+            "pillar"
         ]
         == "乙丑"
     )
 
     assert (
         chart_result[
-            "pillars"
+            "chart"
         ][
             "month"
         ][
-            "ganzhi"
+            "pillar"
         ]
         == "癸未"
     )
 
     assert (
         chart_result[
-            "pillars"
+            "chart"
         ][
             "day"
         ][
-            "ganzhi"
+            "pillar"
         ]
         == "丁巳"
     )
 
     assert (
         chart_result[
-            "pillars"
+            "chart"
         ][
             "hour"
         ][
-            "ganzhi"
+            "pillar"
         ]
         == "辛亥"
     )
@@ -1438,6 +1535,8 @@ def test_real_chart_to_ai_generation_end_to_end(
     assert (
         chart_result[
             "day_master"
+        ][
+            "stem"
         ]
         == "丁"
     )
@@ -1457,6 +1556,28 @@ def test_real_chart_to_ai_generation_end_to_end(
             "schema_version"
         ]
         == "reading_context_v1"
+    )
+
+    assert (
+        reading_context[
+            "natal_chart"
+        ][
+            "pillars"
+        ][
+            "day"
+        ][
+            "pillar"
+        ]
+        == "丁巳"
+    )
+
+    assert (
+        reading_context[
+            "day_master"
+        ][
+            "stem"
+        ]
+        == "丁"
     )
 
     assert (
@@ -1541,9 +1662,11 @@ def test_real_chart_to_ai_generation_end_to_end(
         == 1
     )
 
-    call = client.responses.calls[
-        0
-    ]
+    call = (
+        client.responses.calls[
+            0
+        ]
+    )
 
     assert (
         call[
@@ -1580,15 +1703,167 @@ def test_real_chart_to_ai_generation_end_to_end(
     # verified chart facts reached AI prompt
     # ----------------------------------------
 
-    user_content = call[
-        "input"
-    ][0][
-        "content"
-    ]
+    user_content = (
+        call[
+            "input"
+        ][
+            0
+        ][
+            "content"
+        ]
+    )
 
-    assert "乙丑" in user_content
-    assert "癸未" in user_content
-    assert "丁巳" in user_content
-    assert "辛亥" in user_content
-    assert "丁" in user_content
-    assert "丙午" in user_content
+    assert (
+        "乙丑"
+        in user_content
+    )
+
+    assert (
+        "癸未"
+        in user_content
+    )
+
+    assert (
+        "丁巳"
+        in user_content
+    )
+
+    assert (
+        "辛亥"
+        in user_content
+    )
+
+    assert (
+        "丁"
+        in user_content
+    )
+
+    assert (
+        "丙午"
+        in user_content
+    )
+
+
+# ============================================================
+# Final regression summary
+# ============================================================
+
+
+def test_real_chart_generator_golden_summary(
+    real_chart_result,
+    real_reading_context,
+):
+    """
+    calculate_chart -> reading_context の
+    命式整合性をまとめて固定する。
+    """
+
+    actual = {
+        "chart_year": (
+            real_chart_result[
+                "chart"
+            ][
+                "year"
+            ][
+                "pillar"
+            ]
+        ),
+        "chart_month": (
+            real_chart_result[
+                "chart"
+            ][
+                "month"
+            ][
+                "pillar"
+            ]
+        ),
+        "chart_day": (
+            real_chart_result[
+                "chart"
+            ][
+                "day"
+            ][
+                "pillar"
+            ]
+        ),
+        "chart_hour": (
+            real_chart_result[
+                "chart"
+            ][
+                "hour"
+            ][
+                "pillar"
+            ]
+        ),
+        "chart_day_master": (
+            real_chart_result[
+                "day_master"
+            ][
+                "stem"
+            ]
+        ),
+        "context_year": (
+            real_reading_context[
+                "natal_chart"
+            ][
+                "pillars"
+            ][
+                "year"
+            ][
+                "pillar"
+            ]
+        ),
+        "context_month": (
+            real_reading_context[
+                "natal_chart"
+            ][
+                "pillars"
+            ][
+                "month"
+            ][
+                "pillar"
+            ]
+        ),
+        "context_day": (
+            real_reading_context[
+                "natal_chart"
+            ][
+                "pillars"
+            ][
+                "day"
+            ][
+                "pillar"
+            ]
+        ),
+        "context_hour": (
+            real_reading_context[
+                "natal_chart"
+            ][
+                "pillars"
+            ][
+                "hour"
+            ][
+                "pillar"
+            ]
+        ),
+        "context_day_master": (
+            real_reading_context[
+                "day_master"
+            ][
+                "stem"
+            ]
+        ),
+    }
+
+    assert actual == {
+        "chart_year": "乙丑",
+        "chart_month": "癸未",
+        "chart_day": "丁巳",
+        "chart_hour": "辛亥",
+        "chart_day_master": "丁",
+        "context_year": "乙丑",
+        "context_month": "癸未",
+        "context_day": "丁巳",
+        "context_hour": "辛亥",
+        "context_day_master": "丁",
+    }
