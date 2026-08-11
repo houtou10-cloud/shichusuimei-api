@@ -58,17 +58,25 @@ build_reading_context()
 石川県
 女性
 
-現行エンジン回帰値:
+外部暦照合済み v2 回帰値:
 
 年柱 乙丑
 月柱 癸未
-日柱 乙巳
-時柱 丁亥
+日柱 丁巳
+時柱 辛亥
 
-日主 乙
+日主 丁
+
+月支 未
+主蔵干 己
+主蔵干通変星 食神
 
 評価日時は固定し、
 テスト実行日によって結果が変化しないようにする。
+
+Version
+-------
+reading_context_real_chart_v2
 """
 
 from __future__ import annotations
@@ -100,12 +108,20 @@ from engine.reading_context import (
 EXPECTED_PILLARS = {
     "year": "乙丑",
     "month": "癸未",
-    "day": "乙巳",
-    "hour": "丁亥",
+    "day": "丁巳",
+    "hour": "辛亥",
 }
 
 
-EXPECTED_DAY_MASTER = "乙"
+EXPECTED_DAY_MASTER = "丁"
+
+
+EXPECTED_MONTH_MAIN_HIDDEN_STEM = "己"
+
+
+EXPECTED_MONTH_MAIN_HIDDEN_STEM_TEN_GOD = (
+    "食神"
+)
 
 
 EXPECTED_ANNUAL_GANZHI = "丙午"
@@ -556,14 +572,14 @@ def test_real_month_hidden_stem_context(
         month[
             "main_hidden_stem"
         ]
-        == "己"
+        == EXPECTED_MONTH_MAIN_HIDDEN_STEM
     )
 
     assert (
         month[
             "main_hidden_stem_ten_god"
         ]
-        == "偏財"
+        == EXPECTED_MONTH_MAIN_HIDDEN_STEM_TEN_GOD
     )
 
 
@@ -1455,7 +1471,8 @@ def test_reading_context_real_chart_end_to_end(
         ↓
     AI入力context
 
-    が実命式で最後まで成立することを確認する。
+    が外部暦照合済み実命式で
+    最後まで成立することを確認する。
     """
 
     request = (
@@ -1477,7 +1494,10 @@ def test_reading_context_real_chart_end_to_end(
         )
     )
 
+    # --------------------------------------------------------
     # 命式
+    # --------------------------------------------------------
+
     assert (
         context[
             "natal_chart"
@@ -1514,7 +1534,7 @@ def test_reading_context_real_chart_end_to_end(
         ][
             "pillar"
         ]
-        == "乙巳"
+        == "丁巳"
     )
 
     assert (
@@ -1527,20 +1547,54 @@ def test_reading_context_real_chart_end_to_end(
         ][
             "pillar"
         ]
-        == "丁亥"
+        == "辛亥"
     )
 
+    # --------------------------------------------------------
     # 日主
+    # --------------------------------------------------------
+
     assert (
         context[
             "day_master"
         ][
             "stem"
         ]
-        == "乙"
+        == "丁"
     )
 
+    # --------------------------------------------------------
+    # 月支主蔵干
+    # --------------------------------------------------------
+
+    month = (
+        context[
+            "natal_chart"
+        ][
+            "pillars"
+        ][
+            "month"
+        ]
+    )
+
+    assert (
+        month[
+            "main_hidden_stem"
+        ]
+        == "己"
+    )
+
+    assert (
+        month[
+            "main_hidden_stem_ten_god"
+        ]
+        == "食神"
+    )
+
+    # --------------------------------------------------------
     # 用神
+    # --------------------------------------------------------
+
     assert (
         context[
             "useful_gods"
@@ -1550,7 +1604,10 @@ def test_reading_context_real_chart_end_to_end(
         == "useful_gods_v3"
     )
 
+    # --------------------------------------------------------
     # 大運
+    # --------------------------------------------------------
+
     assert (
         context[
             "luck"
@@ -1562,7 +1619,10 @@ def test_reading_context_real_chart_end_to_end(
         == "luck_pillars_v2"
     )
 
+    # --------------------------------------------------------
     # 現在運
+    # --------------------------------------------------------
+
     assert (
         context[
             "luck"
@@ -1574,7 +1634,10 @@ def test_reading_context_real_chart_end_to_end(
         == "current_luck_v1"
     )
 
+    # --------------------------------------------------------
     # 歳運
+    # --------------------------------------------------------
+
     assert (
         context[
             "luck"
@@ -1597,7 +1660,10 @@ def test_reading_context_real_chart_end_to_end(
         == "丙午"
     )
 
+    # --------------------------------------------------------
     # 統合運
+    # --------------------------------------------------------
+
     assert (
         context[
             "luck"
@@ -1620,7 +1686,10 @@ def test_reading_context_real_chart_end_to_end(
         == "丙午"
     )
 
-    # reading sections
+    # --------------------------------------------------------
+    # Reading sections
+    # --------------------------------------------------------
+
     assert set(
         context[
             "reading_sections"
@@ -1629,7 +1698,10 @@ def test_reading_context_real_chart_end_to_end(
         READING_SECTION_KEYS
     )
 
-    # validation
+    # --------------------------------------------------------
+    # Validation
+    # --------------------------------------------------------
+
     assert (
         context[
             "validation"
@@ -1639,7 +1711,10 @@ def test_reading_context_real_chart_end_to_end(
         is True
     )
 
+    # --------------------------------------------------------
     # AI入力安全性
+    # --------------------------------------------------------
+
     assert (
         "raw_chart_result"
         not in context
@@ -1649,3 +1724,87 @@ def test_reading_context_real_chart_end_to_end(
         "chart_result"
         not in context
     )
+
+
+# ============================================================
+# 30. Golden regression summary
+# ============================================================
+
+
+def test_real_chart_golden_summary(
+    real_reading_context,
+):
+    """
+    外部暦照合済み基準を
+    1つのassertで固定する。
+    """
+
+    pillars = (
+        real_reading_context[
+            "natal_chart"
+        ][
+            "pillars"
+        ]
+    )
+
+    actual = {
+        "year": (
+            pillars[
+                "year"
+            ][
+                "pillar"
+            ]
+        ),
+        "month": (
+            pillars[
+                "month"
+            ][
+                "pillar"
+            ]
+        ),
+        "day": (
+            pillars[
+                "day"
+            ][
+                "pillar"
+            ]
+        ),
+        "hour": (
+            pillars[
+                "hour"
+            ][
+                "pillar"
+            ]
+        ),
+        "day_master": (
+            real_reading_context[
+                "day_master"
+            ][
+                "stem"
+            ]
+        ),
+        "month_main_hidden_stem": (
+            pillars[
+                "month"
+            ][
+                "main_hidden_stem"
+            ]
+        ),
+        "month_main_hidden_stem_ten_god": (
+            pillars[
+                "month"
+            ][
+                "main_hidden_stem_ten_god"
+            ]
+        ),
+    }
+
+    assert actual == {
+        "year": "乙丑",
+        "month": "癸未",
+        "day": "丁巳",
+        "hour": "辛亥",
+        "day_master": "丁",
+        "month_main_hidden_stem": "己",
+        "month_main_hidden_stem_ten_god": "食神",
+    }
