@@ -20,5 +20,5 @@ jobs:
           python-version: "3.12"
 
       - run: pip install -r requirements.txt
-
-      - run: PYTHONPATH=. pytest tests/test_annual_luck.py -vv -x
+      - name: Run tests
+        run: PYTHONPATH=. pytest
