@@ -241,28 +241,23 @@ def build_pillar_data(
     """
     干支文字列から柱データを作成する。
 
-    Parameters
-    ----------
-    pillar:
-        「甲子」「乙丑」などの干支。
-
-    day_stem:
-        日主。
-
-    is_day_pillar:
-        日柱ならTrue。
-        日柱天干の通変星は基準となるためNone。
+    既存下流モジュールとの互換性を維持するため、
+    旧スキーマの正式キーを返す。
 
     Returns
     -------
     dict
         pillar
+        ganzhi
         stem
         branch
+        stem_ten_god
+        ten_god
         hidden_stems
         main_hidden_stem
-        ten_god
+        main_hidden_stem_ten_god
         hidden_stem_ten_god
+        hidden_stem_ten_gods
         twelve_stage
     """
 
@@ -301,16 +296,30 @@ def build_pillar_data(
     )
 
     if is_day_pillar:
-        ten_god = None
+        stem_ten_god = None
     else:
-        ten_god = (
+        stem_ten_god = (
             calculate_ten_god(
                 day_stem,
                 stem,
             )
         )
 
-    hidden_stem_ten_god = (
+    hidden_stem_ten_gods = [
+        {
+            "stem": hidden_stem,
+            "ten_god": (
+                calculate_ten_god(
+                    day_stem,
+                    hidden_stem,
+                )
+            ),
+        }
+        for hidden_stem
+        in hidden_stems
+    ]
+
+    main_hidden_stem_ten_god = (
         calculate_ten_god(
             day_stem,
             main_hidden_stem,
@@ -329,17 +338,31 @@ def build_pillar_data(
 
     return {
         "pillar": pillar,
+        "ganzhi": pillar,
         "stem": stem,
         "branch": branch,
+        "stem_ten_god": (
+            stem_ten_god
+        ),
+        # 互換エイリアス
+        "ten_god": (
+            stem_ten_god
+        ),
         "hidden_stems": (
             hidden_stems
         ),
         "main_hidden_stem": (
             main_hidden_stem
         ),
-        "ten_god": ten_god,
+        "main_hidden_stem_ten_god": (
+            main_hidden_stem_ten_god
+        ),
+        # 互換エイリアス
         "hidden_stem_ten_god": (
-            hidden_stem_ten_god
+            main_hidden_stem_ten_god
+        ),
+        "hidden_stem_ten_gods": (
+            hidden_stem_ten_gods
         ),
         "twelve_stage": (
             twelve_stage
