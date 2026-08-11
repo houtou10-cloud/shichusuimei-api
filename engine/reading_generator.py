@@ -96,6 +96,15 @@ DEFAULT_OPENAI_MODEL = "gpt-5"
 
 DEFAULT_MAX_OUTPUT_TOKENS = 6000
 
+# GPT-5系で可視出力前にreasoning tokenを使い切る事故を減らす。
+DEFAULT_REASONING_EFFORT = "low"
+SUPPORTED_REASONING_EFFORTS = (
+    "minimal",
+    "low",
+    "medium",
+    "high",
+)
+
 DEFAULT_STORE = False
 
 JSON_SCHEMA_NAME = "shichusuimei_reading"
@@ -328,6 +337,30 @@ def _normalize_output_format(
         )
 
     return output_format
+
+
+def _normalize_reasoning_effort(
+    reasoning_effort: str,
+) -> str:
+    """
+    Responses APIへ渡すreasoning effortを検証する。
+
+    GPT-5系ではreasoning tokenもmax_output_tokensへ含まれるため、
+    鑑定文生成ではデフォルトをlowとする。
+    """
+
+    reasoning_effort = _non_empty_string(
+        reasoning_effort,
+        "reasoning_effort",
+    )
+
+    if reasoning_effort not in SUPPORTED_REASONING_EFFORTS:
+        raise ValueError(
+            "reasoning_effortは"
+            "minimal/low/medium/highのいずれかで指定してください。"
+        )
+
+    return reasoning_effort
 
 
 def _normalize_sections(
@@ -728,6 +761,9 @@ def build_generation_payload(
     max_output_tokens: int = (
         DEFAULT_MAX_OUTPUT_TOKENS
     ),
+    reasoning_effort: str = (
+        DEFAULT_REASONING_EFFORT
+    ),
     store: bool = DEFAULT_STORE,
 ) -> Dict[str, Any]:
     """
@@ -764,6 +800,12 @@ def build_generation_payload(
         )
     )
 
+    reasoning_effort = (
+        _normalize_reasoning_effort(
+            reasoning_effort
+        )
+    )
+
     store = _require_bool(
         store,
         "store",
@@ -794,6 +836,9 @@ def build_generation_payload(
         "max_output_tokens": (
             max_output_tokens
         ),
+        "reasoning": {
+            "effort": reasoning_effort,
+        },
         "store": store,
     }
 
@@ -880,6 +925,265 @@ def _get_attribute_or_key(
         value,
         name,
         default,
+    )
+
+
+def _normalize_incomplete_details(
+    value: Any,
+) -> Dict[str, Any]:
+    """
+    response.incomplete_detailsを安全なdictへ変換する。
+    """
+
+    if value is None:
+        return {}
+
+    if isinstance(
+        value,
+        Mapping,
+    ):
+        return deepcopy(
+            dict(value)
+        )
+
+    model_dump = getattr(
+        value,
+        "model_dump",
+        None,
+    )
+
+    if callable(
+        model_dump
+    ):
+        try:
+            dumped = model_dump()
+
+            if isinstance(
+                dumped,
+                Mapping,
+            ):
+                return deepcopy(
+                    dict(dumped)
+                )
+        except Exception:
+            pass
+
+    result: Dict[str, Any] = {}
+
+    reason = getattr(
+        value,
+        "reason",
+        None,
+    )
+
+    if reason is not None:
+        result[
+            "reason"
+        ] = reason
+
+    return result
+
+
+def _response_diagnostics(
+    response: Any,
+) -> Dict[str, Any]:
+    """
+    空出力・未完了時の診断情報を抽出する。
+
+    APIキーや入力本文は含めない。
+    """
+
+    usage = _normalize_usage(
+        _get_attribute_or_key(
+            response,
+            "usage",
+        )
+    )
+
+    return {
+        "response_id": (
+            _get_attribute_or_key(
+                response,
+                "id",
+            )
+        ),
+        "status": (
+            _get_attribute_or_key(
+                response,
+                "status",
+            )
+        ),
+        "incomplete_details": (
+            _normalize_incomplete_details(
+                _get_attribute_or_key(
+                    response,
+                    "incomplete_details",
+                )
+            )
+        ),
+        "usage": usage,
+    }
+
+
+def _has_output_text(
+    response: Any,
+) -> bool:
+    """
+    responseに可視textが存在するかだけを確認する。
+    """
+
+    direct = _get_attribute_or_key(
+        response,
+        "output_text",
+    )
+
+    if isinstance(
+        direct,
+        str,
+    ) and direct.strip():
+        return True
+
+    output_items = _get_attribute_or_key(
+        response,
+        "output",
+        [],
+    )
+
+    if not isinstance(
+        output_items,
+        (list, tuple),
+    ):
+        return False
+
+    for item in output_items:
+        content = _get_attribute_or_key(
+            item,
+            "content",
+            [],
+        )
+
+        if not isinstance(
+            content,
+            (list, tuple),
+        ):
+            continue
+
+        for content_item in content:
+            item_type = _get_attribute_or_key(
+                content_item,
+                "type",
+            )
+
+            item_text = _get_attribute_or_key(
+                content_item,
+                "text",
+            )
+
+            if (
+                item_type in (
+                    None,
+                    "output_text",
+                )
+                and isinstance(
+                    item_text,
+                    str,
+                )
+                and item_text.strip()
+            ):
+                return True
+
+    return False
+
+
+def _raise_if_unusable_response(
+    response: Any,
+) -> None:
+    """
+    可視出力が無い未完了responseを、
+    原因が分かる例外へ変換する。
+
+    既存互換のため、statusがincompleteでも
+    可視textがある場合は結果を返せるようにする。
+    """
+
+    status = _get_attribute_or_key(
+        response,
+        "status",
+    )
+
+    if _has_output_text(
+        response
+    ):
+        return
+
+    diagnostics = _response_diagnostics(
+        response
+    )
+
+    if status == "incomplete":
+        details = diagnostics[
+            "incomplete_details"
+        ]
+
+        reason = details.get(
+            "reason"
+        )
+
+        usage = diagnostics.get(
+            "usage",
+            {},
+        )
+
+        reasoning_tokens = None
+
+        if isinstance(
+            usage,
+            Mapping,
+        ):
+            output_details = usage.get(
+                "output_tokens_details"
+            )
+
+            if isinstance(
+                output_details,
+                Mapping,
+            ):
+                reasoning_tokens = (
+                    output_details.get(
+                        "reasoning_tokens"
+                    )
+                )
+
+        message = (
+            "OpenAI responseが未完了で、"
+            "鑑定文章が生成されませんでした。"
+        )
+
+        if reason:
+            message += (
+                f" reason={reason}."
+            )
+
+        if reasoning_tokens is not None:
+            message += (
+                " reasoning_tokens="
+                f"{reasoning_tokens}."
+            )
+
+        if reason == "max_tokens":
+            message += (
+                " max_output_tokensを増やすか、"
+                "reasoning_effortを下げてください。"
+            )
+
+        raise ReadingGeneratorResponseError(
+            message
+        )
+
+    raise ReadingGeneratorResponseError(
+        "OpenAI responseから鑑定文章を取得できませんでした。 "
+        f"status={status!r}, "
+        f"response_id={diagnostics.get('response_id')!r}"
     )
 
 
@@ -1351,7 +1655,6 @@ def _execute_responses_create(
             )
         )
     except Exception as exc:
-
         raise ReadingGeneratorRequestError(
             "OpenAI Responses APIによる"
             "鑑定文生成に失敗しました。 "
@@ -1376,6 +1679,9 @@ def generate_reading(
     output_format: str = "json",
     max_output_tokens: int = (
         DEFAULT_MAX_OUTPUT_TOKENS
+    ),
+    reasoning_effort: str = (
+        DEFAULT_REASONING_EFFORT
     ),
     store: bool = DEFAULT_STORE,
 ) -> ReadingGenerationResult:
@@ -1454,6 +1760,9 @@ def generate_reading(
             max_output_tokens=(
                 max_output_tokens
             ),
+            reasoning_effort=(
+                reasoning_effort
+            ),
             store=store,
         )
     )
@@ -1470,6 +1779,10 @@ def generate_reading(
                 "payload"
             ],
         )
+    )
+
+    _raise_if_unusable_response(
+        response
     )
 
     text = _extract_output_text(
@@ -1560,6 +1873,9 @@ def generate_reading_text(
     max_output_tokens: int = (
         DEFAULT_MAX_OUTPUT_TOKENS
     ),
+    reasoning_effort: str = (
+        DEFAULT_REASONING_EFFORT
+    ),
     store: bool = DEFAULT_STORE,
 ) -> str:
     """
@@ -1578,6 +1894,9 @@ def generate_reading_text(
         output_format="text",
         max_output_tokens=(
             max_output_tokens
+        ),
+        reasoning_effort=(
+            reasoning_effort
         ),
         store=store,
     )
@@ -1602,6 +1921,9 @@ def generate_reading_json(
     max_output_tokens: int = (
         DEFAULT_MAX_OUTPUT_TOKENS
     ),
+    reasoning_effort: str = (
+        DEFAULT_REASONING_EFFORT
+    ),
     store: bool = DEFAULT_STORE,
 ) -> Dict[str, Any]:
     """
@@ -1620,6 +1942,9 @@ def generate_reading_json(
         output_format="json",
         max_output_tokens=(
             max_output_tokens
+        ),
+        reasoning_effort=(
+            reasoning_effort
         ),
         store=store,
     )
@@ -1764,6 +2089,12 @@ def get_reading_generator_metadata() -> Dict[str, Any]:
         "default_max_output_tokens": (
             DEFAULT_MAX_OUTPUT_TOKENS
         ),
+        "default_reasoning_effort": (
+            DEFAULT_REASONING_EFFORT
+        ),
+        "supported_reasoning_efforts": list(
+            SUPPORTED_REASONING_EFFORTS
+        ),
         "default_store": (
             DEFAULT_STORE
         ),
@@ -1787,6 +2118,8 @@ __all__ = [
     "OPENAI_READING_MODEL_ENV",
     "DEFAULT_OPENAI_MODEL",
     "DEFAULT_MAX_OUTPUT_TOKENS",
+    "DEFAULT_REASONING_EFFORT",
+    "SUPPORTED_REASONING_EFFORTS",
     "DEFAULT_STORE",
     "JSON_SCHEMA_NAME",
     "SUPPORTED_GENERATION_OUTPUT_FORMATS",
