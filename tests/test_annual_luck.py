@@ -23,9 +23,11 @@ engine.annual_luck の単体テスト。
     14. 不正入力
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
+
+from engine.solar_terms import get_solar_term_datetime
 
 from engine.annual_luck import (
     ANNUAL_LUCK_METHOD,
@@ -306,15 +308,23 @@ def test_calculate_annual_ganzhi_negative():
 
 
 def test_annual_ganzhi_before_lichun():
+    """
+    天文学的な立春の1秒前は、
+    まだ前年の干支年として扱う。
+    """
+    lichun = get_solar_term_datetime(
+        2026,
+        "立春",
+    )
+
+    target = (
+        lichun
+        - timedelta(seconds=1)
+    )
+
     result = (
         calculate_annual_ganzhi_for_datetime(
-            datetime(
-                2026,
-                2,
-                3,
-                23,
-                59,
-            )
+            target
         )
     )
 
@@ -332,17 +342,24 @@ def test_annual_ganzhi_before_lichun():
 
 
 def test_annual_ganzhi_at_lichun():
+    """
+    天文学的な立春時刻ちょうどから、
+    新しい干支年として扱う。
+    """
+    lichun = get_solar_term_datetime(
+        2026,
+        "立春",
+    )
+
     result = (
         calculate_annual_ganzhi_for_datetime(
-            datetime(
-                2026,
-                2,
-                4,
-                0,
-                0,
-            )
+            lichun
         )
     )
+
+    assert result[
+        "calendar_year"
+    ] == 2026
 
     assert result[
         "effective_year"
@@ -354,15 +371,23 @@ def test_annual_ganzhi_at_lichun():
 
 
 def test_annual_ganzhi_after_lichun():
+    """
+    天文学的な立春の1秒後は、
+    新しい干支年として扱う。
+    """
+    lichun = get_solar_term_datetime(
+        2026,
+        "立春",
+    )
+
+    target = (
+        lichun
+        + timedelta(seconds=1)
+    )
+
     result = (
         calculate_annual_ganzhi_for_datetime(
-            datetime(
-                2026,
-                8,
-                10,
-                12,
-                0,
-            )
+            target
         )
     )
 
@@ -1464,15 +1489,23 @@ def test_build_annual_luck_reasoning():
 
 
 def test_annual_luck_datetime_before_lichun():
+    """
+    天文学的な立春の1秒前は、
+    歳運も前年として扱う。
+    """
+    lichun = get_solar_term_datetime(
+        2026,
+        "立春",
+    )
+
+    target = (
+        lichun
+        - timedelta(seconds=1)
+    )
+
     result = (
         calculate_annual_luck_for_datetime(
-            target_datetime=datetime(
-                2026,
-                2,
-                3,
-                23,
-                59,
-            ),
+            target_datetime=target,
             day_master_stem="乙",
         )
     )
@@ -1499,42 +1532,18 @@ def test_annual_luck_datetime_before_lichun():
 
 
 def test_annual_luck_datetime_at_lichun():
-    result = (
-        calculate_annual_luck_for_datetime(
-            target_datetime=datetime(
-                2026,
-                2,
-                4,
-                0,
-                0,
-            ),
-            day_master_stem="乙",
-        )
+    """
+    天文学的な立春時刻ちょうどから、
+    歳運も新しい干支年として扱う。
+    """
+    lichun = get_solar_term_datetime(
+        2026,
+        "立春",
     )
 
-    assert result[
-        "effective_year"
-    ] == 2026
-
-    assert result[
-        "year"
-    ] == 2026
-
-    assert result[
-        "ganzhi"
-    ] == "丙午"
-
-
-def test_annual_luck_datetime_after_lichun():
     result = (
         calculate_annual_luck_for_datetime(
-            target_datetime=datetime(
-                2026,
-                8,
-                10,
-                15,
-                0,
-            ),
+            target_datetime=lichun,
             day_master_stem="乙",
         )
     )
@@ -1548,21 +1557,65 @@ def test_annual_luck_datetime_after_lichun():
     ] == 2026
 
     assert result[
+        "year"
+    ] == 2026
+
+    assert result[
         "ganzhi"
     ] == "丙午"
+
+    assert result[
+        "year_boundary_applied"
+    ] is False
+
+
+def test_annual_luck_datetime_after_lichun():
+    """
+    天文学的な立春の1秒後も、
+    歳運は新しい干支年として扱う。
+    """
+    lichun = get_solar_term_datetime(
+        2026,
+        "立春",
+    )
+
+    target = (
+        lichun
+        + timedelta(seconds=1)
+    )
+
+    result = (
+        calculate_annual_luck_for_datetime(
+            target_datetime=target,
+            day_master_stem="乙",
+        )
+    )
+
+    assert result[
+        "calendar_year"
+    ] == 2026
+
+    assert result[
+        "effective_year"
+    ] == 2026
+
+    assert result[
+        "year"
+    ] == 2026
+
+    assert result[
+        "ganzhi"
+    ] == "丙午"
+
+    assert result[
+        "year_boundary_applied"
+    ] is False
 
     assert (
         result[
             "target_datetime"
         ]
-        == "2026-08-10T15:00:00"
-    )
-
-    assert (
-        result[
-            "year_boundary_rule"
-        ]
-        == "暫定：立春2月4日00:00"
+        == target.isoformat()
     )
 
 
