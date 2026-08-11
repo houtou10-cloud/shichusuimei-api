@@ -733,12 +733,33 @@ def candidate_priority(
         )
     )
 
-    # 月令が比肩・劫財系の場合は
-    # 建禄・羊刃候補を優先する。
+    # 月令が比肩・劫財系の場合は、
+    # 建禄・羊刃候補を優先候補として扱う。
+    #
+    # ただし、陰干の羊刃候補など
+    # requires_school_rule=True の候補は
+    # 流派依存性があるため、
+    # 通常の普通格候補より無条件には優先しない。
+    #
+    # これにより、
+    #
+    #   standard_pattern
+    #       ↓
+    #   possible / strong
+    #
+    # と判定できる候補が存在する場合に、
+    # 流派依存の羊刃候補が
+    # primary_candidate を奪うことを防ぐ。
     if technical_pattern == "jianlu":
         return 300
 
     if technical_pattern == "yangren":
+        if candidate.get(
+            "requires_school_rule",
+            False,
+        ):
+            return 190
+
         return 290
 
     if (

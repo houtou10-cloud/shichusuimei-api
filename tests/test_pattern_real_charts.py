@@ -41,6 +41,10 @@ def make_request(
     )
 
 
+# 現在採用している日柱基準
+# 1984-07-10 = 乙巳、日界は00:00。
+# この基準に合わせ、1984-07-22 および 1985-07-17 の
+# 日柱・日主・時柱・格局期待値を同期する。
 REAL_CHART_CASES = [
     {
         "id": "1984_hokkaido_female_early_hour",
@@ -51,17 +55,17 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "甲子",
             "month": "辛未",
-            "day": "乙巳",
-            "hour": "戊寅",
+            "day": "丁巳",
+            "hour": "壬寅",
         },
-        "day_master": "乙",
-        "expected_pattern": "偏財格",
+        "day_master": "丁",
+        "expected_pattern": "食神格",
         "expected_technical_pattern": (
-            "indirect_wealth"
+            "eating_god"
         ),
         "expected_month_branch": "未",
         "expected_main_hidden_stem": "己",
-        "expected_ten_god": "偏財",
+        "expected_ten_god": "食神",
         "expected_exposed": False,
         "expected_exposure_positions": [],
     },
@@ -74,17 +78,17 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "甲子",
             "month": "辛未",
-            "day": "乙巳",
-            "hour": "癸未",
+            "day": "丁巳",
+            "hour": "丁未",
         },
-        "day_master": "乙",
-        "expected_pattern": "偏財格",
+        "day_master": "丁",
+        "expected_pattern": "食神格",
         "expected_technical_pattern": (
-            "indirect_wealth"
+            "eating_god"
         ),
         "expected_month_branch": "未",
         "expected_main_hidden_stem": "己",
-        "expected_ten_god": "偏財",
+        "expected_ten_god": "食神",
         "expected_exposed": False,
         "expected_exposure_positions": [],
     },
@@ -97,17 +101,17 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "乙丑",
             "month": "癸未",
-            "day": "乙巳",
-            "hour": "丁亥",
+            "day": "丁巳",
+            "hour": "辛亥",
         },
-        "day_master": "乙",
-        "expected_pattern": "偏財格",
+        "day_master": "丁",
+        "expected_pattern": "食神格",
         "expected_technical_pattern": (
-            "indirect_wealth"
+            "eating_god"
         ),
         "expected_month_branch": "未",
         "expected_main_hidden_stem": "己",
-        "expected_ten_god": "偏財",
+        "expected_ten_god": "食神",
         "expected_exposed": False,
         "expected_exposure_positions": [],
     },
@@ -1109,7 +1113,7 @@ def test_real_chart_branch_total_score_is_not_directly_applied(
 
 # =========================================================
 # Verified 1985 regression
-# 乙丑 / 癸未 / 乙巳 / 丁亥
+# 乙丑 / 癸未 / 丁巳 / 辛亥
 # =========================================================
 
 
@@ -1135,14 +1139,14 @@ def test_verified_1985_pattern_candidate():
 
     assert (
         candidate["pattern"]
-        == "偏財格"
+        == "食神格"
     )
 
     assert (
         candidate[
             "technical_pattern"
         ]
-        == "indirect_wealth"
+        == "eating_god"
     )
 
     assert (
@@ -1163,7 +1167,7 @@ def test_verified_1985_pattern_candidate():
         candidate[
             "ten_god"
         ]
-        == "偏財"
+        == "食神"
     )
 
     assert (
@@ -1205,14 +1209,14 @@ def test_verified_1985_pattern_judgment():
         judgment[
             "primary_pattern"
         ]
-        == "偏財格"
+        == "食神格"
     )
 
     assert (
         judgment[
             "technical_pattern"
         ]
-        == "indirect_wealth"
+        == "eating_god"
     )
 
     assert (
@@ -1240,7 +1244,7 @@ def test_verified_1985_pattern_judgment():
         primary[
             "establishment_score"
         ]
-        == 60.0
+        == 61.0
     )
 
     assert (
@@ -3038,14 +3042,14 @@ def test_verified_1985_climate_useful_gods_metadata():
         climate[
             "day_master_stem"
         ]
-        == "乙"
+        == "丁"
     )
 
     assert (
         climate[
             "day_master_element"
         ]
-        == "木"
+        == "火"
     )
 
     assert (
@@ -3097,14 +3101,14 @@ def test_verified_1985_useful_gods_v3_metadata():
         useful_gods[
             "day_master_stem"
         ]
-        == "乙"
+        == "丁"
     )
 
     assert (
         useful_gods[
             "day_master_element"
         ]
-        == "木"
+        == "火"
     )
 
     assert (
@@ -3608,14 +3612,14 @@ def test_verified_1985_pattern_useful_gods_metadata():
         pattern_useful[
             "day_master_stem"
         ]
-        == "乙"
+        == "丁"
     )
 
     assert (
         pattern_useful[
             "day_master_element"
         ]
-        == "木"
+        == "火"
     )
 
 
@@ -3632,14 +3636,14 @@ def test_verified_1985_pattern_useful_gods_pattern_matches():
         pattern_useful[
             "primary_pattern"
         ]
-        == "偏財格"
+        == "食神格"
     )
 
     assert (
         pattern_useful[
             "technical_pattern"
         ]
-        == "indirect_wealth"
+        == "eating_god"
     )
 
     assert (
@@ -3686,8 +3690,8 @@ def test_verified_1985_pattern_useful_gods_elements():
             "pattern_elements"
         ]
         == [
-            "火",
             "金",
+            "土",
         ]
     )
 
@@ -3695,7 +3699,7 @@ def test_verified_1985_pattern_useful_gods_elements():
         pattern_useful[
             "primary_pattern_element"
         ]
-        == "火"
+        == "金"
     )
 
     assert (
@@ -3703,7 +3707,7 @@ def test_verified_1985_pattern_useful_gods_elements():
             "secondary_pattern_elements"
         ]
         == [
-            "金",
+            "土",
         ]
     )
 
@@ -3727,7 +3731,7 @@ def test_verified_1985_pattern_useful_gods_candidate_roles():
         candidates[0][
             "element"
         ]
-        == "火"
+        == "金"
     )
 
     assert (
@@ -3735,7 +3739,7 @@ def test_verified_1985_pattern_useful_gods_candidate_roles():
             "relations"
         ]
         == [
-            "output",
+            "wealth",
         ]
     )
 
@@ -3744,7 +3748,7 @@ def test_verified_1985_pattern_useful_gods_candidate_roles():
             "roles"
         ]
         == [
-            "generate_wealth",
+            "receive_output",
         ]
     )
 
@@ -3759,7 +3763,7 @@ def test_verified_1985_pattern_useful_gods_candidate_roles():
         candidates[1][
             "element"
         ]
-        == "金"
+        == "土"
     )
 
     assert (
@@ -3767,7 +3771,7 @@ def test_verified_1985_pattern_useful_gods_candidate_roles():
             "relations"
         ]
         == [
-            "officer",
+            "output",
         ]
     )
 
@@ -3776,7 +3780,7 @@ def test_verified_1985_pattern_useful_gods_candidate_roles():
             "roles"
         ]
         == [
-            "protect_wealth",
+            "strengthen_output",
         ]
     )
 
@@ -3825,7 +3829,7 @@ def test_verified_1985_pattern_useful_gods_evidence_integrity():
         ][
             "technical_pattern"
         ]
-        == "indirect_wealth"
+        == "eating_god"
     )
 
     assert (

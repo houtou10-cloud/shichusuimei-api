@@ -99,10 +99,10 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "甲子",
             "month": "辛未",
-            "day": "乙巳",
-            "hour": "戊寅",
+            "day": "丁巳",
+            "hour": "壬寅",
         },
-        "day_master": "乙",
+        "day_master": "丁",
     },
     {
         "id": (
@@ -116,10 +116,10 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "甲子",
             "month": "辛未",
-            "day": "乙巳",
-            "hour": "癸未",
+            "day": "丁巳",
+            "hour": "丁未",
         },
-        "day_master": "乙",
+        "day_master": "丁",
     },
     {
         "id": (
@@ -133,10 +133,10 @@ REAL_CHART_CASES = [
         "pillars": {
             "year": "乙丑",
             "month": "癸未",
-            "day": "乙巳",
-            "hour": "丁亥",
+            "day": "丁巳",
+            "hour": "辛亥",
         },
-        "day_master": "乙",
+        "day_master": "丁",
     },
 ]
 
@@ -616,14 +616,14 @@ def test_real_chart_integrated_annual_elements_match(
 # =========================================================
 
 
-def test_real_chart_2026_ten_god_is_shokan(
+def test_real_chart_2026_ten_god_is_gouzai(
     real_chart_case,
 ):
     """
-    3命式の日主はいずれも乙。
+    3命式の日主はいずれも丁。
 
-    乙日主に対する2026年丙は
-    傷官。
+    丁日主に対する2026年丙は
+    劫財。
     """
 
     result = calculate_real_chart(
@@ -636,7 +636,7 @@ def test_real_chart_2026_ten_god_is_shokan(
         ][
             "stem_ten_god"
         ]
-        == "傷官"
+        == "劫財"
     )
 
     assert (
@@ -645,17 +645,17 @@ def test_real_chart_2026_ten_god_is_shokan(
         ][
             "annual_ten_god"
         ]
-        == "傷官"
+        == "劫財"
     )
 
 
-def test_real_chart_2026_twelve_stage_is_chosei(
+def test_real_chart_2026_twelve_stage_is_kenroku(
     real_chart_case,
 ):
     """
-    3命式の日主はいずれも乙。
+    3命式の日主はいずれも丁。
 
-    乙 × 午 = 長生。
+    丁 × 午 = 建禄。
     """
 
     result = calculate_real_chart(
@@ -668,7 +668,7 @@ def test_real_chart_2026_twelve_stage_is_chosei(
         ][
             "twelve_stage"
         ]
-        == "長生"
+        == "建禄"
     )
 
     assert (
@@ -677,7 +677,7 @@ def test_real_chart_2026_twelve_stage_is_chosei(
         ][
             "annual_twelve_stage"
         ]
-        == "長生"
+        == "建禄"
     )
 
 
@@ -1161,8 +1161,8 @@ def test_real_chart_integrated_reasoning_exists(
     )
 
     assert "丙午" in joined
-    assert "傷官" in joined
-    assert "長生" in joined
+    assert "劫財" in joined
+    assert "建禄" in joined
 
 
 # =========================================================
@@ -1378,20 +1378,20 @@ def test_all_real_charts_integrated_luck_can_be_calculated():
             integrated[
                 "annual_ten_god"
             ]
-            == "傷官"
+            == "劫財"
         )
 
         assert (
             integrated[
                 "annual_twelve_stage"
             ]
-            == "長生"
+            == "建禄"
         )
 
 
-def test_all_real_charts_preserve_day_master_otsu():
+def test_all_real_charts_preserve_day_master_hinoto():
     """
-    3命式はいずれも乙日主であることを
+    3命式はいずれも丁日主であることを
     回帰固定する。
     """
 
@@ -1406,7 +1406,7 @@ def test_all_real_charts_preserve_day_master_otsu():
             ][
                 "stem"
             ]
-            == "乙"
+            == "丁"
         )
 
 

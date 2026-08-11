@@ -275,6 +275,46 @@ def _validate_datetime(
         )
 
 
+def _normalize_to_jst_naive(
+    value: datetime,
+    field_name: str = "datetime",
+) -> datetime:
+    """
+    datetimeをJST相当のtimezone-naiveへ正規化する。
+
+    Rules
+    -----
+    ・naive datetime:
+        既存エンジン互換のため、
+        JSTローカル時刻としてそのまま扱う。
+
+    ・aware datetime:
+        同じ瞬間を保ったままJSTへ変換し、
+        最後にtzinfoを外す。
+
+    Returns
+    -------
+    datetime
+        JST相当のtimezone-naive datetime。
+    """
+
+    _validate_datetime(
+        value,
+        field_name,
+    )
+
+    if value.tzinfo is None:
+        return value
+
+    return (
+        value.astimezone(
+            JST
+        ).replace(
+            tzinfo=None
+        )
+    )
+
+
 def _validate_year(
     year: int,
 ) -> None:
@@ -925,6 +965,13 @@ def get_surrounding_solar_terms(
         "target_datetime",
     )
 
+    target_datetime = (
+        _normalize_to_jst_naive(
+            target_datetime,
+            "target_datetime",
+        )
+    )
+
     years = [
         target_datetime.year - 1,
         target_datetime.year,
@@ -974,6 +1021,13 @@ def get_previous_solar_term(
     _validate_datetime(
         target_datetime,
         "target_datetime",
+    )
+
+    target_datetime = (
+        _normalize_to_jst_naive(
+            target_datetime,
+            "target_datetime",
+        )
     )
 
     terms = (
@@ -1032,6 +1086,13 @@ def get_next_solar_term(
     _validate_datetime(
         target_datetime,
         "target_datetime",
+    )
+
+    target_datetime = (
+        _normalize_to_jst_naive(
+            target_datetime,
+            "target_datetime",
+        )
     )
 
     terms = (
@@ -1105,6 +1166,13 @@ def get_luck_pillar_target_term(
         "birth_datetime",
     )
 
+    birth_datetime = (
+        _normalize_to_jst_naive(
+            birth_datetime,
+            "birth_datetime",
+        )
+    )
+
     _validate_direction(
         direction
     )
@@ -1154,6 +1222,14 @@ def get_current_solar_term(
     新しい月として扱う。
     """
 
+    target_datetime = (
+        _normalize_to_jst_naive(
+            target_datetime,
+            "target_datetime",
+        )
+    )
+
+
     return get_previous_solar_term(
         target_datetime,
         inclusive=True,
@@ -1166,6 +1242,14 @@ def get_month_branch_by_datetime(
     """
     日時から月支を返す。
     """
+
+    target_datetime = (
+        _normalize_to_jst_naive(
+            target_datetime,
+            "target_datetime",
+        )
+    )
+
 
     return (
         get_current_solar_term(
@@ -1187,6 +1271,14 @@ def get_month_number_by_datetime(
     丑月 = 12
     """
 
+    target_datetime = (
+        _normalize_to_jst_naive(
+            target_datetime,
+            "target_datetime",
+        )
+    )
+
+
     return (
         get_current_solar_term(
             target_datetime
@@ -1205,6 +1297,14 @@ def get_distance_to_previous_term_days(
     """
     直前の節入りから対象日時までの日数。
     """
+
+    target_datetime = (
+        _normalize_to_jst_naive(
+            target_datetime,
+            "target_datetime",
+        )
+    )
+
 
     previous_term = (
         get_previous_solar_term(
@@ -1230,6 +1330,14 @@ def get_distance_to_next_term_days(
     """
     対象日時から直後の節入りまでの日数。
     """
+
+    target_datetime = (
+        _normalize_to_jst_naive(
+            target_datetime,
+            "target_datetime",
+        )
+    )
+
 
     next_term = (
         get_next_solar_term(
@@ -1274,6 +1382,13 @@ def get_solar_term_position(
     _validate_datetime(
         target_datetime,
         "target_datetime",
+    )
+
+    target_datetime = (
+        _normalize_to_jst_naive(
+            target_datetime,
+            "target_datetime",
+        )
     )
 
     current_term = (
@@ -1410,6 +1525,8 @@ def get_solar_terms_metadata() -> Dict:
             "luck_pillar_target_term",
             "solar_term_position",
             "astronomical_longitude",
+            "timezone_aware_input",
+            "timezone_naive_input",
         ],
         "limitations": [
             (
