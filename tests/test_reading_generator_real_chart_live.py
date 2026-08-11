@@ -213,10 +213,10 @@ LIVE_OUTPUT_FORMAT = "json"
 # 通常の鑑定より小さめ。
 # ただしsummary + section + disclaimerを
 # 返せる余裕は残す。
-LIVE_MAX_OUTPUT_TOKENS = 1600
+LIVE_MAX_OUTPUT_TOKENS = 4000
 
 # 推論コストを抑える。
-LIVE_REASONING_EFFORT = "low"
+LIVE_REASONING_EFFORT = "minimal"
 
 # API側へ保存しない。
 LIVE_STORE = False
