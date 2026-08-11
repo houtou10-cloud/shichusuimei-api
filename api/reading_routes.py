@@ -1,9 +1,10 @@
 """
 api/reading_routes.py
 
-四柱推命 AI鑑定 API v1
+四柱推命 AI鑑定 API v2
 
 POST /reading
+GET  /reading/status
 
 処理フロー
 ----------
@@ -25,11 +26,17 @@ JSON response
 --------
 ・四柱推命の計算はAIに行わせない
 ・命式計算は engine.chart が担当する
-・AI用データ整形は reading_context が担当する
-・プロンプト生成は reading_prompt が担当する
-・OpenAI呼び出しは reading_generator が担当する
+・AI用データ整形は engine.reading_context が担当する
+・プロンプト生成は engine.reading_prompt が担当する
+・OpenAI呼び出しは engine.reading_generator が担当する
 ・API層では各エンジンを接続するだけにする
 ・OPENAI_API_KEYそのものはレスポンスへ出さない
+・section名は reading_prompt / reading_generator の正式契約へ統一する
+・AI生成結果のtext属性は ReadingGenerationResult.text を使用する
+
+Version
+-------
+reading_api_v2
 """
 
 from __future__ import annotations
@@ -54,9 +61,19 @@ from engine.reading_context import (
 )
 from engine.reading_generator import (
     ReadingGenerationResult,
+    ReadingGeneratorConfigurationError,
+    ReadingGeneratorError,
+    ReadingGeneratorJSONError,
+    ReadingGeneratorRequestError,
+    ReadingGeneratorResponseError,
     generate_reading,
     get_default_model,
     has_openai_api_key,
+)
+from engine.reading_prompt import (
+    DEFAULT_READING_SECTIONS,
+    SUPPORTED_OUTPUT_FORMATS,
+    SUPPORTED_TONES,
 )
 
 
@@ -79,33 +96,23 @@ router = APIRouter(
 
 READING_API_VERSION = "reading_api_v1"
 
-DEFAULT_SECTIONS = (
-    "personality",
-    "career",
-    "money",
-    "relationships",
-    "current_luck",
+# reading_prompt / reading_generator と
+# 同一契約を使用する。
+DEFAULT_SECTIONS = tuple(
+    DEFAULT_READING_SECTIONS
 )
 
-ALLOWED_SECTIONS = {
-    "personality",
-    "career",
-    "money",
-    "relationships",
-    "current_luck",
-}
+ALLOWED_SECTIONS = set(
+    DEFAULT_READING_SECTIONS
+)
 
-ALLOWED_TONES = {
-    "professional_warm",
-    "gentle",
-    "concise",
-    "detailed",
-}
+ALLOWED_TONES = set(
+    SUPPORTED_TONES
+)
 
-ALLOWED_OUTPUT_FORMATS = {
-    "text",
-    "json",
-}
+ALLOWED_OUTPUT_FORMATS = set(
+    SUPPORTED_OUTPUT_FORMATS
+)
 
 
 # ============================================================
@@ -176,12 +183,16 @@ class ReadingRequest(
         default=None,
         description=(
             "生成する鑑定セクション。"
+            "指定可能: "
+            "core_personality, career, wealth, "
+            "relationships, health, current_luck, "
+            "future_flow, advice"
         ),
         examples=[
             [
-                "personality",
+                "core_personality",
                 "career",
-                "money",
+                "wealth",
             ]
         ],
     )
@@ -288,6 +299,9 @@ def _normalize_sections(
 ) -> tuple[str, ...]:
     """
     sectionsを検証・正規化する。
+
+    Noneの場合はreading_promptと同じ
+    8セクションを使用する。
     """
 
     if sections is None:
@@ -365,6 +379,11 @@ def _validate_tone(
 
     normalized = tone.strip()
 
+    if not normalized:
+        raise ValueError(
+            "toneは空文字にできません。"
+        )
+
     if (
         normalized
         not in ALLOWED_TONES
@@ -384,16 +403,55 @@ def _validate_output_format(
     output_formatを検証する。
     """
 
+    if not isinstance(
+        output_format,
+        str,
+    ):
+        raise ValueError(
+            "output_formatは文字列で指定してください。"
+        )
+
+    normalized = (
+        output_format.strip()
+    )
+
     if (
-        output_format
+        normalized
         not in ALLOWED_OUTPUT_FORMATS
     ):
         raise ValueError(
             "未対応のoutput_formatです: "
-            f"{output_format}"
+            f"{normalized}"
         )
 
-    return output_format
+    return normalized
+
+
+def _resolve_model(
+    model: str | None,
+) -> str:
+    """
+    requestのmodelまたは
+    generatorのdefault modelを返す。
+    """
+
+    if model is None:
+        return get_default_model()
+
+    if not isinstance(
+        model,
+        str,
+    ):
+        raise ValueError(
+            "modelは文字列で指定してください。"
+        )
+
+    normalized = model.strip()
+
+    if not normalized:
+        return get_default_model()
+
+    return normalized
 
 
 # ============================================================
@@ -506,6 +564,12 @@ def _extract_reading(
     """
     ReadingGenerationResultから
     クライアントへ返す鑑定本文を取得する。
+
+    JSON:
+        result.parsed
+
+    text:
+        result.text
     """
 
     if (
@@ -514,7 +578,7 @@ def _extract_reading(
     ):
         return result.parsed
 
-    return result.output_text
+    return result.text
 
 
 def _build_response(
@@ -699,6 +763,12 @@ def generate_shichusuimei_reading(
             )
         )
 
+        model = (
+            _resolve_model(
+                request.model
+            )
+        )
+
     except ValueError as exc:
 
         raise HTTPException(
@@ -770,17 +840,19 @@ def generate_shichusuimei_reading(
             ),
         ) from exc
 
-    # --------------------------------------------------------
-    # 5. Model
-    # --------------------------------------------------------
+    except Exception as exc:
 
-    model = (
-        request.model
-        or get_default_model()
-    )
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "AI鑑定コンテキストの"
+                "構築中に予期しない"
+                "エラーが発生しました。"
+            ),
+        ) from exc
 
     # --------------------------------------------------------
-    # 6. AI generation
+    # 5. AI generation
     # --------------------------------------------------------
 
     try:
@@ -817,6 +889,33 @@ def generate_shichusuimei_reading(
             ),
         ) from exc
 
+    except ReadingGeneratorConfigurationError as exc:
+
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "AI鑑定生成環境が"
+                "利用できません: "
+                f"{exc}"
+            ),
+        ) from exc
+
+    except (
+        ReadingGeneratorRequestError,
+        ReadingGeneratorResponseError,
+        ReadingGeneratorJSONError,
+        ReadingGeneratorError,
+    ) as exc:
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "AI鑑定生成中に"
+                "エラーが発生しました: "
+                f"{exc}"
+            ),
+        ) from exc
+
     except Exception as exc:
 
         raise HTTPException(
@@ -828,7 +927,7 @@ def generate_shichusuimei_reading(
         ) from exc
 
     # --------------------------------------------------------
-    # 7. Generation status
+    # 6. Generation status
     # --------------------------------------------------------
 
     if (
@@ -847,7 +946,7 @@ def generate_shichusuimei_reading(
         )
 
     # --------------------------------------------------------
-    # 8. Validate generated reading
+    # 7. Validate generated reading
     # --------------------------------------------------------
 
     reading = _extract_reading(
@@ -880,8 +979,25 @@ def generate_shichusuimei_reading(
             ),
         )
 
+    if (
+        output_format
+        == "json"
+        and not isinstance(
+            reading,
+            dict,
+        )
+    ):
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "AI鑑定JSONが"
+                "取得できませんでした。"
+            ),
+        )
+
     # --------------------------------------------------------
-    # 9. Response
+    # 8. Response
     # --------------------------------------------------------
 
     return _build_response(
