@@ -1351,9 +1351,11 @@ def _execute_responses_create(
             )
         )
     except Exception as exc:
+
         raise ReadingGeneratorRequestError(
             "OpenAI Responses APIによる"
-            "鑑定文生成に失敗しました。"
+            "鑑定文生成に失敗しました。 "
+            f"{type(exc).__name__}: {exc}"
         ) from exc
 
 
