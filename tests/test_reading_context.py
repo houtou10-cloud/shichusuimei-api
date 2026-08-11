@@ -1,7 +1,7 @@
 """
 tests/test_reading_context.py
 
-engine/reading_context.py のテスト。
+engine/reading_context.py の最終回帰テスト。
 
 目的
 ----
@@ -9,29 +9,37 @@ calculate_chart() が返す計算結果から、
 AI鑑定用 reading_context が
 安全かつ一貫して生成されることを確認する。
 
-テスト方針
-----------
-1. 実際の calculate_chart() を使用する。
-2. 検証済み実命式を使用する。
-3. reading_context の主要構造を固定する。
-4. 元の chart_result が変更されないことを確認する。
-5. 命式・日主・身強身弱・格局・用神を確認する。
-6. 大運・現在大運・歳運・統合運を確認する。
-7. AI鑑定テーマの参照構造を確認する。
-8. validation と例外処理を確認する。
+重要
+----
+ChartRequest は engine.chart には存在しないため使用しない。
+既存の calculate_chart() テストと同様に SimpleNamespace を使用する。
+
+現在の正式回帰基準:
+    1985-07-17 21:50 石川県 女性
+
+    年柱: 乙丑
+    月柱: 癸未
+    日柱: 丁巳
+    時柱: 辛亥
+    日主: 丁
+
+2026-08-10 の歳運:
+    丙午
+
+丁日主に対する2026年:
+    通変星: 劫財
+    十二運: 建禄
 """
 
 from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime
+from types import SimpleNamespace
 
 import pytest
 
-from engine.chart import (
-    ChartRequest,
-    calculate_chart,
-)
+from engine.chart import calculate_chart
 
 from engine.reading_context import (
     PILLAR_POSITIONS,
@@ -70,7 +78,6 @@ VERIFIED_BIRTH_TIME = "21:50"
 VERIFIED_BIRTH_PLACE = "石川県"
 VERIFIED_GENDER = "female"
 
-
 TARGET_DATETIME = datetime(
     2026,
     8,
@@ -79,15 +86,16 @@ TARGET_DATETIME = datetime(
     36,
 )
 
-
 EXPECTED_YEAR_PILLAR = "乙丑"
 EXPECTED_MONTH_PILLAR = "癸未"
-EXPECTED_DAY_PILLAR = "乙巳"
-EXPECTED_HOUR_PILLAR = "丁亥"
+EXPECTED_DAY_PILLAR = "丁巳"
+EXPECTED_HOUR_PILLAR = "辛亥"
 
-EXPECTED_DAY_MASTER = "乙"
+EXPECTED_DAY_MASTER = "丁"
 
 EXPECTED_ANNUAL_GANZHI = "丙午"
+EXPECTED_ANNUAL_TEN_GOD = "劫財"
+EXPECTED_ANNUAL_TWELVE_STAGE = "建禄"
 
 
 # ============================================================
@@ -98,10 +106,14 @@ EXPECTED_ANNUAL_GANZHI = "丙午"
 @pytest.fixture
 def verified_request():
     """
-    検証済み実命式のリクエスト。
+    calculate_chart() 用のリクエスト。
+
+    engine.chart に ChartRequest は存在しないため、
+    calculate_chart() が必要とする属性だけを持つ
+    SimpleNamespace を使用する。
     """
 
-    return ChartRequest(
+    return SimpleNamespace(
         birth_date=VERIFIED_BIRTH_DATE,
         birth_time=VERIFIED_BIRTH_TIME,
         birth_place=VERIFIED_BIRTH_PLACE,
@@ -228,23 +240,17 @@ def test_reading_context_metadata(
     reading_context,
 ):
     assert (
-        reading_context[
-            "schema_version"
-        ]
+        reading_context["schema_version"]
         == "reading_context_v1"
     )
 
     assert (
-        reading_context[
-            "method"
-        ]
+        reading_context["method"]
         == "reading_context_v1"
     )
 
     assert (
-        reading_context[
-            "status"
-        ]
+        reading_context["status"]
         == "ready_for_ai_reading"
     )
 
@@ -252,9 +258,7 @@ def test_reading_context_metadata(
 def test_reading_context_notes_exist(
     reading_context,
 ):
-    notes = reading_context[
-        "notes"
-    ]
+    notes = reading_context["notes"]
 
     assert isinstance(
         notes,
@@ -272,9 +276,7 @@ def test_reading_context_notes_exist(
 def test_subject_context(
     reading_context,
 ):
-    subject = reading_context[
-        "subject"
-    ]
+    subject = reading_context["subject"]
 
     assert (
         subject["birth_date"]
@@ -325,9 +327,7 @@ def test_natal_chart_contains_four_pillars(
 ):
     pillars = reading_context[
         "natal_chart"
-    ][
-        "pillars"
-    ]
+    ]["pillars"]
 
     assert set(
         pillars.keys()
@@ -435,11 +435,7 @@ def test_build_natal_chart_context_directly(
     )
 
     assert (
-        natal[
-            "pillar_sequence"
-        ][
-            2
-        ]
+        natal["pillar_sequence"][2]
         == EXPECTED_DAY_PILLAR
     )
 
@@ -546,9 +542,7 @@ def test_day_master_matches_day_pillar_stem(
 ):
     day_master = reading_context[
         "day_master"
-    ][
-        "stem"
-    ]
+    ]["stem"]
 
     day_stem = reading_context[
         "natal_chart"
@@ -614,9 +608,7 @@ def test_five_elements_scores_are_dicts(
     ]
 
     assert isinstance(
-        five_elements[
-            "raw_scores"
-        ],
+        five_elements["raw_scores"],
         dict,
     )
 
@@ -930,9 +922,7 @@ def test_build_useful_gods_context_directly(
 def test_luck_container_required_keys(
     reading_context,
 ):
-    luck = reading_context[
-        "luck"
-    ]
+    luck = reading_context["luck"]
 
     assert set(
         luck.keys()
@@ -1090,9 +1080,7 @@ def test_current_luck_current_pillar_exists(
     ]
 
     assert isinstance(
-        current[
-            "current_pillar"
-        ],
+        current["current_pillar"],
         dict,
     )
 
@@ -1168,6 +1156,36 @@ def test_verified_2026_annual_ganzhi(
             "ganzhi"
         ]
         == EXPECTED_ANNUAL_GANZHI
+    )
+
+
+def test_verified_2026_annual_ten_god(
+    reading_context,
+):
+    assert (
+        reading_context[
+            "luck"
+        ][
+            "annual_luck"
+        ][
+            "stem_ten_god"
+        ]
+        == EXPECTED_ANNUAL_TEN_GOD
+    )
+
+
+def test_verified_2026_annual_twelve_stage(
+    reading_context,
+):
+    assert (
+        reading_context[
+            "luck"
+        ][
+            "annual_luck"
+        ][
+            "twelve_stage"
+        ]
+        == EXPECTED_ANNUAL_TWELVE_STAGE
     )
 
 
@@ -1280,9 +1298,7 @@ def test_integrated_luck_annual_ganzhi_matches_annual(
         integrated[
             "annual_luck_ganzhi"
         ]
-        == annual[
-            "ganzhi"
-        ]
+        == annual["ganzhi"]
     )
 
 
@@ -1431,30 +1447,20 @@ def test_each_reading_section_has_focus_and_instruction(
     )
 
     assert isinstance(
-        section[
-            "focus"
-        ],
+        section["focus"],
         list,
     )
 
-    assert (
-        section[
-            "focus"
-        ]
-    )
+    assert section["focus"]
 
     assert isinstance(
-        section[
-            "instruction"
-        ],
+        section["instruction"],
         str,
     )
 
-    assert (
-        section[
-            "instruction"
-        ]
-    )
+    assert section[
+        "instruction"
+    ]
 
 
 def test_health_section_contains_health_safety_instruction(
@@ -1816,8 +1822,10 @@ def test_calculate_reading_context_alias(
         verified_chart_result
     )
 
-    alias = calculate_reading_context(
-        verified_chart_result
+    alias = (
+        calculate_reading_context(
+            verified_chart_result
+        )
     )
 
     assert alias == direct
@@ -1830,8 +1838,10 @@ def test_prepare_ai_reading_context_alias(
         verified_chart_result
     )
 
-    alias = prepare_ai_reading_context(
-        verified_chart_result
+    alias = (
+        prepare_ai_reading_context(
+            verified_chart_result
+        )
     )
 
     assert alias == direct
@@ -1903,9 +1913,7 @@ def test_annual_ganzhi_consistency_across_layers(
     ]
 
     assert (
-        annual[
-            "ganzhi"
-        ]
+        annual["ganzhi"]
         == integrated[
             "annual_luck_ganzhi"
         ]
@@ -2055,19 +2063,22 @@ def test_verified_real_chart_reading_context_end_to_end(
     """
     最終スモークテスト。
 
-    検証済み命式
+    現在の正式回帰基準:
     1985-07-17 21:50 石川県 女性
 
-    命式
-    年柱 乙丑
-    月柱 癸未
-    日柱 乙巳
-    時柱 丁亥
+    命式:
+        年柱 乙丑
+        月柱 癸未
+        日柱 丁巳
+        時柱 辛亥
+        日主 丁
 
-    2026年
-    丙午
+    2026年:
+        丙午
+        劫財
+        建禄
 
-    がAI鑑定contextまで
+    これらがAI鑑定contextまで
     正しく到達することを確認する。
     """
 
@@ -2080,8 +2091,8 @@ def test_verified_real_chart_reading_context_end_to_end(
         == [
             "乙丑",
             "癸未",
-            "乙巳",
-            "丁亥",
+            "丁巳",
+            "辛亥",
         ]
     )
 
@@ -2091,7 +2102,7 @@ def test_verified_real_chart_reading_context_end_to_end(
         ][
             "stem"
         ]
-        == "乙"
+        == "丁"
     )
 
     assert (
@@ -2134,6 +2145,28 @@ def test_verified_real_chart_reading_context_end_to_end(
             "ganzhi"
         ]
         == "丙午"
+    )
+
+    assert (
+        reading_context[
+            "luck"
+        ][
+            "annual_luck"
+        ][
+            "stem_ten_god"
+        ]
+        == "劫財"
+    )
+
+    assert (
+        reading_context[
+            "luck"
+        ][
+            "annual_luck"
+        ][
+            "twelve_stage"
+        ]
+        == "建禄"
     )
 
     assert (
