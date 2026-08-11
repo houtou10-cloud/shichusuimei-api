@@ -28,7 +28,7 @@ tests/test_final_strength_judgment.py
 
 import pytest
 
-from engine.final_strength_judgment_v2 import (
+from engine.final_strength_judgment import (
     MAX_SCORE,
     MIN_SCORE,
     STRENGTH_THRESHOLDS,
