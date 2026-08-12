@@ -176,9 +176,9 @@ VERIFIED_CASES = (
         gender="female",
         year_pillar="甲子",
         month_pillar="辛未",
-        day_pillar="乙巳",
-        hour_pillar="戊寅",
-        day_master="乙",
+        day_pillar="丁巳",
+        hour_pillar="壬寅",
+        day_master="丁",
     ),
     VerifiedChartCase(
         case_id="1984_07_22_1340_fukuoka_male",
@@ -188,9 +188,9 @@ VERIFIED_CASES = (
         gender="male",
         year_pillar="甲子",
         month_pillar="辛未",
-        day_pillar="乙巳",
-        hour_pillar="癸未",
-        day_master="乙",
+        day_pillar="丁巳",
+        hour_pillar="丁未",
+        day_master="丁",
     ),
     VerifiedChartCase(
         case_id="1984_07_21_1200_tokyo_male",
@@ -200,9 +200,9 @@ VERIFIED_CASES = (
         gender="male",
         year_pillar="甲子",
         month_pillar="辛未",
-        day_pillar="甲辰",
-        hour_pillar="庚午",
-        day_master="甲",
+        day_pillar="丙辰",
+        hour_pillar="甲午",
+        day_master="丙",
     ),
 )
 
