@@ -50,6 +50,11 @@ from copy import deepcopy
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 
+# ============================================================
+# Constants
+# ============================================================
+
+
 READING_PROMPT_VERSION = "reading_prompt_v1"
 READING_PROMPT_METHOD = "reading_prompt_v1"
 READING_PROMPT_STATUS = "ready_for_ai_generation"
@@ -106,10 +111,19 @@ DEFAULT_MIN_SUMMARY_CHARS = 120
 DEFAULT_MAX_SUMMARY_CHARS = 400
 
 
+# ============================================================
+# Generic helpers
+# ============================================================
+
+
 def _require_mapping(
     value: Any,
     name: str,
 ) -> Mapping[str, Any]:
+    """
+    Mapping型であることを検証する。
+    """
+
     if not isinstance(
         value,
         Mapping,
@@ -117,6 +131,7 @@ def _require_mapping(
         raise TypeError(
             f"{name}はdict型で指定してください。"
         )
+
     return value
 
 
@@ -124,6 +139,10 @@ def _require_bool(
     value: Any,
     name: str,
 ) -> bool:
+    """
+    bool型を検証する。
+    """
+
     if not isinstance(
         value,
         bool,
@@ -131,6 +150,7 @@ def _require_bool(
         raise TypeError(
             f"{name}はbool型で指定してください。"
         )
+
     return value
 
 
@@ -138,6 +158,10 @@ def _require_positive_int(
     value: Any,
     name: str,
 ) -> int:
+    """
+    正の整数を検証する。
+    """
+
     if (
         not isinstance(
             value,
@@ -164,6 +188,10 @@ def _non_empty_string(
     value: Any,
     name: str,
 ) -> str:
+    """
+    空でない文字列を検証する。
+    """
+
     if not isinstance(
         value,
         str,
@@ -185,6 +213,10 @@ def _non_empty_string(
 def _safe_dict(
     value: Any,
 ) -> Dict[str, Any]:
+    """
+    Mappingならdeepcopyしたdictを返す。
+    """
+
     if not isinstance(
         value,
         Mapping,
@@ -199,6 +231,10 @@ def _safe_dict(
 def _safe_list(
     value: Any,
 ) -> List[Any]:
+    """
+    list/tupleならdeepcopyしたlistを返す。
+    """
+
     if isinstance(
         value,
         list,
@@ -219,6 +255,10 @@ def _safe_list(
 def _compact_json(
     value: Any,
 ) -> str:
+    """
+    日本語をエスケープせず、安定したJSON文字列へ変換する。
+    """
+
     return json.dumps(
         value,
         ensure_ascii=False,
@@ -233,6 +273,10 @@ def _compact_json(
 def _pretty_json(
     value: Any,
 ) -> str:
+    """
+    AIが読みやすい整形済みJSON文字列へ変換する。
+    """
+
     return json.dumps(
         value,
         ensure_ascii=False,
@@ -246,6 +290,10 @@ def _normalize_sections(
         Sequence[str]
     ],
 ) -> Tuple[str, ...]:
+    """
+    鑑定セクションを正規化する。
+    """
+
     if sections is None:
         return tuple(
             DEFAULT_READING_SECTIONS
@@ -306,12 +354,21 @@ def _normalize_sections(
     )
 
 
+# ============================================================
+# Validation
+# ============================================================
+
+
 def validate_reading_context(
     reading_context: Mapping[
         str,
         Any,
     ],
 ) -> Dict[str, Any]:
+    """
+    reading_context_v1 の最低限構造を検証する。
+    """
+
     reading_context = _require_mapping(
         reading_context,
         "reading_context",
@@ -432,12 +489,24 @@ def validate_reading_context(
     }
 
 
+# ============================================================
+# Reading facts extraction
+# ============================================================
+
+
 def build_prompt_facts(
     reading_context: Mapping[
         str,
         Any,
     ],
 ) -> Dict[str, Any]:
+    """
+    AIへ渡す主要事実を抽出する。
+
+    reading_context全体を投げるのではなく、
+    鑑定文章に必要なデータを整理する。
+    """
+
     reading_context = _require_mapping(
         reading_context,
         "reading_context",
@@ -448,69 +517,92 @@ def build_prompt_facts(
             "subject"
         )
     )
+
     natal_chart = _safe_dict(
         reading_context.get(
             "natal_chart"
         )
     )
+
     day_master = _safe_dict(
         reading_context.get(
             "day_master"
         )
     )
+
     five_elements = _safe_dict(
         reading_context.get(
             "five_elements"
         )
     )
+
     strength = _safe_dict(
         reading_context.get(
             "strength"
         )
     )
+
     pattern = _safe_dict(
         reading_context.get(
             "pattern"
         )
     )
+
     useful_gods = _safe_dict(
         reading_context.get(
             "useful_gods"
         )
     )
+
     luck = _safe_dict(
         reading_context.get(
             "luck"
         )
     )
+
     luck_pillars = _safe_dict(
         luck.get(
             "luck_pillars"
         )
     )
+
     current_luck = _safe_dict(
         luck.get(
             "current_luck"
         )
     )
+
     annual_luck = _safe_dict(
         luck.get(
             "annual_luck"
         )
     )
-    integrated_luck = _safe_dict(
-        luck.get(
-            "integrated_luck"
+
+    integrated_luck = (
+        _safe_dict(
+            luck.get(
+                "integrated_luck"
+            )
         )
     )
 
     return {
         "subject": {
-            "birth_date": subject.get("birth_date"),
-            "birth_time": subject.get("birth_time"),
-            "birth_place": subject.get("birth_place"),
-            "gender": subject.get("gender"),
-            "timezone": subject.get("timezone"),
+            "birth_date": subject.get(
+                "birth_date"
+            ),
+            "birth_time": subject.get(
+                "birth_time"
+            ),
+            "birth_place": subject.get(
+                "birth_place"
+            ),
+            "gender": subject.get(
+                "gender"
+            ),
+            "timezone": subject.get(
+                "timezone"
+            ),
         },
         "natal_chart": {
             "pillar_sequence": _safe_list(
@@ -555,22 +647,30 @@ def build_prompt_facts(
             ),
         },
         "useful_gods": {
-            "primary_useful_element": useful_gods.get(
-                "primary_useful_element"
-            ),
-            "secondary_useful_elements": _safe_list(
+            "primary_useful_element": (
                 useful_gods.get(
-                    "secondary_useful_elements"
+                    "primary_useful_element"
                 )
             ),
-            "final_useful_elements": _safe_list(
-                useful_gods.get(
-                    "final_useful_elements"
+            "secondary_useful_elements": (
+                _safe_list(
+                    useful_gods.get(
+                        "secondary_useful_elements"
+                    )
                 )
             ),
-            "unfavorable_elements": _safe_list(
-                useful_gods.get(
-                    "unfavorable_elements"
+            "final_useful_elements": (
+                _safe_list(
+                    useful_gods.get(
+                        "final_useful_elements"
+                    )
+                )
+            ),
+            "unfavorable_elements": (
+                _safe_list(
+                    useful_gods.get(
+                        "unfavorable_elements"
+                    )
                 )
             ),
             "strength_class": useful_gods.get(
@@ -585,14 +685,20 @@ def build_prompt_facts(
         },
         "luck": {
             "luck_pillars": {
-                "direction": luck_pillars.get(
-                    "direction"
+                "direction": (
+                    luck_pillars.get(
+                        "direction"
+                    )
                 ),
-                "direction_japanese": luck_pillars.get(
-                    "direction_japanese"
+                "direction_japanese": (
+                    luck_pillars.get(
+                        "direction_japanese"
+                    )
                 ),
-                "start_age": luck_pillars.get(
-                    "start_age"
+                "start_age": (
+                    luck_pillars.get(
+                        "start_age"
+                    )
                 ),
                 "pillars": _safe_list(
                     luck_pillars.get(
@@ -601,103 +707,168 @@ def build_prompt_facts(
                 ),
             },
             "current_luck": {
-                "has_current_luck": current_luck.get(
-                    "has_current_luck"
+                "has_current_luck": (
+                    current_luck.get(
+                        "has_current_luck"
+                    )
                 ),
-                "phase": current_luck.get(
-                    "phase"
+                "phase": (
+                    current_luck.get(
+                        "phase"
+                    )
                 ),
-                "exact_age": current_luck.get(
-                    "exact_age"
+                "exact_age": (
+                    current_luck.get(
+                        "exact_age"
+                    )
                 ),
-                "calendar_age": current_luck.get(
-                    "calendar_age"
+                "calendar_age": (
+                    current_luck.get(
+                        "calendar_age"
+                    )
                 ),
-                "current_pillar": current_luck.get(
-                    "current_pillar"
+                "current_pillar": (
+                    current_luck.get(
+                        "current_pillar"
+                    )
                 ),
-                "previous_pillar": current_luck.get(
-                    "previous_pillar"
+                "previous_pillar": (
+                    current_luck.get(
+                        "previous_pillar"
+                    )
                 ),
-                "next_pillar": current_luck.get(
-                    "next_pillar"
+                "next_pillar": (
+                    current_luck.get(
+                        "next_pillar"
+                    )
                 ),
-                "progress": current_luck.get(
-                    "progress"
+                "progress": (
+                    current_luck.get(
+                        "progress"
+                    )
                 ),
-                "years_until_next_luck": current_luck.get(
-                    "years_until_next_luck"
+                "years_until_next_luck": (
+                    current_luck.get(
+                        "years_until_next_luck"
+                    )
                 ),
             },
             "annual_luck": {
-                "year": annual_luck.get(
-                    "year"
+                "year": (
+                    annual_luck.get(
+                        "year"
+                    )
                 ),
-                "effective_year": annual_luck.get(
-                    "effective_year"
+                "effective_year": (
+                    annual_luck.get(
+                        "effective_year"
+                    )
                 ),
-                "ganzhi": annual_luck.get(
-                    "ganzhi"
+                "ganzhi": (
+                    annual_luck.get(
+                        "ganzhi"
+                    )
                 ),
-                "stem_element": annual_luck.get(
-                    "stem_element"
+                "stem_element": (
+                    annual_luck.get(
+                        "stem_element"
+                    )
                 ),
-                "branch_element": annual_luck.get(
-                    "branch_element"
+                "branch_element": (
+                    annual_luck.get(
+                        "branch_element"
+                    )
                 ),
-                "stem_ten_god": annual_luck.get(
-                    "stem_ten_god"
+                "stem_ten_god": (
+                    annual_luck.get(
+                        "stem_ten_god"
+                    )
                 ),
-                "twelve_stage": annual_luck.get(
-                    "twelve_stage"
+                "twelve_stage": (
+                    annual_luck.get(
+                        "twelve_stage"
+                    )
                 ),
-                "stem_useful_relation": annual_luck.get(
-                    "stem_useful_relation"
+                "stem_useful_relation": (
+                    annual_luck.get(
+                        "stem_useful_relation"
+                    )
                 ),
-                "branch_useful_relation": annual_luck.get(
-                    "branch_useful_relation"
+                "branch_useful_relation": (
+                    annual_luck.get(
+                        "branch_useful_relation"
+                    )
                 ),
-                "current_luck_relation": annual_luck.get(
-                    "current_luck_relation"
+                "current_luck_relation": (
+                    annual_luck.get(
+                        "current_luck_relation"
+                    )
                 ),
             },
             "integrated_luck": {
-                "current_luck_ganzhi": integrated_luck.get(
-                    "current_luck_ganzhi"
+                "current_luck_ganzhi": (
+                    integrated_luck.get(
+                        "current_luck_ganzhi"
+                    )
                 ),
-                "annual_luck_ganzhi": integrated_luck.get(
-                    "annual_luck_ganzhi"
+                "annual_luck_ganzhi": (
+                    integrated_luck.get(
+                        "annual_luck_ganzhi"
+                    )
                 ),
-                "agreement_level": integrated_luck.get(
-                    "agreement_level"
+                "agreement_level": (
+                    integrated_luck.get(
+                        "agreement_level"
+                    )
                 ),
-                "overall_score": integrated_luck.get(
-                    "overall_score"
+                "overall_score": (
+                    integrated_luck.get(
+                        "overall_score"
+                    )
                 ),
-                "overall_level": integrated_luck.get(
-                    "overall_level"
+                "overall_level": (
+                    integrated_luck.get(
+                        "overall_level"
+                    )
                 ),
-                "confidence": integrated_luck.get(
-                    "confidence"
+                "confidence": (
+                    integrated_luck.get(
+                        "confidence"
+                    )
                 ),
-                "annual_ten_god": integrated_luck.get(
-                    "annual_ten_god"
+                "annual_ten_god": (
+                    integrated_luck.get(
+                        "annual_ten_god"
+                    )
                 ),
-                "annual_twelve_stage": integrated_luck.get(
-                    "annual_twelve_stage"
+                "annual_twelve_stage": (
+                    integrated_luck.get(
+                        "annual_twelve_stage"
+                    )
                 ),
-                "element_interactions": integrated_luck.get(
-                    "element_interactions"
+                "element_interactions": (
+                    integrated_luck.get(
+                        "element_interactions"
+                    )
                 ),
-                "current_luck_useful": integrated_luck.get(
-                    "current_luck_useful"
+                "current_luck_useful": (
+                    integrated_luck.get(
+                        "current_luck_useful"
+                    )
                 ),
-                "annual_luck_useful": integrated_luck.get(
-                    "annual_luck_useful"
+                "annual_luck_useful": (
+                    integrated_luck.get(
+                        "annual_luck_useful"
+                    )
                 ),
             },
         },
     }
+
+
+# ============================================================
+# Section instructions
+# ============================================================
 
 
 def get_section_instruction(
@@ -707,6 +878,11 @@ def get_section_instruction(
     ],
     section: str,
 ) -> Dict[str, Any]:
+    """
+    reading_context側で定義された
+    セクションinstructionを取得する。
+    """
+
     reading_context = _require_mapping(
         reading_context,
         "reading_context",
@@ -717,7 +893,9 @@ def get_section_instruction(
         "section",
     )
 
-    if section not in DEFAULT_READING_SECTIONS:
+    if section not in (
+        DEFAULT_READING_SECTIONS
+    ):
         raise ValueError(
             f"未対応の鑑定セクションです: {section}"
         )
@@ -727,6 +905,7 @@ def get_section_instruction(
             "reading_sections"
         )
     )
+
     raw_section = _safe_dict(
         sections.get(
             section
@@ -735,16 +914,20 @@ def get_section_instruction(
 
     return {
         "section": section,
-        "title": SECTION_TITLES_JA[
-            section
-        ],
+        "title": (
+            SECTION_TITLES_JA[
+                section
+            ]
+        ),
         "focus": _safe_list(
             raw_section.get(
                 "focus"
             )
         ),
-        "instruction": raw_section.get(
-            "instruction"
+        "instruction": (
+            raw_section.get(
+                "instruction"
+            )
         ),
     }
 
@@ -758,8 +941,14 @@ def build_selected_section_instructions(
         Sequence[str]
     ] = None,
 ) -> List[Dict[str, Any]]:
-    normalized = _normalize_sections(
-        sections
+    """
+    選択された鑑定セクションのinstructionを返す。
+    """
+
+    normalized = (
+        _normalize_sections(
+            sections
+        )
     )
 
     return [
@@ -767,8 +956,14 @@ def build_selected_section_instructions(
             reading_context,
             section,
         )
-        for section in normalized
+        for section
+        in normalized
     ]
+
+
+# ============================================================
+# System prompt
+# ============================================================
 
 
 def build_system_prompt(
@@ -777,20 +972,30 @@ def build_system_prompt(
     tone: str = DEFAULT_TONE,
     output_format: str = "text",
 ) -> str:
+    """
+    AI鑑定用system promptを生成する。
+    """
+
     language = _non_empty_string(
         language,
         "language",
     )
+
     tone = _non_empty_string(
         tone,
         "tone",
     )
-    output_format = _non_empty_string(
-        output_format,
-        "output_format",
+
+    output_format = (
+        _non_empty_string(
+            output_format,
+            "output_format",
+        )
     )
 
-    if language not in SUPPORTED_LANGUAGES:
+    if language not in (
+        SUPPORTED_LANGUAGES
+    ):
         raise ValueError(
             f"未対応のlanguageです: {language}"
         )
@@ -800,7 +1005,9 @@ def build_system_prompt(
             f"未対応のtoneです: {tone}"
         )
 
-    if output_format not in SUPPORTED_OUTPUT_FORMATS:
+    if output_format not in (
+        SUPPORTED_OUTPUT_FORMATS
+    ):
         raise ValueError(
             "output_formatはtextまたはjsonで指定してください。"
         )
@@ -848,12 +1055,11 @@ def build_system_prompt(
 6. 計算結果と文章上の解釈を区別してください。
 7. 単一の要素だけで人物像を決めつけないでください。
 8. 吉凶を絶対視しないでください。
-9. 将来を確定的に予言しないでください。
-10. 将来について「必ず起こる」「確実に成功する」などの断定を避けてください。
-11. 運勢は傾向・流れ・活かし方として表現してください。
-12. 読み手を不必要に怖がらせる表現を避けてください。
-13. 悪い時期も「何を避けるか」「どう活かすか」を併記してください。
-14. 良い時期も過度な楽観を煽らず、活かす条件を示してください。
+9. 将来について「必ず起こる」「確実に成功する」などの断定を避けてください。
+10. 運勢は傾向・流れ・活かし方として表現してください。
+11. 読み手を不必要に怖がらせる表現を避けてください。
+12. 悪い時期も「何を避けるか」「どう活かすか」を併記してください。
+13. 良い時期も過度な楽観を煽らず、活かす条件を示してください。
 
 【健康】
 
@@ -878,60 +1084,14 @@ def build_system_prompt(
 相手の人格や未来の出来事を断定しないでください。
 本人の傾向、関係構築の特徴、注意点として説明してください。
 
-【商品品質の文章設計】
+【文章品質】
 
 - {tone_text}で書いてください。
-- 鑑定全体を、項目ごとの説明の寄せ集めではなく、一人の人物を多面的に読み解く一貫した鑑定として構成してください。
-- 命式全体から中心となる人物テーマを捉え、各セクションでは同じテーマを単純反復せず、その領域固有の意味へ展開してください。
-- 入力に存在しない人生経験、職歴、家族構成、過去の出来事、将来の出来事を創作してはいけません。
-- 日主・格局・身強身弱・五行・用神・大運・歳運を、すべてのセクションで機械的に繰り返さないでください。
-- 同じ計算根拠を複数セクションで参照する場合も、同じ説明文を繰り返さず、そのセクションの問いに合わせて意味を翻訳してください。
-- 専門用語は必要な場合だけ使い、初見の読者にも意味が伝わる自然な日本語を添えてください。
-- technical_label、overall_score、overall_level、confidence、agreement_level、mixed、useful、secondary_useful 等の内部キー名・英語ラベル・実装上の表現を、顧客向けの summary / detail / advice にそのまま露出させないでください。
-- evidence は入力データに基づく根拠を簡潔に示して構いませんが、内部パスの羅列だけにせず、人が読んで意味を理解できる表現を優先してください。
-- 第一用神 primary_useful_element と補助用神 secondary_useful_elements を明確に区別してください。第一用神を中心的な調整方向、補助用神を状況に応じて助けになる要素として扱ってください。
-- final_useful_elements に複数の五行が含まれていても、すべてを同格の「用神」として並べないでください。
-- 用神を万能な吉要素、幸運保証、単純なラッキー要素として扱わないでください。
-- 「〜タイプです」「〜傾向があります」「〜しやすいです」の連発を避け、文章表現に変化を持たせてください。
-- 誰にでも当てはまりやすい一般論より、入力された命式要素の組み合わせから説明できる内容を優先してください。
-- 根拠から導けない具体的職業、出来事、成功時期、結婚時期、病気、収入額などを作らないでください。
-- 長所だけを並べず、強み・扱いにくさ・活かし方をセットで説明してください。
-- 読み手を持ち上げるだけの文章にも、不安を煽る文章にもせず、現実的で前向きな鑑定にしてください。
-- 計算データを羅列して終わらせず、「それが本人にとって何を意味するか」を人間の言葉へ翻訳してください。
-- 読み手が「自分の場合、次に何を意識すればよいか」まで理解できる具体性を持たせてください。
-
-【セクション別の役割】
-
-- 本質・性格:
-  人物像、思考・感情・行動の特徴、自然に発揮される強み、負荷がかかった時に出やすい課題を中心に書いてください。
-  仕事や金運の話へ広げすぎないでください。
-
-- 仕事・適職:
-  職業名の羅列ではなく、能力が活きる役割、仕事の進め方、環境、成果の出し方を中心に書いてください。
-  特定職種を挙げる場合は、入力根拠から自然に導ける例示に留めてください。
-
-- 金運:
-  金額や儲けを予言せず、価値を生む方法、収入との結びつき、管理・守り方、判断上の注意を中心に書いてください。
-  投資成果を保証しないでください。
-
-- 恋愛・人間関係:
-  相手の人物像や未来を予言せず、本人の距離感、関係構築、伝え方、境界線、対人上の強みと注意点を中心に書いてください。
-
-- 健康傾向:
-  五行から病名、臓器異常、発症、寿命を推測・断定しないでください。
-  心身の負荷を減らす一般的な生活習慣、休息、生活リズムなどの範囲で助言してください。
-
-- 現在の運勢:
-  大運・歳運・統合運を用いて、現在のテーマ、追い風、注意点を整理してください。
-  最後に「今は何を優先し、何を急がない方がよいか」が伝わる内容にしてください。
-
-- 今後の流れ:
-  大運を順番に羅列するだけでなく、人生のテーマや力の使い方がどのように移り変わる可能性があるかを時間軸で説明してください。
-  遠い未来ほど断定度を下げてください。
-
-- 総合アドバイス:
-  他セクションの要約を繰り返すだけにしないでください。
-  鑑定全体を統合し、今から優先して取り組める行動へ落とし込んでください。
+- 専門用語は必要に応じて簡潔に説明してください。
+- 同じ説明を繰り返さないでください。
+- 読み手が行動に移せる具体性を持たせてください。
+- 「あなたは絶対に〜」のような決めつけを避けてください。
+- 計算データの羅列だけで終わらせず、意味を説明してください。
 
 【出力】
 
@@ -939,13 +1099,24 @@ def build_system_prompt(
 """.strip()
 
 
+# ============================================================
+# Output schema
+# ============================================================
+
+
 def build_json_output_schema(
     sections: Optional[
         Sequence[str]
     ] = None,
 ) -> Dict[str, Any]:
-    normalized = _normalize_sections(
-        sections
+    """
+    JSON形式鑑定の期待構造を返す。
+    """
+
+    normalized = (
+        _normalize_sections(
+            sections
+        )
     )
 
     section_properties = {}
@@ -1014,6 +1185,11 @@ def build_json_output_schema(
     }
 
 
+# ============================================================
+# User prompt
+# ============================================================
+
+
 def build_user_prompt(
     reading_context: Mapping[
         str,
@@ -1032,6 +1208,10 @@ def build_user_prompt(
     ),
     include_raw_facts: bool = True,
 ) -> str:
+    """
+    reading_contextからuser promptを生成する。
+    """
+
     reading_context = _require_mapping(
         reading_context,
         "reading_context",
@@ -1041,31 +1221,44 @@ def build_user_prompt(
         reading_context
     )
 
-    normalized_sections = _normalize_sections(
-        sections
+    normalized_sections = (
+        _normalize_sections(
+            sections
+        )
     )
 
-    output_format = _non_empty_string(
-        output_format,
-        "output_format",
+    output_format = (
+        _non_empty_string(
+            output_format,
+            "output_format",
+        )
     )
 
-    if output_format not in SUPPORTED_OUTPUT_FORMATS:
+    if output_format not in (
+        SUPPORTED_OUTPUT_FORMATS
+    ):
         raise ValueError(
             "output_formatはtextまたはjsonで指定してください。"
         )
 
-    min_section_chars = _require_positive_int(
-        min_section_chars,
-        "min_section_chars",
+    min_section_chars = (
+        _require_positive_int(
+            min_section_chars,
+            "min_section_chars",
+        )
     )
 
-    max_section_chars = _require_positive_int(
-        max_section_chars,
-        "max_section_chars",
+    max_section_chars = (
+        _require_positive_int(
+            max_section_chars,
+            "max_section_chars",
+        )
     )
 
-    if max_section_chars < min_section_chars:
+    if (
+        max_section_chars
+        < min_section_chars
+    ):
         raise ValueError(
             "max_section_charsは"
             "min_section_chars以上にしてください。"
@@ -1076,9 +1269,11 @@ def build_user_prompt(
         "include_raw_facts",
     )
 
-    instructions = build_selected_section_instructions(
-        reading_context,
-        normalized_sections,
+    instructions = (
+        build_selected_section_instructions(
+            reading_context,
+            normalized_sections,
+        )
     )
 
     facts = build_prompt_facts(
@@ -1110,8 +1305,10 @@ def build_user_prompt(
     )
 
     if output_format == "json":
-        schema = build_json_output_schema(
-            normalized_sections
+        schema = (
+            build_json_output_schema(
+                normalized_sections
+            )
         )
 
         output_instruction = f"""
@@ -1125,7 +1322,9 @@ JSON Schema:
 
     else:
         title_lines = [
-            f"- {SECTION_TITLES_JA[section]}"
+            (
+                f"- {SECTION_TITLES_JA[section]}"
+            )
             for section
             in normalized_sections
         ]
@@ -1185,24 +1384,19 @@ JSON Schema:
 1. 命式の特徴と現在の運勢を混同しないでください。
 2. 生来の特徴は natal_chart / day_master / strength / pattern を中心に説明してください。
 3. 現在の運勢は current_luck / annual_luck / integrated_luck を中心に説明してください。
-4. useful_gods は命式を整える「活かしやすい方向性」として扱ってください。
-5. primary_useful_element を中心的な調整方向、secondary_useful_elements を補助的な要素として区別してください。
-6. final_useful_elements に複数要素があっても、すべてを同格の第一用神として説明しないでください。
-7. integrated_luck の overall_score は絶対的な吉凶値として扱わないでください。
-8. overall_level、mixed、agreement_level、confidence 等の内部ラベルを summary / detail / advice にそのまま出さず、自然な日本語へ翻訳してください。
-9. confidence が低い場合は断定度を下げてください。ただし内部キー名そのものを顧客向け本文へ出す必要はありません。
-10. 本質・仕事・金運・人間関係・健康・現在運・未来運・総合助言で、同じ説明を機械的に繰り返さないでください。
-11. 各セクションには固有の役割を持たせ、同じ命式要素でもそのテーマに即した解釈へ変換してください。
-12. 健康については医学的診断を行わず、五行だけから病名・臓器異常・発症・寿命を推測しないでください。
-13. 金運については投資利益、収入増加、成功を保証しないでください。
-14. 将来は確定的な未来ではなく、流れ・可能性・準備の方向として説明してください。
-15. 入力にない職業、出来事、人物、時期、金額、過去の経験を創作しないでください。
-16. advice は抽象的な精神論だけにせず、現実に実行できる行動へ落とし込んでください。
-17. 全セクションを通して一貫した人物像を保ちつつ、文章の重複は避けてください。
-18. summary はそのセクションの結論、detail は計算結果を人間の言葉へ翻訳した解釈、evidence は計算済み事実、advice は具体策として役割を分けてください。
-19. evidence でも存在しない計算値を作らず、入力にある事実だけを使ってください。
-20. JSON Schemaのキー、階層、必須フィールドを変更せず、指定されたセクションだけを返してください。
+4. useful_gods は「活かしやすい方向性」として扱ってください。
+5. integrated_luck の overall_score は絶対的な吉凶値として扱わないでください。
+6. confidence が低い場合は、断定度を下げてください。
+7. 健康については医学的診断を行わないでください。
+8. 金運については投資利益を保証しないでください。
+9. 将来は確定的な未来ではなく、流れ・可能性として説明してください。
+10. 読み手が実行できる具体的な行動提案を含めてください。
 """.strip()
+
+
+# ============================================================
+# Section-only prompt
+# ============================================================
 
 
 def build_section_prompt(
@@ -1220,6 +1414,10 @@ def build_section_prompt(
         DEFAULT_MAX_SECTION_CHARS
     ),
 ) -> str:
+    """
+    1セクションのみの鑑定promptを生成する。
+    """
+
     section = _non_empty_string(
         section,
         "section",
@@ -1234,6 +1432,11 @@ def build_section_prompt(
         min_section_chars=min_chars,
         max_section_chars=max_chars,
     )
+
+
+# ============================================================
+# Messages
+# ============================================================
 
 
 def build_messages(
@@ -1256,19 +1459,31 @@ def build_messages(
     ),
     include_raw_facts: bool = True,
 ) -> List[Dict[str, str]]:
-    system_prompt = build_system_prompt(
-        language=language,
-        tone=tone,
-        output_format=output_format,
+    """
+    GPT APIへ渡しやすいmessages形式を生成する。
+    """
+
+    system_prompt = (
+        build_system_prompt(
+            language=language,
+            tone=tone,
+            output_format=output_format,
+        )
     )
 
     user_prompt = build_user_prompt(
         reading_context,
         sections=sections,
         output_format=output_format,
-        min_section_chars=min_section_chars,
-        max_section_chars=max_section_chars,
-        include_raw_facts=include_raw_facts,
+        min_section_chars=(
+            min_section_chars
+        ),
+        max_section_chars=(
+            max_section_chars
+        ),
+        include_raw_facts=(
+            include_raw_facts
+        ),
     )
 
     return [
@@ -1281,6 +1496,11 @@ def build_messages(
             "content": user_prompt,
         },
     ]
+
+
+# ============================================================
+# Reading request
+# ============================================================
 
 
 def build_reading_request(
@@ -1303,12 +1523,20 @@ def build_reading_request(
     ),
     include_raw_facts: bool = True,
 ) -> Dict[str, Any]:
-    validation = validate_reading_context(
-        reading_context
+    """
+    AI実行層へ渡す標準request構造を生成する。
+    """
+
+    validation = (
+        validate_reading_context(
+            reading_context
+        )
     )
 
-    normalized_sections = _normalize_sections(
-        sections
+    normalized_sections = (
+        _normalize_sections(
+            sections
+        )
     )
 
     messages = build_messages(
@@ -1317,23 +1545,37 @@ def build_reading_request(
         language=language,
         tone=tone,
         output_format=output_format,
-        min_section_chars=min_section_chars,
-        max_section_chars=max_section_chars,
-        include_raw_facts=include_raw_facts,
+        min_section_chars=(
+            min_section_chars
+        ),
+        max_section_chars=(
+            max_section_chars
+        ),
+        include_raw_facts=(
+            include_raw_facts
+        ),
     )
 
     result = {
-        "version": READING_PROMPT_VERSION,
+        "version": (
+            READING_PROMPT_VERSION
+        ),
         "sections": list(
             normalized_sections
         ),
         "language": language,
         "tone": tone,
-        "output_format": output_format,
+        "output_format": (
+            output_format
+        ),
         "messages": messages,
         "validation": validation,
-        "method": READING_PROMPT_METHOD,
-        "status": READING_PROMPT_STATUS,
+        "method": (
+            READING_PROMPT_METHOD
+        ),
+        "status": (
+            READING_PROMPT_STATUS
+        ),
     }
 
     if output_format == "json":
@@ -1342,12 +1584,18 @@ def build_reading_request(
         ] = build_json_output_schema(
             normalized_sections
         )
+
     else:
         result[
             "output_schema"
         ] = None
 
     return result
+
+
+# ============================================================
+# Compact request for external AI layer
+# ============================================================
 
 
 def build_compact_reading_request(
@@ -1361,6 +1609,10 @@ def build_compact_reading_request(
     ] = None,
     output_format: str = "text",
 ) -> Dict[str, Any]:
+    """
+    外部AI層向けの簡潔なrequestを生成する。
+    """
+
     request = build_reading_request(
         reading_context,
         sections=sections,
@@ -1376,9 +1628,11 @@ def build_compact_reading_request(
                 "messages"
             ]
         ),
-        "output_format": request[
-            "output_format"
-        ],
+        "output_format": (
+            request[
+                "output_format"
+            ]
+        ),
         "output_schema": deepcopy(
             request[
                 "output_schema"
@@ -1393,12 +1647,21 @@ def build_compact_reading_request(
     }
 
 
+# ============================================================
+# Prompt audit
+# ============================================================
+
+
 def audit_prompt_request(
     request: Mapping[
         str,
         Any,
     ],
 ) -> Dict[str, Any]:
+    """
+    生成済みreading requestの最低限整合性を確認する。
+    """
+
     request = _require_mapping(
         request,
         "request",
@@ -1521,6 +1784,11 @@ def audit_prompt_request(
     }
 
 
+# ============================================================
+# Compatibility aliases
+# ============================================================
+
+
 def calculate_reading_prompt(
     reading_context: Mapping[
         str,
@@ -1532,6 +1800,10 @@ def calculate_reading_prompt(
     ] = None,
     output_format: str = "text",
 ) -> Dict[str, Any]:
+    """
+    build_reading_request() の互換API。
+    """
+
     return build_reading_request(
         reading_context,
         sections=sections,
@@ -1550,6 +1822,10 @@ def prepare_ai_messages(
     ] = None,
     output_format: str = "text",
 ) -> List[Dict[str, str]]:
+    """
+    AI実行層向けmessages取得alias。
+    """
+
     return build_messages(
         reading_context,
         sections=sections,
@@ -1568,11 +1844,20 @@ def prepare_ai_reading_request(
     ] = None,
     output_format: str = "text",
 ) -> Dict[str, Any]:
+    """
+    AI実行層向けrequest取得alias。
+    """
+
     return build_reading_request(
         reading_context,
         sections=sections,
         output_format=output_format,
     )
+
+
+# ============================================================
+# Public API
+# ============================================================
 
 
 __all__ = [
