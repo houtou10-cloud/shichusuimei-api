@@ -1047,19 +1047,35 @@ def test_multi_live_disclaimer_is_safe(
         ]
     )
 
+    assert isinstance(
+        disclaimer,
+        str,
+    )
+
     assert (
-        "医学"
+        disclaimer.strip()
+    )
+
+    # core_personalityのみを生成するLIVEテストでは、
+    # 健康セクション自体を要求していない。
+    # そのため「医学」「医療」という固定語ではなく、
+    # 将来を断定しないことと、重要判断を占いだけで
+    # 完結させないことを確認する。
+    assert (
+        "断定"
         in disclaimer
-        or "医療"
+        or "傾向"
+        in disclaimer
+        or "参考"
         in disclaimer
     )
 
     assert (
-        "断定"
+        "専門家"
         in disclaimer
-        or "将来"
+        or "現実"
         in disclaimer
-        or "傾向"
+        or "実際"
         in disclaimer
     )
 
