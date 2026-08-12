@@ -17,22 +17,9 @@ reading_product_v1
     ↓
 鑑定商品用データ
 
-という商品化パイプラインの最終整形を担当する。
-
-このモジュールは以下を行わない。
-
-- 四柱を計算しない
-- 日主を再判定しない
-- 身強身弱を再判定しない
-- 格局を再判定しない
-- 用神を再選定しない
-- 大運を再計算しない
-- 歳運を再計算しない
-- AI鑑定文を書き換えない
-
-既存エンジンが計算・生成した結果を、
-PDF / HTML / Web / APIなどで利用しやすい
-「商品データ」へ変換することだけを担当する。
+このモジュールは占術計算を行わず、
+既存エンジンが算出・生成した結果を
+PDF / HTML / Web / API向けの商品データへ整形する。
 
 Version
 -------
@@ -46,12 +33,10 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-
 from engine.reading_context import (
     READING_SECTION_KEYS,
     build_reading_context,
 )
-
 from engine.reading_generator import (
     DEFAULT_MAX_OUTPUT_TOKENS,
     DEFAULT_REASONING_EFFORT,
@@ -60,16 +45,9 @@ from engine.reading_generator import (
     generate_reading,
 )
 
-
-# ============================================================
-# Constants
-# ============================================================
-
-
 READING_PRODUCT_VERSION = "reading_product_v1"
 READING_PRODUCT_METHOD = "reading_product_v1"
 READING_PRODUCT_STATUS = "ready"
-
 
 DEFAULT_PRODUCT_TITLE = "四柱推命鑑定書"
 
@@ -83,56 +61,36 @@ DEFAULT_DISCLAIMER = (
     "各分野の専門家へご相談ください。"
 )
 
-
 SECTION_TITLES: Dict[str, str] = {
     "core_personality": "本質・性格",
     "career": "仕事・適職",
-    "wealth": "財運",
+    "wealth": "金運",
     "relationships": "恋愛・人間関係",
     "health": "健康傾向",
     "current_luck": "現在の運勢",
-    "future_flow": "これからの流れ",
+    "future_flow": "今後の流れ",
     "advice": "開運アドバイス",
 }
-
 
 DEFAULT_SECTION_ORDER: Tuple[str, ...] = tuple(
     READING_SECTION_KEYS
 )
 
 
-# ============================================================
-# Exceptions
-# ============================================================
-
-
 class ReadingProductError(Exception):
-    """
-    reading_product.py の基底例外。
-    """
+    """reading_product.py の基底例外。"""
 
 
 class ReadingProductValidationError(
     ReadingProductError
 ):
-    """
-    商品化対象データが不正。
-    """
-
-
-# ============================================================
-# Generic helpers
-# ============================================================
+    """商品化対象データが不正。"""
 
 
 def _require_mapping(
     value: Any,
     name: str,
 ) -> Mapping[str, Any]:
-    """
-    Mapping型を検証する。
-    """
-
     if not isinstance(
         value,
         Mapping,
@@ -140,23 +98,17 @@ def _require_mapping(
         raise TypeError(
             f"{name}はdict型で指定してください。"
         )
-
     return value
 
 
 def _safe_dict(
     value: Any,
 ) -> Dict[str, Any]:
-    """
-    Mappingを安全にdictへ変換する。
-    """
-
     if not isinstance(
         value,
         Mapping,
     ):
         return {}
-
     return deepcopy(
         dict(value)
     )
@@ -165,16 +117,11 @@ def _safe_dict(
 def _safe_list(
     value: Any,
 ) -> List[Any]:
-    """
-    list / tupleを安全にlistへ変換する。
-    """
-
     if isinstance(
         value,
         list,
     ):
         return deepcopy(value)
-
     if isinstance(
         value,
         tuple,
@@ -182,17 +129,12 @@ def _safe_list(
         return deepcopy(
             list(value)
         )
-
     return []
 
 
 def _optional_string(
     value: Any,
 ) -> Optional[str]:
-    """
-    空でない文字列だけを返す。
-    """
-
     if not isinstance(
         value,
         str,
@@ -210,22 +152,15 @@ def _optional_string(
 def _string_or_empty(
     value: Any,
 ) -> str:
-    """
-    文字列でなければ空文字を返す。
-    """
-
-    result = _optional_string(
-        value
+    return (
+        _optional_string(
+            value
+        )
+        or ""
     )
-
-    return result or ""
 
 
 def _utc_now_iso() -> str:
-    """
-    商品データ生成日時をUTC ISO形式で返す。
-    """
-
     return (
         datetime.now(
             timezone.utc
@@ -237,20 +172,11 @@ def _utc_now_iso() -> str:
     )
 
 
-# ============================================================
-# Section normalization
-# ============================================================
-
-
 def normalize_product_sections(
     sections: Optional[
         Sequence[str]
     ] = None,
 ) -> Tuple[str, ...]:
-    """
-    商品に含める鑑定セクションを正規化する。
-    """
-
     if sections is None:
         return DEFAULT_SECTION_ORDER
 
@@ -306,52 +232,28 @@ def normalize_product_sections(
             "sectionsには1件以上指定してください。"
         )
 
-    return tuple(
-        normalized
-    )
-
-
-# ============================================================
-# Product result model
-# ============================================================
+    return tuple(normalized)
 
 
 @dataclass(frozen=True)
 class ReadingProduct:
-    """
-    商品化された四柱推命鑑定データ。
-
-    PDF / HTML / Web / APIなどの
-    表示層から利用することを想定する。
-    """
-
     title: str
-
     subject: Dict[str, Any]
-
     chart_summary: Dict[str, Any]
-
     sections: Tuple[
         Dict[str, Any],
         ...,
     ]
-
     summary: str
-
     disclaimer: str
-
     generation: Dict[str, Any]
-
     metadata: Dict[str, Any]
-
     schema_version: str = (
         READING_PRODUCT_VERSION
     )
-
     method: str = (
         READING_PRODUCT_METHOD
     )
-
     status: str = (
         READING_PRODUCT_STATUS
     )
@@ -359,10 +261,6 @@ class ReadingProduct:
     def to_dict(
         self,
     ) -> Dict[str, Any]:
-        """
-        JSON化可能なdictへ変換する。
-        """
-
         return {
             "schema_version": (
                 self.schema_version
@@ -394,22 +292,12 @@ class ReadingProduct:
         }
 
 
-# ============================================================
-# Subject
-# ============================================================
-
-
 def build_product_subject(
     reading_context: Mapping[
         str,
         Any,
     ],
 ) -> Dict[str, Any]:
-    """
-    reading_contextから商品表示用の
-    基本情報を抽出する。
-    """
-
     reading_context = _require_mapping(
         reading_context,
         "reading_context",
@@ -422,37 +310,22 @@ def build_product_subject(
     )
 
     return {
-        "birth_date": (
-            subject.get(
-                "birth_date"
-            )
+        "birth_date": subject.get(
+            "birth_date"
         ),
-        "birth_time": (
-            subject.get(
-                "birth_time"
-            )
+        "birth_time": subject.get(
+            "birth_time"
         ),
-        "birth_place": (
-            subject.get(
-                "birth_place"
-            )
+        "birth_place": subject.get(
+            "birth_place"
         ),
-        "gender": (
-            subject.get(
-                "gender"
-            )
+        "gender": subject.get(
+            "gender"
         ),
-        "timezone": (
-            subject.get(
-                "timezone"
-            )
+        "timezone": subject.get(
+            "timezone"
         ),
     }
-
-
-# ============================================================
-# Chart summary
-# ============================================================
 
 
 def _extract_pillar(
@@ -462,10 +335,6 @@ def _extract_pillar(
     ],
     position: str,
 ) -> Dict[str, Any]:
-    """
-    商品表示用に1柱を簡潔化する。
-    """
-
     pillars = _safe_dict(
         natal_chart.get(
             "pillars"
@@ -489,20 +358,14 @@ def _extract_pillar(
         "branch": pillar.get(
             "branch"
         ),
-        "stem_ten_god": (
-            pillar.get(
-                "stem_ten_god"
-            )
+        "stem_ten_god": pillar.get(
+            "stem_ten_god"
         ),
-        "twelve_stage": (
-            pillar.get(
-                "twelve_stage"
-            )
+        "twelve_stage": pillar.get(
+            "twelve_stage"
         ),
-        "main_hidden_stem": (
-            pillar.get(
-                "main_hidden_stem"
-            )
+        "main_hidden_stem": pillar.get(
+            "main_hidden_stem"
         ),
         "main_hidden_stem_ten_god": (
             pillar.get(
@@ -518,13 +381,6 @@ def build_chart_summary(
         Any,
     ],
 ) -> Dict[str, Any]:
-    """
-    PDF等で表示しやすい命式要約を生成する。
-
-    再計算は行わない。
-    reading_contextの値をそのまま使用する。
-    """
-
     reading_context = _require_mapping(
         reading_context,
         "reading_context",
@@ -535,34 +391,49 @@ def build_chart_summary(
             "natal_chart"
         )
     )
-
     day_master = _safe_dict(
         reading_context.get(
             "day_master"
         )
     )
-
     five_elements = _safe_dict(
         reading_context.get(
             "five_elements"
         )
     )
-
     strength = _safe_dict(
         reading_context.get(
             "strength"
         )
     )
-
     pattern = _safe_dict(
         reading_context.get(
             "pattern"
         )
     )
-
     useful_gods = _safe_dict(
         reading_context.get(
             "useful_gods"
+        )
+    )
+    luck = _safe_dict(
+        reading_context.get(
+            "luck"
+        )
+    )
+    annual_luck = _safe_dict(
+        luck.get(
+            "annual_luck"
+        )
+    )
+    current_luck = _safe_dict(
+        luck.get(
+            "current_luck"
+        )
+    )
+    current_pillar = _safe_dict(
+        current_luck.get(
+            "current_pillar"
         )
     )
 
@@ -582,42 +453,29 @@ def build_chart_summary(
 
     return {
         "pillars": pillars,
-
         "pillar_sequence": _safe_list(
             natal_chart.get(
                 "pillar_sequence"
             )
         ),
-
         "day_master": {
-            "stem": (
-                day_master.get(
-                    "stem"
-                )
+            "stem": day_master.get(
+                "stem"
             ),
-            "element": (
-                day_master.get(
-                    "element"
-                )
+            "element": day_master.get(
+                "element"
             ),
-            "yin_yang": (
-                day_master.get(
-                    "yin_yang"
-                )
+            "yin_yang": day_master.get(
+                "yin_yang"
             ),
-            "day_pillar": (
-                day_master.get(
-                    "day_pillar"
-                )
+            "day_pillar": day_master.get(
+                "day_pillar"
             ),
         },
-
         "five_elements": {
-            "weighted_scores": (
-                _safe_dict(
-                    five_elements.get(
-                        "weighted_scores"
-                    )
+            "weighted_scores": _safe_dict(
+                five_elements.get(
+                    "weighted_scores"
                 )
             ),
             "strongest_element": (
@@ -631,35 +489,25 @@ def build_chart_summary(
                 )
             ),
         },
-
         "strength": {
             "technical_label": (
                 strength.get(
                     "technical_label"
                 )
             ),
-            "label": (
-                strength.get(
-                    "label"
-                )
+            "label": strength.get(
+                "label"
             ),
-            "final_score": (
-                strength.get(
-                    "final_score"
-                )
+            "final_score": strength.get(
+                "final_score"
             ),
-            "confidence": (
-                strength.get(
-                    "confidence"
-                )
+            "confidence": strength.get(
+                "confidence"
             ),
         },
-
         "pattern": {
-            "primary_pattern": (
-                pattern.get(
-                    "primary_pattern"
-                )
+            "primary_pattern": pattern.get(
+                "primary_pattern"
             ),
             "technical_pattern": (
                 pattern.get(
@@ -671,13 +519,10 @@ def build_chart_summary(
                     "overall_judgment"
                 )
             ),
-            "confidence": (
-                pattern.get(
-                    "confidence"
-                )
+            "confidence": pattern.get(
+                "confidence"
             ),
         },
-
         "useful_gods": {
             "primary_useful_element": (
                 useful_gods.get(
@@ -691,41 +536,54 @@ def build_chart_summary(
                     )
                 )
             ),
-            "final_useful_elements": (
-                _safe_list(
-                    useful_gods.get(
-                        "final_useful_elements"
-                    )
-                )
-            ),
-            "unfavorable_elements": (
-                _safe_list(
-                    useful_gods.get(
-                        "unfavorable_elements"
-                    )
-                )
-            ),
-            "confidence": (
+            "final_useful_elements": _safe_list(
                 useful_gods.get(
-                    "confidence"
+                    "final_useful_elements"
                 )
+            ),
+            "unfavorable_elements": _safe_list(
+                useful_gods.get(
+                    "unfavorable_elements"
+                )
+            ),
+            "confidence": useful_gods.get(
+                "confidence"
+            ),
+        },
+        "current_luck": {
+            "ganzhi": current_pillar.get(
+                "ganzhi"
+            ),
+            "stem_ten_god": current_pillar.get(
+                "stem_ten_god"
+            ),
+            "start_age": current_pillar.get(
+                "start_age"
+            ),
+            "end_age": current_pillar.get(
+                "end_age"
+            ),
+        },
+        "annual_luck": {
+            "year": annual_luck.get(
+                "year"
+            ),
+            "ganzhi": annual_luck.get(
+                "ganzhi"
+            ),
+            "stem_ten_god": annual_luck.get(
+                "stem_ten_god"
+            ),
+            "twelve_stage": annual_luck.get(
+                "twelve_stage"
             ),
         },
     }
 
 
-# ============================================================
-# Generated reading validation
-# ============================================================
-
-
 def validate_generation_result(
     generation_result: ReadingGenerationResult,
 ) -> Dict[str, Any]:
-    """
-    商品化可能なAI鑑定結果か検証する。
-    """
-
     if not isinstance(
         generation_result,
         ReadingGenerationResult,
@@ -753,26 +611,39 @@ def validate_generation_result(
             "parse済みJSON鑑定結果がありません。"
         )
 
+    parsed = generation_result.parsed
+
+    for field in (
+        "summary",
+        "sections",
+        "disclaimer",
+    ):
+        if field not in parsed:
+            raise ReadingProductValidationError(
+                "AI鑑定JSONに必須キーがありません: "
+                f"{field}"
+            )
+
+    if not isinstance(
+        parsed.get(
+            "sections"
+        ),
+        Mapping,
+    ):
+        raise ReadingProductValidationError(
+            "AI鑑定JSONのsectionsは"
+            "dict型である必要があります。"
+        )
+
     return {
         "valid": True,
-        "output_format": (
-            generation_result.output_format
-        ),
-        "model": (
-            generation_result.model
-        ),
+        "output_format": generation_result.output_format,
+        "model": generation_result.model,
         "sections": list(
             generation_result.sections
         ),
-        "status": (
-            generation_result.status
-        ),
+        "status": generation_result.status,
     }
-
-
-# ============================================================
-# AI section conversion
-# ============================================================
 
 
 def _extract_section_data(
@@ -782,11 +653,13 @@ def _extract_section_data(
     ],
     section: str,
 ) -> Dict[str, Any]:
-    """
-    AI JSONから1セクションを取得する。
-    """
+    parsed_sections = _safe_dict(
+        parsed.get(
+            "sections"
+        )
+    )
 
-    raw = parsed.get(
+    raw = parsed_sections.get(
         section
     )
 
@@ -795,7 +668,8 @@ def _extract_section_data(
         Mapping,
     ):
         raise ReadingProductValidationError(
-            "AI鑑定結果にセクションがありません: "
+            "AI鑑定結果に"
+            "セクションがありません: "
             f"{section}"
         )
 
@@ -811,12 +685,6 @@ def build_product_section(
         Any,
     ],
 ) -> Dict[str, Any]:
-    """
-    AI鑑定1セクションを商品表示用へ変換する。
-
-    AI文章の内容自体は変更しない。
-    """
-
     if section not in SECTION_TITLES:
         raise ValueError(
             "未対応の鑑定セクションです: "
@@ -828,33 +696,32 @@ def build_product_section(
         "section_data",
     )
 
+    source_title = _optional_string(
+        section_data.get(
+            "title"
+        )
+    )
+
     return {
         "key": section,
-
         "title": (
-            SECTION_TITLES[
+            source_title
+            or SECTION_TITLES[
                 section
             ]
         ),
-
-        "summary": (
-            _string_or_empty(
-                section_data.get(
-                    "summary"
-                )
+        "summary": _string_or_empty(
+            section_data.get(
+                "summary"
             )
         ),
-
-        "reading": (
-            _string_or_empty(
-                section_data.get(
-                    "reading"
-                )
+        "detail": _string_or_empty(
+            section_data.get(
+                "detail"
             )
         ),
-
         "evidence": [
-            str(item)
+            item.strip()
             for item
             in _safe_list(
                 section_data.get(
@@ -867,9 +734,8 @@ def build_product_section(
             )
             and item.strip()
         ],
-
         "advice": [
-            str(item)
+            item.strip()
             for item
             in _safe_list(
                 section_data.get(
@@ -895,10 +761,6 @@ def build_product_sections(
     Dict[str, Any],
     ...,
 ]:
-    """
-    AI鑑定JSONから商品用セクション一覧を作る。
-    """
-
     parsed = _require_mapping(
         parsed,
         "parsed",
@@ -932,21 +794,12 @@ def build_product_sections(
     return tuple(result)
 
 
-# ============================================================
-# Summary / disclaimer
-# ============================================================
-
-
 def extract_product_summary(
     parsed: Mapping[
         str,
         Any,
     ],
 ) -> str:
-    """
-    AI生成JSONの総合summaryを取得する。
-    """
-
     parsed = _require_mapping(
         parsed,
         "parsed",
@@ -965,12 +818,6 @@ def extract_product_disclaimer(
         Any,
     ],
 ) -> str:
-    """
-    AI生成JSONのdisclaimerを取得する。
-
-    無い場合のみ固定安全文へfallbackする。
-    """
-
     parsed = _require_mapping(
         parsed,
         "parsed",
@@ -988,24 +835,11 @@ def extract_product_disclaimer(
     return DEFAULT_DISCLAIMER
 
 
-# ============================================================
-# Generation metadata
-# ============================================================
-
-
 def build_generation_metadata(
     generation_result: ReadingGenerationResult,
 ) -> Dict[str, Any]:
-    """
-    AI生成情報を商品データへ記録する。
-
-    APIキーやprompt本文は含めない。
-    """
-
     return {
-        "model": (
-            generation_result.model
-        ),
+        "model": generation_result.model,
         "response_id": (
             generation_result.response_id
         ),
@@ -1018,18 +852,9 @@ def build_generation_metadata(
         "sections": list(
             generation_result.sections
         ),
-        "method": (
-            generation_result.method
-        ),
-        "status": (
-            generation_result.status
-        ),
+        "method": generation_result.method,
+        "status": generation_result.status,
     }
-
-
-# ============================================================
-# Product metadata
-# ============================================================
 
 
 def build_product_metadata(
@@ -1038,59 +863,39 @@ def build_product_metadata(
         Any,
     ],
 ) -> Dict[str, Any]:
-    """
-    商品生成に必要な技術metadataを作る。
-    """
-
     reading_context = _require_mapping(
         reading_context,
         "reading_context",
     )
 
     return {
-        "created_at": (
-            _utc_now_iso()
-        ),
-
+        "created_at": _utc_now_iso(),
         "reading_context_schema": (
             reading_context.get(
                 "schema_version"
             )
         ),
-
         "reading_context_method": (
             reading_context.get(
                 "method"
             )
         ),
-
         "reading_context_status": (
             reading_context.get(
                 "status"
             )
         ),
-
-        "source_metadata": (
-            _safe_dict(
-                reading_context.get(
-                    "source_metadata"
-                )
+        "source_metadata": _safe_dict(
+            reading_context.get(
+                "source_metadata"
             )
         ),
-
         "product_version": (
             READING_PRODUCT_VERSION
         ),
-
         "recalculates_astrology": False,
-
         "rewrites_ai_reading": False,
     }
-
-
-# ============================================================
-# Main builder
-# ============================================================
 
 
 def build_reading_product(
@@ -1105,13 +910,6 @@ def build_reading_product(
         Sequence[str]
     ] = None,
 ) -> ReadingProduct:
-    """
-    reading_contextとAI生成結果から
-    商品用データを構築する。
-
-    API通信は行わない。
-    """
-
     reading_context = _require_mapping(
         reading_context,
         "reading_context",
@@ -1153,7 +951,8 @@ def build_reading_product(
 
     if not product_sections:
         raise ReadingProductValidationError(
-            "商品化対象の鑑定セクションがありません。"
+            "商品化対象の"
+            "鑑定セクションがありません。"
         )
 
     generated_sections = set(
@@ -1170,8 +969,8 @@ def build_reading_product(
 
     if missing_sections:
         raise ReadingProductValidationError(
-            "AI生成されていないセクションを"
-            "商品化しようとしています: "
+            "AI生成されていない"
+            "セクションを商品化しようとしています: "
             + ", ".join(
                 missing_sections
             )
@@ -1179,47 +978,29 @@ def build_reading_product(
 
     return ReadingProduct(
         title=title,
-
         subject=build_product_subject(
             reading_context
         ),
-
         chart_summary=build_chart_summary(
             reading_context
         ),
-
         sections=build_product_sections(
             parsed,
             product_sections,
         ),
-
         summary=extract_product_summary(
             parsed
         ),
-
-        disclaimer=(
-            extract_product_disclaimer(
-                parsed
-            )
+        disclaimer=extract_product_disclaimer(
+            parsed
         ),
-
-        generation=(
-            build_generation_metadata(
-                generation_result
-            )
+        generation=build_generation_metadata(
+            generation_result
         ),
-
-        metadata=(
-            build_product_metadata(
-                reading_context
-            )
+        metadata=build_product_metadata(
+            reading_context
         ),
     )
-
-
-# ============================================================
-# End-to-end product generation
-# ============================================================
 
 
 def generate_reading_product(
@@ -1246,21 +1027,6 @@ def generate_reading_product(
     store: bool = DEFAULT_STORE,
     validate_context: bool = True,
 ) -> ReadingProduct:
-    """
-    calculate_chart()済み結果から、
-    商品用鑑定データまでを一括生成する。
-
-    流れ
-    ----
-    chart_result
-        ↓
-    build_reading_context()
-        ↓
-    generate_reading(output_format="json")
-        ↓
-    build_reading_product()
-    """
-
     chart_result = _require_mapping(
         chart_result,
         "chart_result",
@@ -1289,12 +1055,8 @@ def generate_reading_product(
             language=language,
             tone=tone,
             output_format="json",
-            max_output_tokens=(
-                max_output_tokens
-            ),
-            reasoning_effort=(
-                reasoning_effort
-            ),
+            max_output_tokens=max_output_tokens,
+            reasoning_effort=reasoning_effort,
             store=store,
         )
     )
@@ -1305,11 +1067,6 @@ def generate_reading_product(
         title=title,
         sections=normalized_sections,
     )
-
-
-# ============================================================
-# Dict convenience API
-# ============================================================
 
 
 def generate_reading_product_dict(
@@ -1336,11 +1093,6 @@ def generate_reading_product_dict(
     store: bool = DEFAULT_STORE,
     validate_context: bool = True,
 ) -> Dict[str, Any]:
-    """
-    generate_reading_product() の
-    dict返却版。
-    """
-
     product = generate_reading_product(
         chart_result,
         client=client,
@@ -1350,24 +1102,13 @@ def generate_reading_product_dict(
         language=language,
         tone=tone,
         title=title,
-        max_output_tokens=(
-            max_output_tokens
-        ),
-        reasoning_effort=(
-            reasoning_effort
-        ),
+        max_output_tokens=max_output_tokens,
+        reasoning_effort=reasoning_effort,
         store=store,
-        validate_context=(
-            validate_context
-        ),
+        validate_context=validate_context,
     )
 
     return product.to_dict()
-
-
-# ============================================================
-# Product from existing generation
-# ============================================================
 
 
 def create_product_from_generation(
@@ -1382,13 +1123,6 @@ def create_product_from_generation(
         Sequence[str]
     ] = None,
 ) -> Dict[str, Any]:
-    """
-    すでにAI鑑定が生成済みの場合に、
-    API通信なしで商品データだけを作る。
-
-    テスト・再レンダリング・PDF再生成などで利用する。
-    """
-
     product = build_reading_product(
         reading_context,
         generation_result,
@@ -1399,55 +1133,33 @@ def create_product_from_generation(
     return product.to_dict()
 
 
-# ============================================================
-# Metadata
-# ============================================================
-
-
 def get_reading_product_metadata() -> Dict[
     str,
     Any,
 ]:
-    """
-    reading_productエンジンのmetadata。
-    """
-
     return {
         "version": (
             READING_PRODUCT_VERSION
         ),
-
         "method": (
             READING_PRODUCT_METHOD
         ),
-
         "status": (
             READING_PRODUCT_STATUS
         ),
-
         "default_title": (
             DEFAULT_PRODUCT_TITLE
         ),
-
         "section_order": list(
             DEFAULT_SECTION_ORDER
         ),
-
         "section_titles": deepcopy(
             SECTION_TITLES
         ),
-
         "recalculates_astrology": False,
-
         "rewrites_ai_reading": False,
-
         "requires_json_generation": True,
     }
-
-
-# ============================================================
-# Public API
-# ============================================================
 
 
 __all__ = [
