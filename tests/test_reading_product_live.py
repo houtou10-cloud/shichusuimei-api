@@ -239,46 +239,34 @@ def _contains_any(
 
 def _extract_chart_result() -> Dict[str, Any]:
     """
-    現行プロジェクトで使用している
-    calculate_chart の入口を遅延importする。
+    外部照合済み実命式を
+    現行engine.chart.calculate_chart()で計算する。
 
-    既存テスト群と同様に、APIレイヤーの
-    calculate_chart を優先する。
+    main.pyには依存しない。
     """
 
-    try:
-        from main import (
-            ChartRequest,
-            calculate_chart,
-        )
-    except ImportError as exc:
-        raise AssertionError(
-            "main.ChartRequest / "
-            "main.calculate_chart をimportできません。"
-        ) from exc
+    from types import SimpleNamespace
 
-    request = ChartRequest(
-        birth_date=EXPECTED_BIRTH_DATE,
-        birth_time=EXPECTED_BIRTH_TIME,
-        birth_place=EXPECTED_BIRTH_PLACE,
+    from engine.chart import (
+        calculate_chart,
+    )
+
+    request = SimpleNamespace(
+        birth_date=(
+            EXPECTED_BIRTH_DATE
+        ),
+        birth_time=(
+            EXPECTED_BIRTH_TIME
+        ),
+        birth_place=(
+            EXPECTED_BIRTH_PLACE
+        ),
         gender="female",
     )
 
     result = calculate_chart(
         request
     )
-
-    if hasattr(
-        result,
-        "model_dump",
-    ):
-        result = result.model_dump()
-
-    elif hasattr(
-        result,
-        "dict",
-    ):
-        result = result.dict()
 
     assert isinstance(
         result,
