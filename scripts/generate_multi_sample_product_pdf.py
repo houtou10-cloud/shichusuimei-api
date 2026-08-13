@@ -29,7 +29,7 @@ OpenAI APIを1回も呼ばず停止する。
 
 Version
 -------
-generate_multi_sample_product_pdf_v1_2
+generate_multi_sample_product_pdf_v1_3
 """
 
 from __future__ import annotations
@@ -77,7 +77,7 @@ from engine.reading_product import (
 
 
 SCRIPT_VERSION = (
-    "generate_multi_sample_product_pdf_v1_2"
+    "generate_multi_sample_product_pdf_v1_3"
 )
 
 
@@ -215,6 +215,11 @@ class SampleCase:
 
 CASES = (
 
+    # --------------------------------------------------------
+    # Case 1
+    # 1985-07-17 21:50 石川県 女性
+    # --------------------------------------------------------
+
     SampleCase(
         case_id=(
             "1985_ishikawa_female"
@@ -230,6 +235,17 @@ CASES = (
         expected_day_master="丁",
     ),
 
+    # --------------------------------------------------------
+    # Case 2
+    # 1984-07-22 04:15 北海道 女性
+    #
+    # 現行engine.chart.calculate_chart()
+    # 実計算確認値:
+    #
+    # 甲子 / 辛未 / 丁巳 / 壬寅
+    # 日主: 丁
+    # --------------------------------------------------------
+
     SampleCase(
         case_id=(
             "1984_hokkaido_female"
@@ -238,15 +254,23 @@ CASES = (
         birth_time="04:15",
         birth_place="北海道",
         gender="female",
-
-        # 現行engine.chart.calculate_chart()
-        # 実計算確認値
         expected_year="甲子",
         expected_month="辛未",
         expected_day="丁巳",
         expected_hour="壬寅",
         expected_day_master="丁",
     ),
+
+    # --------------------------------------------------------
+    # Case 3
+    # 1984-07-21 12:00 東京都 男性
+    #
+    # 現行engine.chart.calculate_chart()
+    # PRECHECK実計算確認値:
+    #
+    # 甲子 / 辛未 / 丙辰 / 甲午
+    # 日主: 丙
+    # --------------------------------------------------------
 
     SampleCase(
         case_id=(
@@ -256,14 +280,11 @@ CASES = (
         birth_time="12:00",
         birth_place="東京都",
         gender="male",
-
-        # PRECHECKで現行engineと照合する。
-        # 不一致ならAPIを呼ぶ前に停止する。
         expected_year="甲子",
         expected_month="辛未",
-        expected_day="甲辰",
-        expected_hour="庚午",
-        expected_day_master="甲",
+        expected_day="丙辰",
+        expected_hour="甲午",
+        expected_day_master="丙",
     ),
 )
 
@@ -1092,7 +1113,9 @@ def validate_product(
         raise RuntimeError(
             f"{case.case_id}: "
             "ReadingProductが"
-            "readyではありません。"
+            "readyではありません。 "
+            f"status="
+            f"{product.status}"
         )
 
     sequence = tuple(
@@ -1165,7 +1188,9 @@ def validate_product(
         raise RuntimeError(
             f"{case.case_id}: "
             "ReadingProductが"
-            "8セクションではありません。"
+            "8セクションではありません。 "
+            f"actual="
+            f"{len(product.sections)}"
         )
 
     actual_section_order = (
@@ -1187,7 +1212,9 @@ def validate_product(
             f"{case.case_id}: "
             "ReadingProductの"
             "セクション順が"
-            "一致しません。"
+            "一致しません。 "
+            f"actual="
+            f"{actual_section_order}"
         )
 
     require_string(
@@ -1422,7 +1449,7 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 1
+    # 1. Chart
     # --------------------------------------------------------
 
     print(
@@ -1444,7 +1471,7 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 2
+    # 2. Context
     # --------------------------------------------------------
 
     print(
@@ -1469,7 +1496,7 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 3
+    # 3. OpenAI
     # --------------------------------------------------------
 
     print(
@@ -1519,7 +1546,7 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 4
+    # 4. Product
     # --------------------------------------------------------
 
     print(
@@ -1551,7 +1578,7 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 5
+    # Output directory
     # --------------------------------------------------------
 
     case_dir = (
@@ -1563,6 +1590,10 @@ def generate_case(
         parents=True,
         exist_ok=True,
     )
+
+    # --------------------------------------------------------
+    # 5. JSON
+    # --------------------------------------------------------
 
     print(
         "5. JSON保存"
@@ -1595,7 +1626,7 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 6
+    # 6. PDF
     # --------------------------------------------------------
 
     print(
@@ -1712,7 +1743,7 @@ def generate_case(
 
 
 # ============================================================
-# Cross case
+# Cross-case validation
 # ============================================================
 
 
@@ -1849,7 +1880,11 @@ def validate_pdf_metadata() -> None:
 
         raise RuntimeError(
             "PDF versionが"
-            "一致しません。"
+            "一致しません。 "
+            f"expected="
+            f"{READING_PDF_VERSION}, "
+            f"actual="
+            f"{metadata.get('version')}"
         )
 
     if (
@@ -1861,7 +1896,11 @@ def validate_pdf_metadata() -> None:
 
         raise RuntimeError(
             "PDF methodが"
-            "一致しません。"
+            "一致しません。 "
+            f"expected="
+            f"{READING_PDF_METHOD}, "
+            f"actual="
+            f"{metadata.get('method')}"
         )
 
     if (
@@ -1955,6 +1994,8 @@ def main() -> int:
 
         # ----------------------------------------------------
         # PRECHECK
+        #
+        # 全ケースをAPI呼び出し前に検証。
         # ----------------------------------------------------
 
         prechecked_charts = (
@@ -2001,7 +2042,7 @@ def main() -> int:
             )
 
         # ----------------------------------------------------
-        # Cross-case
+        # Cross-case validation
         # ----------------------------------------------------
 
         print(
@@ -2043,7 +2084,7 @@ def main() -> int:
         print()
 
         # ----------------------------------------------------
-        # Summary
+        # Summary JSON
         # ----------------------------------------------------
 
         summary_path = (
@@ -2055,13 +2096,17 @@ def main() -> int:
             "script_version": (
                 SCRIPT_VERSION
             ),
-            "model": model,
+            "model": (
+                model
+            ),
             "target_datetime": (
                 TARGET_DATETIME
                 .isoformat()
             ),
             "case_count": (
-                len(CASES)
+                len(
+                    CASES
+                )
             ),
             "pdf_version": (
                 READING_PDF_VERSION
