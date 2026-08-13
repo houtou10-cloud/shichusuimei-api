@@ -1566,7 +1566,7 @@ def test_generator_method_kept():
 def test_generator_status_kept():
     assert (
         READING_GENERATOR_STATUS
-        == "ready_for_ai_generation"
+        == "ai_generation_ready"
     )
 
 
