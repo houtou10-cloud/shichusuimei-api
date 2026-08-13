@@ -33,6 +33,21 @@ READING_QUALITY_STATUS = "ready_for_customer_facing_validation"
 
 CUSTOMER_VALUE_QUALITY_VERSION = "customer_value_quality_v2"
 
+# 品質問題の重大度。
+#
+# ERROR:
+#   顧客向けPDFの生成を停止する。
+#
+# WARNING:
+#   商品品質上は改善したいが、
+#   それ単独ではPDF生成を停止しない。
+WARNING_ISSUE_CODES = frozenset(
+    {
+        "cross_section_advice_repetition",
+        "fixed_element_translation_overuse",
+    }
+)
+
 
 class ReadingQualityError(ValueError):
     """顧客向け鑑定文章が品質ゲートを通過しなかった場合の例外。"""
@@ -66,13 +81,52 @@ class ReadingQualityReport:
 
     @property
     def issue_count(self) -> int:
+        """
+        ERROR + WARNING の総件数。
+        既存コードとの互換性のため維持する。
+        """
         return len(self.issues)
 
+    @property
+    def error_issues(self) -> tuple[QualityIssue, ...]:
+        return tuple(
+            issue
+            for issue in self.issues
+            if issue_severity(issue) == "error"
+        )
+
+    @property
+    def warning_issues(self) -> tuple[QualityIssue, ...]:
+        return tuple(
+            issue
+            for issue in self.issues
+            if issue_severity(issue) == "warning"
+        )
+
+    @property
+    def error_count(self) -> int:
+        return len(self.error_issues)
+
+    @property
+    def warning_count(self) -> int:
+        return len(self.warning_issues)
+
     def to_dict(self) -> dict[str, Any]:
+        serialized_issues = []
+
+        for issue in self.issues:
+            item = issue.to_dict()
+            item["severity"] = issue_severity(
+                issue
+            )
+            serialized_issues.append(item)
+
         return {
             "valid": self.valid,
             "issue_count": self.issue_count,
-            "issues": [issue.to_dict() for issue in self.issues],
+            "error_count": self.error_count,
+            "warning_count": self.warning_count,
+            "issues": serialized_issues,
             "version": self.version,
             "method": self.method,
             "status": self.status,
@@ -84,6 +138,44 @@ class CustomerFacingText:
     path: str
     text: str
     kind: str
+
+
+def issue_severity(
+    issue_or_code: QualityIssue | str,
+) -> str:
+    """
+    品質問題の重大度を返す。
+
+    warning:
+        商品品質上の改善候補。
+        これだけではPDF生成を止めない。
+
+    error:
+        顧客へ出すべきでない問題。
+        PDF生成を停止する。
+    """
+
+    if isinstance(
+        issue_or_code,
+        QualityIssue,
+    ):
+        code = issue_or_code.code
+    elif isinstance(
+        issue_or_code,
+        str,
+    ):
+        code = issue_or_code
+    else:
+        raise TypeError(
+            "issue_or_codeはQualityIssue"
+            "またはstrである必要があります。"
+        )
+
+    return (
+        "warning"
+        if code in WARNING_ISSUE_CODES
+        else "error"
+    )
 
 
 CUSTOMER_SECTION_TEXT_FIELDS = (
@@ -1242,9 +1334,19 @@ def validate_customer_facing_reading(
         )
     )
 
+    issue_tuple = tuple(
+        issues
+    )
+
+    has_error = any(
+        issue_severity(issue)
+        == "error"
+        for issue in issue_tuple
+    )
+
     return ReadingQualityReport(
-        valid=not issues,
-        issues=tuple(issues),
+        valid=not has_error,
+        issues=issue_tuple,
     )
 
 
@@ -1267,6 +1369,8 @@ def ensure_customer_facing_reading_quality(
         "顧客向け鑑定文章が品質ゲートを"
         "通過しませんでした。",
         f"issue_count={report.issue_count}",
+        f"error_count={report.error_count}",
+        f"warning_count={report.warning_count}",
     ]
 
     for issue in report.issues:
@@ -1276,8 +1380,14 @@ def ensure_customer_facing_reading_quality(
             else ""
         )
 
+        severity = (
+            issue_severity(issue)
+            .upper()
+        )
+
         lines.append(
-            f"- [{issue.code}] "
+            f"- [{severity}] "
+            f"[{issue.code}] "
             f"{issue.path}: "
             f"{issue.message}"
             f"{matched}"
@@ -1315,10 +1425,12 @@ __all__ = [
     "READING_QUALITY_METHOD",
     "READING_QUALITY_STATUS",
     "CUSTOMER_VALUE_QUALITY_VERSION",
+    "WARNING_ISSUE_CODES",
     "ReadingQualityError",
     "QualityIssue",
     "ReadingQualityReport",
     "CustomerFacingText",
+    "issue_severity",
     "iter_customer_facing_texts",
     "find_internal_label_leaks",
     "find_internal_key_leaks",
