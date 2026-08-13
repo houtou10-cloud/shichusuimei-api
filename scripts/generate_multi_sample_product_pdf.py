@@ -112,7 +112,7 @@ STORE = False
 
 
 PRODUCT_TITLE = (
-    "四柱推命 AI鑑定書"
+    "四柱推命鑑定書"
 )
 
 
