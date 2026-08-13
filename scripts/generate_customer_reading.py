@@ -335,6 +335,15 @@ def normalize_birth_date(
         "生年月日",
     )
 
+    if not re.fullmatch(
+        r"\d{4}-\d{2}-\d{2}",
+        value,
+    ):
+        raise ValueError(
+            "生年月日はYYYY-MM-DD形式で"
+            "入力してください。"
+        )
+
     try:
         parsed = datetime.strptime(
             value,
