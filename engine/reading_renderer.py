@@ -1,7 +1,7 @@
 """
 engine/reading_renderer.py
 
-四柱推命 AI鑑定 HTMLレンダリングレイヤー v1
+四柱推命 鑑定 HTMLレンダリングレイヤー v1
 
 目的
 ----
@@ -1925,7 +1925,7 @@ def render_reading_product_html(
 {_render_disclaimer(product)}
 
 <footer class="document-footer">
-    四柱推命 AI鑑定
+    四柱推命鑑定
 </footer>
 
 </main>
