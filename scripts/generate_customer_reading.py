@@ -1,8 +1,8 @@
 """
 scripts/generate_customer_reading.py
 
-四柱推命鑑定書 v1.1
-本番顧客向け・相談内容連動PDF生成スクリプト。
+四柱推命鑑定書 v1.2
+本番顧客向け・相談内容連動・品質ゲート統合PDF生成スクリプト。
 
 処理フロー
 ----------
@@ -24,6 +24,10 @@ generate_reading(
 )
     ↓
 ai_reading.json
+    ↓
+reading_quality_v1
+    ↓
+quality_report.json
     ↓
 build_reading_product()
     ↓
@@ -78,7 +82,7 @@ PowerShell:
 
 Version
 -------
-generate_customer_reading_v1_1
+generate_customer_reading_v1_2
 """
 
 from __future__ import annotations
@@ -127,6 +131,12 @@ from engine.reading_pdf import (
     write_reading_product_pdf,
 )
 
+from engine.reading_quality import (
+    ReadingQualityError,
+    ReadingQualityReport,
+    validate_customer_facing_reading,
+)
+
 
 # ============================================================
 # Script metadata
@@ -134,7 +144,7 @@ from engine.reading_pdf import (
 
 
 SCRIPT_VERSION = (
-    "generate_customer_reading_v1_1"
+    "generate_customer_reading_v1_2"
 )
 
 
@@ -200,6 +210,10 @@ CONSULTATION_CONTEXT_FILENAME = (
 
 AI_READING_FILENAME = (
     "ai_reading.json"
+)
+
+QUALITY_REPORT_FILENAME = (
+    "quality_report.json"
 )
 
 PRODUCT_FILENAME = (
@@ -794,6 +808,61 @@ def validate_generation_result(
         )
 
 
+def validate_quality_report(
+    report: ReadingQualityReport,
+) -> None:
+    """
+    顧客向け品質レポートを検証する。
+
+    report.valid が False の場合は、
+    ReadingQualityError を送出して
+    ReadingProduct / PDF 生成へ進ませない。
+
+    品質判定そのものは
+    engine.reading_quality が担当する。
+    この関数は既に生成済みの report を
+    本番パイプライン用にエラー化するだけ。
+    """
+
+    if not isinstance(
+        report,
+        ReadingQualityReport,
+    ):
+        raise TypeError(
+            "quality_reportが"
+            "ReadingQualityReportではありません。"
+        )
+
+    if report.valid:
+        return
+
+    lines = [
+        (
+            "顧客向け鑑定文章が品質ゲートを"
+            "通過しませんでした。"
+        ),
+        f"issue_count={report.issue_count}",
+    ]
+
+    for issue in report.issues:
+        matched = (
+            f" matched={issue.matched!r}"
+            if issue.matched is not None
+            else ""
+        )
+
+        lines.append(
+            f"- [{issue.code}] "
+            f"{issue.path}: "
+            f"{issue.message}"
+            f"{matched}"
+        )
+
+    raise ReadingQualityError(
+        "\n".join(lines)
+    )
+
+
 def validate_product(
     product: ReadingProduct,
 ) -> None:
@@ -959,6 +1028,7 @@ def build_summary(
     pdf_path: Path,
     pdf_size: int,
     model: str,
+    quality_report: ReadingQualityReport | None = None,
 ) -> Dict[str, Any]:
 
     focus = (
@@ -1087,6 +1157,15 @@ def build_summary(
                 generation_result.status
             ),
         },
+
+        "quality": (
+            quality_report.to_dict()
+            if isinstance(
+                quality_report,
+                ReadingQualityReport,
+            )
+            else None
+        ),
 
         "pdf": {
             "path": str(
@@ -1236,6 +1315,11 @@ def generate_customer_reading(
     ai_reading_path = (
         customer_dir
         / AI_READING_FILENAME
+    )
+
+    quality_report_path = (
+        customer_dir
+        / QUALITY_REPORT_FILENAME
     )
 
     product_path = (
@@ -1519,6 +1603,50 @@ def generate_customer_reading(
     )
 
     # --------------------------------------------------------
+    # 4.5. Customer-facing quality gate
+    # --------------------------------------------------------
+
+    print()
+    print(
+        "4.5. 顧客向け品質ゲート"
+    )
+
+    quality_report = (
+        validate_customer_facing_reading(
+            generation_result.parsed,
+            reading_context=(
+                reading_context
+            ),
+            consultation_context=(
+                consultation_context
+            ),
+        )
+    )
+
+    save_json(
+        quality_report_path,
+        quality_report.to_dict(),
+    )
+
+    print(
+        "   valid: "
+        f"{quality_report.valid}"
+    )
+
+    print(
+        "   issues: "
+        f"{quality_report.issue_count}"
+    )
+
+    validate_quality_report(
+        quality_report
+    )
+
+    print(
+        "   OK"
+    )
+
+    # --------------------------------------------------------
     # 5. ReadingProduct
     # --------------------------------------------------------
 
@@ -1680,6 +1808,9 @@ def generate_customer_reading(
             pdf_size
         ),
         model=model,
+        quality_report=(
+            quality_report
+        ),
     )
 
     summary[
@@ -1711,6 +1842,12 @@ def generate_customer_reading(
         ),
         "ai_reading_path": (
             ai_reading_path
+        ),
+        "quality_report_path": (
+            quality_report_path
+        ),
+        "quality_report": (
+            quality_report.to_dict()
         ),
         "product_path": (
             product_path
@@ -1854,6 +1991,27 @@ def print_completion(
     print()
 
     print(
+        "Quality Report:"
+    )
+
+    print(
+        "  "
+        f"{result['quality_report_path'].resolve()}"
+    )
+
+    print(
+        "  valid: "
+        f"{result['quality_report']['valid']}"
+    )
+
+    print(
+        "  issues: "
+        f"{result['quality_report']['issue_count']}"
+    )
+
+    print()
+
+    print(
         "Reading Context:"
     )
 
@@ -1915,6 +2073,16 @@ def print_completion(
     print(
         "pdf_size: "
         f"{result['pdf_size']:,} bytes"
+    )
+
+    print(
+        "quality_valid: "
+        f"{result['quality_report']['valid']}"
+    )
+
+    print(
+        "quality_issues: "
+        f"{result['quality_report']['issue_count']}"
     )
 
     print(
