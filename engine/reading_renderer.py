@@ -71,6 +71,57 @@ ELEMENT_ORDER = (
 )
 
 
+# 表示専用フォールバック。
+#
+# ReadingProduct.day_master に element / yin_yang が存在する場合は
+# 必ずその計算済み値を優先する。
+#
+# 欠損時のみ、日主天干の固定属性を表示補完する。
+# 命式・格局・用神・運勢などの再計算は行わない。
+STEM_DISPLAY_METADATA = {
+    "甲": {
+        "element": "木",
+        "yin_yang": "陽",
+    },
+    "乙": {
+        "element": "木",
+        "yin_yang": "陰",
+    },
+    "丙": {
+        "element": "火",
+        "yin_yang": "陽",
+    },
+    "丁": {
+        "element": "火",
+        "yin_yang": "陰",
+    },
+    "戊": {
+        "element": "土",
+        "yin_yang": "陽",
+    },
+    "己": {
+        "element": "土",
+        "yin_yang": "陰",
+    },
+    "庚": {
+        "element": "金",
+        "yin_yang": "陽",
+    },
+    "辛": {
+        "element": "金",
+        "yin_yang": "陰",
+    },
+    "壬": {
+        "element": "水",
+        "yin_yang": "陽",
+    },
+    "癸": {
+        "element": "水",
+        "yin_yang": "陰",
+    },
+}
+
+
 class ReadingRendererError(
     Exception
 ):
@@ -160,6 +211,130 @@ def _display_html(
 ) -> str:
     return _html(
         _display(
+            value,
+            empty=empty,
+        )
+    )
+
+
+def _day_master_display_value(
+    day_master: Mapping[
+        str,
+        Any,
+    ],
+    key: str,
+) -> str:
+    """
+    日主カード用の表示値を返す。
+
+    ReadingProduct側に値がある場合は、
+    その計算済み値をそのまま使用する。
+
+    element / yin_yang が欠損している場合だけ、
+    日主天干の固定属性を表示補完する。
+
+    占術ロジックの再計算は行わない。
+    """
+
+    existing = _text(
+        day_master.get(
+            key
+        )
+    )
+
+    if existing:
+        return existing
+
+    stem = _text(
+        day_master.get(
+            "stem"
+        )
+    )
+
+    metadata = (
+        STEM_DISPLAY_METADATA.get(
+            stem,
+            {},
+        )
+    )
+
+    return _text(
+        metadata.get(
+            key
+        )
+    )
+
+
+def _display_age(
+    value: Any,
+    *,
+    empty: str = "―",
+) -> str:
+    """
+    大運の開始・終了年齢を商品向けに表示する。
+
+    内部の小数年齢は変更しない。
+    HTML上の表示だけを最寄りの整数へ丸める。
+
+    例:
+        34.955068 -> 約35歳
+        45.740251 -> 約46歳
+    """
+
+    text = _text(
+        value
+    )
+
+    if not text:
+        return empty
+
+    if isinstance(
+        value,
+        bool,
+    ):
+        return text
+
+    try:
+        number = float(
+            text
+        )
+    except (
+        TypeError,
+        ValueError,
+    ):
+        return text
+
+    if (
+        number != number
+        or number
+        in (
+            float("inf"),
+            float("-inf"),
+        )
+    ):
+        return text
+
+    if number >= 0:
+        rounded = int(
+            number + 0.5
+        )
+    else:
+        rounded = int(
+            number - 0.5
+        )
+
+    return (
+        f"約{rounded}歳"
+    )
+
+
+def _display_age_html(
+    value: Any,
+    *,
+    empty: str = "―",
+) -> str:
+    return _html(
+        _display_age(
             value,
             empty=empty,
         )
@@ -608,6 +783,61 @@ def _render_chart_summary(
         )
     )
 
+    # --------------------------------------------------------
+    # 日主の表示値
+    #
+    # ReadingProductに計算済み値があればそれを最優先。
+    # element / yin_yang 欠損時だけ、
+    # 日主天干の固定属性を表示補完する。
+    # --------------------------------------------------------
+
+    day_master_stem = _text(
+        day_master.get(
+            "stem"
+        )
+    )
+
+    day_master_element = (
+        _day_master_display_value(
+            day_master,
+            "element",
+        )
+    )
+
+    day_master_yin_yang = (
+        _day_master_display_value(
+            day_master,
+            "yin_yang",
+        )
+    )
+
+    # --------------------------------------------------------
+    # 大運年齢
+    #
+    # 内部値は変更せず、
+    # 商品画面だけ整数の「約○歳」で表示する。
+    # --------------------------------------------------------
+
+    start_age_display = (
+        _display_age_html(
+            current_luck.get(
+                "start_age"
+            )
+        )
+    )
+
+    end_age_display = (
+        _display_age_html(
+            current_luck.get(
+                "end_age"
+            )
+        )
+    )
+
+    # --------------------------------------------------------
+    # 用神表示
+    # --------------------------------------------------------
+
     secondary = "・".join(
         _text(item)
         for item
@@ -630,6 +860,49 @@ def _render_chart_summary(
         if _text(item)
     )
 
+    # --------------------------------------------------------
+    # 技術値
+    #
+    # 既存HTML契約との後方互換のため
+    # HTMLソースには保持するが、
+    # Web/PDFの顧客表示からは完全に隠す。
+    # --------------------------------------------------------
+
+    strength_technical = (
+        _text(
+            strength.get(
+                "technical_label"
+            )
+        )
+    )
+
+    pattern_technical = (
+        _text(
+            pattern.get(
+                "technical_pattern"
+            )
+        )
+    )
+
+    pattern_overall = (
+        _text(
+            pattern.get(
+                "overall_judgment"
+            )
+        )
+    )
+
+    hidden_technical = f"""
+    <span
+        class="internal-technical"
+        aria-hidden="true"
+    >
+        {_html(strength_technical)}
+        {_html(pattern_technical)}
+        {_html(pattern_overall)}
+    </span>
+    """
+
     return f"""
 <section
     class="reading-card chart-card"
@@ -648,9 +921,7 @@ def _render_chart_summary(
 
             <div class="major-value">
                 {_display_html(
-                    day_master.get(
-                        "stem"
-                    )
+                    day_master_stem
                 )}
             </div>
 
@@ -659,9 +930,7 @@ def _render_chart_summary(
                     <dt>五行</dt>
                     <dd>
                         {_display_html(
-                            day_master.get(
-                                "element"
-                            )
+                            day_master_element
                         )}
                     </dd>
                 </div>
@@ -670,9 +939,7 @@ def _render_chart_summary(
                     <dt>陰陽</dt>
                     <dd>
                         {_display_html(
-                            day_master.get(
-                                "yin_yang"
-                            )
+                            day_master_yin_yang
                         )}
                     </dd>
                 </div>
@@ -703,17 +970,6 @@ def _render_chart_summary(
 
             <dl class="summary-list">
                 <div>
-                    <dt>判定</dt>
-                    <dd>
-                        {_display_html(
-                            strength.get(
-                                "technical_label"
-                            )
-                        )}
-                    </dd>
-                </div>
-
-                <div>
                     <dt>スコア</dt>
                     <dd>
                         {_display_html(
@@ -737,29 +993,9 @@ def _render_chart_summary(
                 )}
             </div>
 
-            <dl class="summary-list">
-                <div>
-                    <dt>技術判定</dt>
-                    <dd>
-                        {_display_html(
-                            pattern.get(
-                                "technical_pattern"
-                            )
-                        )}
-                    </dd>
-                </div>
-
-                <div>
-                    <dt>総合判定</dt>
-                    <dd>
-                        {_display_html(
-                            pattern.get(
-                                "overall_judgment"
-                            )
-                        )}
-                    </dd>
-                </div>
-            </dl>
+            <p class="customer-note">
+                命式全体から見た中心的な格局です。
+            </p>
         </div>
 
         <div class="sub-card">
@@ -796,6 +1032,8 @@ def _render_chart_summary(
 
     </div>
 
+    {hidden_technical}
+
     {_render_five_elements(chart)}
 
     <div class="luck-grid">
@@ -826,22 +1064,14 @@ def _render_chart_summary(
                 <div>
                     <dt>開始年齢</dt>
                     <dd>
-                        {_display_html(
-                            current_luck.get(
-                                "start_age"
-                            )
-                        )}
+                        {start_age_display}
                     </dd>
                 </div>
 
                 <div>
                     <dt>終了年齢</dt>
                     <dd>
-                        {_display_html(
-                            current_luck.get(
-                                "end_age"
-                            )
-                        )}
+                        {end_age_display}
                     </dd>
                 </div>
             </dl>
@@ -898,7 +1128,6 @@ def _render_chart_summary(
 
 </section>
 """
-
 
 def _render_overall_summary(
     product: ReadingProduct,
@@ -1337,6 +1566,17 @@ body {
 .summary-list dd {
     margin: 0;
     font-size: 0.9rem;
+}
+
+.customer-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.7;
+}
+
+.internal-technical {
+    display: none !important;
 }
 
 .data-table {
