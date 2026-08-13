@@ -1,0 +1,110 @@
+{
+  "script_version": "generate_multi_sample_product_pdf_v1_3",
+  "model": "gpt-5",
+  "target_datetime": "2026-08-10T15:36:00",
+  "case_count": 3,
+  "pdf_version": "reading_pdf_v1",
+  "pdf_method": "html_to_pdf_playwright_chromium_v1",
+  "results": [
+    {
+      "case_id": "1985_ishikawa_female",
+      "birth_date": "1985-07-17",
+      "birth_time": "21:50",
+      "birth_place": "石川県",
+      "gender": "female",
+      "pillars": [
+        "乙丑",
+        "癸未",
+        "丁巳",
+        "辛亥"
+      ],
+      "day_master": "丁",
+      "response_status": "completed",
+      "response_id": "resp_0de3f7bd29d48c34016a7d444b0658819aa62eaa283a25f9c7",
+      "usage": {
+        "input_tokens": 10207,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 3709,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 13916
+      },
+      "pdf": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\multi_product_pdf\\1985_ishikawa_female\\reading.pdf",
+      "pdf_size": 1490202,
+      "product_json": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\multi_product_pdf\\1985_ishikawa_female\\product.json",
+      "reading_json": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\multi_product_pdf\\1985_ishikawa_female\\ai_reading.json",
+      "status": "completed"
+    },
+    {
+      "case_id": "1984_hokkaido_female",
+      "birth_date": "1984-07-22",
+      "birth_time": "04:15",
+      "birth_place": "北海道",
+      "gender": "female",
+      "pillars": [
+        "甲子",
+        "辛未",
+        "丁巳",
+        "壬寅"
+      ],
+      "day_master": "丁",
+      "response_status": "completed",
+      "response_id": "resp_09b1f1a2f3292430016a7d44b21e14819a942e6856e5f59b6d",
+      "usage": {
+        "input_tokens": 10240,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 4414,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 14654
+      },
+      "pdf": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\multi_product_pdf\\1984_hokkaido_female\\reading.pdf",
+      "pdf_size": 1582437,
+      "product_json": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\multi_product_pdf\\1984_hokkaido_female\\product.json",
+      "reading_json": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\multi_product_pdf\\1984_hokkaido_female\\ai_reading.json",
+      "status": "completed"
+    },
+    {
+      "case_id": "1984_tokyo_male",
+      "birth_date": "1984-07-21",
+      "birth_time": "12:00",
+      "birth_place": "東京都",
+      "gender": "male",
+      "pillars": [
+        "甲子",
+        "辛未",
+        "丙辰",
+        "甲午"
+      ],
+      "day_master": "丙",
+      "response_status": "completed",
+      "response_id": "resp_03abc172df3e4eba016a7d44eae240819b854d67ee65b4133f",
+      "usage": {
+        "input_tokens": 10215,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 4992
+        },
+        "output_tokens": 4250,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 14465
+      },
+      "pdf": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\multi_product_pdf\\1984_tokyo_male\\reading.pdf",
+      "pdf_size": 1598354,
+      "product_json": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\multi_product_pdf\\1984_tokyo_male\\product.json",
+      "reading_json": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\multi_product_pdf\\1984_tokyo_male\\ai_reading.json",
+      "status": "completed"
+    }
+  ],
+  "status": "completed"
+}
