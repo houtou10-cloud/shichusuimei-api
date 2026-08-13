@@ -1,64 +1,84 @@
 """
 scripts/generate_customer_reading.py
 
-四柱推命鑑定書 v1.0.0
-顧客1名分の本番鑑定書を対話形式で生成するCLIスクリプト。
+四柱推命鑑定書 v1.1
+本番顧客向け・相談内容連動PDF生成スクリプト。
 
 処理フロー
 ----------
-顧客情報入力
+顧客入力
     ↓
-入力値検証
+intake.json
     ↓
 calculate_chart()
     ↓
-build_reading_context()
+reading_context.json
     ↓
-generate_reading()
+build_consultation_context()
+    ↓
+consultation_context.json
+    ↓
+generate_reading(
+    reading_context,
+    consultation_context=...
+)
+    ↓
+ai_reading.json
     ↓
 build_reading_product()
     ↓
-商品JSON保存
+product.json
     ↓
-AI鑑定JSON保存
+write_reading_product_pdf()
     ↓
-四柱推命鑑定書PDF生成
+四柱推命鑑定書.pdf
     ↓
-顧客別フォルダ保存
+summary.json
 
-出力例
-------
-output/customers/20260813_001/
-    intake.json
-    chart.json
-    reading_context.json
-    ai_reading.json
-    product.json
-    四柱推命鑑定書.pdf
-    summary.json
+設計原則
+--------
+命式 = 事実
+相談 = 焦点
+AI   = 説明
 
-重要
+相談内容によって、
+
+- 四柱
+- 日主
+- 身強身弱
+- 格局
+- 用神
+- 大運
+- 歳運
+
+などの計算済み占術情報を
+変更・再計算・創作しない。
+
+注意
 ----
-このスクリプトは実際にOpenAI APIを呼びます。
+このスクリプトは実際にOpenAI APIを呼ぶ。
 
-必要環境変数:
+必要:
     OPENAI_API_KEY
 
-必要環境:
-    Playwright
-    Chromium
+任意:
+    OPENAI_READING_MODEL
 
-初回のみ:
+またPDF生成にはPlaywright Chromiumが必要。
+
     pip install playwright
     python -m playwright install chromium
 
-PowerShell実行例:
+実行例
+------
+PowerShell:
+
     $env:PYTHONPATH="."
     python .\\scripts\\generate_customer_reading.py
 
 Version
 -------
-generate_customer_reading_v1
+generate_customer_reading_v1_1
 """
 
 from __future__ import annotations
@@ -68,15 +88,20 @@ import os
 import re
 import sys
 
-from dataclasses import dataclass
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Mapping
+from typing import Any, Dict, Mapping
 
 
 from engine.chart import (
     calculate_chart,
+)
+
+from engine.consultation_context import (
+    build_consultation_context,
+    validate_consultation_context,
 )
 
 from engine.reading_context import (
@@ -85,17 +110,11 @@ from engine.reading_context import (
 
 from engine.reading_generator import (
     OPENAI_API_KEY_ENV,
+    OPENAI_READING_MODEL_ENV,
     ReadingGenerationResult,
     generate_reading,
     get_default_model,
     has_openai_api_key,
-)
-
-from engine.reading_pdf import (
-    READING_PDF_METHOD,
-    READING_PDF_VERSION,
-    get_reading_pdf_metadata,
-    write_reading_product_pdf,
 )
 
 from engine.reading_product import (
@@ -103,30 +122,25 @@ from engine.reading_product import (
     build_reading_product,
 )
 
+from engine.reading_pdf import (
+    get_reading_pdf_metadata,
+    write_reading_product_pdf,
+)
+
 
 # ============================================================
-# Version
+# Script metadata
 # ============================================================
 
 
 SCRIPT_VERSION = (
-    "generate_customer_reading_v1"
+    "generate_customer_reading_v1_1"
 )
 
 
 # ============================================================
 # Product configuration
 # ============================================================
-
-
-PRODUCT_TITLE = (
-    "四柱推命鑑定書"
-)
-
-
-DOCUMENT_TITLE = (
-    "四柱推命鑑定書"
-)
 
 
 SECTIONS = (
@@ -140,12 +154,11 @@ SECTIONS = (
     "advice",
 )
 
+OUTPUT_FORMAT = "json"
 
 LANGUAGE = "ja"
 
 TONE = "professional_warm"
-
-OUTPUT_FORMAT = "json"
 
 MAX_OUTPUT_TOKENS = 8000
 
@@ -153,76 +166,49 @@ REASONING_EFFORT = "minimal"
 
 STORE = False
 
+PRODUCT_TITLE = "四柱推命鑑定書"
+
+DOCUMENT_TITLE = "四柱推命鑑定書"
+
 
 # ============================================================
-# Output configuration
+# Output
 # ============================================================
 
 
-CUSTOMER_OUTPUT_ROOT = (
+OUTPUT_ROOT = (
     Path("output")
     / "customers"
 )
 
 
-# ============================================================
-# Gender
-# ============================================================
-
-
-GENDER_ALIASES = {
-    "male": "male",
-    "m": "male",
-    "男": "male",
-    "男性": "male",
-
-    "female": "female",
-    "f": "female",
-    "女": "female",
-    "女性": "female",
-}
-
-
-GENDER_LABELS = {
-    "male": "男性",
-    "female": "女性",
-}
-
-
-# ============================================================
-# Customer input model
-# ============================================================
-
-
-@dataclass(
-    frozen=True
+PDF_FILENAME = (
+    "四柱推命鑑定書.pdf"
 )
-class CustomerInput:
 
-    customer_name: str
+INTAKE_FILENAME = (
+    "intake.json"
+)
 
-    birth_date: str
+READING_CONTEXT_FILENAME = (
+    "reading_context.json"
+)
 
-    birth_time: str
+CONSULTATION_CONTEXT_FILENAME = (
+    "consultation_context.json"
+)
 
-    birth_place: str
+AI_READING_FILENAME = (
+    "ai_reading.json"
+)
 
-    gender: str
+PRODUCT_FILENAME = (
+    "product.json"
+)
 
-    concern: str
-
-    desired_future: str
-
-    @property
-    def gender_label(
-        self,
-    ) -> str:
-
-        return (
-            GENDER_LABELS[
-                self.gender
-            ]
-        )
+SUMMARY_FILENAME = (
+    "summary.json"
+)
 
 
 # ============================================================
@@ -230,7 +216,7 @@ class CustomerInput:
 # ============================================================
 
 
-def require_mapping(
+def _require_mapping(
     value: Any,
     name: str,
 ) -> Mapping[str, Any]:
@@ -240,14 +226,13 @@ def require_mapping(
         Mapping,
     ):
         raise TypeError(
-            f"{name}はmappingで"
-            "ある必要があります。"
+            f"{name}はdict型である必要があります。"
         )
 
     return value
 
 
-def require_non_empty_string(
+def _require_non_empty_string(
     value: Any,
     name: str,
 ) -> str:
@@ -257,14 +242,12 @@ def require_non_empty_string(
         str,
     ):
         raise TypeError(
-            f"{name}は文字列で"
-            "ある必要があります。"
+            f"{name}は文字列である必要があります。"
         )
 
     value = value.strip()
 
     if not value:
-
         raise ValueError(
             f"{name}が空です。"
         )
@@ -272,10 +255,37 @@ def require_non_empty_string(
     return value
 
 
+def _optional_string(
+    value: Any,
+    name: str,
+) -> str:
+
+    if value is None:
+        return ""
+
+    if not isinstance(
+        value,
+        str,
+    ):
+        raise TypeError(
+            f"{name}は文字列である必要があります。"
+        )
+
+    return value.strip()
+
+
 def save_json(
     path: Path,
-    value: Any,
-) -> None:
+    data: Any,
+) -> Path:
+
+    if not isinstance(
+        path,
+        Path,
+    ):
+        path = Path(
+            path
+        )
 
     path.parent.mkdir(
         parents=True,
@@ -284,7 +294,7 @@ def save_json(
 
     path.write_text(
         json.dumps(
-            value,
+            data,
             ensure_ascii=False,
             indent=2,
             default=str,
@@ -292,41 +302,27 @@ def save_json(
         encoding="utf-8",
     )
 
-
-# ============================================================
-# Input
-# ============================================================
+    return path
 
 
-def prompt_required(
-    label: str,
-) -> str:
+def _json_safe_copy(
+    value: Any,
+) -> Any:
+    """
+    JSON round-trip可能なdeepcopyを作る。
+    """
 
-    while True:
-
-        value = input(
-            f"{label}: "
-        ).strip()
-
-        if value:
-            return value
-
-        print(
-            "空欄にはできません。"
+    return json.loads(
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            default=str,
         )
-
-
-def prompt_optional(
-    label: str,
-) -> str:
-
-    return input(
-        f"{label}: "
-    ).strip()
+    )
 
 
 # ============================================================
-# Input validation
+# Input normalization
 # ============================================================
 
 
@@ -334,59 +330,24 @@ def normalize_birth_date(
     value: str,
 ) -> str:
 
-    value = (
-        require_non_empty_string(
+    value = _require_non_empty_string(
+        value,
+        "生年月日",
+    )
+
+    try:
+        parsed = datetime.strptime(
             value,
-            "生年月日",
+            "%Y-%m-%d",
         )
-    )
-
-    candidates = (
-        "%Y-%m-%d",
-        "%Y/%m/%d",
-        "%Y.%m.%d",
-    )
-
-    parsed = None
-
-    for pattern in candidates:
-
-        try:
-
-            parsed = (
-                datetime.strptime(
-                    value,
-                    pattern,
-                )
-            )
-
-            break
-
-        except ValueError:
-            continue
-
-    if parsed is None:
-
+    except ValueError as exc:
         raise ValueError(
-            "生年月日は "
-            "YYYY-MM-DD 形式で"
+            "生年月日はYYYY-MM-DD形式で"
             "入力してください。"
-        )
+        ) from exc
 
-    if (
-        parsed.date()
-        > datetime.now().date()
-    ):
-
-        raise ValueError(
-            "未来の日付は"
-            "生年月日に指定できません。"
-        )
-
-    return (
-        parsed.strftime(
-            "%Y-%m-%d"
-        )
+    return parsed.strftime(
+        "%Y-%m-%d"
     )
 
 
@@ -394,48 +355,24 @@ def normalize_birth_time(
     value: str,
 ) -> str:
 
-    value = (
-        require_non_empty_string(
+    value = _require_non_empty_string(
+        value,
+        "出生時刻",
+    )
+
+    try:
+        parsed = datetime.strptime(
             value,
-            "出生時刻",
+            "%H:%M",
         )
-    )
-
-    candidates = (
-        "%H:%M",
-        "%H:%M:%S",
-    )
-
-    parsed = None
-
-    for pattern in candidates:
-
-        try:
-
-            parsed = (
-                datetime.strptime(
-                    value,
-                    pattern,
-                )
-            )
-
-            break
-
-        except ValueError:
-            continue
-
-    if parsed is None:
-
+    except ValueError as exc:
         raise ValueError(
-            "出生時刻は "
-            "HH:MM 形式で"
+            "出生時刻はHH:MM形式で"
             "入力してください。"
-        )
+        ) from exc
 
-    return (
-        parsed.strftime(
-            "%H:%M"
-        )
+    return parsed.strftime(
+        "%H:%M"
     )
 
 
@@ -443,451 +380,286 @@ def normalize_gender(
     value: str,
 ) -> str:
 
-    value = (
-        require_non_empty_string(
-            value,
-            "性別",
-        )
+    value = _require_non_empty_string(
+        value,
+        "性別",
     )
 
     normalized = (
-        GENDER_ALIASES.get(
-            value.lower()
-        )
+        value.strip()
+        .lower()
     )
 
-    if normalized is None:
+    male_values = {
+        "男性",
+        "男",
+        "male",
+        "m",
+    }
 
-        normalized = (
-            GENDER_ALIASES.get(
-                value
-            )
-        )
+    female_values = {
+        "女性",
+        "女",
+        "female",
+        "f",
+    }
 
-    if normalized is None:
+    if normalized in male_values:
+        return "male"
 
-        raise ValueError(
-            "性別は "
-            "男性 / 女性 "
-            "のいずれかを"
-            "入力してください。"
-        )
+    if normalized in female_values:
+        return "female"
 
-    return normalized
+    raise ValueError(
+        "性別は男性/女性"
+        "またはmale/femaleで"
+        "入力してください。"
+    )
 
 
-def sanitize_customer_name(
+def normalize_name(
     value: str,
 ) -> str:
 
-    value = value.strip()
-
-    # Windowsで使えない文字を除去
-    value = re.sub(
-        r'[\\/:*?"<>|]',
-        "_",
+    value = _require_non_empty_string(
         value,
+        "お名前",
     )
 
-    # 改行や制御文字を除去
-    value = re.sub(
-        r"[\r\n\t]+",
-        " ",
+    if len(
+        value
+    ) > 100:
+        raise ValueError(
+            "お名前が長すぎます。"
+        )
+
+    return value
+
+
+def normalize_birth_place(
+    value: str,
+) -> str:
+
+    value = _require_non_empty_string(
         value,
+        "出生地",
     )
 
-    value = re.sub(
-        r"\s+",
-        " ",
-        value,
-    ).strip()
+    if len(
+        value
+    ) > 200:
+        raise ValueError(
+            "出生地が長すぎます。"
+        )
 
-    if not value:
-
-        return "customer"
-
-    return value[:40]
+    return value
 
 
 # ============================================================
-# Interactive customer intake
+# Customer ID
 # ============================================================
 
 
-def collect_customer_input(
-) -> CustomerInput:
+def create_customer_id(
+    now: datetime | None = None,
+) -> str:
+
+    if now is None:
+        now = datetime.now()
+
+    return now.strftime(
+        "%Y%m%d_%H%M%S"
+    )
+
+
+def create_customer_dir(
+    customer_id: str,
+) -> Path:
+
+    customer_id = (
+        _require_non_empty_string(
+            customer_id,
+            "customer_id",
+        )
+    )
+
+    if not re.fullmatch(
+        r"[0-9]{8}_[0-9]{6}",
+        customer_id,
+    ):
+        raise ValueError(
+            "customer_idの形式が不正です。"
+        )
+
+    directory = (
+        OUTPUT_ROOT
+        / customer_id
+    )
+
+    directory.mkdir(
+        parents=True,
+        exist_ok=False,
+    )
+
+    return directory
+
+
+# ============================================================
+# CLI input
+# ============================================================
+
+
+def prompt_customer_input() -> Dict[str, str]:
 
     print()
     print(
         "=" * 72
     )
-
     print(
-        "四柱推命鑑定書"
+        "四柱推命鑑定書｜顧客情報入力"
     )
-
-    print(
-        "顧客情報入力"
-    )
-
     print(
         "=" * 72
     )
-
     print()
 
-    customer_name = (
-        prompt_required(
-            "お名前"
+    name = normalize_name(
+        input(
+            "お名前: "
         )
     )
 
     birth_date = (
         normalize_birth_date(
-            prompt_required(
-                "生年月日 YYYY-MM-DD"
+            input(
+                "生年月日 YYYY-MM-DD: "
             )
         )
     )
 
     birth_time = (
         normalize_birth_time(
-            prompt_required(
-                "出生時刻 HH:MM"
+            input(
+                "出生時刻 HH:MM: "
             )
         )
     )
 
     birth_place = (
-        prompt_required(
-            "出生地"
-        )
-    )
-
-    gender = (
-        normalize_gender(
-            prompt_required(
-                "性別 男性/女性"
+        normalize_birth_place(
+            input(
+                "出生地: "
             )
         )
     )
 
-    concern = (
-        prompt_optional(
-            "現在のお悩み"
+    gender = normalize_gender(
+        input(
+            "性別 男性/女性: "
         )
+    )
+
+    concern = _optional_string(
+        input(
+            "現在のお悩み: "
+        ),
+        "現在のお悩み",
     )
 
     desired_future = (
-        prompt_optional(
-            "理想の未来"
+        _optional_string(
+            input(
+                "理想の未来: "
+            ),
+            "理想の未来",
         )
     )
-
-    return CustomerInput(
-        customer_name=(
-            customer_name
-        ),
-        birth_date=(
-            birth_date
-        ),
-        birth_time=(
-            birth_time
-        ),
-        birth_place=(
-            birth_place
-        ),
-        gender=gender,
-        concern=concern,
-        desired_future=(
-            desired_future
-        ),
-    )
-
-
-# ============================================================
-# Confirmation
-# ============================================================
-
-
-def confirm_customer_input(
-    customer: CustomerInput,
-) -> bool:
-
-    print()
-    print(
-        "=" * 72
-    )
-
-    print(
-        "入力内容確認"
-    )
-
-    print(
-        "=" * 72
-    )
-
-    print(
-        f"お名前      : "
-        f"{customer.customer_name}"
-    )
-
-    print(
-        f"生年月日    : "
-        f"{customer.birth_date}"
-    )
-
-    print(
-        f"出生時刻    : "
-        f"{customer.birth_time}"
-    )
-
-    print(
-        f"出生地      : "
-        f"{customer.birth_place}"
-    )
-
-    print(
-        f"性別        : "
-        f"{customer.gender_label}"
-    )
-
-    print(
-        f"現在のお悩み: "
-        f"{customer.concern or '未入力'}"
-    )
-
-    print(
-        f"理想の未来  : "
-        f"{customer.desired_future or '未入力'}"
-    )
-
-    print()
-
-    while True:
-
-        answer = input(
-            "この内容で鑑定しますか？ "
-            "[y/n]: "
-        ).strip().lower()
-
-        if answer in (
-            "y",
-            "yes",
-        ):
-            return True
-
-        if answer in (
-            "n",
-            "no",
-        ):
-            return False
-
-        print(
-            "y または n を"
-            "入力してください。"
-        )
-
-
-# ============================================================
-# Environment validation
-# ============================================================
-
-
-def validate_environment(
-) -> str:
-
-    if not has_openai_api_key():
-
-        raise RuntimeError(
-            f"{OPENAI_API_KEY_ENV} "
-            "が設定されていません。"
-        )
-
-    model = (
-        get_default_model()
-    )
-
-    model = (
-        require_non_empty_string(
-            model,
-            "OpenAI model",
-        )
-    )
-
-    return model
-
-
-# ============================================================
-# Customer ID / directory
-# ============================================================
-
-
-def build_customer_id(
-) -> str:
-
-    now = datetime.now()
-
-    prefix = (
-        now.strftime(
-            "%Y%m%d_%H%M%S"
-        )
-    )
-
-    candidate = prefix
-
-    counter = 1
-
-    while (
-        CUSTOMER_OUTPUT_ROOT
-        / candidate
-    ).exists():
-
-        candidate = (
-            f"{prefix}_{counter:02d}"
-        )
-
-        counter += 1
-
-    return candidate
-
-
-def create_customer_directory(
-    customer_id: str,
-) -> Path:
-
-    path = (
-        CUSTOMER_OUTPUT_ROOT
-        / customer_id
-    )
-
-    path.mkdir(
-        parents=True,
-        exist_ok=False,
-    )
-
-    return path
-
-
-# ============================================================
-# Intake JSON
-# ============================================================
-
-
-def build_intake_data(
-    customer_id: str,
-    customer: CustomerInput,
-) -> dict[str, Any]:
 
     return {
-        "customer_id": (
-            customer_id
-        ),
-
-        "customer_name": (
-            customer.customer_name
-        ),
-
+        "name": name,
         "birth_date": (
-            customer.birth_date
+            birth_date
         ),
-
         "birth_time": (
-            customer.birth_time
+            birth_time
         ),
-
         "birth_place": (
-            customer.birth_place
+            birth_place
         ),
-
-        "gender": (
-            customer.gender
-        ),
-
-        "gender_label": (
-            customer.gender_label
-        ),
-
-        "concern": (
-            customer.concern
-        ),
-
+        "gender": gender,
+        "concern": concern,
         "desired_future": (
-            customer.desired_future
-        ),
-
-        "created_at": (
-            datetime.now()
-            .isoformat(
-                timespec="seconds"
-            )
-        ),
-
-        # v1では相談情報は保存のみ。
-        # AI鑑定プロンプトへの統合は
-        # consultation-aware reading v2で実装する。
-        "consultation_input_used_for_ai": (
-            False
-        ),
-
-        "schema": (
-            "customer_intake_v1"
+            desired_future
         ),
     }
 
 
 # ============================================================
-# Chart request
+# Chart helpers
 # ============================================================
 
 
 def build_chart_request(
-    customer: CustomerInput,
-):
-
-    return SimpleNamespace(
-        birth_date=(
-            customer.birth_date
-        ),
-        birth_time=(
-            customer.birth_time
-        ),
-        birth_place=(
-            customer.birth_place
-        ),
-        gender=(
-            customer.gender
-        ),
-    )
-
-
-# ============================================================
-# Chart validation
-# ============================================================
-
-
-def validate_chart_result(
-    result: Mapping[
+    intake: Mapping[
         str,
         Any,
     ],
-) -> None:
+) -> SimpleNamespace:
 
-    result = (
-        require_mapping(
-            result,
-            "chart_result",
-        )
+    intake = _require_mapping(
+        intake,
+        "intake",
     )
 
-    chart = (
-        require_mapping(
-            result.get(
-                "chart"
-            ),
-            "chart_result.chart",
-        )
+    return SimpleNamespace(
+        birth_date=(
+            intake[
+                "birth_date"
+            ]
+        ),
+        birth_time=(
+            intake[
+                "birth_time"
+            ]
+        ),
+        birth_place=(
+            intake[
+                "birth_place"
+            ]
+        ),
+        gender=(
+            intake[
+                "gender"
+            ]
+        ),
     )
+
+
+def extract_pillars(
+    chart_result: Mapping[
+        str,
+        Any,
+    ],
+) -> Dict[str, str]:
+
+    chart_result = _require_mapping(
+        chart_result,
+        "chart_result",
+    )
+
+    chart = chart_result.get(
+        "chart"
+    )
+
+    chart = _require_mapping(
+        chart,
+        "chart_result.chart",
+    )
+
+    result: Dict[
+        str,
+        str,
+    ] = {}
 
     for position in (
         "year",
@@ -895,183 +667,122 @@ def validate_chart_result(
         "day",
         "hour",
     ):
-
-        pillar = chart.get(
-            position
+        pillar_data = (
+            chart.get(
+                position
+            )
         )
 
-        if pillar is None:
-
-            raise RuntimeError(
-                f"{position}柱が"
-                "生成されていません。"
-            )
+        pillar_data = _require_mapping(
+            pillar_data,
+            f"chart.{position}",
+        )
 
         pillar = (
-            require_mapping(
-                pillar,
-                (
-                    f"chart."
-                    f"{position}"
-                ),
+            pillar_data.get(
+                "pillar"
             )
         )
 
-        require_non_empty_string(
-            pillar.get(
-                "pillar"
-            ),
-            (
-                f"chart."
-                f"{position}."
-                "pillar"
-            ),
+        result[
+            position
+        ] = (
+            _require_non_empty_string(
+                pillar,
+                f"{position}柱",
+            )
         )
 
-    day_master = (
-        require_mapping(
-            result.get(
-                "day_master"
-            ),
-            "day_master",
-        )
-    )
-
-    require_non_empty_string(
-        day_master.get(
-            "stem"
-        ),
-        "day_master.stem",
-    )
+    return result
 
 
-# ============================================================
-# Context validation
-# ============================================================
-
-
-def validate_reading_context(
-    context: Mapping[
+def extract_day_master(
+    reading_context: Mapping[
         str,
         Any,
     ],
-) -> None:
+) -> str:
 
-    context = (
-        require_mapping(
-            context,
+    reading_context = (
+        _require_mapping(
+            reading_context,
             "reading_context",
         )
     )
 
-    if (
-        context.get(
-            "status"
+    day_master = (
+        reading_context.get(
+            "day_master"
         )
-        != "ready_for_ai_reading"
-    ):
+    )
 
-        raise RuntimeError(
-            "reading_contextが"
-            "ready_for_ai_reading"
-            "ではありません。"
-        )
+    day_master = _require_mapping(
+        day_master,
+        "reading_context.day_master",
+    )
+
+    return _require_non_empty_string(
+        day_master.get(
+            "stem"
+        ),
+        "日主",
+    )
 
 
 # ============================================================
-# AI generation validation
+# Validation
 # ============================================================
 
 
-def validate_generation(
-    generation: ReadingGenerationResult,
+def validate_generation_result(
+    result: ReadingGenerationResult,
 ) -> None:
 
     if not isinstance(
-        generation,
+        result,
         ReadingGenerationResult,
     ):
-
         raise TypeError(
-            "generationが"
-            "ReadingGenerationResult"
-            "ではありません。"
+            "generation_resultが"
+            "ReadingGenerationResultではありません。"
         )
 
     if (
-        generation.status
-        != "completed"
+        result.output_format
+        != "json"
     ):
-
         raise RuntimeError(
-            "AI鑑定生成が"
-            "completedではありません。 "
-            f"status="
-            f"{generation.status}"
+            "商品生成ではJSON鑑定が必要です。"
         )
 
     if (
-        generation.response_status
+        result.parsed
+        is None
+    ):
+        raise RuntimeError(
+            "AI鑑定JSONが取得できませんでした。"
+        )
+
+    if (
+        result.response_status
         not in (
             None,
             "completed",
         )
     ):
-
         raise RuntimeError(
-            "OpenAI responseが"
-            "completedではありません。 "
-            f"response_status="
-            f"{generation.response_status}"
+            "OpenAI responseがcompletedではありません。 "
+            f"status={result.response_status}"
         )
-
-    parsed = (
-        require_mapping(
-            generation.parsed,
-            "generation.parsed",
-        )
-    )
-
-    require_non_empty_string(
-        parsed.get(
-            "summary"
-        ),
-        "AI summary",
-    )
-
-    sections = (
-        require_mapping(
-            parsed.get(
-                "sections"
-            ),
-            "AI sections",
-        )
-    )
 
     if (
-        tuple(
-            sections.keys()
-        )
-        != SECTIONS
+        result.status
+        != "completed"
     ):
-
         raise RuntimeError(
-            "AI鑑定の"
-            "8セクション構成が"
-            "一致しません。"
+            "鑑定生成がcompletedではありません。 "
+            f"status={result.status}"
         )
-
-    require_non_empty_string(
-        parsed.get(
-            "disclaimer"
-        ),
-        "AI disclaimer",
-    )
-
-
-# ============================================================
-# Product validation
-# ============================================================
 
 
 def validate_product(
@@ -1082,303 +793,331 @@ def validate_product(
         product,
         ReadingProduct,
     ):
-
         raise TypeError(
-            "productが"
-            "ReadingProduct"
-            "ではありません。"
+            "productがReadingProductではありません。"
         )
 
     if (
-        product.status
-        != "ready"
+        product.title
+        != PRODUCT_TITLE
     ):
-
         raise RuntimeError(
-            "ReadingProductが"
-            "readyではありません。 "
-            f"status="
-            f"{product.status}"
+            "商品タイトルが不正です。"
         )
 
-    if (
-        len(
-            product.sections
-        )
-        != len(
-            SECTIONS
-        )
+    if len(
+        product.sections
+    ) != len(
+        SECTIONS
     ):
-
         raise RuntimeError(
-            "ReadingProductが"
-            "8セクションでは"
-            "ありません。"
+            "鑑定セクション数が"
+            "8ではありません。"
         )
-
-
-# ============================================================
-# PDF validation
-# ============================================================
 
 
 def validate_pdf(
-    path: Path,
+    pdf_path: Path,
 ) -> int:
 
-    if not path.exists():
-
+    if not pdf_path.exists():
         raise RuntimeError(
-            "PDFファイルが"
-            "生成されていません。"
-        )
-
-    if not path.is_file():
-
-        raise RuntimeError(
-            "PDF出力先が"
-            "ファイルではありません。"
-        )
-
-    if (
-        path.suffix.lower()
-        != ".pdf"
-    ):
-
-        raise RuntimeError(
-            "PDF拡張子が"
-            "不正です。"
-        )
-
-    size = (
-        path.stat()
-        .st_size
-    )
-
-    if (
-        size
-        < 10_000
-    ):
-
-        raise RuntimeError(
-            "生成PDFのサイズが"
-            "小さすぎます。 "
-            f"size={size}"
+            "PDFファイルが生成されていません。"
         )
 
     data = (
-        path.read_bytes()
+        pdf_path.read_bytes()
     )
+
+    if not data:
+        raise RuntimeError(
+            "PDFファイルが空です。"
+        )
 
     if not data.startswith(
-        b"%PDF-"
+        b"%PDF"
     ):
-
         raise RuntimeError(
-            "生成ファイルが"
-            "PDFではありません。"
+            "生成ファイルがPDF形式ではありません。"
         )
 
-    return size
-
-
-# ============================================================
-# Security validation
-# ============================================================
-
-
-def validate_no_api_key_exposure(
-    *values: Any,
-) -> None:
-
-    api_key = (
-        os.getenv(
-            OPENAI_API_KEY_ENV,
-            "",
-        )
-        .strip()
+    return len(
+        data
     )
 
-    if not api_key:
-        return
-
-    for index, value in enumerate(
-        values,
-        start=1,
-    ):
-
-        if isinstance(
-            value,
-            bytes,
-        ):
-
-            if (
-                api_key.encode(
-                    "utf-8"
-                )
-                in value
-            ):
-
-                raise RuntimeError(
-                    "APIキーが"
-                    "生成物に"
-                    "露出しています。 "
-                    f"target={index}"
-                )
-
-            continue
-
-        serialized = (
-            json.dumps(
-                value,
-                ensure_ascii=False,
-                default=str,
-            )
-        )
-
-        if (
-            api_key
-            in serialized
-        ):
-
-            raise RuntimeError(
-                "APIキーが"
-                "生成物に"
-                "露出しています。 "
-                f"target={index}"
-            )
-
 
 # ============================================================
-# Display chart
+# Security
 # ============================================================
 
 
-def print_chart_summary(
-    chart_result: Mapping[
+def validate_output_security(
+    *,
+    product_data: Mapping[
+        str,
+        Any,
+    ],
+    consultation_context: Mapping[
+        str,
+        Any,
+    ],
+    reading_context: Mapping[
         str,
         Any,
     ],
 ) -> None:
+    """
+    保存対象JSONにAPIキーや
+    prompt内部フィールドが混入していないことを確認する。
 
-    chart = (
-        chart_result[
-            "chart"
-        ]
+    顧客相談文そのものは、
+    consultation_context.jsonへ保存するため
+    セキュリティ違反とは扱わない。
+    """
+
+    serialized = json.dumps(
+        {
+            "product": (
+                product_data
+            ),
+            "consultation_context": (
+                consultation_context
+            ),
+            "reading_context": (
+                reading_context
+            ),
+        },
+        ensure_ascii=False,
+        default=str,
     )
 
-    pillars = []
+    api_key = os.getenv(
+        OPENAI_API_KEY_ENV,
+        "",
+    ).strip()
 
-    for position in (
-        "year",
-        "month",
-        "day",
-        "hour",
+    if (
+        api_key
+        and api_key
+        in serialized
     ):
-
-        pillars.append(
-            chart[
-                position
-            ][
-                "pillar"
-            ]
+        raise RuntimeError(
+            "保存対象JSONに"
+            "OPENAI_API_KEYが含まれています。"
         )
 
-    day_master = (
-        chart_result[
-            "day_master"
-        ][
-            "stem"
-        ]
+    forbidden_markers = (
+        '"api_key"',
+        '"system_prompt"',
+        '"user_prompt"',
     )
 
-    print(
-        "   "
-        + " / ".join(
-            pillars
-        )
+    lower = (
+        serialized.lower()
     )
 
-    print(
-        f"   日主: "
-        f"{day_master}"
-    )
+    for marker in forbidden_markers:
+        if marker.lower() in lower:
+            raise RuntimeError(
+                "保存対象JSONに"
+                "非公開フィールドが含まれています: "
+                f"{marker}"
+            )
 
 
 # ============================================================
-# PDF metadata validation
+# Summary
 # ============================================================
 
 
-def validate_pdf_metadata(
-) -> dict[str, Any]:
+def build_summary(
+    *,
+    customer_id: str,
+    intake: Mapping[
+        str,
+        Any,
+    ],
+    pillars: Mapping[
+        str,
+        str,
+    ],
+    day_master: str,
+    consultation_context: Mapping[
+        str,
+        Any,
+    ],
+    generation_result: ReadingGenerationResult,
+    pdf_path: Path,
+    pdf_size: int,
+    model: str,
+) -> Dict[str, Any]:
 
-    metadata = (
-        get_reading_pdf_metadata()
+    focus = (
+        consultation_context.get(
+            "focus",
+            {}
+        )
     )
 
-    if (
-        metadata.get(
-            "version"
+    safety = (
+        consultation_context.get(
+            "safety",
+            {}
         )
-        != READING_PDF_VERSION
-    ):
+    )
 
+    return {
+        "script_version": (
+            SCRIPT_VERSION
+        ),
+
+        "customer_id": (
+            customer_id
+        ),
+
+        "customer_name": (
+            intake.get(
+                "name"
+            )
+        ),
+
+        "birth": {
+            "birth_date": (
+                intake.get(
+                    "birth_date"
+                )
+            ),
+            "birth_time": (
+                intake.get(
+                    "birth_time"
+                )
+            ),
+            "birth_place": (
+                intake.get(
+                    "birth_place"
+                )
+            ),
+            "gender": (
+                intake.get(
+                    "gender"
+                )
+            ),
+        },
+
+        "pillars": {
+            "year": (
+                pillars[
+                    "year"
+                ]
+            ),
+            "month": (
+                pillars[
+                    "month"
+                ]
+            ),
+            "day": (
+                pillars[
+                    "day"
+                ]
+            ),
+            "hour": (
+                pillars[
+                    "hour"
+                ]
+            ),
+        },
+
+        "day_master": (
+            day_master
+        ),
+
+        "consultation": {
+            "has_consultation": (
+                consultation_context.get(
+                    "has_consultation"
+                )
+            ),
+            "primary_focus": (
+                focus.get(
+                    "primary"
+                )
+            ),
+            "secondary_focus": (
+                deepcopy(
+                    focus.get(
+                        "secondary",
+                        [],
+                    )
+                )
+            ),
+            "requires_cautious_language": (
+                safety.get(
+                    "requires_cautious_language",
+                    False,
+                )
+            ),
+        },
+
+        "generation": {
+            "model": (
+                model
+            ),
+            "response_status": (
+                generation_result.response_status
+            ),
+            "response_id": (
+                generation_result.response_id
+            ),
+            "usage": deepcopy(
+                generation_result.usage
+            ),
+            "method": (
+                generation_result.method
+            ),
+            "status": (
+                generation_result.status
+            ),
+        },
+
+        "pdf": {
+            "path": str(
+                pdf_path
+            ),
+            "size_bytes": (
+                pdf_size
+            ),
+        },
+
+        "created_at": (
+            datetime.now()
+            .astimezone()
+            .isoformat()
+        ),
+
+        "status": (
+            "completed"
+        ),
+    }
+
+
+# ============================================================
+# Environment
+# ============================================================
+
+
+def validate_environment() -> str:
+
+    if not has_openai_api_key():
         raise RuntimeError(
-            "PDF versionが"
-            "一致しません。"
+            "OPENAI_API_KEY が設定されていません。"
         )
 
-    if (
-        metadata.get(
-            "method"
-        )
-        != READING_PDF_METHOD
-    ):
+    model = get_default_model()
 
-        raise RuntimeError(
-            "PDF methodが"
-            "一致しません。"
-        )
-
-    if (
-        metadata.get(
-            "recalculates_astrology"
-        )
-        is not False
-    ):
-
-        raise RuntimeError(
-            "PDF層が占術を"
-            "再計算しています。"
-        )
-
-    if (
-        metadata.get(
-            "rewrites_ai_reading"
-        )
-        is not False
-    ):
-
-        raise RuntimeError(
-            "PDF層がAI鑑定文を"
-            "書き換えています。"
-        )
-
-    if (
-        metadata.get(
-            "exposes_api_key"
-        )
-        is not False
-    ):
-
-        raise RuntimeError(
-            "PDF層のAPIキー"
-            "非露出設定が"
-            "不正です。"
-        )
-
-    return metadata
+    return _require_non_empty_string(
+        model,
+        "OpenAI model",
+    )
 
 
 # ============================================================
@@ -1387,126 +1126,220 @@ def validate_pdf_metadata(
 
 
 def generate_customer_reading(
-    customer: CustomerInput,
-) -> dict[str, Any]:
+    intake: Mapping[
+        str,
+        Any,
+    ],
+) -> Dict[str, Any]:
 
-    model = (
-        validate_environment()
+    intake = _require_mapping(
+        intake,
+        "intake",
+    )
+
+    # 外部から関数として呼ばれた場合も
+    # 最低限正規化する。
+    normalized_intake = {
+        "name": normalize_name(
+            intake.get(
+                "name"
+            )
+        ),
+        "birth_date": (
+            normalize_birth_date(
+                intake.get(
+                    "birth_date"
+                )
+            )
+        ),
+        "birth_time": (
+            normalize_birth_time(
+                intake.get(
+                    "birth_time"
+                )
+            )
+        ),
+        "birth_place": (
+            normalize_birth_place(
+                intake.get(
+                    "birth_place"
+                )
+            )
+        ),
+        "gender": normalize_gender(
+            intake.get(
+                "gender"
+            )
+        ),
+        "concern": (
+            _optional_string(
+                intake.get(
+                    "concern",
+                    "",
+                ),
+                "concern",
+            )
+        ),
+        "desired_future": (
+            _optional_string(
+                intake.get(
+                    "desired_future",
+                    "",
+                ),
+                "desired_future",
+            )
+        ),
+    }
+
+    model = validate_environment()
+
+    generation_started_at = (
+        datetime.now()
     )
 
     customer_id = (
-        build_customer_id()
+        create_customer_id(
+            generation_started_at
+        )
     )
 
     customer_dir = (
-        create_customer_directory(
+        create_customer_dir(
             customer_id
         )
     )
 
     intake_path = (
         customer_dir
-        / "intake.json"
+        / INTAKE_FILENAME
     )
 
-    chart_path = (
+    reading_context_path = (
         customer_dir
-        / "chart.json"
+        / READING_CONTEXT_FILENAME
     )
 
-    context_path = (
+    consultation_context_path = (
         customer_dir
-        / "reading_context.json"
+        / CONSULTATION_CONTEXT_FILENAME
     )
 
     ai_reading_path = (
         customer_dir
-        / "ai_reading.json"
+        / AI_READING_FILENAME
     )
 
     product_path = (
         customer_dir
-        / "product.json"
+        / PRODUCT_FILENAME
     )
 
     pdf_path = (
         customer_dir
-        / "四柱推命鑑定書.pdf"
+        / PDF_FILENAME
     )
 
     summary_path = (
         customer_dir
-        / "summary.json"
+        / SUMMARY_FILENAME
     )
 
     # --------------------------------------------------------
     # 0. Intake
     # --------------------------------------------------------
 
-    print()
     print(
         "0. 顧客情報保存"
     )
 
-    intake_data = (
-        build_intake_data(
-            customer_id,
-            customer,
-        )
-    )
+    intake_record = {
+        "customer_id": (
+            customer_id
+        ),
+        "name": (
+            normalized_intake[
+                "name"
+            ]
+        ),
+        "birth_date": (
+            normalized_intake[
+                "birth_date"
+            ]
+        ),
+        "birth_time": (
+            normalized_intake[
+                "birth_time"
+            ]
+        ),
+        "birth_place": (
+            normalized_intake[
+                "birth_place"
+            ]
+        ),
+        "gender": (
+            normalized_intake[
+                "gender"
+            ]
+        ),
+        "concern": (
+            normalized_intake[
+                "concern"
+            ]
+        ),
+        "desired_future": (
+            normalized_intake[
+                "desired_future"
+            ]
+        ),
+        "created_at": (
+            generation_started_at
+            .astimezone()
+            .isoformat()
+        ),
+        "schema_version": (
+            "customer_intake_v1"
+        ),
+    }
 
     save_json(
         intake_path,
-        intake_data,
+        intake_record,
     )
 
     print(
         "   OK"
     )
+    print()
 
     # --------------------------------------------------------
     # 1. Chart
     # --------------------------------------------------------
 
-    print()
     print(
         "1. 命式計算"
     )
 
-    request = (
-        build_chart_request(
-            customer
-        )
+    request = build_chart_request(
+        normalized_intake
     )
 
-    target_datetime = (
-        datetime.now()
+    chart_result = calculate_chart(
+        request,
+        target_datetime=(
+            generation_started_at
+        ),
     )
 
-    chart_result = (
-        calculate_chart(
-            request,
-            target_datetime=(
-                target_datetime
-            ),
-        )
-    )
-
-    validate_chart_result(
-        chart_result
-    )
-
-    save_json(
-        chart_path,
-        chart_result,
-    )
-
-    print_chart_summary(
+    pillars = extract_pillars(
         chart_result
     )
 
     print(
-        "   OK"
+        "   "
+        f"{pillars['year']} / "
+        f"{pillars['month']} / "
+        f"{pillars['day']} / "
+        f"{pillars['hour']}"
     )
 
     # --------------------------------------------------------
@@ -1518,19 +1351,32 @@ def generate_customer_reading(
         "2. reading_context生成"
     )
 
-    context = (
+    reading_context = (
         build_reading_context(
             chart_result
         )
     )
 
-    validate_reading_context(
-        context
+    reading_context = _require_mapping(
+        reading_context,
+        "reading_context",
+    )
+
+    day_master = (
+        extract_day_master(
+            reading_context
+        )
     )
 
     save_json(
-        context_path,
-        context,
+        reading_context_path,
+        _json_safe_copy(
+            reading_context
+        ),
+    )
+
+    print(
+        f"   日主: {day_master}"
     )
 
     print(
@@ -1538,18 +1384,83 @@ def generate_customer_reading(
     )
 
     # --------------------------------------------------------
-    # 3. OpenAI
+    # 3. Consultation context
     # --------------------------------------------------------
 
     print()
     print(
-        "3. OpenAIで"
-        "8セクション鑑定生成"
+        "3. consultation_context生成"
     )
 
-    generation = (
+    consultation_context = (
+        build_consultation_context(
+            concern=(
+                normalized_intake[
+                    "concern"
+                ]
+            ),
+            desired_future=(
+                normalized_intake[
+                    "desired_future"
+                ]
+            ),
+        )
+    )
+
+    consultation_validation = (
+        validate_consultation_context(
+            consultation_context
+        )
+    )
+
+    if (
+        consultation_validation.get(
+            "valid"
+        )
+        is not True
+    ):
+        raise RuntimeError(
+            "consultation_contextが"
+            "validではありません。"
+        )
+
+    save_json(
+        consultation_context_path,
+        consultation_context,
+    )
+
+    primary_focus = (
+        consultation_context[
+            "focus"
+        ][
+            "primary"
+        ]
+    )
+
+    print(
+        "   primary_focus: "
+        f"{primary_focus}"
+    )
+
+    print(
+        "   OK"
+    )
+
+    # --------------------------------------------------------
+    # 4. OpenAI
+    # --------------------------------------------------------
+
+    print()
+    print(
+        "4. OpenAIで8セクション相談連動鑑定生成"
+    )
+
+    generation_result = (
         generate_reading(
-            context,
+            reading_context,
+            consultation_context=(
+                consultation_context
+            ),
             model=model,
             sections=SECTIONS,
             language=LANGUAGE,
@@ -1567,13 +1478,21 @@ def generate_customer_reading(
         )
     )
 
-    validate_generation(
-        generation
+    validate_generation_result(
+        generation_result
     )
+
+    if (
+        generation_result.parsed
+        is None
+    ):
+        raise RuntimeError(
+            "AI Reading JSONがありません。"
+        )
 
     save_json(
         ai_reading_path,
-        generation.parsed,
+        generation_result.parsed,
     )
 
     print(
@@ -1582,33 +1501,29 @@ def generate_customer_reading(
 
     print(
         "   response_status: "
-        f"{generation.response_status}"
+        f"{generation_result.response_status}"
     )
 
     print(
         "   response_id: "
-        f"{generation.response_id}"
+        f"{generation_result.response_id}"
     )
 
     # --------------------------------------------------------
-    # 4. ReadingProduct
+    # 5. ReadingProduct
     # --------------------------------------------------------
 
     print()
     print(
-        "4. ReadingProduct生成"
+        "5. ReadingProduct生成"
     )
 
     product = (
         build_reading_product(
-            context,
-            generation,
-            title=(
-                PRODUCT_TITLE
-            ),
-            sections=(
-                SECTIONS
-            ),
+            reading_context,
+            generation_result,
+            title=PRODUCT_TITLE,
+            sections=SECTIONS,
         )
     )
 
@@ -1616,13 +1531,13 @@ def generate_customer_reading(
         product
     )
 
-    product_dict = (
+    product_data = (
         product.to_dict()
     )
 
     save_json(
         product_path,
-        product_dict,
+        product_data,
     )
 
     print(
@@ -1630,12 +1545,37 @@ def generate_customer_reading(
     )
 
     # --------------------------------------------------------
-    # 5. PDF
+    # 6. Security
     # --------------------------------------------------------
 
     print()
     print(
-        "5. 四柱推命鑑定書PDF生成"
+        "6. セキュリティ確認"
+    )
+
+    validate_output_security(
+        product_data=(
+            product_data
+        ),
+        consultation_context=(
+            consultation_context
+        ),
+        reading_context=(
+            reading_context
+        ),
+    )
+
+    print(
+        "   OK"
+    )
+
+    # --------------------------------------------------------
+    # 7. PDF
+    # --------------------------------------------------------
+
+    print()
+    print(
+        "7. 四柱推命鑑定書PDF生成"
     )
 
     generated_pdf_path = (
@@ -1648,10 +1588,16 @@ def generate_customer_reading(
         )
     )
 
-    pdf_size = (
-        validate_pdf(
-            generated_pdf_path
+    if (
+        generated_pdf_path
+        != pdf_path
+    ):
+        raise RuntimeError(
+            "PDF出力パスが期待値と異なります。"
         )
+
+    pdf_size = validate_pdf(
+        pdf_path
     )
 
     print(
@@ -1659,170 +1605,152 @@ def generate_customer_reading(
     )
 
     print(
-        f"   size: "
+        "   size: "
         f"{pdf_size:,} bytes"
     )
 
     # --------------------------------------------------------
-    # 6. Security
+    # 8. PDF metadata
     # --------------------------------------------------------
 
     print()
     print(
-        "6. セキュリティ確認"
-    )
-
-    validate_no_api_key_exposure(
-        intake_data,
-        chart_result,
-        context,
-        generation.parsed,
-        product_dict,
-        generated_pdf_path
-        .read_bytes(),
-    )
-
-    print(
-        "   OK"
-    )
-
-    # --------------------------------------------------------
-    # 7. PDF metadata
-    # --------------------------------------------------------
-
-    print()
-    print(
-        "7. PDF metadata確認"
+        "8. PDF metadata確認"
     )
 
     pdf_metadata = (
-        validate_pdf_metadata()
+        get_reading_pdf_metadata()
     )
+
+    if not isinstance(
+        pdf_metadata,
+        Mapping,
+    ):
+        raise RuntimeError(
+            "PDF metadataがdictではありません。"
+        )
+
+    if (
+        pdf_metadata.get(
+            "recalculates_astrology"
+        )
+        is not False
+    ):
+        raise RuntimeError(
+            "PDF metadataの"
+            "recalculates_astrologyが不正です。"
+        )
 
     print(
         "   OK"
     )
 
     # --------------------------------------------------------
-    # 8. Summary
+    # 9. Summary
     # --------------------------------------------------------
 
-    summary = {
-        "customer_id": (
+    summary = build_summary(
+        customer_id=(
             customer_id
         ),
-
-        "customer_name": (
-            customer.customer_name
+        intake=(
+            normalized_intake
         ),
-
-        "script_version": (
-            SCRIPT_VERSION
+        pillars=pillars,
+        day_master=(
+            day_master
         ),
-
-        "product_title": (
-            PRODUCT_TITLE
+        consultation_context=(
+            consultation_context
         ),
-
-        "model": (
-            model
+        generation_result=(
+            generation_result
         ),
-
-        "generated_at": (
-            datetime.now()
-            .isoformat(
-                timespec="seconds"
-            )
-        ),
-
-        "target_datetime": (
-            target_datetime
-            .isoformat(
-                timespec="seconds"
-            )
-        ),
-
-        "response_status": (
-            generation
-            .response_status
-        ),
-
-        "response_id": (
-            generation
-            .response_id
-        ),
-
-        "usage": (
-            generation.usage
-        ),
-
-        "pdf_version": (
-            pdf_metadata[
-                "version"
-            ]
-        ),
-
-        "pdf_method": (
-            pdf_metadata[
-                "method"
-            ]
-        ),
-
-        "pdf_size": (
+        pdf_path=pdf_path,
+        pdf_size=(
             pdf_size
         ),
+        model=model,
+    )
 
-        "files": {
-            "intake": str(
-                intake_path.resolve()
-            ),
-
-            "chart": str(
-                chart_path.resolve()
-            ),
-
-            "reading_context": str(
-                context_path.resolve()
-            ),
-
-            "ai_reading": str(
-                ai_reading_path.resolve()
-            ),
-
-            "product": str(
-                product_path.resolve()
-            ),
-
-            "pdf": str(
-                generated_pdf_path
-                .resolve()
-            ),
-        },
-
-        "consultation_input_used_for_ai": (
-            False
-        ),
-
-        "status": (
-            "completed"
-        ),
-    }
+    summary[
+        "pdf_metadata"
+    ] = _json_safe_copy(
+        pdf_metadata
+    )
 
     save_json(
         summary_path,
         summary,
     )
 
-    return summary
+    return {
+        "customer_id": (
+            customer_id
+        ),
+        "customer_dir": (
+            customer_dir
+        ),
+        "intake_path": (
+            intake_path
+        ),
+        "reading_context_path": (
+            reading_context_path
+        ),
+        "consultation_context_path": (
+            consultation_context_path
+        ),
+        "ai_reading_path": (
+            ai_reading_path
+        ),
+        "product_path": (
+            product_path
+        ),
+        "pdf_path": (
+            pdf_path
+        ),
+        "summary_path": (
+            summary_path
+        ),
+        "pdf_size": (
+            pdf_size
+        ),
+        "pillars": (
+            pillars
+        ),
+        "day_master": (
+            day_master
+        ),
+        "primary_focus": (
+            primary_focus
+        ),
+        "response_status": (
+            generation_result.response_status
+        ),
+        "response_id": (
+            generation_result.response_id
+        ),
+        "usage": deepcopy(
+            generation_result.usage
+        ),
+        "model": (
+            model
+        ),
+    }
 
 
 # ============================================================
-# Completion display
+# Console output
 # ============================================================
 
 
 def print_completion(
-    summary: Mapping[
+    *,
+    intake: Mapping[
+        str,
+        Any,
+    ],
+    result: Mapping[
         str,
         Any,
     ],
@@ -1845,12 +1773,40 @@ def print_completion(
 
     print(
         "顧客ID: "
-        f"{summary['customer_id']}"
+        f"{result['customer_id']}"
     )
 
     print(
         "お名前: "
-        f"{summary['customer_name']}"
+        f"{intake['name']}"
+    )
+
+    print(
+        "相談焦点: "
+        f"{result['primary_focus']}"
+    )
+
+    print()
+
+    print(
+        "命式:"
+    )
+
+    pillars = result[
+        "pillars"
+    ]
+
+    print(
+        "  "
+        f"{pillars['year']} / "
+        f"{pillars['month']} / "
+        f"{pillars['day']} / "
+        f"{pillars['hour']}"
+    )
+
+    print(
+        "日主: "
+        f"{result['day_master']}"
     )
 
     print()
@@ -1860,8 +1816,8 @@ def print_completion(
     )
 
     print(
-        f"  "
-        f"{summary['files']['pdf']}"
+        "  "
+        f"{result['pdf_path'].resolve()}"
     )
 
     print()
@@ -1871,8 +1827,8 @@ def print_completion(
     )
 
     print(
-        f"  "
-        f"{summary['files']['product']}"
+        "  "
+        f"{result['product_path'].resolve()}"
     )
 
     print()
@@ -1882,8 +1838,30 @@ def print_completion(
     )
 
     print(
-        f"  "
-        f"{summary['files']['ai_reading']}"
+        "  "
+        f"{result['ai_reading_path'].resolve()}"
+    )
+
+    print()
+
+    print(
+        "Reading Context:"
+    )
+
+    print(
+        "  "
+        f"{result['reading_context_path'].resolve()}"
+    )
+
+    print()
+
+    print(
+        "Consultation Context:"
+    )
+
+    print(
+        "  "
+        f"{result['consultation_context_path'].resolve()}"
     )
 
     print()
@@ -1893,31 +1871,46 @@ def print_completion(
     )
 
     print(
-        f"  "
-        f"{summary['files']['intake']}"
+        "  "
+        f"{result['intake_path'].resolve()}"
+    )
+
+    print()
+
+    print(
+        "Summary:"
+    )
+
+    print(
+        "  "
+        f"{result['summary_path'].resolve()}"
     )
 
     print()
 
     print(
         "response_status: "
-        f"{summary['response_status']}"
+        f"{result['response_status']}"
     )
 
     print(
         "response_id: "
-        f"{summary['response_id']}"
+        f"{result['response_id']}"
+    )
+
+    print(
+        "model: "
+        f"{result['model']}"
     )
 
     print(
         "pdf_size: "
-        f"{summary['pdf_size']:,} bytes"
+        f"{result['pdf_size']:,} bytes"
     )
 
-    print()
-
     print(
-        "STATUS: COMPLETED"
+        "usage: "
+        f"{result['usage']}"
     )
 
 
@@ -1930,94 +1923,89 @@ def main() -> int:
 
     print()
     print(
-        "# 四柱推命鑑定書"
-    )
-
-    print(
-        "# 顧客本番生成 v1"
+        "# 四柱推命鑑定書｜本番顧客生成"
     )
 
     print()
 
     print(
-        f"script_version: "
-        f"{SCRIPT_VERSION}"
+        f"script_version: {SCRIPT_VERSION}"
     )
 
     print(
-        f"product_title: "
-        f"{PRODUCT_TITLE}"
+        "consultation: enabled"
     )
+
+    print(
+        f"product_title: {PRODUCT_TITLE}"
+    )
+
+    print(
+        f"output_root: {OUTPUT_ROOT.resolve()}"
+    )
+
+    print()
+
+    if not has_openai_api_key():
+
+        print(
+            "=" * 72
+        )
+
+        print(
+            "生成失敗"
+        )
+
+        print(
+            "=" * 72
+        )
+
+        print(
+            f"{OPENAI_API_KEY_ENV} が設定されていません。"
+        )
+
+        return 1
+
+    configured_model = (
+        os.getenv(
+            OPENAI_READING_MODEL_ENV,
+            "",
+        ).strip()
+    )
+
+    if configured_model:
+
+        print(
+            "model: "
+            f"{configured_model}"
+        )
+
+    else:
+
+        print(
+            "model: "
+            f"{get_default_model()}"
+        )
 
     print()
 
     try:
 
-        # ----------------------------------------------------
-        # Environment check first.
-        #
-        # 顧客情報を入力してから
-        # APIキーなしで失敗するのを避ける。
-        # ----------------------------------------------------
-
-        model = (
-            validate_environment()
+        intake = (
+            prompt_customer_input()
         )
 
-        print(
-            f"model: "
-            f"{model}"
-        )
+        print()
 
-        print(
-            f"pdf_version: "
-            f"{READING_PDF_VERSION}"
-        )
-
-        print(
-            f"pdf_method: "
-            f"{READING_PDF_METHOD}"
-        )
-
-        # ----------------------------------------------------
-        # Customer intake
-        # ----------------------------------------------------
-
-        customer = (
-            collect_customer_input()
-        )
-
-        confirmed = (
-            confirm_customer_input(
-                customer
-            )
-        )
-
-        if not confirmed:
-
-            print()
-            print(
-                "キャンセルしました。"
-            )
-
-            return 0
-
-        # ----------------------------------------------------
-        # Generation
-        # ----------------------------------------------------
-
-        summary = (
+        result = (
             generate_customer_reading(
-                customer
+                intake
             )
         )
-
-        # ----------------------------------------------------
-        # Complete
-        # ----------------------------------------------------
 
         print_completion(
-            summary
+            intake=intake,
+            result=result,
         )
 
         return 0
@@ -2025,10 +2013,8 @@ def main() -> int:
     except KeyboardInterrupt:
 
         print()
-        print()
         print(
-            "ユーザー操作により"
-            "中断しました。"
+            "処理を中止しました。"
         )
 
         return 130
@@ -2036,34 +2022,27 @@ def main() -> int:
     except Exception as exc:
 
         print()
+
         print(
-            "=" * 72,
-            file=sys.stderr,
+            "=" * 72
         )
 
         print(
-            "鑑定書生成失敗",
-            file=sys.stderr,
+            "生成失敗"
         )
 
         print(
-            "=" * 72,
-            file=sys.stderr,
+            "=" * 72
         )
 
         print(
-            (
-                f"{type(exc).__name__}: "
-                f"{exc}"
-            ),
-            file=sys.stderr,
+            f"{type(exc).__name__}: {exc}"
         )
 
         return 1
 
 
 if __name__ == "__main__":
-
-    raise SystemExit(
+    sys.exit(
         main()
     )
