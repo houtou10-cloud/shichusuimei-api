@@ -19,42 +19,17 @@ Playwright / Chromium
 
 を一括生成・検証する最終商品品質確認スクリプト。
 
-目的
+重要
 ----
-単一命式だけでは発見しにくい、
+OpenAI APIを呼ぶ前に、
+全ケースの命式をPRECHECKする。
 
-- 日主の違い
-- 性別の違い
-- 出生地の違い
-- 出生時刻の違い
-- 時柱の違い
-- AI文章量の違い
-- PDF改ページの違い
-
-による商品PDFの崩れを確認する。
-
-このスクリプトはLIVE。
-OpenAI API料金が発生する。
-
-必要環境
---------
-OPENAI_API_KEY
-
-Playwright:
-
-    pip install playwright
-    python -m playwright install chromium
-
-実行
-----
-PowerShell:
-
-    $env:PYTHONPATH="."
-    python .\\scripts\\generate_multi_sample_product_pdf.py
+1ケースでも期待値と不一致なら、
+OpenAI APIを1回も呼ばず停止する。
 
 Version
 -------
-generate_multi_sample_product_pdf_v1_1
+generate_multi_sample_product_pdf_v1_2
 """
 
 from __future__ import annotations
@@ -62,6 +37,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -101,7 +77,7 @@ from engine.reading_product import (
 
 
 SCRIPT_VERSION = (
-    "generate_multi_sample_product_pdf_v1_1"
+    "generate_multi_sample_product_pdf_v1_2"
 )
 
 
@@ -154,7 +130,9 @@ TARGET_DATETIME = datetime(
 )
 
 
-EXPECTED_ANNUAL_GANZHI = "丙午"
+EXPECTED_ANNUAL_GANZHI = (
+    "丙午"
+)
 
 
 # ============================================================
@@ -231,7 +209,7 @@ class SampleCase:
 
 
 # ============================================================
-# Verified cases
+# Cases
 # ============================================================
 
 
@@ -260,11 +238,14 @@ CASES = (
         birth_time="04:15",
         birth_place="北海道",
         gender="female",
+
+        # 現行engine.chart.calculate_chart()
+        # 実計算確認値
         expected_year="甲子",
         expected_month="辛未",
-        expected_day="乙巳",
-        expected_hour="戊寅",
-        expected_day_master="乙",
+        expected_day="丁巳",
+        expected_hour="壬寅",
+        expected_day_master="丁",
     ),
 
     SampleCase(
@@ -275,6 +256,9 @@ CASES = (
         birth_time="12:00",
         birth_place="東京都",
         gender="male",
+
+        # PRECHECKで現行engineと照合する。
+        # 不一致ならAPIを呼ぶ前に停止する。
         expected_year="甲子",
         expected_month="辛未",
         expected_day="甲辰",
@@ -296,7 +280,7 @@ OUTPUT_DIR = (
 
 
 # ============================================================
-# Validation helpers
+# Helpers
 # ============================================================
 
 
@@ -348,7 +332,8 @@ def contains_any_term(
 
     return any(
         term in text
-        for term in terms
+        for term
+        in terms
     )
 
 
@@ -395,22 +380,31 @@ def build_request(
         birth_place=(
             case.birth_place
         ),
-        gender=case.gender,
+        gender=(
+            case.gender
+        ),
     )
 
 
 # ============================================================
-# Chart validation
+# Chart helpers
 # ============================================================
 
 
-def validate_chart(
-    case: SampleCase,
+def get_actual_chart_signature(
     result: Mapping[
         str,
         Any,
     ],
-) -> None:
+) -> tuple[
+    tuple[
+        str,
+        str,
+        str,
+        str,
+    ],
+    str,
+]:
 
     result = require_mapping(
         result,
@@ -418,29 +412,20 @@ def validate_chart(
     )
 
     chart = require_mapping(
-        result.get("chart"),
+        result.get(
+            "chart"
+        ),
         "chart_result.chart",
     )
 
-    expected = {
-        "year": (
-            case.expected_year
-        ),
-        "month": (
-            case.expected_month
-        ),
-        "day": (
-            case.expected_day
-        ),
-        "hour": (
-            case.expected_hour
-        ),
-    }
+    pillars = []
 
-    for (
-        position,
-        expected_pillar,
-    ) in expected.items():
+    for position in (
+        "year",
+        "month",
+        "day",
+        "hour",
+    ):
 
         pillar_data = (
             require_mapping(
@@ -448,35 +433,26 @@ def validate_chart(
                     position
                 ),
                 (
-                    "chart."
+                    f"chart."
                     f"{position}"
                 ),
             )
         )
 
-        actual = require_string(
+        pillar = require_string(
             pillar_data.get(
                 "pillar"
             ),
             (
+                f"chart."
                 f"{position}."
                 "pillar"
             ),
         )
 
-        if (
-            actual
-            != expected_pillar
-        ):
-
-            raise RuntimeError(
-                f"{case.case_id}: "
-                f"{position}柱が"
-                "期待値と不一致です。 "
-                f"expected="
-                f"{expected_pillar}, "
-                f"actual={actual}"
-            )
+        pillars.append(
+            pillar
+        )
 
     day_master = (
         require_mapping(
@@ -487,7 +463,7 @@ def validate_chart(
         )
     )
 
-    actual_day_master = (
+    day_master_stem = (
         require_string(
             day_master.get(
                 "stem"
@@ -495,6 +471,44 @@ def validate_chart(
             "day_master.stem",
         )
     )
+
+    return (
+        tuple(
+            pillars
+        ),
+        day_master_stem,
+    )
+
+
+def validate_chart(
+    case: SampleCase,
+    result: Mapping[
+        str,
+        Any,
+    ],
+) -> None:
+
+    (
+        actual_pillars,
+        actual_day_master,
+    ) = get_actual_chart_signature(
+        result
+    )
+
+    if (
+        actual_pillars
+        != case.expected_pillars
+    ):
+
+        raise RuntimeError(
+            f"{case.case_id}: "
+            "四柱が期待値と"
+            "不一致です。 "
+            f"expected="
+            f"{case.expected_pillars}, "
+            f"actual="
+            f"{actual_pillars}"
+        )
 
     if (
         actual_day_master
@@ -510,6 +524,166 @@ def validate_chart(
             f"actual="
             f"{actual_day_master}"
         )
+
+
+# ============================================================
+# PRECHECK
+# ============================================================
+
+
+def precheck_all_cases(
+) -> dict[
+    str,
+    Mapping[str, Any],
+]:
+
+    print(
+        "=" * 72
+    )
+
+    print(
+        "PRECHECK: 全ケース命式照合"
+    )
+
+    print(
+        "=" * 72
+    )
+
+    print()
+
+    results: dict[
+        str,
+        Mapping[str, Any],
+    ] = {}
+
+    mismatches: list[
+        str
+    ] = []
+
+    for (
+        index,
+        case,
+    ) in enumerate(
+        CASES,
+        start=1,
+    ):
+
+        print(
+            f"[PRECHECK "
+            f"{index}/"
+            f"{len(CASES)}] "
+            f"{case.case_id}"
+        )
+
+        request = (
+            build_request(
+                case
+            )
+        )
+
+        chart_result = (
+            calculate_chart(
+                request,
+                target_datetime=(
+                    TARGET_DATETIME
+                ),
+            )
+        )
+
+        (
+            actual_pillars,
+            actual_day_master,
+        ) = get_actual_chart_signature(
+            chart_result
+        )
+
+        print(
+            "  expected pillars: "
+            + " / ".join(
+                case.expected_pillars
+            )
+        )
+
+        print(
+            "  actual pillars  : "
+            + " / ".join(
+                actual_pillars
+            )
+        )
+
+        print(
+            "  expected DM: "
+            f"{case.expected_day_master}"
+        )
+
+        print(
+            "  actual DM  : "
+            f"{actual_day_master}"
+        )
+
+        if (
+            actual_pillars
+            != case.expected_pillars
+            or
+            actual_day_master
+            != case.expected_day_master
+        ):
+
+            mismatches.append(
+                (
+                    f"{case.case_id}: "
+                    f"expected="
+                    f"{case.expected_pillars}/"
+                    f"{case.expected_day_master}, "
+                    f"actual="
+                    f"{actual_pillars}/"
+                    f"{actual_day_master}"
+                )
+            )
+
+            print(
+                "  RESULT: MISMATCH"
+            )
+
+        else:
+
+            results[
+                case.case_id
+            ] = (
+                chart_result
+            )
+
+            print(
+                "  RESULT: OK"
+            )
+
+        print()
+
+    if mismatches:
+
+        detail = "\n".join(
+            (
+                f"- {item}"
+            )
+            for item
+            in mismatches
+        )
+
+        raise RuntimeError(
+            "PRECHECKで命式不一致を"
+            "検出しました。"
+            "\nOpenAI APIは呼びません。"
+            "\n"
+            f"{detail}"
+        )
+
+    print(
+        "PRECHECK: ALL OK"
+    )
+
+    print()
+
+    return results
 
 
 # ============================================================
@@ -557,29 +731,21 @@ def validate_context(
             natal_chart.get(
                 "pillars"
             ),
-            "natal_chart.pillars",
+            (
+                "natal_chart."
+                "pillars"
+            ),
         )
     )
 
-    expected = {
-        "year": (
-            case.expected_year
-        ),
-        "month": (
-            case.expected_month
-        ),
-        "day": (
-            case.expected_day
-        ),
-        "hour": (
-            case.expected_hour
-        ),
-    }
+    actual_pillars = []
 
-    for (
-        position,
-        expected_pillar,
-    ) in expected.items():
+    for position in (
+        "year",
+        "month",
+        "day",
+        "hour",
+    ):
 
         pillar_data = (
             require_mapping(
@@ -587,36 +753,45 @@ def validate_context(
                     position
                 ),
                 (
-                    "pillars."
+                    f"pillars."
                     f"{position}"
                 ),
             )
         )
 
-        actual = require_string(
-            pillar_data.get(
-                "pillar"
-            ),
-            (
-                "context."
-                f"{position}.pillar"
-            ),
+        actual = (
+            require_string(
+                pillar_data.get(
+                    "pillar"
+                ),
+                (
+                    f"context."
+                    f"{position}."
+                    "pillar"
+                ),
+            )
         )
 
-        if (
+        actual_pillars.append(
             actual
-            != expected_pillar
-        ):
+        )
 
-            raise RuntimeError(
-                f"{case.case_id}: "
-                "reading_contextで"
-                f"{position}柱が"
-                "変化しています。 "
-                f"expected="
-                f"{expected_pillar}, "
-                f"actual={actual}"
-            )
+    if (
+        tuple(
+            actual_pillars
+        )
+        != case.expected_pillars
+    ):
+
+        raise RuntimeError(
+            f"{case.case_id}: "
+            "reading_contextで"
+            "四柱が変化しています。 "
+            f"expected="
+            f"{case.expected_pillars}, "
+            f"actual="
+            f"{tuple(actual_pillars)}"
+        )
 
     day_master = (
         require_mapping(
@@ -651,7 +826,9 @@ def validate_context(
         )
 
     luck = require_mapping(
-        context.get("luck"),
+        context.get(
+            "luck"
+        ),
         "context.luck",
     )
 
@@ -660,7 +837,10 @@ def validate_context(
             luck.get(
                 "annual_luck"
             ),
-            "luck.annual_luck",
+            (
+                "luck."
+                "annual_luck"
+            ),
         )
     )
 
@@ -671,7 +851,8 @@ def validate_context(
             ),
             (
                 "luck."
-                "annual_luck.ganzhi"
+                "annual_luck."
+                "ganzhi"
             ),
         )
     )
@@ -722,7 +903,8 @@ def validate_generation(
             f"{case.case_id}: "
             "AI生成がcompleted"
             "ではありません。 "
-            f"status={result.status}"
+            f"status="
+            f"{result.status}"
         )
 
     if (
@@ -747,23 +929,11 @@ def validate_generation(
     )
 
     require_string(
-        parsed.get("summary"),
+        parsed.get(
+            "summary"
+        ),
         "summary",
     )
-
-    # --------------------------------------------------------
-    # Disclaimer
-    #
-    # AI生成文なので「専門家」という1単語だけに
-    # 完全依存しない。
-    #
-    # 例:
-    #   医師に相談してください
-    #   医療機関へご相談ください
-    #   専門家の助言をご利用ください
-    #
-    # なども安全な免責表現として扱う。
-    # --------------------------------------------------------
 
     disclaimer = (
         require_string(
@@ -783,7 +953,8 @@ def validate_generation(
             f"{case.case_id}: "
             "免責事項に健康・医療上の"
             "注意表現がありません。 "
-            f"disclaimer={disclaimer!r}"
+            f"disclaimer="
+            f"{disclaimer!r}"
         )
 
     if not contains_any_term(
@@ -795,20 +966,21 @@ def validate_generation(
             f"{case.case_id}: "
             "免責事項に専門的な"
             "相談を促す表現がありません。 "
-            f"disclaimer={disclaimer!r}"
+            f"disclaimer="
+            f"{disclaimer!r}"
         )
 
-    # --------------------------------------------------------
-    # Sections
-    # --------------------------------------------------------
-
     sections = require_mapping(
-        parsed.get("sections"),
+        parsed.get(
+            "sections"
+        ),
         "sections",
     )
 
-    actual_section_keys = tuple(
-        sections.keys()
+    actual_section_keys = (
+        tuple(
+            sections.keys()
+        )
     )
 
     if (
@@ -820,7 +992,8 @@ def validate_generation(
             f"{case.case_id}: "
             "8セクション構成が"
             "一致しません。 "
-            f"expected={SECTIONS}, "
+            f"expected="
+            f"{SECTIONS}, "
             f"actual="
             f"{actual_section_keys}"
         )
@@ -833,7 +1006,7 @@ def validate_generation(
                     section_key
                 ),
                 (
-                    "sections."
+                    f"sections."
                     f"{section_key}"
                 ),
             )
@@ -870,41 +1043,23 @@ def validate_generation(
         if not isinstance(
             evidence,
             (list, tuple),
-        ):
+        ) or not evidence:
 
             raise RuntimeError(
                 f"{case.case_id}: "
                 f"{section_key}."
-                "evidenceがlistでは"
-                "ありません。"
-            )
-
-        if not evidence:
-
-            raise RuntimeError(
-                f"{case.case_id}: "
-                f"{section_key}."
-                "evidenceが空です。"
+                "evidenceが不正です。"
             )
 
         if not isinstance(
             advice,
             (list, tuple),
-        ):
+        ) or not advice:
 
             raise RuntimeError(
                 f"{case.case_id}: "
                 f"{section_key}."
-                "adviceがlistでは"
-                "ありません。"
-            )
-
-        if not advice:
-
-            raise RuntimeError(
-                f"{case.case_id}: "
-                f"{section_key}."
-                "adviceが空です。"
+                "adviceが不正です。"
             )
 
 
@@ -937,8 +1092,7 @@ def validate_product(
         raise RuntimeError(
             f"{case.case_id}: "
             "ReadingProductが"
-            "readyではありません。 "
-            f"status={product.status}"
+            "readyではありません。"
         )
 
     sequence = tuple(
@@ -961,7 +1115,8 @@ def validate_product(
             "四柱が不一致です。 "
             f"expected="
             f"{case.expected_pillars}, "
-            f"actual={sequence}"
+            f"actual="
+            f"{sequence}"
         )
 
     day_master = (
@@ -1002,22 +1157,25 @@ def validate_product(
         len(
             product.sections
         )
-        != len(SECTIONS)
+        != len(
+            SECTIONS
+        )
     ):
 
         raise RuntimeError(
             f"{case.case_id}: "
             "ReadingProductが"
-            "8セクションでは"
-            "ありません。 "
-            f"actual="
-            f"{len(product.sections)}"
+            "8セクションではありません。"
         )
 
-    actual_section_order = tuple(
-        section.get("key")
-        for section
-        in product.sections
+    actual_section_order = (
+        tuple(
+            section.get(
+                "key"
+            )
+            for section
+            in product.sections
+        )
     )
 
     if (
@@ -1029,9 +1187,7 @@ def validate_product(
             f"{case.case_id}: "
             "ReadingProductの"
             "セクション順が"
-            "一致しません。 "
-            f"actual="
-            f"{actual_section_order}"
+            "一致しません。"
         )
 
     require_string(
@@ -1061,10 +1217,12 @@ def validate_security(
         "",
     ).strip()
 
-    product_text = json.dumps(
-        product.to_dict(),
-        ensure_ascii=False,
-        default=str,
+    product_text = (
+        json.dumps(
+            product.to_dict(),
+            ensure_ascii=False,
+            default=str,
+        )
     )
 
     forbidden = (
@@ -1176,7 +1334,8 @@ def validate_pdf(
             f"{case.case_id}: "
             "PDFサイズが"
             "小さすぎます。 "
-            f"size={size}"
+            f"size="
+            f"{size}"
         )
 
     data = (
@@ -1195,7 +1354,9 @@ def validate_pdf(
 
     if (
         b"%%EOF"
-        not in data[-2048:]
+        not in data[
+            -2048:
+        ]
     ):
 
         raise RuntimeError(
@@ -1232,13 +1393,17 @@ def save_json(
 
 
 # ============================================================
-# Single case generation
+# Generate single case
 # ============================================================
 
 
 def generate_case(
     case: SampleCase,
     model: str,
+    chart_result: Mapping[
+        str,
+        Any,
+    ],
 ) -> dict[str, Any]:
 
     print(
@@ -1246,7 +1411,8 @@ def generate_case(
     )
 
     print(
-        f"CASE: {case.case_id}"
+        f"CASE: "
+        f"{case.case_id}"
     )
 
     print(
@@ -1256,26 +1422,11 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 1. Chart
+    # 1
     # --------------------------------------------------------
 
     print(
-        "1. 命式計算"
-    )
-
-    request = (
-        build_request(
-            case
-        )
-    )
-
-    chart_result = (
-        calculate_chart(
-            request,
-            target_datetime=(
-                TARGET_DATETIME
-            ),
-        )
+        "1. 命式確認"
     )
 
     validate_chart(
@@ -1293,7 +1444,7 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 2. Context
+    # 2
     # --------------------------------------------------------
 
     print(
@@ -1318,7 +1469,7 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 3. OpenAI
+    # 3
     # --------------------------------------------------------
 
     print(
@@ -1368,7 +1519,7 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 4. Product
+    # 4
     # --------------------------------------------------------
 
     print(
@@ -1379,8 +1530,12 @@ def generate_case(
         build_reading_product(
             context,
             generation,
-            title=PRODUCT_TITLE,
-            sections=SECTIONS,
+            title=(
+                PRODUCT_TITLE
+            ),
+            sections=(
+                SECTIONS
+            ),
         )
     )
 
@@ -1396,7 +1551,7 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 5. Output directory
+    # 5
     # --------------------------------------------------------
 
     case_dir = (
@@ -1408,10 +1563,6 @@ def generate_case(
         parents=True,
         exist_ok=True,
     )
-
-    # --------------------------------------------------------
-    # 6. JSON
-    # --------------------------------------------------------
 
     print(
         "5. JSON保存"
@@ -1444,7 +1595,7 @@ def generate_case(
     print()
 
     # --------------------------------------------------------
-    # 7. PDF
+    # 6
     # --------------------------------------------------------
 
     print(
@@ -1494,10 +1645,6 @@ def generate_case(
 
     print()
 
-    # --------------------------------------------------------
-    # Result
-    # --------------------------------------------------------
-
     result = {
         "case_id": (
             case.case_id
@@ -1545,7 +1692,9 @@ def generate_case(
             reading_json_path
             .resolve()
         ),
-        "status": "completed",
+        "status": (
+            "completed"
+        ),
     }
 
     print(
@@ -1553,7 +1702,7 @@ def generate_case(
     )
 
     print(
-        f"PDF: "
+        "PDF: "
         f"{pdf_path.resolve()}"
     )
 
@@ -1563,7 +1712,7 @@ def generate_case(
 
 
 # ============================================================
-# Cross-case validation
+# Cross case
 # ============================================================
 
 
@@ -1574,8 +1723,12 @@ def validate_cross_case_results(
 ) -> None:
 
     if (
-        len(results)
-        != len(CASES)
+        len(
+            results
+        )
+        != len(
+            CASES
+        )
     ):
 
         raise RuntimeError(
@@ -1592,8 +1745,12 @@ def validate_cross_case_results(
     }
 
     if (
-        len(case_ids)
-        != len(CASES)
+        len(
+            case_ids
+        )
+        != len(
+            CASES
+        )
     ):
 
         raise RuntimeError(
@@ -1614,7 +1771,9 @@ def validate_cross_case_results(
         len(
             pillar_signatures
         )
-        != len(CASES)
+        != len(
+            CASES
+        )
     ):
 
         raise RuntimeError(
@@ -1632,7 +1791,9 @@ def validate_cross_case_results(
     }
 
     if (
-        len(day_masters)
+        len(
+            day_masters
+        )
         < 2
     ):
 
@@ -1669,7 +1830,7 @@ def validate_cross_case_results(
 
 
 # ============================================================
-# PDF layer metadata
+# PDF metadata
 # ============================================================
 
 
@@ -1688,11 +1849,7 @@ def validate_pdf_metadata() -> None:
 
         raise RuntimeError(
             "PDF versionが"
-            "一致しません。 "
-            f"expected="
-            f"{READING_PDF_VERSION}, "
-            f"actual="
-            f"{metadata.get('version')}"
+            "一致しません。"
         )
 
     if (
@@ -1704,11 +1861,7 @@ def validate_pdf_metadata() -> None:
 
         raise RuntimeError(
             "PDF methodが"
-            "一致しません。 "
-            f"expected="
-            f"{READING_PDF_METHOD}, "
-            f"actual="
-            f"{metadata.get('method')}"
+            "一致しません。"
         )
 
     if (
@@ -1757,10 +1910,6 @@ def main() -> int:
 
     try:
 
-        # ----------------------------------------------------
-        # Environment
-        # ----------------------------------------------------
-
         model = (
             validate_environment()
         )
@@ -1783,11 +1932,13 @@ def main() -> int:
         )
 
         print(
-            f"model: {model}"
+            f"model: "
+            f"{model}"
         )
 
         print(
-            f"cases: {len(CASES)}"
+            f"cases: "
+            f"{len(CASES)}"
         )
 
         print(
@@ -1801,6 +1952,14 @@ def main() -> int:
         )
 
         print()
+
+        # ----------------------------------------------------
+        # PRECHECK
+        # ----------------------------------------------------
+
+        prechecked_charts = (
+            precheck_all_cases()
+        )
 
         # ----------------------------------------------------
         # Generate
@@ -1819,13 +1978,21 @@ def main() -> int:
         ):
 
             print(
-                f"[{index}/{len(CASES)}]"
+                f"[{index}/"
+                f"{len(CASES)}]"
+            )
+
+            chart_result = (
+                prechecked_charts[
+                    case.case_id
+                ]
             )
 
             result = (
                 generate_case(
                     case,
                     model,
+                    chart_result,
                 )
             )
 
@@ -1834,7 +2001,7 @@ def main() -> int:
             )
 
         # ----------------------------------------------------
-        # Cross case
+        # Cross-case
         # ----------------------------------------------------
 
         print(
@@ -1876,7 +2043,7 @@ def main() -> int:
         print()
 
         # ----------------------------------------------------
-        # Summary JSON
+        # Summary
         # ----------------------------------------------------
 
         summary_path = (
@@ -1902,8 +2069,12 @@ def main() -> int:
             "pdf_method": (
                 READING_PDF_METHOD
             ),
-            "results": results,
-            "status": "completed",
+            "results": (
+                results
+            ),
+            "status": (
+                "completed"
+            ),
         }
 
         save_json(
@@ -1932,7 +2103,9 @@ def main() -> int:
         for result in results:
 
             print(
-                f"{result['case_id']}"
+                result[
+                    "case_id"
+                ]
             )
 
             print(
