@@ -2266,12 +2266,35 @@ def test_validate_generation_result_rejects_non_json(
     script_module,
     fake_generation_result,
 ):
-    broken = deepcopy(
-        fake_generation_result
-    )
-
-    broken.output_format = (
-        "text"
+    broken = ReadingGenerationResult(
+        output_format="text",
+        model=(
+            fake_generation_result.model
+        ),
+        text=(
+            fake_generation_result.text
+        ),
+        parsed=deepcopy(
+            fake_generation_result.parsed
+        ),
+        response_id=(
+            fake_generation_result.response_id
+        ),
+        response_status=(
+            fake_generation_result.response_status
+        ),
+        usage=deepcopy(
+            fake_generation_result.usage
+        ),
+        sections=(
+            fake_generation_result.sections
+        ),
+        method=(
+            fake_generation_result.method
+        ),
+        status=(
+            fake_generation_result.status
+        ),
     )
 
     with pytest.raises(
@@ -2286,11 +2309,36 @@ def test_validate_generation_result_rejects_missing_parsed(
     script_module,
     fake_generation_result,
 ):
-    broken = deepcopy(
-        fake_generation_result
+    broken = ReadingGenerationResult(
+        output_format=(
+            fake_generation_result.output_format
+        ),
+        model=(
+            fake_generation_result.model
+        ),
+        text=(
+            fake_generation_result.text
+        ),
+        parsed=None,
+        response_id=(
+            fake_generation_result.response_id
+        ),
+        response_status=(
+            fake_generation_result.response_status
+        ),
+        usage=deepcopy(
+            fake_generation_result.usage
+        ),
+        sections=(
+            fake_generation_result.sections
+        ),
+        method=(
+            fake_generation_result.method
+        ),
+        status=(
+            fake_generation_result.status
+        ),
     )
-
-    broken.parsed = None
 
     with pytest.raises(
         RuntimeError
@@ -2304,12 +2352,35 @@ def test_validate_generation_result_rejects_incomplete_status(
     script_module,
     fake_generation_result,
 ):
-    broken = deepcopy(
-        fake_generation_result
-    )
-
-    broken.status = (
-        "incomplete"
+    broken = ReadingGenerationResult(
+        output_format=(
+            fake_generation_result.output_format
+        ),
+        model=(
+            fake_generation_result.model
+        ),
+        text=(
+            fake_generation_result.text
+        ),
+        parsed=deepcopy(
+            fake_generation_result.parsed
+        ),
+        response_id=(
+            fake_generation_result.response_id
+        ),
+        response_status=(
+            fake_generation_result.response_status
+        ),
+        usage=deepcopy(
+            fake_generation_result.usage
+        ),
+        sections=(
+            fake_generation_result.sections
+        ),
+        method=(
+            fake_generation_result.method
+        ),
+        status="incomplete",
     )
 
     with pytest.raises(
