@@ -1781,39 +1781,6 @@ def generate_reading(
         )
     )
 
-    # --------------------------------------------------------
-    # Live diagnostics
-    #
-    # Responses APIが途中終了した場合に、
-    # JSON parse前の状態を確認できるようにする。
-    #
-    # APIキーなどの秘匿情報は出力しない。
-    # --------------------------------------------------------
-
-    print(
-        "OPENAI_RESPONSE_STATUS:",
-        _get_attribute_or_key(
-            response,
-            "status",
-        ),
-    )
-
-    print(
-        "OPENAI_INCOMPLETE_DETAILS:",
-        _get_attribute_or_key(
-            response,
-            "incomplete_details",
-        ),
-    )
-
-    print(
-        "OPENAI_USAGE:",
-        _get_attribute_or_key(
-            response,
-            "usage",
-        ),
-    )
-
     _raise_if_unusable_response(
         response
     )

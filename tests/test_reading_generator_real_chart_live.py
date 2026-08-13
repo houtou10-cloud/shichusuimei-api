@@ -982,7 +982,7 @@ def test_live_configuration_summary(
 
     assert (
         LIVE_REASONING_EFFORT
-        == "low"
+        == "minimal"
     )
 
     assert (
