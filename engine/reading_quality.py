@@ -1,75 +1,45 @@
 """
 Customer-facing reading quality gate.
 
-このモジュールは、OpenAI が生成した四柱推命鑑定結果を
-PDF・商品JSONなどへ渡す前に検査するための最終品質ゲートです。
+OpenAI が生成した四柱推命鑑定結果を、
+PDF・商品JSONへ渡す前に検査する最終品質ゲート。
+
+v2 追加:
+- 健康章の具体的な医学・生活習慣推測
+- 同じ助言概念の章横断反復
+- 同じ五行→同じ現代語への固定変換
 
 重要:
-- 四柱推命の再計算は行わない。
-- reading_context の計算済み事実を変更しない。
-- AI生成文章を書き換えない。
-- 問題を検出して報告するだけにする。
-- 内部JSONキーそのものではなく、
-  顧客が読む文章フィールドだけを検査する。
-
-主な検査対象:
-1. 内部評価ラベルの流出
-2. snake_case / JSON path / field=value の流出
-3. 過度に断定的な表現
-4. 根拠のない具体的数値による助言
-5. disclaimer の最低限の安全性
+- 四柱推命を再計算しない。
+- reading_context を変更しない。
+- AI文章を書き換えない。
+- 問題を検出して報告するだけ。
+- 既存v1の公開定数値は互換性維持のため変更しない。
 """
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, field
 import json
 import re
 from typing import Any, Iterable, Mapping, Sequence
 
 
+# 既存テスト・保存済みquality_reportとの互換性を維持する。
 READING_QUALITY_VERSION = "reading_quality_v1"
 READING_QUALITY_METHOD = "customer_facing_quality_gate_v1"
 READING_QUALITY_STATUS = "ready_for_customer_facing_validation"
 
-
-# ---------------------------------------------------------------------------
-# Exceptions
-# ---------------------------------------------------------------------------
+CUSTOMER_VALUE_QUALITY_VERSION = "customer_value_quality_v2"
 
 
 class ReadingQualityError(ValueError):
     """顧客向け鑑定文章が品質ゲートを通過しなかった場合の例外。"""
 
 
-# ---------------------------------------------------------------------------
-# Data models
-# ---------------------------------------------------------------------------
-
-
 @dataclass(frozen=True)
 class QualityIssue:
-    """
-    1件の品質問題。
-
-    code:
-        機械判定用コード。
-
-    message:
-        人間が確認するための説明。
-
-    path:
-        ai_reading 内の位置。
-        例:
-            sections.wealth.evidence[4]
-
-    value:
-        問題が見つかった文章。
-
-    matched:
-        実際に検出された文字列。
-    """
-
     code: str
     message: str
     path: str
@@ -88,17 +58,8 @@ class QualityIssue:
 
 @dataclass(frozen=True)
 class ReadingQualityReport:
-    """
-    品質検査結果。
-
-    valid=True の場合のみ、
-    顧客向け商品へ進めることを想定する。
-    """
-
     valid: bool
-    issues: tuple[QualityIssue, ...] = field(
-        default_factory=tuple
-    )
+    issues: tuple[QualityIssue, ...] = field(default_factory=tuple)
     version: str = READING_QUALITY_VERSION
     method: str = READING_QUALITY_METHOD
     status: str = READING_QUALITY_STATUS
@@ -111,10 +72,7 @@ class ReadingQualityReport:
         return {
             "valid": self.valid,
             "issue_count": self.issue_count,
-            "issues": [
-                issue.to_dict()
-                for issue in self.issues
-            ],
+            "issues": [issue.to_dict() for issue in self.issues],
             "version": self.version,
             "method": self.method,
             "status": self.status,
@@ -123,18 +81,9 @@ class ReadingQualityReport:
 
 @dataclass(frozen=True)
 class CustomerFacingText:
-    """
-    顧客が実際に読む文章と、そのJSON上の位置。
-    """
-
     path: str
     text: str
     kind: str
-
-
-# ---------------------------------------------------------------------------
-# Customer-facing schema
-# ---------------------------------------------------------------------------
 
 
 CUSTOMER_SECTION_TEXT_FIELDS = (
@@ -154,12 +103,6 @@ ROOT_CUSTOMER_TEXT_FIELDS = (
 )
 
 
-# ---------------------------------------------------------------------------
-# Internal labels
-# ---------------------------------------------------------------------------
-
-
-# 単語境界を使える英語ラベル。
 INTERNAL_ENGLISH_LABELS = (
     "mixed",
     "overall",
@@ -168,12 +111,6 @@ INTERNAL_ENGLISH_LABELS = (
     "neutral",
 )
 
-
-# 顧客文章にそのまま出す必要がない代表的内部キー。
-#
-# 注意:
-# JSON構造のキーとして存在することは禁止しない。
-# 顧客向け文章内にそのまま現れた場合だけ検出する。
 INTERNAL_FIELD_NAMES = (
     "overall_score",
     "overall_level",
@@ -194,24 +131,17 @@ INTERNAL_FIELD_NAMES = (
 )
 
 
-# ---------------------------------------------------------------------------
-# Regex
-# ---------------------------------------------------------------------------
-
-
 SNAKE_CASE_RE = re.compile(
     r"(?<![A-Za-z0-9])"
     r"[a-z][a-z0-9]*(?:_[a-z0-9]+)+"
     r"(?![A-Za-z0-9])"
 )
 
-
 JSON_PATH_RE = re.compile(
     r"(?<![A-Za-z0-9_])"
     r"(?:[A-Za-z_][A-Za-z0-9_]*\.)+"
     r"[A-Za-z_][A-Za-z0-9_]*"
 )
-
 
 FIELD_ASSIGNMENT_RE = re.compile(
     r"(?<![A-Za-z0-9_])"
@@ -220,12 +150,6 @@ FIELD_ASSIGNMENT_RE = re.compile(
     r"[A-Za-z0-9_.\-]+"
 )
 
-
-# 「2〜3種類」のようなAIが作りやすい数量助言を検出する。
-#
-# すべての数字を禁止するわけではない。
-# 年、干支、スコアなどの計算済み数値は別途
-# reading_context / consultation_context と照合する。
 NUMERIC_RANGE_RE = re.compile(
     r"(?<!\d)"
     r"\d+(?:\.\d+)?"
@@ -239,46 +163,32 @@ NUMERIC_RANGE_RE = re.compile(
     r")"
 )
 
-
 NUMERIC_COUNT_RE = re.compile(
     r"(?<!\d)"
     r"\d+(?:\.\d+)?"
     r"\s*"
-    r"(?:"
-    r"回|件|種類|個|本|人|社|項目|段階|つ"
-    r")"
+    r"(?:回|件|種類|個|本|人|社|項目|段階|つ)"
 )
 
-
 NUMERIC_FREQUENCY_RE = re.compile(
-    r"(?:"
-    r"毎日|毎週|毎月|週に|月に|年に"
-    r")"
+    r"(?:毎日|毎週|毎月|週に|月に|年に)"
     r"\s*"
     r"\d+(?:\.\d+)?"
     r"\s*"
     r"(?:回|件|日|時間|分)"
 )
 
-
 MONEY_TARGET_RE = re.compile(
     r"(?<!\d)"
     r"\d+(?:,\d{3})*(?:\.\d+)?"
-    r"\s*"
-    r"(?:円|万円|億円)"
+    r"\s*(?:円|万円|億円)"
 )
-
 
 PERCENT_TARGET_RE = re.compile(
     r"(?<!\d)"
     r"\d+(?:\.\d+)?"
     r"\s*(?:%|％)"
 )
-
-
-# ---------------------------------------------------------------------------
-# Overconfidence / unsafe certainty
-# ---------------------------------------------------------------------------
 
 
 OVERCONFIDENT_PATTERNS: tuple[
@@ -332,11 +242,6 @@ OVERCONFIDENT_PATTERNS: tuple[
 )
 
 
-# ---------------------------------------------------------------------------
-# Disclaimer
-# ---------------------------------------------------------------------------
-
-
 DISCLAIMER_REQUIRED_CONCEPTS = {
     "medical": (
         "医学",
@@ -360,8 +265,103 @@ DISCLAIMER_REQUIRED_CONCEPTS = {
 
 
 # ---------------------------------------------------------------------------
-# Validation helpers
+# Customer-value v2
 # ---------------------------------------------------------------------------
+
+REPEATED_ADVICE_CONCEPTS = (
+    "見える化",
+    "可視化",
+    "仕組み化",
+    "標準化",
+    "再現性",
+    "情報収集",
+    "人脈",
+    "学習",
+    "段階的",
+    "チェックリスト",
+)
+
+MAX_ADVICE_CONCEPT_SECTIONS = 3
+
+ELEMENT_TRANSLATIONS = {
+    "金": (
+        "仕組み化",
+        "品質",
+        "品質基準",
+        "ルール",
+        "精度",
+        "チェックリスト",
+    ),
+    "水": (
+        "情報",
+        "情報収集",
+        "情報循環",
+        "ネットワーク",
+        "人脈",
+    ),
+    "木": (
+        "学習",
+        "企画",
+        "成長",
+    ),
+    "土": (
+        "安定",
+        "安定運用",
+        "運用",
+        "段取り",
+        "標準化",
+    ),
+    "火": (
+        "表現",
+        "行動力",
+        "自己主張",
+        "勢い",
+    ),
+}
+
+MAX_ELEMENT_TRANSLATION_SECTIONS = 3
+
+# 「健康」という一般論自体は禁止しない。
+# 命式から具体的な身体状態・生活習慣を推測したときに問題となる語。
+HEALTH_SPECIFIC_TERMS = (
+    "夜更かし",
+    "睡眠の質",
+    "睡眠不足",
+    "呼吸",
+    "深呼吸",
+    "姿勢",
+    "換気",
+    "有酸素",
+    "血圧",
+    "血糖",
+    "自律神経",
+    "胃腸",
+    "肝臓",
+    "腎臓",
+    "心臓",
+    "肺",
+    "頭痛",
+    "肩こり",
+    "冷え",
+    "むくみ",
+    "不眠",
+    "疲労",
+)
+
+HEALTH_ASTROLOGY_CAUSAL_RE = re.compile(
+    r"(?:"
+    r"五行|木|火|土|金|水|"
+    r"日主|身強|身弱|用神|喜神|忌神|"
+    r"命式|大運|歳運|年運"
+    r")"
+    r".{0,40}"
+    r"(?:"
+    + "|".join(
+        re.escape(term)
+        for term in HEALTH_SPECIFIC_TERMS
+    )
+    + r")"
+)
 
 
 def _require_mapping(
@@ -419,21 +419,9 @@ def _iter_string_list(
                 yield index, text
 
 
-# ---------------------------------------------------------------------------
-# Customer-facing text extraction
-# ---------------------------------------------------------------------------
-
-
 def iter_customer_facing_texts(
     ai_reading: Mapping[str, Any],
 ) -> tuple[CustomerFacingText, ...]:
-    """
-    ai_reading のうち、
-    顧客が実際に読む文章だけを抽出する。
-
-    内部metadataなどは検査対象にしない。
-    """
-
     reading = _require_mapping(
         ai_reading,
         name="ai_reading",
@@ -473,9 +461,7 @@ def iter_customer_facing_texts(
         if not isinstance(section_value, Mapping):
             continue
 
-        base_path = (
-            f"sections.{section_name}"
-        )
+        base_path = f"sections.{section_name}"
 
         for field_name in CUSTOMER_SECTION_TEXT_FIELDS:
             text = _normalize_text(
@@ -487,9 +473,7 @@ def iter_customer_facing_texts(
 
             results.append(
                 CustomerFacingText(
-                    path=(
-                        f"{base_path}.{field_name}"
-                    ),
+                    path=f"{base_path}.{field_name}",
                     text=text,
                     kind=field_name,
                 )
@@ -517,19 +501,51 @@ def iter_customer_facing_texts(
     return tuple(results)
 
 
-# ---------------------------------------------------------------------------
-# Internal label leak detection
-# ---------------------------------------------------------------------------
+def _section_name_from_path(
+    path: str,
+) -> str | None:
+    match = re.match(
+        r"^sections\.([^.]+)\.",
+        path,
+    )
+
+    if match is None:
+        return None
+
+    return match.group(1)
+
+
+def _section_text_map(
+    ai_reading: Mapping[str, Any],
+) -> dict[str, list[CustomerFacingText]]:
+    result: dict[
+        str,
+        list[CustomerFacingText],
+    ] = {}
+
+    for item in iter_customer_facing_texts(
+        ai_reading
+    ):
+        section_name = (
+            _section_name_from_path(
+                item.path
+            )
+        )
+
+        if section_name is None:
+            continue
+
+        result.setdefault(
+            section_name,
+            [],
+        ).append(item)
+
+    return result
 
 
 def find_internal_label_leaks(
     ai_reading: Mapping[str, Any],
 ) -> tuple[QualityIssue, ...]:
-    """
-    mixed / overall 等の内部評価ラベルが
-    顧客向け文章へ漏れていないか確認する。
-    """
-
     issues: list[QualityIssue] = []
 
     texts = iter_customer_facing_texts(
@@ -566,19 +582,9 @@ def find_internal_label_leaks(
     return tuple(issues)
 
 
-# ---------------------------------------------------------------------------
-# Internal key leak detection
-# ---------------------------------------------------------------------------
-
-
 def find_internal_key_leaks(
     ai_reading: Mapping[str, Any],
 ) -> tuple[QualityIssue, ...]:
-    """
-    snake_case、JSON path、field=value、
-    代表的内部キーの顧客向け流出を検出する。
-    """
-
     issues: list[QualityIssue] = []
 
     texts = iter_customer_facing_texts(
@@ -668,19 +674,9 @@ def find_internal_key_leaks(
     return tuple(issues)
 
 
-# ---------------------------------------------------------------------------
-# Overconfident claim detection
-# ---------------------------------------------------------------------------
-
-
 def find_overconfident_claims(
     ai_reading: Mapping[str, Any],
 ) -> tuple[QualityIssue, ...]:
-    """
-    将来・成功・利益・健康等について、
-    明らかに強すぎる断定を検出する。
-    """
-
     issues: list[QualityIssue] = []
 
     for item in iter_customer_facing_texts(
@@ -708,22 +704,9 @@ def find_overconfident_claims(
     return tuple(issues)
 
 
-# ---------------------------------------------------------------------------
-# Numeric grounding
-# ---------------------------------------------------------------------------
-
-
 def _collect_numeric_strings(
     value: Any,
 ) -> set[str]:
-    """
-    reading_context / consultation_context に
-    実際に存在する数値を文字列化して収集する。
-
-    AIが作った数値か、
-    入力データ由来かを判定する補助に使う。
-    """
-
     results: set[str] = set()
 
     def walk(current: Any) -> None:
@@ -816,17 +799,6 @@ def find_unsupported_numeric_claims(
     reading_context: Mapping[str, Any] | None = None,
     consultation_context: Mapping[str, Any] | None = None,
 ) -> tuple[QualityIssue, ...]:
-    """
-    顧客向け助言に含まれる、
-    根拠のない具体的数量を検出する。
-
-    特に advice を厳しく見る。
-
-    年号や計算済みスコアなど、
-    reading_context に存在する数字は
-    原則として問題にしない。
-    """
-
     reading_context = _optional_mapping(
         reading_context,
         name="reading_context",
@@ -885,11 +857,6 @@ def find_unsupported_numeric_claims(
     for item in iter_customer_facing_texts(
         ai_reading
     ):
-        # 数値の助言を最も厳しく見るのは advice。
-        #
-        # summary/detail/evidence に存在する
-        # 計算済み年号・スコア等を過剰検出しないため、
-        # 基本的には advice を対象にする。
         if item.kind != "advice":
             continue
 
@@ -935,19 +902,208 @@ def find_unsupported_numeric_claims(
     return tuple(issues)
 
 
-# ---------------------------------------------------------------------------
-# Disclaimer validation
-# ---------------------------------------------------------------------------
+def find_repeated_advice_concepts(
+    ai_reading: Mapping[str, Any],
+    *,
+    max_sections: int = MAX_ADVICE_CONCEPT_SECTIONS,
+) -> tuple[QualityIssue, ...]:
+    """
+    同じ助言概念が多数の章で繰り返される場合に検出する。
+
+    単語の出現回数ではなく「何章にまたがるか」で判定する。
+    同一章内の自然な反復はここでは問題にしない。
+    """
+
+    if (
+        not isinstance(max_sections, int)
+        or isinstance(max_sections, bool)
+        or max_sections < 1
+    ):
+        raise ValueError(
+            "max_sectionsは1以上のintである必要があります。"
+        )
+
+    section_map = _section_text_map(
+        ai_reading
+    )
+
+    issues: list[QualityIssue] = []
+
+    for concept in REPEATED_ADVICE_CONCEPTS:
+        matched_sections: list[str] = []
+
+        for section_name, items in (
+            section_map.items()
+        ):
+            combined = " ".join(
+                item.text
+                for item in items
+                if item.kind != "title"
+            )
+
+            if concept in combined:
+                matched_sections.append(
+                    section_name
+                )
+
+        if len(matched_sections) <= max_sections:
+            continue
+
+        issues.append(
+            QualityIssue(
+                code="cross_section_advice_repetition",
+                message=(
+                    "同じ助言概念が多くのセクションで"
+                    "繰り返されています。"
+                ),
+                path="sections",
+                value=", ".join(
+                    matched_sections
+                ),
+                matched=concept,
+            )
+        )
+
+    return tuple(issues)
+
+
+def find_fixed_element_translation_overuse(
+    ai_reading: Mapping[str, Any],
+    *,
+    max_sections: int = MAX_ELEMENT_TRANSLATION_SECTIONS,
+) -> tuple[QualityIssue, ...]:
+    """
+    同じ五行を同じ現代語へ固定変換し、
+    多数章で反復している場合に検出する。
+
+    例:
+        金 → 仕組み化
+        水 → 情報収集
+    """
+
+    if (
+        not isinstance(max_sections, int)
+        or isinstance(max_sections, bool)
+        or max_sections < 1
+    ):
+        raise ValueError(
+            "max_sectionsは1以上のintである必要があります。"
+        )
+
+    section_map = _section_text_map(
+        ai_reading
+    )
+
+    issues: list[QualityIssue] = []
+
+    for element, translations in (
+        ELEMENT_TRANSLATIONS.items()
+    ):
+        for translation in translations:
+            matched_sections: list[str] = []
+
+            for section_name, items in (
+                section_map.items()
+            ):
+                combined = " ".join(
+                    item.text
+                    for item in items
+                    if item.kind != "title"
+                )
+
+                if (
+                    element in combined
+                    and translation in combined
+                ):
+                    matched_sections.append(
+                        section_name
+                    )
+
+            if (
+                len(matched_sections)
+                <= max_sections
+            ):
+                continue
+
+            issues.append(
+                QualityIssue(
+                    code="fixed_element_translation_overuse",
+                    message=(
+                        "同じ五行が同じ現代語へ"
+                        "固定的に変換され、多数章で"
+                        "繰り返されています。"
+                    ),
+                    path="sections",
+                    value=", ".join(
+                        matched_sections
+                    ),
+                    matched=(
+                        f"{element}→{translation}"
+                    ),
+                )
+            )
+
+    return tuple(issues)
+
+
+def find_health_specific_overreach(
+    ai_reading: Mapping[str, Any],
+) -> tuple[QualityIssue, ...]:
+    """
+    health章で、命式・五行などを根拠として
+    具体的な症状・身体状態・生活習慣を
+    推測している文章を検出する。
+
+    「医学的診断ではありません」等の免責そのものは
+    問題にしない。
+    """
+
+    issues: list[QualityIssue] = []
+
+    for item in iter_customer_facing_texts(
+        ai_reading
+    ):
+        if not item.path.startswith(
+            "sections.health."
+        ):
+            continue
+
+        match = HEALTH_ASTROLOGY_CAUSAL_RE.search(
+            item.text
+        )
+
+        if match is None:
+            continue
+
+        matched_term = next(
+            (
+                term
+                for term in HEALTH_SPECIFIC_TERMS
+                if term in match.group(0)
+            ),
+            match.group(0),
+        )
+
+        issues.append(
+            QualityIssue(
+                code="health_astrology_specific_overreach",
+                message=(
+                    "健康章で、命式・五行などから"
+                    "具体的な身体状態または生活習慣を"
+                    "直接推測しています。"
+                ),
+                path=item.path,
+                value=item.text,
+                matched=matched_term,
+            )
+        )
+
+    return tuple(issues)
 
 
 def validate_disclaimer(
     ai_reading: Mapping[str, Any],
 ) -> tuple[QualityIssue, ...]:
-    """
-    disclaimer が最低限の安全概念を
-    含んでいるか確認する。
-    """
-
     reading = _require_mapping(
         ai_reading,
         name="ai_reading",
@@ -1001,11 +1157,6 @@ def validate_disclaimer(
     return tuple(issues)
 
 
-# ---------------------------------------------------------------------------
-# Full validation
-# ---------------------------------------------------------------------------
-
-
 def validate_customer_facing_reading(
     ai_reading: Mapping[str, Any],
     *,
@@ -1015,8 +1166,10 @@ def validate_customer_facing_reading(
     """
     顧客向けAI鑑定の最終品質検査。
 
-    この関数は文章を書き換えない。
-    検出のみ行う。
+    v1の安全・内部表現検査に加えて、
+    v2の顧客価値検査も行う。
+
+    文章の書き換えや命式の再計算はしない。
     """
 
     _require_mapping(
@@ -1070,15 +1223,29 @@ def validate_customer_facing_reading(
         )
     )
 
+    # v2 customer-value checks
+    issues.extend(
+        find_health_specific_overreach(
+            ai_reading
+        )
+    )
+
+    issues.extend(
+        find_repeated_advice_concepts(
+            ai_reading
+        )
+    )
+
+    issues.extend(
+        find_fixed_element_translation_overuse(
+            ai_reading
+        )
+    )
+
     return ReadingQualityReport(
         valid=not issues,
         issues=tuple(issues),
     )
-
-
-# ---------------------------------------------------------------------------
-# Raise helper
-# ---------------------------------------------------------------------------
 
 
 def ensure_customer_facing_reading_quality(
@@ -1087,13 +1254,6 @@ def ensure_customer_facing_reading_quality(
     reading_context: Mapping[str, Any] | None = None,
     consultation_context: Mapping[str, Any] | None = None,
 ) -> ReadingQualityReport:
-    """
-    品質ゲートを実行し、
-    問題があれば ReadingQualityError を送出する。
-
-    PDF生成直前で使用する想定。
-    """
-
     report = validate_customer_facing_reading(
         ai_reading,
         reading_context=reading_context,
@@ -1128,11 +1288,6 @@ def ensure_customer_facing_reading_quality(
     )
 
 
-# ---------------------------------------------------------------------------
-# Serialization
-# ---------------------------------------------------------------------------
-
-
 def quality_report_to_json(
     report: ReadingQualityReport,
     *,
@@ -1159,6 +1314,7 @@ __all__ = [
     "READING_QUALITY_VERSION",
     "READING_QUALITY_METHOD",
     "READING_QUALITY_STATUS",
+    "CUSTOMER_VALUE_QUALITY_VERSION",
     "ReadingQualityError",
     "QualityIssue",
     "ReadingQualityReport",
@@ -1168,6 +1324,9 @@ __all__ = [
     "find_internal_key_leaks",
     "find_overconfident_claims",
     "find_unsupported_numeric_claims",
+    "find_repeated_advice_concepts",
+    "find_fixed_element_translation_overuse",
+    "find_health_specific_overreach",
     "validate_disclaimer",
     "validate_customer_facing_reading",
     "ensure_customer_facing_reading_quality",
