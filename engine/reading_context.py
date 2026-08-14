@@ -1534,8 +1534,10 @@ def validate_chart_result_for_reading(
     """
     AI鑑定context生成に必要な最低限の入力を検証する。
 
-    完全一致ではなく、
-    「鑑定生成に進んでよいか」を判定する。
+    後方互換ルール:
+    ・birth_time_status が無い従来形式では四柱必須
+    ・birth_time_status があり、known=False の場合のみ
+      時柱なしを許可
     """
 
     chart_result = _require_mapping(
@@ -1557,8 +1559,7 @@ def validate_chart_result_for_reading(
 
     missing = [
         key
-        for key
-        in required_top_level_keys
+        for key in required_top_level_keys
         if key not in chart_result
     ]
 
@@ -1569,46 +1570,103 @@ def validate_chart_result_for_reading(
         )
 
     chart = _require_mapping(
-        chart_result[
-            "chart"
-        ],
+        chart_result["chart"],
         "chart_result['chart']",
     )
 
-    required_pillars = (
+    # 年・月・日は常に必須。
+    required_core_pillars = (
         "year",
         "month",
         "day",
     )
 
-    missing_pillars = [
+    missing_core_pillars = [
         position
-        for position
-        in required_pillars
+        for position in required_core_pillars
         if position not in chart
         or chart.get(position) is None
     ]
 
-    if missing_pillars:
+    if missing_core_pillars:
         raise ValueError(
             "chartに必要な年柱・月柱・日柱がありません: "
-            + ", ".join(missing_pillars)
+            + ", ".join(
+                missing_core_pillars
+            )
         )
 
-    birth_time = build_birth_time_context(chart_result)
-    hour_available = chart.get("hour") is not None
+    birth_time_status_raw = chart_result.get(
+        "birth_time_status"
+    )
 
-    if birth_time["known"] and not hour_available:
+    # --------------------------------------------------------
+    # 後方互換
+    #
+    # birth_time_status が無い旧形式では、
+    # 従来どおり四柱すべてを必須とする。
+    # --------------------------------------------------------
+    if not isinstance(
+        birth_time_status_raw,
+        Mapping,
+    ):
+        if (
+            "hour" not in chart
+            or chart.get("hour") is None
+        ):
+            raise ValueError(
+                "chartに必要な四柱がありません: hour"
+            )
+
+        return {
+            "valid": True,
+            "missing_top_level_keys": [],
+            "missing_pillars": [],
+            "hour_pillar_available": True,
+            "birth_time_known": True,
+        }
+
+    # --------------------------------------------------------
+    # 新形式
+    # --------------------------------------------------------
+    birth_time = build_birth_time_context(
+        chart_result
+    )
+
+    hour_available = (
+        chart.get("hour") is not None
+    )
+
+    # 出生時刻が分かっているなら時柱必須。
+    if (
+        birth_time["known"]
+        and not hour_available
+    ):
         raise ValueError(
-            "出生時刻ありのchart_resultには時柱が必要です。"
+            "出生時刻ありのchart_resultには"
+            "時柱が必要です。"
+        )
+
+    # 出生時刻不明なら、時柱を確定値として保持しない。
+    if (
+        not birth_time["known"]
+        and hour_available
+    ):
+        raise ValueError(
+            "出生時刻不明のchart_resultでは"
+            "時柱を確定値として保持できません。"
         )
 
     return {
         "valid": True,
         "missing_top_level_keys": [],
         "missing_pillars": [],
-        "hour_pillar_available": hour_available,
-        "birth_time_known": birth_time["known"],
+        "hour_pillar_available": (
+            hour_available
+        ),
+        "birth_time_known": (
+            birth_time["known"]
+        ),
     }
 
 
