@@ -135,6 +135,8 @@ def normalize_birth_time(
 ) -> str | None:
     """
     birth_timeをHH:MM形式として検証します。
+
+    None は出生時刻不明として正式に許可します。
     """
     if value is None:
         return None
@@ -157,6 +159,73 @@ def normalize_birth_time(
     return value
 
 
+def build_birth_time_status(
+    birth_time: str | None,
+) -> dict:
+    """
+    出生時刻の既知・未知状態と、
+    その状態による計算・解釈範囲を返します。
+
+    この情報は計算結果そのものを書き換えるためではなく、
+    reading_context・AI鑑定・PDFなどの上位層が
+    出生時刻不明時の不確実性を正しく扱うために使用します。
+
+    出生時刻あり:
+        ・四柱すべて利用可能
+        ・通常の命式解釈
+        ・大運開始時期を通常精度で扱う
+
+    出生時刻不明:
+        ・年柱、月柱、日柱のみ利用可能
+        ・時柱は生成結果から除外
+        ・五行、通根、身強身弱、格局、用神などは
+          確認可能な三柱範囲での評価
+        ・大運の順逆、干支列は利用可能
+        ・大運開始年齢、開始日時、現在大運の境界判定は
+          出生時刻不明による精度制限あり
+    """
+    known = birth_time is not None
+
+    if known:
+        return {
+            "known": True,
+            "hour_pillar_available": True,
+            "calculation_scope": "four_pillars",
+            "interpretation_scope": "full_chart",
+            "five_elements_scope": "full_chart",
+            "root_scope": "full_chart",
+            "strength_scope": "full_chart",
+            "pattern_scope": "full_chart",
+            "useful_gods_scope": "full_chart",
+            "relationship_scope": "full_chart",
+            "luck_pillar_sequence_available": True,
+            "luck_start_timing_precision": "normal",
+            "current_luck_precision": "normal",
+            "internal_reference_time_used": False,
+            "internal_reference_time": None,
+            "is_provisional_due_to_unknown_birth_time": False,
+        }
+
+    return {
+        "known": False,
+        "hour_pillar_available": False,
+        "calculation_scope": "three_pillars",
+        "interpretation_scope": "known_pillars_only",
+        "five_elements_scope": "known_pillars_only",
+        "root_scope": "known_pillars_only",
+        "strength_scope": "known_pillars_only",
+        "pattern_scope": "known_pillars_only",
+        "useful_gods_scope": "known_pillars_only",
+        "relationship_scope": "known_pillars_only",
+        "luck_pillar_sequence_available": True,
+        "luck_start_timing_precision": "estimated",
+        "current_luck_precision": "estimated",
+        "internal_reference_time_used": True,
+        "internal_reference_time": "12:00",
+        "is_provisional_due_to_unknown_birth_time": True,
+    }
+
+
 def calculate_chart(
     req,
     target_datetime: datetime | None = None,
@@ -169,6 +238,24 @@ def calculate_chart(
 
         None の場合は Asia/Tokyo の現在日時を使用します。
         テストでは固定日時を渡すことで再現性を確保できます。
+
+    出生時刻不明:
+        birth_time=None を正式に許可します。
+
+        年柱・月柱・日柱を計算するため、
+        内部計算上のみ12:00を代表時刻として使用します。
+
+        この12:00は実際の出生時刻ではありません。
+
+        時柱は最終的なchartから除外し、
+        birth_time_statusによって三柱範囲の計算であることを
+        上位層へ明示します。
+
+        現行の大運計算エンジンはbirth_datetimeを必要とするため、
+        出生時刻不明の場合は内部代表時刻12:00を使用します。
+
+        そのため大運開始年齢・開始日時・現在大運の境界判定は
+        birth_time_statusでestimatedとして明示します。
     """
     birth_date = normalize_birth_date(
         req.birth_date
@@ -178,26 +265,45 @@ def calculate_chart(
         req.birth_time
     )
 
+    birth_time_status = (
+        build_birth_time_status(
+            birth_time
+        )
+    )
+
     warnings: list[str] = []
 
     if birth_time is None:
-        time_text = "12:00"
+        calculation_time_text = "12:00"
 
         warnings.append(
             "出生時間が不明なため、時柱は計算していません。"
         )
-    else:
-        time_text = birth_time
 
-    birth_datetime = datetime.strptime(
-        f"{birth_date} {time_text}",
-        "%Y-%m-%d %H:%M",
-    ).replace(
-        tzinfo=JST
+        warnings.append(
+            "出生時間が不明なため、五行・通根・身強身弱・格局・用神などは"
+            "確認可能な年柱・月柱・日柱の範囲での評価です。"
+        )
+
+        warnings.append(
+            "出生時間が不明なため、大運開始年齢・開始日時・"
+            "現在大運の切り替わり時期には精度上の制限があります。"
+        )
+
+    else:
+        calculation_time_text = birth_time
+
+    calculation_birth_datetime = (
+        datetime.strptime(
+            f"{birth_date} {calculation_time_text}",
+            "%Y-%m-%d %H:%M",
+        ).replace(
+            tzinfo=JST
+        )
     )
 
     pillars = calculate_four_pillars(
-        birth_datetime
+        calculation_birth_datetime
     )
 
     if birth_time is None:
@@ -473,11 +579,20 @@ def calculate_chart(
 
     # solar_terms_v2 は現在 timezone-naive の
     # ローカル日時を使用する。
-    # chart.py の birth_datetime は JST aware なので、
+    #
+    # calculation_birth_datetime は JST aware なので、
     # 大運計算へ渡す際は「日本時間の壁時計値」を保ったまま
     # tzinfo のみ外して互換化する。
+    #
+    # 出生時刻不明の場合、
+    # calculation_birth_datetime の時刻部分は内部代表値12:00。
+    #
+    # これは実際の出生時刻を意味しない。
+    # そのため birth_time_status では
+    # luck_start_timing_precision / current_luck_precision を
+    # estimated として上位層へ伝える。
     luck_birth_datetime = (
-        birth_datetime.replace(
+        calculation_birth_datetime.replace(
             tzinfo=None
         )
     )
@@ -522,6 +637,7 @@ def calculate_chart(
                 JST
             )
         )
+
     else:
         if not isinstance(
             target_datetime,
@@ -535,8 +651,10 @@ def calculate_chart(
             target_datetime
         )
 
-    # birth_datetime / solar_terms_v2 / current_luck_v1 の
-    # 現行仕様に合わせ、日本時間の壁時計値を保持した
+    # calculation_birth_datetime /
+    # solar_terms_v2 /
+    # current_luck_v1 の現行仕様に合わせ、
+    # 日本時間の壁時計値を保持した
     # timezone-naive datetime へ揃える。
     if (
         current_target_datetime.tzinfo
@@ -619,118 +737,169 @@ def calculate_chart(
             "gender": req.gender,
             "timezone": "Asia/Tokyo",
         },
+
+        # 出生時刻の確度情報。
+        #
+        # 既存の各計算結果を変更せず、
+        # reading_context / AI / PDF が
+        # 出生時刻不明時の解釈範囲を判断するために使用する。
+        "birth_time_status": (
+            birth_time_status
+        ),
+
         "chart": chart_data,
+
         "stem_combinations": (
             stem_combinations
         ),
+
         "stem_combination_conflicts": (
             stem_combination_conflicts
         ),
+
         "stem_combination_conflict_types": (
             stem_combination_conflict_types
         ),
+
         "stem_transformations": (
             stem_transformations
         ),
+
         "transformation_roots": (
             transformation_roots
         ),
+
         "transformation_exposures": (
             transformation_exposures
         ),
+
         "stem_transformation_judgment": (
             stem_transformation_judgment
         ),
+
         "final_strength_judgment": (
             final_strength_judgment
         ),
+
         "pattern_candidates": (
             pattern_candidates
         ),
+
         "pattern_special_rules": (
             pattern_special_rules
         ),
+
         "pattern_judgment": (
             pattern_judgment
         ),
+
         "pattern_useful_gods": (
             pattern_useful_gods
         ),
+
         "climate_useful_gods": (
             climate_useful_gods
         ),
+
         "useful_gods": (
             useful_gods
         ),
+
         "luck_pillars": (
             luck_pillars
         ),
+
         "current_luck": (
             current_luck
         ),
+
         "annual_luck": (
             annual_luck
         ),
+
         "integrated_luck": (
             integrated_luck
         ),
+
         "day_master": pillars["day_master"],
+
         "five_elements": five_elements,
+
         "weighted_five_elements": (
             weighted_five_elements
         ),
+
         "day_master_balance": (
             day_master_balance
         ),
+
         "weighted_day_master_balance": (
             weighted_day_master_balance
         ),
+
         "root_strength": root_strength,
+
         "weighted_root_strength": (
             weighted_root_strength
         ),
+
         "branch_clashes": (
             branch_clashes
         ),
+
         "branch_combinations": (
             branch_combinations
         ),
+
         "branch_trines": (
             branch_trines
         ),
+
         "branch_punishments": (
             branch_punishments
         ),
+
         "branch_harms": (
             branch_harms
         ),
+
         "branch_breaks": (
             branch_breaks
         ),
+
         "branch_relation_strength": (
             branch_relation_strength
         ),
+
         "month_command": month_command,
+
         "weighted_month_command": (
             weighted_month_command
         ),
+
         "seasonal_strength": (
             seasonal_strength
         ),
+
         "integrated_month_strength": (
             integrated_month_strength
         ),
+
         "strength_judgment": (
             strength_judgment
         ),
+
         "weighted_strength_judgment": (
             weighted_strength_judgment
         ),
+
         "calculation_rules": (
             pillars["calculation_rules"]
         ),
+
         "calculation_status": (
             pillars["calculation_status"]
         ),
+
         "warnings": warnings,
     }
