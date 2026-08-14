@@ -3127,3 +3127,317 @@ def test_reading_product_v1_final_gate(
         '"prompt"'
         not in serialized
     )
+
+
+# ============================================================
+# future_flow yearly preservation
+# ============================================================
+
+
+def _make_future_flow_yearly():
+    return [
+        {
+            "year": 2026,
+            "title": "ここから年末まで",
+            "summary": (
+                "現在年の残り期間の流れです。"
+            ),
+            "detail": (
+                "鑑定日時点から年末までの"
+                "流れを説明します。"
+            ),
+            "advice": [
+                "焦らず優先順位を整える。",
+            ],
+        },
+        {
+            "year": 2027,
+            "title": "基盤を整える年",
+            "summary": (
+                "次の展開に備える一年です。"
+            ),
+            "detail": (
+                "足元を固めながら"
+                "選択肢を広げます。"
+            ),
+            "advice": [
+                "継続できる形を選ぶ。",
+            ],
+        },
+        {
+            "year": 2028,
+            "title": "動きが強まる年",
+            "summary": (
+                "変化を活かしやすい一年です。"
+            ),
+            "detail": (
+                "状況を見ながら"
+                "行動範囲を広げます。"
+            ),
+            "advice": [
+                "機会を見極めて動く。",
+            ],
+        },
+        {
+            "year": 2029,
+            "title": "形にしていく年",
+            "summary": (
+                "積み重ねを成果へ"
+                "つなげる一年です。"
+            ),
+            "detail": (
+                "広げすぎず、"
+                "重要なものを形にします。"
+            ),
+            "advice": [
+                "成果を整理して残す。",
+            ],
+        },
+        {
+            "year": 2030,
+            "title": "次の段階へ向かう年",
+            "summary": (
+                "5年間の経験を次へ"
+                "つなぐ一年です。"
+            ),
+            "detail": (
+                "これまでの流れを振り返り、"
+                "次の方向を選びます。"
+            ),
+            "advice": [
+                "次の長期目標を考える。",
+            ],
+        },
+    ]
+
+
+def test_build_product_section_future_flow_preserves_yearly():
+    yearly = _make_future_flow_yearly()
+
+    section_data = {
+        "title": "これから5年間の運勢",
+        "summary": "5年間の全体像です。",
+        "detail": "5年間を俯瞰した説明です。",
+        "evidence": [
+            "各年の大運と歳運を確認しています。",
+        ],
+        "advice": [
+            "年ごとの違いを活かしてください。",
+        ],
+        "yearly": yearly,
+    }
+
+    result = build_product_section(
+        "future_flow",
+        section_data,
+    )
+
+    assert (
+        result["yearly"]
+        == yearly
+    )
+
+
+def test_build_product_section_future_flow_yearly_is_deep_copy():
+    yearly = _make_future_flow_yearly()
+
+    section_data = {
+        "title": "これから5年間の運勢",
+        "summary": "5年間の全体像です。",
+        "detail": "5年間を俯瞰した説明です。",
+        "evidence": [],
+        "advice": [],
+        "yearly": yearly,
+    }
+
+    result = build_product_section(
+        "future_flow",
+        section_data,
+    )
+
+    result[
+        "yearly"
+    ][0][
+        "title"
+    ] = "変更"
+
+    assert (
+        section_data[
+            "yearly"
+        ][0][
+            "title"
+        ]
+        == "ここから年末まで"
+    )
+
+
+def test_build_product_section_non_future_flow_does_not_add_yearly():
+    section_data = {
+        "title": "仕事・適職",
+        "summary": "仕事の要約です。",
+        "detail": "仕事の詳細です。",
+        "evidence": [],
+        "advice": [],
+        "yearly": _make_future_flow_yearly(),
+    }
+
+    result = build_product_section(
+        "career",
+        section_data,
+    )
+
+    assert (
+        "yearly"
+        not in result
+    )
+
+
+def test_build_product_section_future_flow_without_yearly_keeps_backward_compatibility():
+    section_data = {
+        "title": "今後の流れ",
+        "summary": "従来形式の要約です。",
+        "detail": "従来形式の詳細です。",
+        "evidence": [
+            "従来形式の根拠です。",
+        ],
+        "advice": [
+            "従来形式の助言です。",
+        ],
+    }
+
+    result = build_product_section(
+        "future_flow",
+        section_data,
+    )
+
+    assert (
+        result["key"]
+        == "future_flow"
+    )
+
+    assert (
+        result["summary"]
+        == "従来形式の要約です。"
+    )
+
+    assert (
+        result["detail"]
+        == "従来形式の詳細です。"
+    )
+
+    assert (
+        result.get(
+            "yearly",
+            [],
+        )
+        == []
+    )
+
+
+def test_build_product_sections_future_flow_preserves_yearly():
+    yearly = _make_future_flow_yearly()
+
+    parsed = {
+        "sections": {
+            "future_flow": {
+                "title": (
+                    "これから5年間の運勢"
+                ),
+                "summary": (
+                    "5年間の全体像です。"
+                ),
+                "detail": (
+                    "5年間を俯瞰した説明です。"
+                ),
+                "evidence": [
+                    "各年の計算済み運勢を"
+                    "根拠にしています。",
+                ],
+                "advice": [
+                    "流れに応じて"
+                    "行動を調整してください。",
+                ],
+                "yearly": yearly,
+            },
+        },
+    }
+
+    result = build_product_sections(
+        parsed,
+        (
+            "future_flow",
+        ),
+    )
+
+    assert len(result) == 1
+
+    assert (
+        result[0][
+            "key"
+        ]
+        == "future_flow"
+    )
+
+    assert (
+        result[0][
+            "yearly"
+        ]
+        == yearly
+    )
+
+
+def test_product_future_flow_yearly_is_json_serializable():
+    yearly = _make_future_flow_yearly()
+
+    parsed = {
+        "sections": {
+            "future_flow": {
+                "title": (
+                    "これから5年間の運勢"
+                ),
+                "summary": (
+                    "5年間の全体像です。"
+                ),
+                "detail": (
+                    "5年間を俯瞰した説明です。"
+                ),
+                "evidence": [],
+                "advice": [],
+                "yearly": yearly,
+            },
+        },
+    }
+
+    section = build_product_sections(
+        parsed,
+        (
+            "future_flow",
+        ),
+    )[0]
+
+    dumped = json.dumps(
+        section,
+        ensure_ascii=False,
+    )
+
+    loaded = json.loads(
+        dumped
+    )
+
+    assert (
+        loaded[
+            "yearly"
+        ][0][
+            "year"
+        ]
+        == 2026
+    )
+
+    assert (
+        loaded[
+            "yearly"
+        ][-1][
+            "year"
+        ]
+        == 2030
+    )
