@@ -1,7 +1,7 @@
 """
 engine/reading_prompt.py
 
-AI鑑定文生成用プロンプト構築モジュール。\nconsultation_context_v1 の任意連動に対応。
+AI鑑定文生成用プロンプト構築モジュール。\nconsultation_context_v1 の任意連動と five_year_luck の5年展望に対応。
 
 目的
 ----
@@ -105,116 +105,6 @@ SECTION_TITLES_JA = {
     "current_luck": "現在の運勢",
     "future_flow": "今後の流れ",
     "advice": "総合アドバイス",
-}
-
-SECTION_ROLE_CONTRACTS_JA = {
-    "core_personality": {
-        "primary_role": (
-            "生来の性格・意思決定・行動傾向を説明する。"
-        ),
-        "include": (
-            "日主・身強身弱・格局などから、"
-            "本人の基本的な反応や強み・注意点を説明する。"
-        ),
-        "exclude": (
-            "転職判断、金銭管理、現在の運勢、"
-            "将来時期の予測を主題にしない。"
-        ),
-    },
-    "career": {
-        "primary_role": (
-            "仕事で強みを活かしやすい役割・環境・進め方を説明し、"
-            "仕事相談がある場合はその問いへ直接答える。"
-        ),
-        "include": (
-            "具体的な職業名より先に、向く仕事の性質・役割・環境を示す。"
-            "必要なら複数の現実的な選択肢を比較する。"
-        ),
-        "exclude": (
-            "金運章の家計論、健康章の生活管理、"
-            "現在運章の時期説明を繰り返さない。"
-        ),
-    },
-    "wealth": {
-        "primary_role": (
-            "金銭との向き合い方、収入・支出・蓄積・リスク判断の"
-            "傾向を説明する。"
-        ),
-        "include": (
-            "占術上の傾向を、現実の収支・リスク確認と併用できる形で示す。"
-        ),
-        "exclude": (
-            "職業適性の説明や転職判断を再演しない。"
-            "投資商品の推奨や利益保証をしない。"
-        ),
-    },
-    "relationships": {
-        "primary_role": (
-            "本人の対人距離、伝え方、関係構築の傾向を説明する。"
-        ),
-        "include": (
-            "本人側の強み・すれ違いやすい点・関係を整える視点を示す。"
-        ),
-        "exclude": (
-            "相手の人格や未来を断定しない。"
-            "仕事・金運の助言を持ち込まない。"
-        ),
-    },
-    "health": {
-        "primary_role": (
-            "健康を占術で診断せず、生活全体のバランスを見直す"
-            "一般的な参考として説明する。"
-        ),
-        "include": (
-            "入力された健康事実がある場合も医学的に解釈せず、"
-            "必要に応じ専門家への相談を妨げない。"
-        ),
-        "exclude": (
-            "病名・症状・体質・睡眠状態・臓器などを"
-            "命式から具体的に推測しない。"
-        ),
-    },
-    "current_luck": {
-        "primary_role": (
-            "現在の大運・歳運・統合運から、今の時期に出やすい"
-            "流れと注意点を説明する。"
-        ),
-        "include": (
-            "現在の追い風と慎重さが必要な点を、"
-            "確定的な未来ではなく時期の傾向として示す。"
-        ),
-        "exclude": (
-            "生来の性格説明を繰り返さない。"
-            "将来の長期展望をこの章で先取りしない。"
-        ),
-    },
-    "future_flow": {
-        "primary_role": (
-            "現在から次の運気段階へどう流れが変化するかを"
-            "時系列で説明する。"
-        ),
-        "include": (
-            "大運・歳運の切替や変化を、入力された精度の範囲で示す。"
-        ),
-        "exclude": (
-            "現在運章の説明を言い換えるだけにしない。"
-            "出生時刻不明時に推定境界を確定時期として書かない。"
-        ),
-    },
-    "advice": {
-        "primary_role": (
-            "前章までの内容を再説明せず、相談者が次に判断・行動するための"
-            "優先順位を統合して示す。"
-        ),
-        "include": (
-            "相談がある場合は最終回答を明確にし、"
-            "複数の選択肢・判断材料・最初の行動へ落とし込む。"
-        ),
-        "exclude": (
-            "各章の五行説明や専門用語をもう一度列挙しない。"
-            "既出助言の単純なまとめ直しにしない。"
-        ),
-    },
 }
 
 DEFAULT_SECTION_ORDER = DEFAULT_READING_SECTIONS
@@ -633,12 +523,6 @@ def build_prompt_facts(
         )
     )
 
-    birth_time_status = _safe_dict(
-        reading_context.get(
-            "birth_time_status"
-        )
-    )
-
     natal_chart = _safe_dict(
         reading_context.get(
             "natal_chart"
@@ -723,71 +607,6 @@ def build_prompt_facts(
             ),
             "timezone": subject.get(
                 "timezone"
-            ),
-        },
-        "birth_time_status": {
-            "known": birth_time_status.get(
-                "known"
-            ),
-            "hour_pillar_available": (
-                birth_time_status.get(
-                    "hour_pillar_available"
-                )
-            ),
-            "calculation_scope": (
-                birth_time_status.get(
-                    "calculation_scope"
-                )
-            ),
-            "interpretation_scope": (
-                birth_time_status.get(
-                    "interpretation_scope"
-                )
-            ),
-            "five_elements_scope": (
-                birth_time_status.get(
-                    "five_elements_scope"
-                )
-            ),
-            "strength_scope": (
-                birth_time_status.get(
-                    "strength_scope"
-                )
-            ),
-            "pattern_scope": (
-                birth_time_status.get(
-                    "pattern_scope"
-                )
-            ),
-            "useful_gods_scope": (
-                birth_time_status.get(
-                    "useful_gods_scope"
-                )
-            ),
-            "relationship_scope": (
-                birth_time_status.get(
-                    "relationship_scope"
-                )
-            ),
-            "luck_start_timing_precision": (
-                birth_time_status.get(
-                    "luck_start_timing_precision"
-                )
-            ),
-            "current_luck_precision": (
-                birth_time_status.get(
-                    "current_luck_precision"
-                )
-            ),
-            "is_provisional_due_to_unknown_birth_time": (
-                birth_time_status.get(
-                    "is_provisional_due_to_unknown_birth_time"
-                )
-            ),
-            "reading_rule": (
-                birth_time_status.get(
-                    "reading_rule"
-                )
             ),
         },
         "natal_chart": {
@@ -1052,6 +871,258 @@ def build_prompt_facts(
     }
 
 
+
+# ============================================================
+# Five-year prompt facts
+# ============================================================
+
+
+def build_five_year_prompt_facts(
+    reading_context: Mapping[
+        str,
+        Any,
+    ],
+) -> List[Dict[str, Any]]:
+    """
+    reading_context.luck.five_year_luck を
+    AI鑑定用の5年展望データへ整形する。
+
+    重要:
+    - 占術計算は行わない。
+    - reading_context に保存済みの値だけを使用する。
+    - five_year_luck が存在しない旧contextでは空listを返す。
+    - 現在年と将来年の文章上の役割を period_type で補助する。
+    """
+
+    reading_context = _require_mapping(
+        reading_context,
+        "reading_context",
+    )
+
+    luck = _safe_dict(
+        reading_context.get(
+            "luck"
+        )
+    )
+
+    raw_entries = _safe_list(
+        luck.get(
+            "five_year_luck"
+        )
+    )
+
+    result: List[
+        Dict[str, Any]
+    ] = []
+
+    for index, raw_entry in enumerate(
+        raw_entries
+    ):
+        if not isinstance(
+            raw_entry,
+            Mapping,
+        ):
+            continue
+
+        entry = _safe_dict(
+            raw_entry
+        )
+
+        current_luck = _safe_dict(
+            entry.get(
+                "current_luck"
+            )
+        )
+        annual_luck = _safe_dict(
+            entry.get(
+                "annual_luck"
+            )
+        )
+        integrated_luck = _safe_dict(
+            entry.get(
+                "integrated_luck"
+            )
+        )
+
+        result.append(
+            {
+                "year": (
+                    entry.get(
+                        "year"
+                    )
+                ),
+                "target_datetime": (
+                    entry.get(
+                        "target_datetime"
+                    )
+                ),
+                "period_type": (
+                    "current_year_remaining"
+                    if index == 0
+                    else "full_future_year"
+                ),
+                "current_luck": {
+                    "has_current_luck": (
+                        current_luck.get(
+                            "has_current_luck"
+                        )
+                    ),
+                    "phase": (
+                        current_luck.get(
+                            "phase"
+                        )
+                    ),
+                    "current_pillar": (
+                        current_luck.get(
+                            "current_pillar"
+                        )
+                    ),
+                    "next_pillar": (
+                        current_luck.get(
+                            "next_pillar"
+                        )
+                    ),
+                    "years_until_next_luck": (
+                        current_luck.get(
+                            "years_until_next_luck"
+                        )
+                    ),
+                    "timing_precision": (
+                        current_luck.get(
+                            "timing_precision"
+                        )
+                    ),
+                    "timing_is_estimated": (
+                        current_luck.get(
+                            "timing_is_estimated"
+                        )
+                    ),
+                },
+                "annual_luck": {
+                    "year": (
+                        annual_luck.get(
+                            "year"
+                        )
+                    ),
+                    "calendar_year": (
+                        annual_luck.get(
+                            "calendar_year"
+                        )
+                    ),
+                    "effective_year": (
+                        annual_luck.get(
+                            "effective_year"
+                        )
+                    ),
+                    "ganzhi": (
+                        annual_luck.get(
+                            "ganzhi"
+                        )
+                    ),
+                    "stem_element": (
+                        annual_luck.get(
+                            "stem_element"
+                        )
+                    ),
+                    "branch_element": (
+                        annual_luck.get(
+                            "branch_element"
+                        )
+                    ),
+                    "stem_ten_god": (
+                        annual_luck.get(
+                            "stem_ten_god"
+                        )
+                    ),
+                    "twelve_stage": (
+                        annual_luck.get(
+                            "twelve_stage"
+                        )
+                    ),
+                    "stem_useful_relation": (
+                        annual_luck.get(
+                            "stem_useful_relation"
+                        )
+                    ),
+                    "branch_useful_relation": (
+                        annual_luck.get(
+                            "branch_useful_relation"
+                        )
+                    ),
+                    "current_luck_relation": (
+                        annual_luck.get(
+                            "current_luck_relation"
+                        )
+                    ),
+                },
+                "integrated_luck": {
+                    "current_luck_ganzhi": (
+                        integrated_luck.get(
+                            "current_luck_ganzhi"
+                        )
+                    ),
+                    "annual_luck_ganzhi": (
+                        integrated_luck.get(
+                            "annual_luck_ganzhi"
+                        )
+                    ),
+                    "agreement_level": (
+                        integrated_luck.get(
+                            "agreement_level"
+                        )
+                    ),
+                    "overall_score": (
+                        integrated_luck.get(
+                            "overall_score"
+                        )
+                    ),
+                    "overall_level": (
+                        integrated_luck.get(
+                            "overall_level"
+                        )
+                    ),
+                    "confidence": (
+                        integrated_luck.get(
+                            "confidence"
+                        )
+                    ),
+                    "annual_ten_god": (
+                        integrated_luck.get(
+                            "annual_ten_god"
+                        )
+                    ),
+                    "annual_twelve_stage": (
+                        integrated_luck.get(
+                            "annual_twelve_stage"
+                        )
+                    ),
+                    "element_interactions": (
+                        integrated_luck.get(
+                            "element_interactions"
+                        )
+                    ),
+                    "current_luck_useful": (
+                        integrated_luck.get(
+                            "current_luck_useful"
+                        )
+                    ),
+                    "annual_luck_useful": (
+                        integrated_luck.get(
+                            "annual_luck_useful"
+                        )
+                    ),
+                    "timing_is_estimated": (
+                        integrated_luck.get(
+                            "timing_is_estimated"
+                        )
+                    ),
+                },
+            }
+        )
+
+    return result
+
+
 # ============================================================
 # Section instructions
 # ============================================================
@@ -1098,12 +1169,6 @@ def get_section_instruction(
         )
     )
 
-    role_contract = deepcopy(
-        SECTION_ROLE_CONTRACTS_JA[
-            section
-        ]
-    )
-
     return {
         "section": section,
         "title": (
@@ -1120,9 +1185,6 @@ def get_section_instruction(
             raw_section.get(
                 "instruction"
             )
-        ),
-        "role_contract": (
-            role_contract
         ),
     }
 
@@ -1155,124 +1217,6 @@ def build_selected_section_instructions(
         in normalized
     ]
 
-
-
-# ============================================================
-# Birth time uncertainty prompt block
-# ============================================================
-
-
-def build_birth_time_prompt_block(
-    reading_context: Mapping[
-        str,
-        Any,
-    ],
-) -> str:
-    """
-    出生時刻不明時だけ、
-    AIへ追加する厳格な解釈制約を返す。
-
-    旧reading_contextなどでbirth_time_statusが無い場合は、
-    従来挙動を壊さないため空文字を返す。
-    """
-
-    reading_context = _require_mapping(
-        reading_context,
-        "reading_context",
-    )
-
-    status = _safe_dict(
-        reading_context.get(
-            "birth_time_status"
-        )
-    )
-
-    if not status:
-        return ""
-
-    known = status.get(
-        "known"
-    )
-
-    if known is not False:
-        return ""
-
-    payload = {
-        "known": False,
-        "hour_pillar_available": (
-            status.get(
-                "hour_pillar_available"
-            )
-        ),
-        "calculation_scope": (
-            status.get(
-                "calculation_scope"
-            )
-        ),
-        "interpretation_scope": (
-            status.get(
-                "interpretation_scope"
-            )
-        ),
-        "five_elements_scope": (
-            status.get(
-                "five_elements_scope"
-            )
-        ),
-        "strength_scope": (
-            status.get(
-                "strength_scope"
-            )
-        ),
-        "pattern_scope": (
-            status.get(
-                "pattern_scope"
-            )
-        ),
-        "useful_gods_scope": (
-            status.get(
-                "useful_gods_scope"
-            )
-        ),
-        "luck_start_timing_precision": (
-            status.get(
-                "luck_start_timing_precision"
-            )
-        ),
-        "current_luck_precision": (
-            status.get(
-                "current_luck_precision"
-            )
-        ),
-    }
-
-    return f"""
-【出生時刻不明時の絶対条件】
-
-この鑑定では出生時刻が不明です。
-以下の制約は他の文章上の指示より優先してください。
-
-出生時刻状態:
-{_pretty_json(payload)}
-
-- 時柱を推測しないでください。
-- 仮の時柱を作成・補完しないでください。
-- reading_context に存在しない時干・時支・通変星・十二運・蔵干を創作しないでください。
-- 年柱・月柱・日柱から確認できる範囲だけを命式の事実として扱ってください。
-- 三柱で確認した結果を「命式全体で確定している」と表現しないでください。
-- 五行バランスは確認可能な三柱の範囲での評価です。「命式に○がない」「○が完全に欠けている」など、時柱まで含めた欠如を断定しないでください。
-- 通根が三柱で確認できない場合でも、時柱にも根が存在しないとは断定しないでください。
-- 身強身弱は入力された計算結果を再判定せず、出生時刻不明による暫定性・解釈範囲を維持してください。
-- 格局は入力された計算結果を再判定せず、出生時刻不明による暫定性・解釈範囲を維持してください。
-- 用神は入力された計算結果を再選定せず、出生時刻不明による暫定性・解釈範囲を維持してください。
-- 合・冲・刑・害・干合などは、確認可能な柱の範囲での結果として扱い、時柱由来の関係が存在しないとは断定しないでください。
-- 大運の順逆・干支列は入力された計算結果をそのまま使用してください。
-- 大運開始年齢・開始日時・現在大運の切り替わり時期について timing_precision が estimated の場合、厳密な確定値として断定しないでください。
-- 現在大運や次の大運について境界時期に触れる場合は、出生時刻不明により切り替わり時期に幅があることを明示してください。
-- 出生時刻が不明であること自体から、性格・健康・仕事・恋愛・金運・人生傾向を推測しないでください。
-- 不明な情報は不明のまま扱い、もっともらしい補完をしないでください。
-- 顧客向け文章では必要に応じて「確認可能な三柱の範囲では」「出生時刻が不明なため一部の判断には幅があります」など、自然な日本語で確度を説明してください。
-""".strip()
 
 
 # ============================================================
@@ -1672,10 +1616,18 @@ def build_system_prompt(
 11. 読み手を不必要に怖がらせる表現を避けてください。
 12. 悪い時期も「何を避けるか」「どう活かすか」を併記してください。
 13. 良い時期も過度な楽観を煽らず、活かす条件を示してください。
-14. 出生時刻が不明と明示されている場合、時柱を推測・補完・創作しないでください。
-15. 出生時刻不明時は、年柱・月柱・日柱の範囲で確認できる情報と、命式全体で確定できる情報を区別してください。
-16. 出生時刻不明時の五行・身強身弱・格局・用神・合冲刑害などは、入力されたscope・provisional・timing_precision等の不確実性情報を維持してください。
-17. 大運開始時期や現在大運の境界がestimatedの場合、厳密な確定値として断定しないでください。
+
+【5年間の運勢】
+- five_year_luck が入力されている場合は、現在年から5年間を年ごとに比較して説明してください。
+- 5年分の歳運を自分で再計算せず、入力された各年の current_luck / annual_luck / integrated_luck をそのまま根拠として使用してください。
+- 各年の大運が同じとは限りません。必ずその年の current_luck と annual_luck の組み合わせを見てください。
+- 現在年は「1月から12月までの一年全体」ではなく、鑑定日時点から年末までの残り期間として説明してください。
+- 現在年の実践説明では「○○年は」を繰り返さず、「ここから年末にかけて」「今年残りの期間」「これからの数か月」など、鑑定日時点に合う自然な表現を優先してください。
+- ただし歳運そのものを説明する場合は、「2026年の歳運『丙午』」のように対象年を明示して構いません。
+- 翌年以降は、それぞれ独立した一年のテーマとして説明してください。
+- 5年間すべてを同じ文章量で機械的に並べず、現在年を詳しく、翌年・翌々年をやや詳しく、4年目・5年目を要点中心にまとめてください。
+- 最後に5年間を俯瞰し、「追い風になりやすい時期」「慎重さが役立つ時期」「流れの切り替わり」を比較してまとめてください。
+- 各年を「必ず良い」「必ず悪い」と順位づけせず、活かし方と注意点として説明してください。
 
 【健康】
 
@@ -1726,7 +1678,7 @@ def build_system_prompt(
 - 相談者の職業や事業形態が入力されていない場合は、一般化した選択肢として説明し、特定の職業・会社員・経営者・自営業などと決めつけないでください。
 - JSONの evidence は、内部キーや英語ラベルをそのまま並べるだけでなく、顧客が理解できる自然な日本語で記述してください。
 - evidence には、可能な限り「どの計算済み事実が、どの解釈につながるか」が分かる表現を使ってください。
-- evidence は顧客へそのまま提示される文章として完成させてください。reading_context、consultation_context、natal_chart、day_master、five_elements、strength、pattern、useful_gods、current_luck、annual_luck、integrated_luck などの内部キー名を evidence に出力しないでください。
+- evidence は顧客へそのまま提示される文章として完成させてください。reading_context、consultation_context、natal_chart、day_master、five_elements、strength、pattern、useful_gods、current_luck、annual_luck、integrated_luck、five_year_luck などの内部キー名を evidence に出力しないでください。
 - evidence に「xxx.yyy.zzz」のようなJSONパス、snake_caseのフィールド名、内部変数名、デバッグ用ラベルを出力しないでください。
 - evidence で「キー=値」「field=value」のような内部データ表記を使わないでください。
 - summary / detail / evidence / advice のすべてで、mixed、overall、positive、negative、neutral などの内部評価ラベルを絶対に出力しないでください。
@@ -1739,27 +1691,8 @@ def build_system_prompt(
 - 五行を「水＝情報」「木＝成長」のような一語だけに固定し、すべてのセクションで機械的に繰り返さないでください。
 - 各セクションで同じ助言・同じ結論・同じ言い回しを過度に重複させないでください。
 - 同じ内容に触れる必要がある場合も、各セクションの役割と文脈に合わせて観点を変えて説明してください。
-- 相談内容に関連するセクションでは、相談者の問いを明示的に取り上げたうえで、計算済み事実 → 解釈 → 複数の選択肢 → 現実的な判断材料 → 実践的な行動の順で説明してください。
-- 相談への回答では、占術上の傾向だけで終わらせず、相談者が比較できる複数の選択肢と現実的な判断材料を示してください。
+- 相談内容に関連するセクションでは、相談者の問いを明示的に取り上げたうえで、計算済み事実 → 解釈 → 選択肢 → 実践的な行動の順で説明してください。
 - 相談内容に直接関係しないセクションへ、無理に相談テーマを持ち込まないでください。
-
-【8セクション役割分離 v2】
-
-- 各セクションには固有の役割があります。別セクションの役割を奪わないでください。
-- core_personality は生来の性格・意思決定・行動傾向に集中してください。
-- career は仕事の性質・役割・環境と、仕事相談への直接回答に集中してください。
-- wealth は金銭との向き合い方・収支・蓄積・リスク判断に集中してください。
-- relationships は本人の対人距離・伝え方・関係構築に集中してください。
-- health は医学的診断をせず、生活全体のバランスを見直す一般的参考に限定してください。
-- current_luck は現在の大運・歳運・統合運から読める「今」の流れに集中してください。
-- future_flow は現在から次の段階への変化を時系列で説明してください。
-- advice は各章を再要約せず、相談者が次に判断・行動するための統合結論にしてください。
-- 同じ計算済み事実を複数章で使う必要がある場合も、同じ説明文・同じ現代語訳・同じ助言へ機械的に変換しないでください。
-- ある五行を一度「情報」「安定」「運用」「勢い」「ルール」などと表現しても、それをその五行の固定辞書として他章へコピーしないでください。
-- 五行名を毎章必ず登場させる必要はありません。章の理解に不要なら、五行名そのものを省き、計算済み事実から導ける意味だけを自然な日本語で説明してください。
-- 同じ助言概念を3章以上の advice に繰り返さないでください。重要な助言は最も関係する章へ置き、総合アドバイスでは優先順位や判断基準へ統合してください。
-- 「学習」「情報収集」「可視化」「準備」「対話」など便利な助言語を、内容を変えず複数章へ反復しないでください。
-- advice セクションは「これまで述べた通り」の再掲ではなく、何を優先し、何を保留し、何を判断材料にするかを示してください。
 
 【免責事項の品質】
 
@@ -1960,11 +1893,18 @@ def build_user_prompt(
         reading_context
     )
 
-    birth_time_block = (
-        build_birth_time_prompt_block(
+    five_year_facts = (
+        build_five_year_prompt_facts(
             reading_context
         )
     )
+
+    if five_year_facts:
+        facts[
+            "luck"
+        ][
+            "five_year_luck"
+        ] = five_year_facts
 
     consultation_block = (
         build_consultation_prompt_block(
@@ -1982,32 +1922,33 @@ def build_user_prompt(
             item["focus"]
         )
 
-        role_contract = (
-            item.get(
-                "role_contract",
-                {},
-            )
-        )
-
         section_lines.append(
             (
                 f"{index}. "
                 f"{item['title']} "
                 f"({item['section']})\n"
                 f"   参照領域: {focus}\n"
-                f"   指示: {item['instruction']}\n"
-                f"   この章の役割: "
-                f"{role_contract.get('primary_role', '')}\n"
-                f"   この章で扱うこと: "
-                f"{role_contract.get('include', '')}\n"
-                f"   この章で扱わないこと: "
-                f"{role_contract.get('exclude', '')}"
+                f"   指示: {item['instruction']}"
             )
         )
 
     section_text = "\n\n".join(
         section_lines
     )
+
+    if (
+        "future_flow"
+        in normalized_sections
+        and five_year_facts
+    ):
+        section_text += (
+            "\n\n【future_flow追加指示】\n"
+            "- このセクションでは、現在年から5年間を扱ってください。\n"
+            "- 先頭年は鑑定日時点から年末までの残り期間として扱ってください。\n"
+            "- 2年目・3年目は比較的詳しく、4年目・5年目は要点を簡潔に整理してください。\n"
+            "- 年ごとの違いを示した後、5年間全体の流れを総括してください。\n"
+            "- 単年データを5年間へ引き延ばさず、five_year_luck の各年データを使ってください。"
+        )
 
     if output_format == "json":
         schema = (
@@ -2089,8 +2030,6 @@ JSON Schema:
 - 入力値と矛盾する干支を生成しないこと。
 - 情報がない場合は推測で埋めないこと。
 
-{birth_time_block}
-
 【鑑定対象セクション】
 
 {section_text}
@@ -2106,6 +2045,11 @@ JSON Schema:
 1. 命式の特徴と現在の運勢を混同しないでください。
 2. 生来の特徴は natal_chart / day_master / strength / pattern を中心に説明してください。
 3. 現在の運勢は current_luck / annual_luck / integrated_luck を中心に説明してください。
+3-A. five_year_luck がある場合、future_flow では5年分を年ごとに比較し、各年の current_luck / annual_luck / integrated_luck を組み合わせて説明してください。
+3-B. five_year_luck の先頭年は鑑定日時点から年末までの残り期間です。先頭年について「○○年は」を何度も繰り返さず、「ここから年末にかけて」「今年残りの期間」「これからの数か月」などを優先してください。
+3-C. 翌年以降は各年のテーマを明示し、年ごとの違いが分かるようにしてください。
+3-D. future_flow の最後には、5年間全体の傾向・転換点・活かしどころ・注意点を総括してください。
+3-E. 現在年を含む5年間の内容を、単年の annual_luck だけから引き伸ばして書かないでください。必ず five_year_luck に存在する各年の計算済みデータを使用してください。
 4. useful_gods は「活かしやすい方向性」として扱ってください。
 5. integrated_luck の overall_score は絶対的な吉凶値として扱わないでください。
 6. confidence が低い場合は、断定度を下げてください。
@@ -2133,18 +2077,6 @@ JSON Schema:
 21. 相談に関係しないセクションへ相談テーマを無理に持ち込まないでください。
 22. 根拠のない具体化で文章をもっともらしく見せないでください。
 23. 仕事・適職では、具体的な職業名より先に「向いている仕事の性質・役割・環境」を説明し、職業名は必要な場合だけ例示してください。
-24. 出生時刻不明の場合、時柱に基づく性格・適職・恋愛・健康・金運の説明を作らないでください。
-25. 出生時刻不明の場合、五行の少なさを命式全体の「欠如」と断定せず、確認可能な三柱の範囲での相対評価として説明してください。
-26. 出生時刻不明の場合、身強身弱・格局・用神の結果を再計算せず、reading_contextに示された暫定性とscopeを維持してください。
-27. 出生時刻不明の場合、大運開始年齢・切替時期がestimatedなら、厳密な確定時期として表現しないでください。
-28. 各セクションは上記「この章の役割」「この章で扱うこと」「この章で扱わないこと」を優先し、章の役割を混線させないでください。
-29. 同じ五行を複数章で説明する場合、同じ現代語訳を固定辞書のように再利用しないでください。
-30. 「水＝情報」「土＝安定」「土＝運用」「火＝勢い」「金＝ルール」のような同一変換を多数章で反復しないでください。
-31. 五行名の説明が章の理解に不要なら、五行を無理に列挙せず、その章に必要な解釈だけを書いてください。
-32. 同じ助言概念を複数章で反復せず、最も関連する章に置いてください。
-33. 「学習」「情報収集」「可視化」「準備」「対話」など同じ助言語を、同じ意味のまま多数章で繰り返さないでください。
-34. current_luck は「今」、future_flow は「これからの変化」、advice は「最終判断と優先順位」を担当し、同じ内容の言い換えにしないでください。
-35. advice は前章の要約ではありません。相談への最終回答、選択肢の比較軸、優先順位、最初の現実的行動を示してください。
 """.strip()
 
 
@@ -2667,7 +2599,6 @@ __all__ = [
     "SUPPORTED_TONES",
     "DEFAULT_READING_SECTIONS",
     "SECTION_TITLES_JA",
-    "SECTION_ROLE_CONTRACTS_JA",
     "DEFAULT_SECTION_ORDER",
     "DEFAULT_MIN_SECTION_CHARS",
     "DEFAULT_MAX_SECTION_CHARS",
@@ -2675,9 +2606,9 @@ __all__ = [
     "DEFAULT_MAX_SUMMARY_CHARS",
     "validate_reading_context",
     "build_prompt_facts",
+    "build_five_year_prompt_facts",
     "get_section_instruction",
     "build_selected_section_instructions",
-    "build_birth_time_prompt_block",
     "build_consultation_prompt_block",
     "build_system_prompt",
     "build_json_output_schema",
