@@ -778,8 +778,8 @@ def test_real_luck_container(
         "current_luck",
         "annual_luck",
         "integrated_luck",
+        "five_year_luck",
     }
-
 
 # ============================================================
 # 14. Luck pillars
