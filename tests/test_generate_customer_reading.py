@@ -57,6 +57,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from copy import deepcopy
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -305,6 +306,9 @@ def fake_generation_result():
         "disclaimer": (
             "本鑑定は傾向を示すものであり、"
             "将来を確定的に保証するものではありません。"
+            "健康に関する内容は医療上の診断や治療の代替ではありません。"
+            "金運に関する内容は投資・金融上の助言や"
+            "利益を保証するものではありません。"
         ),
     }
 
@@ -1964,12 +1968,9 @@ def test_validate_generation_result_rejects_non_json(
     script_module,
     fake_generation_result,
 ):
-    broken = deepcopy(
-        fake_generation_result
-    )
-
-    broken.output_format = (
-        "text"
+    broken = replace(
+        fake_generation_result,
+        output_format="text",
     )
 
     with pytest.raises(
@@ -1984,11 +1985,10 @@ def test_validate_generation_result_rejects_missing_parsed(
     script_module,
     fake_generation_result,
 ):
-    broken = deepcopy(
-        fake_generation_result
+    broken = replace(
+        fake_generation_result,
+        parsed=None,
     )
-
-    broken.parsed = None
 
     with pytest.raises(
         RuntimeError
@@ -2002,12 +2002,9 @@ def test_validate_generation_result_rejects_incomplete_status(
     script_module,
     fake_generation_result,
 ):
-    broken = deepcopy(
-        fake_generation_result
-    )
-
-    broken.status = (
-        "incomplete"
+    broken = replace(
+        fake_generation_result,
+        status="incomplete",
     )
 
     with pytest.raises(
