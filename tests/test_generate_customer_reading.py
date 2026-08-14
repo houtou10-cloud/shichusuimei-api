@@ -2641,9 +2641,9 @@ def test_generate_customer_reading_auto_repair_then_passes(
 
     # Product工程にもRepair後の結果を渡す。
     assert (
-        captured["build_reading_product"][
-            "generation_result"
-        ].parsed
+        captured[
+            "product"
+        ].generation_result.parsed
         == repaired
     )
 
