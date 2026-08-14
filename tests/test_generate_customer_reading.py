@@ -849,6 +849,7 @@ def configure_full_fake_pipeline(
     captured = {
         "generate_reading": None,
         "product": None,
+        "product_call": None,
     }
 
     def fake_generate_reading(
@@ -887,6 +888,9 @@ def configure_full_fake_pipeline(
         *,
         title,
         sections,
+        customer_name=None,
+        reading_datetime=None,
+        brand_name=None,
     ):
         product = FakeProduct(
             title=title,
@@ -897,9 +901,59 @@ def configure_full_fake_pipeline(
             sections=sections,
         )
 
+        # 本番のReadingProductと同じく、
+        # 表紙用の顧客情報をfake productにも反映する。
+        if customer_name:
+            product._data[
+                "subject"
+            ][
+                "name"
+            ] = customer_name
+
+        if brand_name:
+            product._data[
+                "metadata"
+            ][
+                "brand_name"
+            ] = brand_name
+
+        if reading_datetime is not None:
+            product._data[
+                "metadata"
+            ][
+                "created_at"
+            ] = (
+                reading_datetime
+                .astimezone()
+                .replace(
+                    microsecond=0
+                )
+                .isoformat()
+            )
+
         captured[
             "product"
         ] = product
+
+        captured[
+            "product_call"
+        ] = {
+            "reading_context": deepcopy(
+                reading_context
+            ),
+            "generation_result": deepcopy(
+                generation_result
+            ),
+            "title": title,
+            "sections": tuple(
+                sections
+            ),
+            "customer_name": customer_name,
+            "reading_datetime": (
+                reading_datetime
+            ),
+            "brand_name": brand_name,
+        }
 
         return product
 
@@ -1086,6 +1140,98 @@ def test_generate_customer_reading_full_fake_e2e(
             "generate_reading"
         ]
         is not None
+    )
+
+
+def test_generate_customer_reading_passes_cover_metadata_to_product(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    captured = (
+        configure_full_fake_pipeline(
+            script_module=(
+                script_module
+            ),
+            tmp_path=tmp_path,
+            monkeypatch=(
+                monkeypatch
+            ),
+            fake_chart_result=(
+                fake_chart_result
+            ),
+            fake_reading_context=(
+                fake_reading_context
+            ),
+            fake_generation_result=(
+                fake_generation_result
+            ),
+        )
+    )
+
+    script_module.generate_customer_reading(
+        sample_intake
+    )
+
+    call = captured[
+        "product_call"
+    ]
+
+    assert call is not None
+
+    assert (
+        call[
+            "customer_name"
+        ]
+        == "山田太郎"
+    )
+
+    assert (
+        call[
+            "brand_name"
+        ]
+        == "四柱推命 八雲"
+    )
+
+    assert (
+        call[
+            "reading_datetime"
+        ]
+        is not None
+    )
+
+    product_data = captured[
+        "product"
+    ].to_dict()
+
+    assert (
+        product_data[
+            "subject"
+        ][
+            "name"
+        ]
+        == "山田太郎"
+    )
+
+    assert (
+        product_data[
+            "metadata"
+        ][
+            "brand_name"
+        ]
+        == "四柱推命 八雲"
+    )
+
+    assert (
+        product_data[
+            "metadata"
+        ].get(
+            "created_at"
+        )
     )
 
 
