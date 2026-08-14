@@ -41,7 +41,7 @@ product.json
     ↓
 write_reading_product_pdf()
     ↓
-四柱推命鑑定書.pdf
+四柱推命鑑定書_鑑定者名様.pdf
     ↓
 summary.json
 
@@ -223,8 +223,8 @@ OUTPUT_ROOT = (
 )
 
 
-PDF_FILENAME = (
-    "四柱推命鑑定書.pdf"
+PDF_FILENAME_PREFIX = (
+    "四柱推命鑑定書"
 )
 
 INTAKE_FILENAME = (
@@ -518,6 +518,70 @@ def normalize_name(
         )
 
     return value
+
+
+def sanitize_filename_component(
+    value: str,
+) -> str:
+    """
+    Windows / macOS / Linux で扱いやすいように、
+    ファイル名へ使用する文字列を安全化する。
+
+    顧客名そのものは変更せず、
+    PDFファイル名へ埋め込むときだけ使用する。
+    """
+
+    value = _require_non_empty_string(
+        value,
+        "ファイル名要素",
+    )
+
+    # Windowsで禁止されている記号と制御文字を置換する。
+    value = re.sub(
+        r'[<>:"/\\|?*\x00-\x1f]',
+        "_",
+        value,
+    )
+
+    # 連続する空白は1文字へまとめる。
+    value = re.sub(
+        r"\s+",
+        " ",
+        value,
+    ).strip()
+
+    # Windowsでは末尾のピリオド・空白を扱えないため除去する。
+    value = value.rstrip(
+        " ."
+    )
+
+    if not value:
+        return "鑑定者"
+
+    # 顧客名はnormalize_name()で100文字以下だが、
+    # パス長の余裕を確保するためファイル名用は80文字へ制限する。
+    return value[:80]
+
+
+def build_pdf_filename(
+    customer_name: str,
+) -> str:
+    """
+    顧客名入りの納品用PDFファイル名を生成する。
+
+    例:
+        佐藤美咲
+        -> 四柱推命鑑定書_佐藤美咲様.pdf
+    """
+
+    safe_name = sanitize_filename_component(
+        customer_name
+    )
+
+    return (
+        f"{PDF_FILENAME_PREFIX}_"
+        f"{safe_name}様.pdf"
+    )
 
 
 def normalize_birth_country_type(
@@ -1713,7 +1777,11 @@ def generate_customer_reading(
 
     pdf_path = (
         customer_dir
-        / PDF_FILENAME
+        / build_pdf_filename(
+            normalized_intake[
+                "name"
+            ]
+        )
     )
 
     summary_path = (
