@@ -38,6 +38,7 @@ AI鑑定文生成に必要な情報だけへ整理する。
         "current_luck": {...},
         "annual_luck": {...},
         "integrated_luck": {...},
+        "five_year_luck": [...],
     },
     "reading_sections": {...},
     "source_metadata": {...},
@@ -1342,6 +1343,119 @@ def build_integrated_luck_context(
     }
 
 
+
+# ============================================================
+# Five-year luck
+# ============================================================
+
+
+def build_five_year_luck_context(
+    chart_result: Mapping[str, Any],
+) -> List[Dict[str, Any]]:
+    """
+    chart.py が返す five_year_luck を
+    AI鑑定向けに整形する。
+
+    この関数では運勢を再計算しない。
+    chart_result に保存済みの各年について、
+
+    ・対象年
+    ・評価基準日時
+    ・その年時点の大運
+    ・歳運
+    ・大運×歳運×用神の統合運
+
+    を既存の整形関数へ渡して簡潔化する。
+
+    five_year_luck が存在しない旧形式では
+    後方互換のため空listを返す。
+    """
+
+    chart_result = _require_mapping(
+        chart_result,
+        "chart_result",
+    )
+
+    raw_entries = _safe_list(
+        chart_result.get(
+            "five_year_luck"
+        )
+    )
+
+    result: List[Dict[str, Any]] = []
+
+    for raw_entry in raw_entries:
+        if not isinstance(
+            raw_entry,
+            Mapping,
+        ):
+            continue
+
+        entry = _safe_dict(
+            raw_entry
+        )
+
+        current_luck = (
+            build_current_luck_context(
+                {
+                    "current_luck": (
+                        entry.get(
+                            "current_luck"
+                        )
+                    )
+                }
+            )
+        )
+
+        annual_luck = (
+            build_annual_luck_context(
+                {
+                    "annual_luck": (
+                        entry.get(
+                            "annual_luck"
+                        )
+                    )
+                }
+            )
+        )
+
+        integrated_luck = (
+            build_integrated_luck_context(
+                {
+                    "integrated_luck": (
+                        entry.get(
+                            "integrated_luck"
+                        )
+                    )
+                }
+            )
+        )
+
+        result.append(
+            {
+                "year": entry.get(
+                    "year"
+                ),
+                "target_datetime": (
+                    entry.get(
+                        "target_datetime"
+                    )
+                ),
+                "current_luck": (
+                    current_luck
+                ),
+                "annual_luck": (
+                    annual_luck
+                ),
+                "integrated_luck": (
+                    integrated_luck
+                ),
+            }
+        )
+
+    return result
+
+
 # ============================================================
 # Reading sections
 # ============================================================
@@ -1445,11 +1559,18 @@ def build_reading_sections(
                 "luck_pillars",
                 "current_luck",
                 "annual_luck",
+                "integrated_luck",
+                "five_year_luck",
                 "useful_gods",
             ],
             "instruction": (
-                "現在大運の次の大運を中心に、"
-                "長期的な変化の方向性を説明する。"
+                "現在年から5年間の歳運を年ごとに比較し、"
+                "各年時点の大運との統合結果も踏まえて、"
+                "追い風・注意点・転換点を説明する。"
+                "現在年は鑑定日時点から年末までの流れとして扱い、"
+                "翌年以降は各年のテーマとして説明する。"
+                "最後に現在大運と次の大運を背景として、"
+                "5年間を通じた長期的な方向性をまとめる。"
             ),
         },
         "advice": {
@@ -1788,6 +1909,12 @@ def build_reading_context(
         )
     )
 
+    five_year_luck = (
+        build_five_year_luck_context(
+            chart_result
+        )
+    )
+
     five_elements = _apply_birth_time_scope(
         five_elements,
         birth_time,
@@ -1819,6 +1946,27 @@ def build_reading_context(
     current_luck["timing_is_estimated"] = not birth_time["known"]
     integrated_luck["timing_is_estimated"] = not birth_time["known"]
 
+    for five_year_entry in five_year_luck:
+        five_year_entry[
+            "current_luck"
+        ][
+            "timing_precision"
+        ] = birth_time.get(
+            "current_luck_precision"
+        )
+
+        five_year_entry[
+            "current_luck"
+        ][
+            "timing_is_estimated"
+        ] = not birth_time["known"]
+
+        five_year_entry[
+            "integrated_luck"
+        ][
+            "timing_is_estimated"
+        ] = not birth_time["known"]
+
     context_parts = {
         "day_master": day_master,
         "five_elements": five_elements,
@@ -1829,6 +1977,7 @@ def build_reading_context(
         "current_luck": current_luck,
         "annual_luck": annual_luck,
         "integrated_luck": integrated_luck,
+        "five_year_luck": five_year_luck,
     }
 
     reading_sections = (
@@ -1861,6 +2010,9 @@ def build_reading_context(
             ),
             "integrated_luck": (
                 integrated_luck
+            ),
+            "five_year_luck": (
+                five_year_luck
             ),
         },
         "reading_sections": (
@@ -1899,6 +2051,11 @@ def build_reading_context(
             (
                 "将来については確定的な予言ではなく、"
                 "傾向・可能性・行動提案として表現してください。"
+            ),
+            (
+                "five_year_luck がある場合は、現在年を"
+                "鑑定日時点から年末までの流れとして扱い、"
+                "翌年以降は各年のテーマとして比較してください。"
             ),
             (
                 "出生時刻不明時は時柱を推測せず、三柱範囲の結果を"
@@ -1969,6 +2126,7 @@ __all__ = [
     "build_current_luck_context",
     "build_annual_luck_context",
     "build_integrated_luck_context",
+    "build_five_year_luck_context",
     "build_reading_sections",
     "build_source_metadata",
     "validate_chart_result_for_reading",
