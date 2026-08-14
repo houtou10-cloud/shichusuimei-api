@@ -1,0 +1,12 @@
+{
+  "customer_id": "20260813_173645",
+  "name": "山田太郎",
+  "birth_date": "1990-05-15",
+  "birth_time": "14:30",
+  "birth_place": "愛知県名古屋市",
+  "gender": "male",
+  "concern": "現在の仕事をこのまま続けるべきか悩んでいます。",
+  "desired_future": "収入面にも不安があり、副業や独立にも興味があります。",
+  "created_at": "2026-08-13T17:36:45.703387+09:00",
+  "schema_version": "customer_intake_v1"
+}

@@ -1,0 +1,14 @@
+{
+  "customer_id": "20260813_143041",
+  "customer_name": "山田 太郎",
+  "birth_date": "1990-05-15",
+  "birth_time": "14:30",
+  "birth_place": "愛知県名古屋市",
+  "gender": "male",
+  "gender_label": "男性",
+  "concern": "現在の仕事をこのまま続けるべきか悩んでいます。収入面にも不安があり、副業や独立にも興味がありますが、自分にどのような仕事が向いているのか分かりません。",
+  "desired_future": "自分の強みを活かせる仕事を見つけ、安定した収入を得ながら、将来的には自分の力で仕事を選べるようになりたいです。",
+  "created_at": "2026-08-13T14:30:41",
+  "consultation_input_used_for_ai": false,
+  "schema": "customer_intake_v1"
+}

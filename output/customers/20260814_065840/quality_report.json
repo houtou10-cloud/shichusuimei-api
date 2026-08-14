@@ -1,0 +1,8 @@
+{
+  "valid": true,
+  "issue_count": 0,
+  "issues": [],
+  "version": "reading_quality_v1",
+  "method": "customer_facing_quality_gate_v1",
+  "status": "ready_for_customer_facing_validation"
+}

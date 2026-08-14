@@ -1,0 +1,36 @@
+{
+  "customer_id": "20260813_143041",
+  "customer_name": "山田 太郎",
+  "script_version": "generate_customer_reading_v1",
+  "product_title": "四柱推命鑑定書",
+  "model": "gpt-5",
+  "generated_at": "2026-08-13T14:32:07",
+  "target_datetime": "2026-08-13T14:30:41",
+  "response_status": "completed",
+  "response_id": "resp_0913a683f580891d016a7d568f2638819b8d36cbc50acaae01",
+  "usage": {
+    "input_tokens": 10190,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 4242,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 14432
+  },
+  "pdf_version": "reading_pdf_v1",
+  "pdf_method": "html_to_pdf_playwright_chromium_v1",
+  "pdf_size": 1540901,
+  "files": {
+    "intake": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\customers\\20260813_143041\\intake.json",
+    "chart": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\customers\\20260813_143041\\chart.json",
+    "reading_context": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\customers\\20260813_143041\\reading_context.json",
+    "ai_reading": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\customers\\20260813_143041\\ai_reading.json",
+    "product": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\customers\\20260813_143041\\product.json",
+    "pdf": "C:\\Users\\houto\\OneDrive\\デスクトップ\\shichusuimei-api\\output\\customers\\20260813_143041\\四柱推命鑑定書.pdf"
+  },
+  "consultation_input_used_for_ai": false,
+  "status": "completed"
+}

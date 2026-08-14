@@ -218,6 +218,75 @@ def _extract_method_metadata(
 
 
 # ============================================================
+# Birth time uncertainty
+# ============================================================
+
+
+def build_birth_time_context(
+    chart_result: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """出生時刻の既知・未知と鑑定上の利用範囲を整形する。"""
+    chart_result = _require_mapping(chart_result, "chart_result")
+    source = _safe_dict(chart_result.get("birth_time_status"))
+    input_data = _safe_dict(chart_result.get("input"))
+
+    if source:
+        known = source.get("known")
+        if not isinstance(known, bool):
+            known = input_data.get("birth_time") is not None
+    else:
+        known = input_data.get("birth_time") is not None
+
+    defaults = {
+        "known": known,
+        "hour_pillar_available": known,
+        "calculation_scope": "four_pillars" if known else "three_pillars",
+        "interpretation_scope": "full_chart" if known else "known_pillars_only",
+        "five_elements_scope": "full_chart" if known else "known_pillars_only",
+        "root_scope": "full_chart" if known else "known_pillars_only",
+        "strength_scope": "full_chart" if known else "known_pillars_only",
+        "pattern_scope": "full_chart" if known else "known_pillars_only",
+        "useful_gods_scope": "full_chart" if known else "known_pillars_only",
+        "relationship_scope": "full_chart" if known else "known_pillars_only",
+        "luck_pillar_sequence_available": True,
+        "luck_start_timing_precision": "normal" if known else "estimated",
+        "current_luck_precision": "normal" if known else "estimated",
+        "internal_reference_time_used": False if known else True,
+        "internal_reference_time": None if known else "12:00",
+        "is_provisional_due_to_unknown_birth_time": not known,
+    }
+    for key in tuple(defaults):
+        if key in source:
+            defaults[key] = deepcopy(source[key])
+
+    defaults["reading_rule"] = (
+        "通常の四柱として解釈できます。"
+        if known
+        else (
+            "出生時刻不明のため、年柱・月柱・日柱の範囲で解釈します。"
+            "時柱を推測せず、五行・身強身弱・格局・用神を命式全体の確定事項として断定しません。"
+            "大運開始時期と現在大運の境界は推定扱いです。"
+        )
+    )
+    return defaults
+
+
+def _apply_birth_time_scope(
+    context: Dict[str, Any],
+    birth_time: Mapping[str, Any],
+    *,
+    scope_key: str,
+) -> Dict[str, Any]:
+    """既存計算値を変えず、AI向けの確度メタデータだけを付加する。"""
+    result = deepcopy(context)
+    known = bool(birth_time.get("known"))
+    result["scope"] = birth_time.get(scope_key)
+    result["is_complete_chart_evaluation"] = known
+    result["provisional_due_to_unknown_birth_time"] = not known
+    return result
+
+
+# ============================================================
 # Subject
 # ============================================================
 
@@ -1465,8 +1534,10 @@ def validate_chart_result_for_reading(
     """
     AI鑑定context生成に必要な最低限の入力を検証する。
 
-    完全一致ではなく、
-    「鑑定生成に進んでよいか」を判定する。
+    後方互換ルール:
+    ・birth_time_status が無い従来形式では四柱必須
+    ・birth_time_status があり、known=False の場合のみ
+      時柱なしを許可
     """
 
     chart_result = _require_mapping(
@@ -1488,8 +1559,7 @@ def validate_chart_result_for_reading(
 
     missing = [
         key
-        for key
-        in required_top_level_keys
+        for key in required_top_level_keys
         if key not in chart_result
     ]
 
@@ -1500,31 +1570,103 @@ def validate_chart_result_for_reading(
         )
 
     chart = _require_mapping(
-        chart_result[
-            "chart"
-        ],
+        chart_result["chart"],
         "chart_result['chart']",
     )
 
-    missing_pillars = [
+    # 年・月・日は常に必須。
+    required_core_pillars = (
+        "year",
+        "month",
+        "day",
+    )
+
+    missing_core_pillars = [
         position
-        for position
-        in PILLAR_POSITIONS
+        for position in required_core_pillars
         if position not in chart
+        or chart.get(position) is None
     ]
 
-    if missing_pillars:
+    if missing_core_pillars:
         raise ValueError(
-            "chartに必要な四柱がありません: "
+            "chartに必要な年柱・月柱・日柱がありません: "
             + ", ".join(
-                missing_pillars
+                missing_core_pillars
             )
+        )
+
+    birth_time_status_raw = chart_result.get(
+        "birth_time_status"
+    )
+
+    # --------------------------------------------------------
+    # 後方互換
+    #
+    # birth_time_status が無い旧形式では、
+    # 従来どおり四柱すべてを必須とする。
+    # --------------------------------------------------------
+    if not isinstance(
+        birth_time_status_raw,
+        Mapping,
+    ):
+        if (
+            "hour" not in chart
+            or chart.get("hour") is None
+        ):
+            raise ValueError(
+                "chartに必要な四柱がありません: hour"
+            )
+
+        return {
+            "valid": True,
+            "missing_top_level_keys": [],
+            "missing_pillars": [],
+            "hour_pillar_available": True,
+            "birth_time_known": True,
+        }
+
+    # --------------------------------------------------------
+    # 新形式
+    # --------------------------------------------------------
+    birth_time = build_birth_time_context(
+        chart_result
+    )
+
+    hour_available = (
+        chart.get("hour") is not None
+    )
+
+    # 出生時刻が分かっているなら時柱必須。
+    if (
+        birth_time["known"]
+        and not hour_available
+    ):
+        raise ValueError(
+            "出生時刻ありのchart_resultには"
+            "時柱が必要です。"
+        )
+
+    # 出生時刻不明なら、時柱を確定値として保持しない。
+    if (
+        not birth_time["known"]
+        and hour_available
+    ):
+        raise ValueError(
+            "出生時刻不明のchart_resultでは"
+            "時柱を確定値として保持できません。"
         )
 
     return {
         "valid": True,
         "missing_top_level_keys": [],
         "missing_pillars": [],
+        "hour_pillar_available": (
+            hour_available
+        ),
+        "birth_time_known": (
+            birth_time["known"]
+        ),
     }
 
 
@@ -1581,6 +1723,10 @@ def build_reading_context(
             "missing_top_level_keys": None,
             "missing_pillars": None,
         }
+
+    birth_time = build_birth_time_context(
+        chart_result
+    )
 
     subject = build_subject_context(
         chart_result
@@ -1642,6 +1788,37 @@ def build_reading_context(
         )
     )
 
+    five_elements = _apply_birth_time_scope(
+        five_elements,
+        birth_time,
+        scope_key="five_elements_scope",
+    )
+    strength = _apply_birth_time_scope(
+        strength,
+        birth_time,
+        scope_key="strength_scope",
+    )
+    pattern = _apply_birth_time_scope(
+        pattern,
+        birth_time,
+        scope_key="pattern_scope",
+    )
+    useful_gods = _apply_birth_time_scope(
+        useful_gods,
+        birth_time,
+        scope_key="useful_gods_scope",
+    )
+
+    luck_pillars["timing_precision"] = birth_time.get(
+        "luck_start_timing_precision"
+    )
+    luck_pillars["timing_is_estimated"] = not birth_time["known"]
+    current_luck["timing_precision"] = birth_time.get(
+        "current_luck_precision"
+    )
+    current_luck["timing_is_estimated"] = not birth_time["known"]
+    integrated_luck["timing_is_estimated"] = not birth_time["known"]
+
     context_parts = {
         "day_master": day_master,
         "five_elements": five_elements,
@@ -1665,6 +1842,7 @@ def build_reading_context(
             READING_CONTEXT_SCHEMA_VERSION
         ),
         "subject": subject,
+        "birth_time_status": birth_time,
         "natal_chart": natal_chart,
         "day_master": day_master,
         "five_elements": five_elements,
@@ -1722,6 +1900,12 @@ def build_reading_context(
                 "将来については確定的な予言ではなく、"
                 "傾向・可能性・行動提案として表現してください。"
             ),
+            (
+                "出生時刻不明時は時柱を推測せず、三柱範囲の結果を"
+                "命式全体の確定事項として断定しないでください。"
+                if not birth_time["known"]
+                else "出生時刻が確認できているため四柱範囲で整形しています。"
+            ),
         ],
     }
 
@@ -1772,6 +1956,7 @@ __all__ = [
     "READING_CONTEXT_STATUS",
     "PILLAR_POSITIONS",
     "READING_SECTION_KEYS",
+    "build_birth_time_context",
     "build_subject_context",
     "build_pillar_context",
     "build_natal_chart_context",
