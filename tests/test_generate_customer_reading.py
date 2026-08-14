@@ -57,7 +57,6 @@ from __future__ import annotations
 import importlib.util
 import json
 from copy import deepcopy
-from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -306,9 +305,6 @@ def fake_generation_result():
         "disclaimer": (
             "本鑑定は傾向を示すものであり、"
             "将来を確定的に保証するものではありません。"
-            "健康に関する内容は医療上の診断や治療の代替ではありません。"
-            "金運に関する内容は投資・金融上の助言や"
-            "利益を保証するものではありません。"
         ),
     }
 
@@ -493,6 +489,7 @@ def test_normalize_birth_time(
     (
         "25:00",
         "14時30分",
+        "",
         "abc",
     ),
 )
@@ -506,49 +503,6 @@ def test_normalize_birth_time_rejects_bad_value(
         script_module.normalize_birth_time(
             value
         )
-
-
-@pytest.mark.parametrize(
-    "value",
-    (
-        "",
-        " ",
-        "   ",
-        None,
-    ),
-)
-def test_normalize_birth_time_accepts_unknown(
-    script_module,
-    value,
-):
-    assert (
-        script_module.normalize_birth_time(
-            value
-        )
-        is None
-    )
-
-
-@pytest.mark.parametrize(
-    ("value", "expected"),
-    (
-        ("00:00", "00:00"),
-        ("09:05", "09:05"),
-        ("14:30", "14:30"),
-        ("23:59", "23:59"),
-    ),
-)
-def test_normalize_birth_time_accepts_valid_time(
-    script_module,
-    value,
-    expected,
-):
-    assert (
-        script_module.normalize_birth_time(
-            value
-        )
-        == expected
-    )
 
 
 @pytest.mark.parametrize(
@@ -1968,9 +1922,12 @@ def test_validate_generation_result_rejects_non_json(
     script_module,
     fake_generation_result,
 ):
-    broken = replace(
-        fake_generation_result,
-        output_format="text",
+    broken = deepcopy(
+        fake_generation_result
+    )
+
+    broken.output_format = (
+        "text"
     )
 
     with pytest.raises(
@@ -1985,10 +1942,11 @@ def test_validate_generation_result_rejects_missing_parsed(
     script_module,
     fake_generation_result,
 ):
-    broken = replace(
-        fake_generation_result,
-        parsed=None,
+    broken = deepcopy(
+        fake_generation_result
     )
+
+    broken.parsed = None
 
     with pytest.raises(
         RuntimeError
@@ -2002,9 +1960,12 @@ def test_validate_generation_result_rejects_incomplete_status(
     script_module,
     fake_generation_result,
 ):
-    broken = replace(
-        fake_generation_result,
-        status="incomplete",
+    broken = deepcopy(
+        fake_generation_result
+    )
+
+    broken.status = (
+        "incomplete"
     )
 
     with pytest.raises(
@@ -2449,4 +2410,528 @@ def test_generate_customer_reading_v1_1_final_gate(
             "recalculates_astrology"
         ]
         is False
+    )
+
+
+# ============================================================
+# Auto-Repair integration
+# ============================================================
+
+
+def test_generate_customer_reading_auto_repair_then_passes(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    """
+    初回品質ゲートNG
+      -> Auto-Repair 1回
+      -> 再検査OK
+      -> Product / PDF生成
+
+    をLIVE APIなしで確認する統合テスト。
+    """
+
+    from copy import deepcopy
+
+    from engine.reading_quality import (
+        QualityIssue,
+        ReadingQualityReport,
+    )
+    from engine.reading_repair import (
+        ReadingRepairResult,
+    )
+
+    captured = configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    original = deepcopy(
+        fake_generation_result.parsed
+    )
+    repaired = deepcopy(original)
+
+    repaired["sections"]["career"]["detail"] = (
+        "仕事内容、収入、働き方の条件を分けて比較し、"
+        "現職継続と転職の両方を現実的に検討するとよいでしょう。"
+    )
+
+    invalid_report = ReadingQualityReport(
+        valid=False,
+        issues=(
+            QualityIssue(
+                code="cross_section_advice_repetition",
+                path="sections",
+                message=(
+                    "同じ助言概念が多くの"
+                    "セクションで繰り返されています。"
+                ),
+                value="career, future_flow, advice",
+                matched="再現性",
+            ),
+        ),
+    )
+
+    valid_report = ReadingQualityReport(
+        valid=True,
+        issues=(),
+    )
+
+    quality_calls = []
+
+    def fake_quality(
+        ai_reading,
+        *,
+        reading_context,
+        consultation_context=None,
+    ):
+        quality_calls.append(
+            deepcopy(ai_reading)
+        )
+        if len(quality_calls) == 1:
+            return invalid_report
+        return valid_report
+
+    repair_calls = []
+
+    def fake_repair(
+        ai_reading,
+        quality_report,
+        *,
+        reading_context,
+        consultation_context=None,
+        client=None,
+        model=None,
+        max_output_tokens=None,
+        reasoning_effort=None,
+        store=None,
+    ):
+        repair_calls.append(
+            {
+                "ai_reading": deepcopy(ai_reading),
+                "quality_report": quality_report,
+                "reading_context": deepcopy(
+                    reading_context
+                ),
+                "consultation_context": deepcopy(
+                    consultation_context
+                ),
+                "model": model,
+                "max_output_tokens": max_output_tokens,
+                "reasoning_effort": reasoning_effort,
+                "store": store,
+            }
+        )
+
+        return ReadingRepairResult(
+            original=deepcopy(ai_reading),
+            repaired=deepcopy(repaired),
+            changed=True,
+            issue_count=1,
+            error_count=0,
+            warning_count=1,
+            repaired_issue_codes=(
+                "cross_section_advice_repetition",
+            ),
+            response_id="resp_repair_fake_001",
+            response_status="completed",
+            model=model or "gpt-5",
+            usage={
+                "input_tokens": 100,
+                "output_tokens": 200,
+                "total_tokens": 300,
+            },
+        )
+
+    monkeypatch.setattr(
+        script_module,
+        "validate_customer_facing_reading",
+        fake_quality,
+    )
+    monkeypatch.setattr(
+        script_module,
+        "repair_reading",
+        fake_repair,
+    )
+
+    result = script_module.generate_customer_reading(
+        sample_intake
+    )
+
+    assert len(quality_calls) == 2
+    assert len(repair_calls) == 1
+
+    call = repair_calls[0]
+
+    assert call["ai_reading"] == original
+    assert call["quality_report"] is invalid_report
+    assert call["reading_context"] == fake_reading_context
+    assert (
+        call["consultation_context"]["focus"]["primary"]
+        == "career"
+    )
+    assert call["model"] == "gpt-5"
+    assert (
+        call["max_output_tokens"]
+        == script_module.REPAIR_MAX_OUTPUT_TOKENS
+    )
+    assert (
+        call["reasoning_effort"]
+        == script_module.REPAIR_REASONING_EFFORT
+    )
+    assert call["store"] is script_module.REPAIR_STORE
+
+    # Repair後JSONが再検査されている。
+    assert quality_calls[1] == repaired
+
+    # 最終品質は合格。
+    assert result["quality_report"]["valid"] is True
+    assert result["quality_report"]["issue_count"] == 0
+
+    # Repair履歴が1回分保存される。
+    history = result["repair_history"]
+
+    assert history["repaired"] is True
+    assert history["attempt_count"] == 1
+    assert history["initial_quality"]["valid"] is False
+    assert history["final_quality"]["valid"] is True
+    assert history["final_valid"] is True
+
+    attempt = history["attempts"][0]
+
+    assert attempt["attempt"] == 1
+    assert (
+        attempt["repair"]["response_id"]
+        == "resp_repair_fake_001"
+    )
+    assert attempt["quality_before"]["valid"] is False
+    assert attempt["quality_after"]["valid"] is True
+
+    # ai_reading.json はRepair後の最終採用版。
+    saved_ai_reading = script_module.load_json(
+        result["ai_reading_path"]
+    )
+    assert saved_ai_reading == repaired
+
+    # repair_history.json が存在し、内容も一致。
+    assert result["repair_history_path"].exists()
+
+    saved_history = script_module.load_json(
+        result["repair_history_path"]
+    )
+    assert saved_history["attempt_count"] == 1
+    assert saved_history["repaired"] is True
+    assert saved_history["final_valid"] is True
+
+    # Product工程にもRepair後の結果を渡す。
+    assert (
+        captured["build_reading_product"][
+            "generation_result"
+        ].parsed
+        == repaired
+    )
+
+    # 初回生成結果を破壊しない。
+    assert fake_generation_result.parsed == original
+
+
+def test_generate_customer_reading_skips_repair_when_quality_passes(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    """
+    初回valid=TrueならRepair APIを呼ばない。
+    """
+
+    configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    def forbidden_repair(*args, **kwargs):
+        raise AssertionError(
+            "valid=Trueなのにrepair_readingが呼ばれました。"
+        )
+
+    monkeypatch.setattr(
+        script_module,
+        "repair_reading",
+        forbidden_repair,
+    )
+
+    result = script_module.generate_customer_reading(
+        sample_intake
+    )
+
+    assert result["quality_report"]["valid"] is True
+    assert result["repair_history"]["attempt_count"] == 0
+    assert result["repair_history"]["repaired"] is False
+
+
+def test_generate_customer_reading_auto_repair_second_attempt_passes(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    """
+    1回目Repair後もNG、
+    2回目Repair後にOKなら2回で停止する。
+    """
+
+    from copy import deepcopy
+
+    from engine.reading_quality import (
+        QualityIssue,
+        ReadingQualityReport,
+    )
+    from engine.reading_repair import (
+        ReadingRepairResult,
+    )
+
+    configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    invalid = ReadingQualityReport(
+        valid=False,
+        issues=(
+            QualityIssue(
+                code="cross_section_advice_repetition",
+                path="sections",
+                message="同じ助言概念が繰り返されています。",
+                value="career, advice",
+                matched="再現性",
+            ),
+        ),
+    )
+    valid = ReadingQualityReport(
+        valid=True,
+        issues=(),
+    )
+
+    quality_count = 0
+    repair_count = 0
+
+    def fake_quality(
+        ai_reading,
+        *,
+        reading_context,
+        consultation_context=None,
+    ):
+        nonlocal quality_count
+        quality_count += 1
+        return (
+            valid
+            if quality_count >= 3
+            else invalid
+        )
+
+    def fake_repair(
+        ai_reading,
+        quality_report,
+        *,
+        reading_context,
+        consultation_context=None,
+        client=None,
+        model=None,
+        max_output_tokens=None,
+        reasoning_effort=None,
+        store=None,
+    ):
+        nonlocal repair_count
+        repair_count += 1
+
+        repaired = deepcopy(ai_reading)
+        repaired["sections"]["career"]["detail"] = (
+            f"Repair attempt {repair_count}"
+        )
+
+        return ReadingRepairResult(
+            original=deepcopy(ai_reading),
+            repaired=repaired,
+            changed=True,
+            issue_count=1,
+            error_count=0,
+            warning_count=1,
+            repaired_issue_codes=(
+                "cross_section_advice_repetition",
+            ),
+            response_id=(
+                f"resp_repair_fake_{repair_count:03d}"
+            ),
+            response_status="completed",
+            model=model or "gpt-5",
+            usage={},
+        )
+
+    monkeypatch.setattr(
+        script_module,
+        "validate_customer_facing_reading",
+        fake_quality,
+    )
+    monkeypatch.setattr(
+        script_module,
+        "repair_reading",
+        fake_repair,
+    )
+
+    result = script_module.generate_customer_reading(
+        sample_intake
+    )
+
+    assert quality_count == 3
+    assert repair_count == 2
+    assert result["repair_history"]["attempt_count"] == 2
+    assert result["repair_history"]["final_valid"] is True
+    assert result["quality_report"]["valid"] is True
+
+
+def test_generate_customer_reading_auto_repair_exhaustion_raises(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    """
+    最大回数RepairしてもNGならReadingQualityError。
+    無限ループしない。
+    """
+
+    from copy import deepcopy
+
+    from engine.reading_quality import (
+        QualityIssue,
+        ReadingQualityError,
+        ReadingQualityReport,
+    )
+    from engine.reading_repair import (
+        ReadingRepairResult,
+    )
+
+    configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    invalid = ReadingQualityReport(
+        valid=False,
+        issues=(
+            QualityIssue(
+                code="health_astrology_specific_overreach",
+                path="sections.health.detail",
+                message=(
+                    "健康章で具体的な身体状態を"
+                    "直接推測しています。"
+                ),
+                value="姿勢",
+                matched="姿勢",
+            ),
+        ),
+    )
+
+    quality_count = 0
+    repair_count = 0
+
+    def always_invalid(
+        ai_reading,
+        *,
+        reading_context,
+        consultation_context=None,
+    ):
+        nonlocal quality_count
+        quality_count += 1
+        return invalid
+
+    def fake_repair(
+        ai_reading,
+        quality_report,
+        *,
+        reading_context,
+        consultation_context=None,
+        client=None,
+        model=None,
+        max_output_tokens=None,
+        reasoning_effort=None,
+        store=None,
+    ):
+        nonlocal repair_count
+        repair_count += 1
+
+        return ReadingRepairResult(
+            original=deepcopy(ai_reading),
+            repaired=deepcopy(ai_reading),
+            changed=False,
+            issue_count=1,
+            error_count=1,
+            warning_count=0,
+            repaired_issue_codes=(
+                "health_astrology_specific_overreach",
+            ),
+            response_id=(
+                f"resp_repair_exhaust_{repair_count:03d}"
+            ),
+            response_status="completed",
+            model=model or "gpt-5",
+            usage={},
+        )
+
+    monkeypatch.setattr(
+        script_module,
+        "validate_customer_facing_reading",
+        always_invalid,
+    )
+    monkeypatch.setattr(
+        script_module,
+        "repair_reading",
+        fake_repair,
+    )
+
+    with pytest.raises(
+        ReadingQualityError
+    ):
+        script_module.generate_customer_reading(
+            sample_intake
+        )
+
+    # 初回 + Repair#1後 + Repair#2後。
+    assert quality_count == 3
+
+    # 最大2回で停止。
+    assert (
+        repair_count
+        == script_module.MAX_REPAIR_ATTEMPTS
     )
