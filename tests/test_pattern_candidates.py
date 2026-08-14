@@ -1455,7 +1455,7 @@ def test_evaluate_pattern_candidates_notes():
 # =========================================================
 # verified real chart style case
 # 1985-07-17 21:50 石川県
-# 乙丑 / 癸未 / 乙巳 / 丁亥
+# 乙丑 / 癸未 / 丁巳 / 辛亥
 # =========================================================
 
 
@@ -1465,31 +1465,31 @@ def test_verified_1985_pattern_candidate():
             pillar="乙丑",
             stem="乙",
             branch="丑",
-            stem_ten_god="比肩",
+            stem_ten_god="偏印",
             hidden_stems=[
                 "己",
                 "癸",
                 "辛",
             ],
             main_hidden_stem="己",
-            main_hidden_stem_ten_god="偏財",
+            main_hidden_stem_ten_god="食神",
         ),
         "month": make_pillar(
             pillar="癸未",
             stem="癸",
             branch="未",
-            stem_ten_god="偏印",
+            stem_ten_god="偏官",
             hidden_stems=[
                 "己",
                 "丁",
                 "乙",
             ],
             main_hidden_stem="己",
-            main_hidden_stem_ten_god="偏財",
+            main_hidden_stem_ten_god="食神",
         ),
         "day": make_pillar(
-            pillar="乙巳",
-            stem="乙",
+            pillar="丁巳",
+            stem="丁",
             branch="巳",
             stem_ten_god=None,
             hidden_stems=[
@@ -1498,124 +1498,75 @@ def test_verified_1985_pattern_candidate():
                 "庚",
             ],
             main_hidden_stem="丙",
-            main_hidden_stem_ten_god="傷官",
+            main_hidden_stem_ten_god="劫財",
         ),
         "hour": make_pillar(
-            pillar="丁亥",
-            stem="丁",
+            pillar="辛亥",
+            stem="辛",
             branch="亥",
-            stem_ten_god="食神",
+            stem_ten_god="偏財",
             hidden_stems=[
                 "壬",
                 "甲",
             ],
             main_hidden_stem="壬",
-            main_hidden_stem_ten_god="印綬",
+            main_hidden_stem_ten_god="正官",
         ),
     }
 
     result = (
         evaluate_pattern_candidates(
             chart,
-            "乙",
+            "丁",
         )
     )
 
-    assert (
-        result["has_candidate"]
-        is True
-    )
+    assert result["has_candidate"] is True
+    assert result["candidate_count"] == 2
 
-    assert (
-        result["candidate_count"]
-        == 1
-    )
+    primary = result["primary_candidate"]
 
+    assert primary["pattern"] == "偏印格"
     assert (
-        result["primary_candidate"][
-            "pattern"
-        ]
-        == "食神格"
+        primary["technical_pattern"]
+        == "indirect_resource"
     )
-
+    assert primary["month_branch"] == "未"
     assert (
-        result["primary_candidate"][
-            "technical_pattern"
-        ]
-        == "eating_god"
-    )
-
-    assert (
-        result["primary_candidate"][
-            "month_branch"
-        ]
-        == "未"
-    )
-
-    assert (
-        result["primary_candidate"][
-            "month_main_hidden_stem"
-        ]
+        primary["month_main_hidden_stem"]
         == "己"
     )
-
     assert (
-        result["primary_candidate"][
-            "selected_hidden_stem"
-        ]
-        == "丁"
+        primary["selected_hidden_stem"]
+        == "乙"
     )
-
     assert (
-        result["primary_candidate"][
-            "selected_hidden_stem_rank"
-        ]
-        == 2
+        primary["selected_hidden_stem_rank"]
+        == 3
     )
-
     assert (
-        result["primary_candidate"][
-            "selected_is_main_hidden_stem"
-        ]
+        primary["selected_is_main_hidden_stem"]
         is False
     )
-
+    assert primary["ten_god"] == "偏印"
     assert (
-        result["primary_candidate"][
-            "ten_god"
-        ]
-        == "食神"
-    )
-
-    assert (
-        result["primary_candidate"][
-            "source"
-        ]
+        primary["source"]
         == "month_exposed_hidden_stem"
     )
-
+    assert primary["is_exposed"] is True
     assert (
-        result["primary_candidate"][
-            "is_exposed"
-        ]
-        is True
-    )
-
-    assert (
-        result["primary_candidate"][
-            "exposure_positions"
-        ]
+        primary["exposure_positions"]
         == [
-            "hour",
+            "year",
         ]
     )
-
+    assert primary["confidence"] == "high"
+    assert result["has_school_rule_candidate"] is True
     assert (
-        result["primary_candidate"][
-            "confidence"
-        ]
-        == "high"
+        result["overall_status"]
+        == "candidate_with_school_rule"
     )
+    assert result["day_master_stem"] == "丁"
 
 
 # =========================================================
