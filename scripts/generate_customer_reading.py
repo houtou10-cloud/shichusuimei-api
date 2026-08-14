@@ -82,7 +82,7 @@ PowerShell:
 
 Version
 -------
-generate_customer_reading_v1_3_country_gate
+generate_customer_reading_v1_2
 """
 
 from __future__ import annotations
@@ -1465,7 +1465,7 @@ def generate_customer_reading(
             .isoformat()
         ),
         "schema_version": (
-            "customer_intake_v2"
+            "customer_intake_v1"
         ),
     }
 
