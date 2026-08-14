@@ -4,6 +4,7 @@ scripts/generate_customer_reading.py
 四柱推命鑑定書 v1.2
 本番顧客向け・相談内容連動・品質ゲート統合PDF生成スクリプト。
 出生時刻不明（三柱モード）に対応。
+品質ゲート不通過時のAuto-Repairに対応。
 
 処理フロー
 ----------
@@ -28,7 +29,11 @@ ai_reading.json
     ↓
 reading_quality_v1
     ↓
-quality_report.json
+valid=False の場合のみ Auto-Repair（最大2回）
+    ↓
+品質ゲート再検査
+    ↓
+quality_report.json / repair_history.json
     ↓
 build_reading_product()
     ↓
@@ -138,6 +143,11 @@ from engine.reading_quality import (
     validate_customer_facing_reading,
 )
 
+from engine.reading_repair import (
+    ReadingRepairResult,
+    repair_reading,
+)
+
 
 # ============================================================
 # Script metadata
@@ -176,6 +186,16 @@ MAX_OUTPUT_TOKENS = 8000
 REASONING_EFFORT = "minimal"
 
 STORE = False
+
+AUTO_REPAIR_ENABLED = True
+
+MAX_REPAIR_ATTEMPTS = 2
+
+REPAIR_MAX_OUTPUT_TOKENS = 8000
+
+REPAIR_REASONING_EFFORT = "minimal"
+
+REPAIR_STORE = False
 
 PRODUCT_TITLE = "四柱推命鑑定書"
 
@@ -223,6 +243,10 @@ AI_READING_FILENAME = (
 
 QUALITY_REPORT_FILENAME = (
     "quality_report.json"
+)
+
+REPAIR_HISTORY_FILENAME = (
+    "repair_history.json"
 )
 
 PRODUCT_FILENAME = (
@@ -1030,6 +1054,120 @@ def validate_quality_report(
     )
 
 
+
+def build_repaired_generation_result(
+    original: ReadingGenerationResult,
+    repair_result: ReadingRepairResult,
+) -> ReadingGenerationResult:
+    """
+    Auto-Repair後のJSONをReadingProduct工程へ渡すため、
+    新しいReadingGenerationResultを生成する。
+
+    ReadingGenerationResultはfrozen dataclassのため、
+    元resultを直接書き換えない。
+
+    response_id / usage は初回生成の情報を維持する。
+    Repair API側の情報はrepair_history.jsonへ保存する。
+    """
+
+    if not isinstance(
+        original,
+        ReadingGenerationResult,
+    ):
+        raise TypeError(
+            "originalがReadingGenerationResultではありません。"
+        )
+
+    if not isinstance(
+        repair_result,
+        ReadingRepairResult,
+    ):
+        raise TypeError(
+            "repair_resultがReadingRepairResultではありません。"
+        )
+
+    repaired = _require_mapping(
+        repair_result.repaired,
+        "repair_result.repaired",
+    )
+
+    repaired_copy = _json_safe_copy(
+        repaired
+    )
+
+    return ReadingGenerationResult(
+        output_format=original.output_format,
+        model=original.model,
+        text=json.dumps(
+            repaired_copy,
+            ensure_ascii=False,
+        ),
+        parsed=repaired_copy,
+        response_id=original.response_id,
+        response_status=original.response_status,
+        usage=deepcopy(
+            original.usage
+        ),
+        sections=tuple(
+            original.sections
+        ),
+        method=original.method,
+        status=original.status,
+    )
+
+
+def build_repair_history(
+    *,
+    initial_quality_report: ReadingQualityReport,
+    attempts: list[Dict[str, Any]],
+    final_quality_report: ReadingQualityReport,
+) -> Dict[str, Any]:
+    """
+    Auto-Repair履歴を保存用dictへ変換する。
+    """
+
+    if not isinstance(
+        initial_quality_report,
+        ReadingQualityReport,
+    ):
+        raise TypeError(
+            "initial_quality_reportが"
+            "ReadingQualityReportではありません。"
+        )
+
+    if not isinstance(
+        final_quality_report,
+        ReadingQualityReport,
+    ):
+        raise TypeError(
+            "final_quality_reportが"
+            "ReadingQualityReportではありません。"
+        )
+
+    return {
+        "enabled": AUTO_REPAIR_ENABLED,
+        "max_attempts": MAX_REPAIR_ATTEMPTS,
+        "attempt_count": len(
+            attempts
+        ),
+        "repaired": bool(
+            attempts
+        ),
+        "initial_quality": (
+            initial_quality_report.to_dict()
+        ),
+        "attempts": deepcopy(
+            attempts
+        ),
+        "final_quality": (
+            final_quality_report.to_dict()
+        ),
+        "final_valid": (
+            final_quality_report.valid
+        ),
+    }
+
+
 def validate_product(
     product: ReadingProduct,
 ) -> None:
@@ -1197,6 +1335,7 @@ def build_summary(
     model: str,
     quality_report: ReadingQualityReport | None = None,
     birth_time_status: Mapping[str, Any] | None = None,
+    repair_history: Mapping[str, Any] | None = None,
 ) -> Dict[str, Any]:
 
     focus = (
@@ -1347,6 +1486,17 @@ def build_summary(
             if isinstance(
                 quality_report,
                 ReadingQualityReport,
+            )
+            else None
+        ),
+
+        "repair": (
+            _json_safe_copy(
+                repair_history
+            )
+            if isinstance(
+                repair_history,
+                Mapping,
             )
             else None
         ),
@@ -1522,6 +1672,11 @@ def generate_customer_reading(
     quality_report_path = (
         customer_dir
         / QUALITY_REPORT_FILENAME
+    )
+
+    repair_history_path = (
+        customer_dir
+        / REPAIR_HISTORY_FILENAME
     )
 
     product_path = (
@@ -1858,7 +2013,7 @@ def generate_customer_reading(
         "4.5. 顧客向け品質ゲート"
     )
 
-    quality_report = (
+    initial_quality_report = (
         validate_customer_facing_reading(
             generation_result.parsed,
             reading_context=(
@@ -1870,9 +2025,8 @@ def generate_customer_reading(
         )
     )
 
-    save_json(
-        quality_report_path,
-        quality_report.to_dict(),
+    quality_report = (
+        initial_quality_report
     )
 
     print(
@@ -1885,12 +2039,215 @@ def generate_customer_reading(
         f"{quality_report.issue_count}"
     )
 
+    repair_attempts: list[
+        Dict[str, Any]
+    ] = []
+
+    final_generation_result = (
+        generation_result
+    )
+
+    # --------------------------------------------------------
+    # 4.6. Auto-Repair
+    # --------------------------------------------------------
+
+    if (
+        AUTO_REPAIR_ENABLED
+        and not quality_report.valid
+    ):
+        print()
+        print(
+            "4.6. Auto-Repair"
+        )
+
+        for attempt_number in range(
+            1,
+            MAX_REPAIR_ATTEMPTS + 1,
+        ):
+            print(
+                "   attempt: "
+                f"{attempt_number}"
+            )
+
+            repair_result = (
+                repair_reading(
+                    final_generation_result.parsed,
+                    quality_report,
+                    reading_context=(
+                        reading_context
+                    ),
+                    consultation_context=(
+                        consultation_context
+                    ),
+                    model=model,
+                    max_output_tokens=(
+                        REPAIR_MAX_OUTPUT_TOKENS
+                    ),
+                    reasoning_effort=(
+                        REPAIR_REASONING_EFFORT
+                    ),
+                    store=REPAIR_STORE,
+                )
+            )
+
+            repaired_generation_result = (
+                build_repaired_generation_result(
+                    final_generation_result,
+                    repair_result,
+                )
+            )
+
+            if (
+                repaired_generation_result.parsed
+                is None
+            ):
+                raise RuntimeError(
+                    "Auto-Repair後の"
+                    "AI Reading JSONがありません。"
+                )
+
+            repaired_quality_report = (
+                validate_customer_facing_reading(
+                    repaired_generation_result.parsed,
+                    reading_context=(
+                        reading_context
+                    ),
+                    consultation_context=(
+                        consultation_context
+                    ),
+                )
+            )
+
+            repair_attempts.append(
+                {
+                    "attempt": (
+                        attempt_number
+                    ),
+                    "repair": (
+                        repair_result.to_dict()
+                    ),
+                    "quality_before": (
+                        quality_report.to_dict()
+                    ),
+                    "quality_after": (
+                        repaired_quality_report.to_dict()
+                    ),
+                }
+            )
+
+            final_generation_result = (
+                repaired_generation_result
+            )
+
+            quality_report = (
+                repaired_quality_report
+            )
+
+            print(
+                "   response_status: "
+                f"{repair_result.response_status}"
+            )
+
+            print(
+                "   response_id: "
+                f"{repair_result.response_id}"
+            )
+
+            print(
+                "   changed: "
+                f"{repair_result.changed}"
+            )
+
+            print(
+                "   valid_after_repair: "
+                f"{quality_report.valid}"
+            )
+
+            print(
+                "   issues_after_repair: "
+                f"{quality_report.issue_count}"
+            )
+
+            if quality_report.valid:
+                print(
+                    "   OK"
+                )
+                break
+
+    # --------------------------------------------------------
+    # 4.7. Final quality gate
+    # --------------------------------------------------------
+
+    print()
+    print(
+        "4.7. 最終品質ゲート"
+    )
+
+    repair_history = (
+        build_repair_history(
+            initial_quality_report=(
+                initial_quality_report
+            ),
+            attempts=(
+                repair_attempts
+            ),
+            final_quality_report=(
+                quality_report
+            ),
+        )
+    )
+
+    save_json(
+        repair_history_path,
+        repair_history,
+    )
+
+    save_json(
+        quality_report_path,
+        quality_report.to_dict(),
+    )
+
+    if (
+        final_generation_result.parsed
+        is None
+    ):
+        raise RuntimeError(
+            "最終AI Reading JSONがありません。"
+        )
+
+    # ai_reading.json は
+    # Product / PDFへ実際に使用する最終版を保存する。
+    save_json(
+        ai_reading_path,
+        final_generation_result.parsed,
+    )
+
+    print(
+        "   valid: "
+        f"{quality_report.valid}"
+    )
+
+    print(
+        "   issues: "
+        f"{quality_report.issue_count}"
+    )
+
+    print(
+        "   repair_attempts: "
+        f"{len(repair_attempts)}"
+    )
+
     validate_quality_report(
         quality_report
     )
 
     print(
         "   OK"
+    )
+
+    # 以降は必ず最終採用版を使う。
+    generation_result = (
+        final_generation_result
     )
 
     # --------------------------------------------------------
@@ -2063,6 +2420,9 @@ def generate_customer_reading(
                 "birth_time_status"
             )
         ),
+        repair_history=(
+            repair_history
+        ),
     )
 
     summary[
@@ -2100,6 +2460,14 @@ def generate_customer_reading(
         ),
         "quality_report": (
             quality_report.to_dict()
+        ),
+        "repair_history_path": (
+            repair_history_path
+        ),
+        "repair_history": (
+            deepcopy(
+                repair_history
+            )
         ),
         "product_path": (
             product_path
@@ -2294,6 +2662,27 @@ def print_completion(
     print()
 
     print(
+        "Repair History:"
+    )
+
+    print(
+        "  "
+        f"{result['repair_history_path'].resolve()}"
+    )
+
+    print(
+        "  attempts: "
+        f"{result['repair_history']['attempt_count']}"
+    )
+
+    print(
+        "  repaired: "
+        f"{result['repair_history']['repaired']}"
+    )
+
+    print()
+
+    print(
         "Reading Context:"
     )
 
@@ -2365,6 +2754,11 @@ def print_completion(
     print(
         "quality_issues: "
         f"{result['quality_report']['issue_count']}"
+    )
+
+    print(
+        "repair_attempts: "
+        f"{result['repair_history']['attempt_count']}"
     )
 
     print(
