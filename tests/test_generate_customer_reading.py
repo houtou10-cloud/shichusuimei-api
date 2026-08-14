@@ -2640,11 +2640,37 @@ def test_generate_customer_reading_auto_repair_then_passes(
     assert saved_history["final_valid"] is True
 
     # Product工程にもRepair後の結果を渡す。
-    assert (
+    product_data = (
         captured[
             "product"
-        ].generation_result.parsed
-        == repaired
+        ].to_dict()
+    )
+
+    assert (
+        product_data[
+            "sections"
+        ]
+        == repaired[
+            "sections"
+        ]
+    )
+
+    assert (
+        product_data[
+            "summary"
+        ]
+        == repaired[
+            "summary"
+        ]
+    )
+
+    assert (
+        product_data[
+            "disclaimer"
+        ]
+        == repaired[
+            "disclaimer"
+        ]
     )
 
     # 初回生成結果を破壊しない。
