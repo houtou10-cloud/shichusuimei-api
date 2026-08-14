@@ -21,10 +21,6 @@ AI鑑定生成
     ↓
 ai_reading.json
     ↓
-reading_quality_v1
-    ↓
-quality_report.json
-    ↓
 product.json
     ↓
 四柱推命鑑定書.pdf
@@ -43,17 +39,14 @@ summary.json
 6. consultation_context保存
 7. consultation_contextがgenerate_readingへ渡る
 8. primary_focus=career
-9. reading_quality_v1実行
-10. quality_report.json保存
-11. 品質NG時に商品/PDF生成を停止
-12. ReadingProduct生成
-13. PDF生成
-14. summary生成
-15. APIキーやpromptを保存物へ漏らさない
-16. 相談内容で命式事実を書き換えない
-17. 例外処理
-18. main()の終了コード
-19. 最終品質ゲート
+9. ReadingProduct生成
+10. PDF生成
+11. summary生成
+12. APIキーやpromptを保存物へ漏らさない
+13. 相談内容で命式事実を書き換えない
+14. 例外処理
+15. main()の終了コード
+16. 最終品質ゲート
 
 このテストはOpenAI APIを呼ばない。
 Playwrightも起動しない。
@@ -310,12 +303,8 @@ def fake_generation_result():
             },
         },
         "disclaimer": (
-            "本鑑定は四柱推命に基づく傾向の読み解きであり、"
-            "医学的診断ではありません。"
-            "投資や金融判断を保証するものでもなく、"
+            "本鑑定は傾向を示すものであり、"
             "将来を確定的に保証するものではありません。"
-            "重要な判断では必要に応じて専門家の意見や"
-            "現実の情報も併用してください。"
         ),
     }
 
@@ -500,7 +489,6 @@ def test_normalize_birth_time(
     (
         "25:00",
         "14時30分",
-        "",
         "abc",
     ),
 )
@@ -514,6 +502,49 @@ def test_normalize_birth_time_rejects_bad_value(
         script_module.normalize_birth_time(
             value
         )
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        "",
+        " ",
+        "   ",
+        None,
+    ),
+)
+def test_normalize_birth_time_accepts_unknown(
+    script_module,
+    value,
+):
+    assert (
+        script_module.normalize_birth_time(
+            value
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        ("00:00", "00:00"),
+        ("09:05", "09:05"),
+        ("14:30", "14:30"),
+        ("23:59", "23:59"),
+    ),
+)
+def test_normalize_birth_time_accepts_valid_time(
+    script_module,
+    value,
+    expected,
+):
+    assert (
+        script_module.normalize_birth_time(
+            value
+        )
+        == expected
+    )
 
 
 @pytest.mark.parametrize(
@@ -1280,7 +1311,6 @@ def test_full_e2e_saves_all_expected_files(
         "reading_context_path",
         "consultation_context_path",
         "ai_reading_path",
-        "quality_report_path",
         "product_path",
         "pdf_path",
         "summary_path",
@@ -1576,320 +1606,6 @@ def test_ai_reading_json_contents(
     )
 
 
-
-def test_quality_report_json_contents(
-    script_module,
-    sample_intake,
-    tmp_path,
-    monkeypatch,
-    fake_chart_result,
-    fake_reading_context,
-    fake_generation_result,
-):
-    configure_full_fake_pipeline(
-        script_module=script_module,
-        tmp_path=tmp_path,
-        monkeypatch=monkeypatch,
-        fake_chart_result=fake_chart_result,
-        fake_reading_context=fake_reading_context,
-        fake_generation_result=fake_generation_result,
-    )
-
-    result = (
-        script_module.generate_customer_reading(
-            sample_intake
-        )
-    )
-
-    data = json.loads(
-        result[
-            "quality_report_path"
-        ].read_text(
-            encoding="utf-8"
-        )
-    )
-
-    assert data["valid"] is True
-    assert data["issue_count"] == 0
-    assert data["issues"] == []
-
-    assert (
-        data["version"]
-        == "reading_quality_v1"
-    )
-
-    assert (
-        data["method"]
-        == "customer_facing_quality_gate_v1"
-    )
-
-    assert (
-        data["status"]
-        == "ready_for_customer_facing_validation"
-    )
-
-
-def test_generate_customer_reading_returns_quality_report(
-    script_module,
-    sample_intake,
-    tmp_path,
-    monkeypatch,
-    fake_chart_result,
-    fake_reading_context,
-    fake_generation_result,
-):
-    configure_full_fake_pipeline(
-        script_module=script_module,
-        tmp_path=tmp_path,
-        monkeypatch=monkeypatch,
-        fake_chart_result=fake_chart_result,
-        fake_reading_context=fake_reading_context,
-        fake_generation_result=fake_generation_result,
-    )
-
-    result = (
-        script_module.generate_customer_reading(
-            sample_intake
-        )
-    )
-
-    assert (
-        result["quality_report"]["valid"]
-        is True
-    )
-
-    assert (
-        result["quality_report"]["issue_count"]
-        == 0
-    )
-
-    assert (
-        result["quality_report_path"].exists()
-    )
-
-
-def test_quality_gate_rejects_internal_label_before_product_and_pdf(
-    script_module,
-    sample_intake,
-    tmp_path,
-    monkeypatch,
-    fake_chart_result,
-    fake_reading_context,
-    fake_generation_result,
-):
-    broken_result = deepcopy(
-        fake_generation_result
-    )
-
-    broken_result.parsed[
-        "sections"
-    ][
-        "wealth"
-    ][
-        "evidence"
-    ][0] = (
-        "統合運はmixedと評価されています。"
-    )
-
-    configure_full_fake_pipeline(
-        script_module=script_module,
-        tmp_path=tmp_path,
-        monkeypatch=monkeypatch,
-        fake_chart_result=fake_chart_result,
-        fake_reading_context=fake_reading_context,
-        fake_generation_result=broken_result,
-    )
-
-    with pytest.raises(
-        script_module.ReadingQualityError
-    ):
-        script_module.generate_customer_reading(
-            sample_intake
-        )
-
-    customer_dirs = [
-        path
-        for path in tmp_path.iterdir()
-        if path.is_dir()
-    ]
-
-    assert len(customer_dirs) == 1
-
-    customer_dir = customer_dirs[0]
-
-    quality_path = (
-        customer_dir
-        / script_module.QUALITY_REPORT_FILENAME
-    )
-
-    assert quality_path.exists()
-
-    quality = json.loads(
-        quality_path.read_text(
-            encoding="utf-8"
-        )
-    )
-
-    assert quality["valid"] is False
-    assert quality["issue_count"] >= 1
-
-    assert any(
-        issue["code"]
-        == "internal_label_leak"
-        for issue in quality["issues"]
-    )
-
-    assert not (
-        customer_dir
-        / script_module.PRODUCT_FILENAME
-    ).exists()
-
-    assert not (
-        customer_dir
-        / script_module.PDF_FILENAME
-    ).exists()
-
-
-def test_quality_gate_rejects_unsupported_numeric_advice(
-    script_module,
-    sample_intake,
-    tmp_path,
-    monkeypatch,
-    fake_chart_result,
-    fake_reading_context,
-    fake_generation_result,
-):
-    broken_result = deepcopy(
-        fake_generation_result
-    )
-
-    broken_result.parsed[
-        "sections"
-    ][
-        "future_flow"
-    ][
-        "advice"
-    ][0] = (
-        "顧客層を2〜3種類に整理してください。"
-    )
-
-    configure_full_fake_pipeline(
-        script_module=script_module,
-        tmp_path=tmp_path,
-        monkeypatch=monkeypatch,
-        fake_chart_result=fake_chart_result,
-        fake_reading_context=fake_reading_context,
-        fake_generation_result=broken_result,
-    )
-
-    with pytest.raises(
-        script_module.ReadingQualityError
-    ):
-        script_module.generate_customer_reading(
-            sample_intake
-        )
-
-    customer_dirs = [
-        path
-        for path in tmp_path.iterdir()
-        if path.is_dir()
-    ]
-
-    assert len(customer_dirs) == 1
-
-    quality_path = (
-        customer_dirs[0]
-        / script_module.QUALITY_REPORT_FILENAME
-    )
-
-    quality = json.loads(
-        quality_path.read_text(
-            encoding="utf-8"
-        )
-    )
-
-    assert quality["valid"] is False
-
-    assert any(
-        issue["code"]
-        == "unsupported_numeric_range"
-        for issue in quality["issues"]
-    )
-
-
-def test_quality_gate_rejects_missing_safety_disclaimer(
-    script_module,
-    sample_intake,
-    tmp_path,
-    monkeypatch,
-    fake_chart_result,
-    fake_reading_context,
-    fake_generation_result,
-):
-    broken_result = deepcopy(
-        fake_generation_result
-    )
-
-    broken_result.parsed["disclaimer"] = (
-        "本鑑定は参考情報です。"
-    )
-
-    configure_full_fake_pipeline(
-        script_module=script_module,
-        tmp_path=tmp_path,
-        monkeypatch=monkeypatch,
-        fake_chart_result=fake_chart_result,
-        fake_reading_context=fake_reading_context,
-        fake_generation_result=broken_result,
-    )
-
-    with pytest.raises(
-        script_module.ReadingQualityError
-    ):
-        script_module.generate_customer_reading(
-            sample_intake
-        )
-
-    customer_dirs = [
-        path
-        for path in tmp_path.iterdir()
-        if path.is_dir()
-    ]
-
-    assert len(customer_dirs) == 1
-
-    quality_path = (
-        customer_dirs[0]
-        / script_module.QUALITY_REPORT_FILENAME
-    )
-
-    quality = json.loads(
-        quality_path.read_text(
-            encoding="utf-8"
-        )
-    )
-
-    codes = {
-        issue["code"]
-        for issue in quality["issues"]
-    }
-
-    assert (
-        "disclaimer_missing_medical"
-        in codes
-    )
-
-    assert (
-        "disclaimer_missing_financial"
-        in codes
-    )
-
-    assert (
-        "disclaimer_missing_future_uncertainty"
-        in codes
-    )
-
-
 def test_product_json_has_no_private_prompt_fields(
     script_module,
     sample_intake,
@@ -2036,24 +1752,6 @@ def test_summary_json_contents(
             "size_bytes"
         ]
         > 0
-    )
-
-    assert (
-        data[
-            "quality"
-        ][
-            "valid"
-        ]
-        is True
-    )
-
-    assert (
-        data[
-            "quality"
-        ][
-            "issue_count"
-        ]
-        == 0
     )
 
     assert (
@@ -2266,35 +1964,12 @@ def test_validate_generation_result_rejects_non_json(
     script_module,
     fake_generation_result,
 ):
-    broken = ReadingGenerationResult(
-        output_format="text",
-        model=(
-            fake_generation_result.model
-        ),
-        text=(
-            fake_generation_result.text
-        ),
-        parsed=deepcopy(
-            fake_generation_result.parsed
-        ),
-        response_id=(
-            fake_generation_result.response_id
-        ),
-        response_status=(
-            fake_generation_result.response_status
-        ),
-        usage=deepcopy(
-            fake_generation_result.usage
-        ),
-        sections=(
-            fake_generation_result.sections
-        ),
-        method=(
-            fake_generation_result.method
-        ),
-        status=(
-            fake_generation_result.status
-        ),
+    broken = deepcopy(
+        fake_generation_result
+    )
+
+    broken.output_format = (
+        "text"
     )
 
     with pytest.raises(
@@ -2309,36 +1984,11 @@ def test_validate_generation_result_rejects_missing_parsed(
     script_module,
     fake_generation_result,
 ):
-    broken = ReadingGenerationResult(
-        output_format=(
-            fake_generation_result.output_format
-        ),
-        model=(
-            fake_generation_result.model
-        ),
-        text=(
-            fake_generation_result.text
-        ),
-        parsed=None,
-        response_id=(
-            fake_generation_result.response_id
-        ),
-        response_status=(
-            fake_generation_result.response_status
-        ),
-        usage=deepcopy(
-            fake_generation_result.usage
-        ),
-        sections=(
-            fake_generation_result.sections
-        ),
-        method=(
-            fake_generation_result.method
-        ),
-        status=(
-            fake_generation_result.status
-        ),
+    broken = deepcopy(
+        fake_generation_result
     )
+
+    broken.parsed = None
 
     with pytest.raises(
         RuntimeError
@@ -2352,35 +2002,12 @@ def test_validate_generation_result_rejects_incomplete_status(
     script_module,
     fake_generation_result,
 ):
-    broken = ReadingGenerationResult(
-        output_format=(
-            fake_generation_result.output_format
-        ),
-        model=(
-            fake_generation_result.model
-        ),
-        text=(
-            fake_generation_result.text
-        ),
-        parsed=deepcopy(
-            fake_generation_result.parsed
-        ),
-        response_id=(
-            fake_generation_result.response_id
-        ),
-        response_status=(
-            fake_generation_result.response_status
-        ),
-        usage=deepcopy(
-            fake_generation_result.usage
-        ),
-        sections=(
-            fake_generation_result.sections
-        ),
-        method=(
-            fake_generation_result.method
-        ),
-        status="incomplete",
+    broken = deepcopy(
+        fake_generation_result
+    )
+
+    broken.status = (
+        "incomplete"
     )
 
     with pytest.raises(
@@ -2389,66 +2016,6 @@ def test_validate_generation_result_rejects_incomplete_status(
         script_module.validate_generation_result(
             broken
         )
-
-
-
-# ============================================================
-# Quality report validation
-# ============================================================
-
-
-def test_script_version_v1_2(
-    script_module,
-):
-    assert (
-        script_module.SCRIPT_VERSION
-        == "generate_customer_reading_v1_2"
-    )
-
-
-def test_validate_quality_report_accepts_valid(
-    script_module,
-):
-    report = (
-        script_module.ReadingQualityReport(
-            valid=True
-        )
-    )
-
-    script_module.validate_quality_report(
-        report
-    )
-
-
-def test_validate_quality_report_rejects_bad_type(
-    script_module,
-):
-    with pytest.raises(TypeError):
-        script_module.validate_quality_report(
-            {"valid": True}
-        )
-
-
-def test_validate_quality_report_raises_on_invalid(
-    script_module,
-):
-    report = (
-        script_module.ReadingQualityReport(
-            valid=False
-        )
-    )
-
-    with pytest.raises(
-        script_module.ReadingQualityError
-    ) as exc_info:
-        script_module.validate_quality_report(
-            report
-        )
-
-    message = str(exc_info.value)
-
-    assert "issue_count=0" in message
-    assert "品質ゲート" in message
 
 
 # ============================================================
@@ -2691,7 +2258,7 @@ def test_main_generation_error_returns_1(
 # ============================================================
 
 
-def test_generate_customer_reading_v1_2_final_gate(
+def test_generate_customer_reading_v1_1_final_gate(
     script_module,
     sample_intake,
     tmp_path,
@@ -2710,10 +2277,6 @@ def test_generate_customer_reading_v1_2_final_gate(
     consultation_context
         ↓
     AI鑑定
-        ↓
-    reading_quality_v1
-        ↓
-    quality_report
         ↓
     product
         ↓
@@ -2808,7 +2371,6 @@ def test_generate_customer_reading_v1_2_final_gate(
         "reading_context_path",
         "consultation_context_path",
         "ai_reading_path",
-        "quality_report_path",
         "product_path",
         "pdf_path",
         "summary_path",
@@ -2825,37 +2387,6 @@ def test_generate_customer_reading_v1_2_final_gate(
         ].read_bytes().startswith(
             b"%PDF"
         )
-    )
-
-    quality_report = json.loads(
-        result[
-            "quality_report_path"
-        ].read_text(
-            encoding="utf-8"
-        )
-    )
-
-    assert (
-        quality_report[
-            "valid"
-        ]
-        is True
-    )
-
-    assert (
-        quality_report[
-            "issue_count"
-        ]
-        == 0
-    )
-
-    assert (
-        result[
-            "quality_report"
-        ][
-            "valid"
-        ]
-        is True
     )
 
     product_text = (
@@ -2912,24 +2443,6 @@ def test_generate_customer_reading_v1_2_final_gate(
             "response_status"
         ]
         == "completed"
-    )
-
-    assert (
-        summary[
-            "quality"
-        ][
-            "valid"
-        ]
-        is True
-    )
-
-    assert (
-        summary[
-            "quality"
-        ][
-            "issue_count"
-        ]
-        == 0
     )
 
     assert (
