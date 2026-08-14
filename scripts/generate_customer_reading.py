@@ -413,8 +413,13 @@ def normalize_birth_time(
     """
     出生時刻をHH:MM形式へ正規化する。
 
-    None または空文字は
+    内部表現としてNoneは
     「出生時刻不明」として正式に許可する。
+
+    空文字は正規化関数へ直接渡された場合は
+    不正入力としてValueErrorにする。
+    CLIの空欄入力はprompt_customer_input()側で
+    Noneへ変換してから本関数へ渡す。
     """
 
     if value is None:
@@ -432,7 +437,10 @@ def normalize_birth_time(
     value = value.strip()
 
     if not value:
-        return None
+        raise ValueError(
+            "出生時刻が空です。"
+            "不明の場合はNoneを指定してください。"
+        )
 
     try:
         parsed = datetime.strptime(
@@ -443,7 +451,6 @@ def normalize_birth_time(
         raise ValueError(
             "出生時刻はHH:MM形式で"
             "入力してください。"
-            "不明の場合は空欄にしてください。"
         ) from exc
 
     return parsed.strftime(
@@ -655,11 +662,15 @@ def prompt_customer_input() -> Dict[str, Any]:
 
     name = normalize_name(input("お名前: "))
     birth_date = normalize_birth_date(input("生年月日 YYYY-MM-DD: "))
+    birth_time_input = input(
+        "出生時刻 HH:MM "
+        "（不明の場合はEnter）: "
+    ).strip()
+
     birth_time = normalize_birth_time(
-        input(
-            "出生時刻 HH:MM "
-            "（不明の場合はEnter）: "
-        )
+        birth_time_input
+        if birth_time_input
+        else None
     )
 
     print()
@@ -1576,8 +1587,22 @@ def generate_customer_reading(
         ),
         "birth_time": (
             normalize_birth_time(
-                intake.get(
-                    "birth_time"
+                (
+                    None
+                    if (
+                        isinstance(
+                            intake.get(
+                                "birth_time"
+                            ),
+                            str,
+                        )
+                        and not intake.get(
+                            "birth_time"
+                        ).strip()
+                    )
+                    else intake.get(
+                        "birth_time"
+                    )
                 )
             )
         ),
