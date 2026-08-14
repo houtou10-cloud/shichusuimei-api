@@ -2616,16 +2616,24 @@ def test_generate_customer_reading_auto_repair_then_passes(
     assert attempt["quality_after"]["valid"] is True
 
     # ai_reading.json はRepair後の最終採用版。
-    saved_ai_reading = script_module.load_json(
-        result["ai_reading_path"]
+    saved_ai_reading = json.loads(
+        result[
+            "ai_reading_path"
+        ].read_text(
+            encoding="utf-8"
+        )
     )
     assert saved_ai_reading == repaired
 
     # repair_history.json が存在し、内容も一致。
     assert result["repair_history_path"].exists()
 
-    saved_history = script_module.load_json(
-        result["repair_history_path"]
+    saved_history = json.loads(
+        result[
+            "repair_history_path"
+        ].read_text(
+            encoding="utf-8"
+        )
     )
     assert saved_history["attempt_count"] == 1
     assert saved_history["repaired"] is True
