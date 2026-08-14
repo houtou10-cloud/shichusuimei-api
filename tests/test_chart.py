@@ -41,9 +41,9 @@ def test_chart_1984_early_hour():
 
     assert result["chart"]["year"]["pillar"] == "甲子"
     assert result["chart"]["month"]["pillar"] == "辛未"
-    assert result["chart"]["day"]["pillar"] == "乙巳"
-    assert result["chart"]["hour"]["pillar"] == "戊寅"
-    assert result["day_master"]["stem"] == "乙"
+    assert result["chart"]["day"]["pillar"] == "丁巳"
+    assert result["chart"]["hour"]["pillar"] == "壬寅"
+    assert result["day_master"]["stem"] == "丁"
 
 
 def test_chart_1984_afternoon():
@@ -58,8 +58,8 @@ def test_chart_1984_afternoon():
 
     assert result["chart"]["year"]["pillar"] == "甲子"
     assert result["chart"]["month"]["pillar"] == "辛未"
-    assert result["chart"]["day"]["pillar"] == "乙巳"
-    assert result["chart"]["hour"]["pillar"] == "癸未"
+    assert result["chart"]["day"]["pillar"] == "丁巳"
+    assert result["chart"]["hour"]["pillar"] == "丁未"
 
 
 def test_chart_1985():
@@ -69,8 +69,8 @@ def test_chart_1985():
 
     assert result["chart"]["year"]["pillar"] == "乙丑"
     assert result["chart"]["month"]["pillar"] == "癸未"
-    assert result["chart"]["day"]["pillar"] == "乙巳"
-    assert result["chart"]["hour"]["pillar"] == "丁亥"
+    assert result["chart"]["day"]["pillar"] == "丁巳"
+    assert result["chart"]["hour"]["pillar"] == "辛亥"
 
 
 def test_chart_without_birth_time():
@@ -85,7 +85,7 @@ def test_chart_without_birth_time():
 
     assert result["chart"]["year"]["pillar"] == "甲子"
     assert result["chart"]["month"]["pillar"] == "辛未"
-    assert result["chart"]["day"]["pillar"] == "乙巳"
+    assert result["chart"]["day"]["pillar"] == "丁巳"
     assert result["chart"]["hour"] is None
 
     assert any(
@@ -100,7 +100,7 @@ def test_chart_contains_hidden_stems_and_ten_gods():
     result = calculate_chart(request)
     chart = result["chart"]
 
-    assert chart["year"]["stem_ten_god"] == "比肩"
+    assert chart["year"]["stem_ten_god"] == "偏印"
     assert chart["year"]["hidden_stems"] == [
         "己",
         "癸",
@@ -109,10 +109,10 @@ def test_chart_contains_hidden_stems_and_ten_gods():
     assert chart["year"]["main_hidden_stem"] == "己"
     assert (
         chart["year"]["main_hidden_stem_ten_god"]
-        == "偏財"
+        == "食神"
     )
 
-    assert chart["month"]["stem_ten_god"] == "偏印"
+    assert chart["month"]["stem_ten_god"] == "偏官"
     assert chart["month"]["hidden_stems"] == [
         "己",
         "丁",
@@ -121,7 +121,7 @@ def test_chart_contains_hidden_stems_and_ten_gods():
     assert chart["month"]["main_hidden_stem"] == "己"
     assert (
         chart["month"]["main_hidden_stem_ten_god"]
-        == "偏財"
+        == "食神"
     )
 
     assert chart["day"]["stem_ten_god"] is None
@@ -133,10 +133,10 @@ def test_chart_contains_hidden_stems_and_ten_gods():
     assert chart["day"]["main_hidden_stem"] == "丙"
     assert (
         chart["day"]["main_hidden_stem_ten_god"]
-        == "傷官"
+        == "劫財"
     )
 
-    assert chart["hour"]["stem_ten_god"] == "食神"
+    assert chart["hour"]["stem_ten_god"] == "偏財"
     assert chart["hour"]["hidden_stems"] == [
         "壬",
         "甲",
@@ -144,7 +144,7 @@ def test_chart_contains_hidden_stems_and_ten_gods():
     assert chart["hour"]["main_hidden_stem"] == "壬"
     assert (
         chart["hour"]["main_hidden_stem_ten_god"]
-        == "印綬"
+        == "正官"
     )
 
 
@@ -154,10 +154,10 @@ def test_chart_contains_twelve_stages():
     result = calculate_chart(request)
     chart = result["chart"]
 
-    assert chart["year"]["twelve_stage"] == "衰"
-    assert chart["month"]["twelve_stage"] == "養"
-    assert chart["day"]["twelve_stage"] == "沐浴"
-    assert chart["hour"]["twelve_stage"] == "死"
+    assert chart["year"]["twelve_stage"] == "墓"
+    assert chart["month"]["twelve_stage"] == "冠帯"
+    assert chart["day"]["twelve_stage"] == "帝旺"
+    assert chart["hour"]["twelve_stage"] == "胎"
 
 
 def test_chart_contains_five_elements():
@@ -167,18 +167,18 @@ def test_chart_contains_five_elements():
     five_elements = result["five_elements"]
 
     assert five_elements["counts"] == {
-        "木": 4,
+        "木": 3,
         "火": 4,
         "土": 5,
-        "金": 2,
+        "金": 3,
         "水": 4,
     }
 
     assert five_elements["percentages"] == {
-        "木": 21.05,
+        "木": 15.79,
         "火": 21.05,
         "土": 26.32,
-        "金": 10.53,
+        "金": 15.79,
         "水": 21.05,
     }
 
@@ -197,18 +197,18 @@ def test_chart_contains_weighted_five_elements():
     weighted = result["weighted_five_elements"]
 
     assert weighted["scores"] == {
-        "木": 2.4,
+        "木": 1.4,
         "火": 1.9,
         "土": 1.5,
-        "金": 0.2,
+        "金": 1.2,
         "水": 2.0,
     }
 
     assert weighted["percentages"] == {
-        "木": 30.0,
+        "木": 17.5,
         "火": 23.75,
         "土": 18.75,
-        "金": 2.5,
+        "金": 15.0,
         "水": 25.0,
     }
 
@@ -226,24 +226,24 @@ def test_chart_contains_day_master_balance():
     result = calculate_chart(request)
     balance = result["day_master_balance"]
 
-    assert balance["day_stem"] == "乙"
-    assert balance["day_element"] == "木"
+    assert balance["day_stem"] == "丁"
+    assert balance["day_element"] == "火"
 
     assert balance["supporting_elements"] == [
+        "火",
         "木",
-        "水",
     ]
 
     assert balance["draining_elements"] == [
-        "火",
         "土",
         "金",
+        "水",
     ]
 
-    assert balance["supporting_score"] == 8
-    assert balance["draining_score"] == 11
-    assert balance["supporting_ratio"] == 42.11
-    assert balance["draining_ratio"] == 57.89
+    assert balance["supporting_score"] == 7
+    assert balance["draining_score"] == 12
+    assert balance["supporting_ratio"] == 36.84
+    assert balance["draining_ratio"] == 63.16
 
     assert (
         balance["method"]
@@ -265,24 +265,24 @@ def test_chart_contains_weighted_day_master_balance():
         "weighted_day_master_balance"
     ]
 
-    assert balance["day_stem"] == "乙"
-    assert balance["day_element"] == "木"
+    assert balance["day_stem"] == "丁"
+    assert balance["day_element"] == "火"
 
     assert balance["supporting_elements"] == [
+        "火",
         "木",
-        "水",
     ]
 
     assert balance["draining_elements"] == [
-        "火",
         "土",
         "金",
+        "水",
     ]
 
-    assert balance["supporting_score"] == 4.4
-    assert balance["draining_score"] == 3.6
-    assert balance["supporting_ratio"] == 55.0
-    assert balance["draining_ratio"] == 45.0
+    assert balance["supporting_score"] == 3.3
+    assert balance["draining_score"] == 4.7
+    assert balance["supporting_ratio"] == 41.25
+    assert balance["draining_ratio"] == 58.75
 
     assert (
         balance["method"]
@@ -301,27 +301,27 @@ def test_chart_contains_root_strength():
     result = calculate_chart(request)
     root_strength = result["root_strength"]
 
-    assert root_strength["day_stem"] == "乙"
-    assert root_strength["day_element"] == "木"
+    assert root_strength["day_stem"] == "丁"
+    assert root_strength["day_element"] == "火"
     assert root_strength["has_root"] is True
     assert root_strength["root_count"] == 2
 
     assert root_strength["root_positions"] == [
         "month",
-        "hour",
+        "day",
     ]
 
     assert root_strength["roots"] == [
         {
             "position": "month",
             "branch": "未",
-            "root_stems": ["乙"],
+            "root_stems": ["丁"],
             "root_count": 1,
         },
         {
-            "position": "hour",
-            "branch": "亥",
-            "root_stems": ["甲"],
+            "position": "day",
+            "branch": "巳",
+            "root_stems": ["丙"],
             "root_count": 1,
         },
     ]
@@ -346,39 +346,39 @@ def test_chart_contains_weighted_root_strength():
         "weighted_root_strength"
     ]
 
-    assert weighted_root["day_stem"] == "乙"
-    assert weighted_root["day_element"] == "木"
+    assert weighted_root["day_stem"] == "丁"
+    assert weighted_root["day_element"] == "火"
     assert weighted_root["has_root"] is True
     assert weighted_root["root_count"] == 2
 
     assert (
         weighted_root["total_root_score"]
-        == 0.45
+        == 1.23
     )
 
     assert weighted_root["root_positions"] == [
         "month",
-        "hour",
+        "day",
     ]
 
     assert weighted_root["roots"] == [
         {
             "position": "month",
             "branch": "未",
-            "stem": "乙",
-            "hidden_stem_rank": 3,
+            "stem": "丁",
+            "hidden_stem_rank": 2,
             "position_weight": 1.5,
-            "hidden_stem_weight": 0.1,
-            "root_score": 0.15,
+            "hidden_stem_weight": 0.3,
+            "root_score": 0.45,
         },
         {
-            "position": "hour",
-            "branch": "亥",
-            "stem": "甲",
-            "hidden_stem_rank": 2,
-            "position_weight": 1.0,
-            "hidden_stem_weight": 0.3,
-            "root_score": 0.3,
+            "position": "day",
+            "branch": "巳",
+            "stem": "丙",
+            "hidden_stem_rank": 1,
+            "position_weight": 1.3,
+            "hidden_stem_weight": 0.6,
+            "root_score": 0.78,
         },
     ]
 
@@ -399,19 +399,19 @@ def test_chart_contains_month_command():
     result = calculate_chart(request)
     month_command = result["month_command"]
 
-    assert month_command["day_stem"] == "乙"
-    assert month_command["day_element"] == "木"
+    assert month_command["day_stem"] == "丁"
+    assert month_command["day_element"] == "火"
     assert month_command["month_branch"] == "未"
     assert month_command["month_element"] == "土"
 
     assert (
         month_command["relationship"]
-        == "wealth"
+        == "output"
     )
 
     assert (
         month_command["relationship_label"]
-        == "財星"
+        == "食傷"
     )
 
     assert month_command["effect"] == "draining"
@@ -441,11 +441,11 @@ def test_chart_contains_seasonal_strength():
         "seasonal_strength"
     ]
 
-    assert seasonal_strength["day_stem"] == "乙"
-    assert seasonal_strength["day_element"] == "木"
+    assert seasonal_strength["day_stem"] == "丁"
+    assert seasonal_strength["day_element"] == "火"
     assert seasonal_strength["month_branch"] == "未"
-    assert seasonal_strength["state"] == "囚"
-    assert seasonal_strength["score"] == -6.0
+    assert seasonal_strength["state"] == "休"
+    assert seasonal_strength["score"] == 2.0
 
     assert (
         seasonal_strength["method"]
@@ -466,14 +466,14 @@ def test_chart_contains_strength_judgment():
 
     assert (
         judgment["label"]
-        == "中和～やや身弱寄り"
+        == "かなり身弱寄り"
     )
 
-    assert judgment["final_score"] == 45.11
+    assert judgment["final_score"] == 39.84
 
     assert (
         judgment["base_supporting_ratio"]
-        == 42.11
+        == 36.84
     )
 
     assert judgment["adjustments"] == {
@@ -508,73 +508,73 @@ def test_chart_contains_weighted_strength_judgment():
     )
 
     # V3:
-    # 55.0 + 4.5 - 9.2 = 50.3
-    assert judgment["final_score"] == 50.3
+    # 41.25 + 12.3 + 1.2 = 54.75
+    assert judgment["final_score"] == 54.75
 
     assert (
         judgment["base_supporting_ratio"]
-        == 55.0
+        == 41.25
     )
 
     assert judgment["adjustments"] == {
-        "weighted_root_bonus": 4.5,
-        "integrated_month_adjustment": -9.2,
+        "weighted_root_bonus": 12.3,
+        "integrated_month_adjustment": 1.2,
     }
 
     assert (
         judgment["evidence"][
             "total_root_score"
         ]
-        == 0.45
+        == 1.23
     )
 
     assert (
         judgment["evidence"][
             "integrated_month_score"
         ]
-        == -9.2
+        == 1.2
     )
 
     assert (
         judgment["evidence"][
             "seasonal_state"
         ]
-        == "囚"
+        == "休"
     )
 
     assert (
         judgment["evidence"][
             "seasonal_score"
         ]
-        == -6.0
+        == 2.0
     )
 
     assert (
         judgment["evidence"][
             "month_supporting_ratio"
         ]
-        == 10.0
+        == 40.0
     )
 
     assert (
         judgment["evidence"][
             "month_draining_ratio"
         ]
-        == 90.0
+        == 60.0
     )
 
     assert (
         judgment["evidence"][
             "hidden_stem_balance"
         ]
-        == -0.8
+        == -0.2
     )
 
     assert (
         judgment["evidence"][
             "hidden_stem_adjustment"
         ]
-        == -3.2
+        == -0.8
     )
 
     assert (
@@ -599,11 +599,11 @@ def test_chart_contains_weighted_month_command():
 
     assert weighted_month_command[
         "day_stem"
-    ] == "乙"
+    ] == "丁"
 
     assert weighted_month_command[
         "day_element"
-    ] == "木"
+    ] == "火"
 
     assert weighted_month_command[
         "month_branch"
@@ -611,19 +611,19 @@ def test_chart_contains_weighted_month_command():
 
     assert weighted_month_command[
         "supporting_score"
-    ] == 0.1
+    ] == 0.4
 
     assert weighted_month_command[
         "draining_score"
-    ] == 0.9
+    ] == 0.6
 
     assert weighted_month_command[
         "supporting_ratio"
-    ] == 10.0
+    ] == 40.0
 
     assert weighted_month_command[
         "draining_ratio"
-    ] == 90.0
+    ] == 60.0
 
     assert weighted_month_command["details"] == [
         {
@@ -636,7 +636,7 @@ def test_chart_contains_weighted_month_command():
             "stem": "丁",
             "element": "火",
             "weight": 0.3,
-            "supports_day_master": False,
+            "supports_day_master": True,
         },
         {
             "stem": "乙",
@@ -668,34 +668,34 @@ def test_chart_contains_integrated_month_strength():
 
     assert (
         integrated["seasonal_state"]
-        == "囚"
+        == "休"
     )
 
-    assert integrated["seasonal_score"] == -6.0
+    assert integrated["seasonal_score"] == 2.0
 
     assert (
         integrated["supporting_ratio"]
-        == 10.0
+        == 40.0
     )
 
     assert (
         integrated["draining_ratio"]
-        == 90.0
+        == 60.0
     )
 
     assert (
         integrated["hidden_stem_balance"]
-        == -0.8
+        == -0.2
     )
 
     assert (
         integrated["hidden_stem_adjustment"]
-        == -3.2
+        == -0.8
     )
 
     assert (
         integrated["integrated_score"]
-        == -9.2
+        == 1.2
     )
 
     assert (
@@ -1850,7 +1850,7 @@ def test_chart_contains_pattern_candidates():
 
     assert primary["month_branch"] == "未"
     assert primary["month_main_hidden_stem"] == "己"
-    assert primary["selected_hidden_stem"] == "乙"
+    assert primary["selected_hidden_stem"] == "丁"
     assert primary["selected_hidden_stem_rank"] == 3
     assert primary["selected_is_main_hidden_stem"] is False
     assert primary["ten_god"] == "偏印"
