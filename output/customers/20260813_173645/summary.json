@@ -1,0 +1,73 @@
+{
+  "script_version": "generate_customer_reading_v1_1",
+  "customer_id": "20260813_173645",
+  "customer_name": "山田太郎",
+  "birth": {
+    "birth_date": "1990-05-15",
+    "birth_time": "14:30",
+    "birth_place": "愛知県名古屋市",
+    "gender": "male"
+  },
+  "pillars": {
+    "year": "庚午",
+    "month": "辛巳",
+    "day": "庚辰",
+    "hour": "癸未"
+  },
+  "day_master": "庚",
+  "consultation": {
+    "has_consultation": true,
+    "primary_focus": "career",
+    "secondary_focus": [
+      "wealth",
+      "current_luck"
+    ],
+    "requires_cautious_language": false
+  },
+  "generation": {
+    "model": "gpt-5",
+    "response_status": "completed",
+    "response_id": "resp_0ea61317b0319cf9016a7d822b8f8481989abd5c0427aebc5e",
+    "usage": {
+      "input_tokens": 8552,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      },
+      "output_tokens": 4212,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 12764
+    },
+    "method": "openai_responses_api_v1",
+    "status": "completed"
+  },
+  "pdf": {
+    "path": "output\\customers\\20260813_173645\\四柱推命鑑定書.pdf",
+    "size_bytes": 1585777
+  },
+  "created_at": "2026-08-13T17:38:05.179893+09:00",
+  "status": "completed",
+  "pdf_metadata": {
+    "version": "reading_pdf_v1",
+    "method": "html_to_pdf_playwright_chromium_v1",
+    "status": "ready",
+    "input_type": "ReadingProduct",
+    "intermediate_type": "html_document",
+    "output_types": [
+      "pdf_file",
+      "pdf_bytes"
+    ],
+    "backend": "playwright_chromium",
+    "page_format": "A4",
+    "print_background": true,
+    "prefer_css_page_size": true,
+    "uses_reading_renderer": true,
+    "recalculates_astrology": false,
+    "rewrites_ai_reading": false,
+    "exposes_generation_metadata": false,
+    "exposes_api_key": false,
+    "async_supported": true
+  }
+}

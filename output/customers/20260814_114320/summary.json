@@ -1,0 +1,154 @@
+{
+  "script_version": "generate_customer_reading_v1_2",
+  "customer_id": "20260814_114320",
+  "customer_name": "山田花子",
+  "birth": {
+    "birth_date": "1985-07-17",
+    "birth_time": null,
+    "birth_country_type": "japan",
+    "birth_country": "日本",
+    "birth_city": "",
+    "birth_place": "石川県",
+    "gender": "female"
+  },
+  "birth_time_status": {
+    "known": false,
+    "hour_pillar_available": false,
+    "calculation_scope": "three_pillars",
+    "interpretation_scope": "known_pillars_only",
+    "five_elements_scope": "known_pillars_only",
+    "root_scope": "known_pillars_only",
+    "strength_scope": "known_pillars_only",
+    "pattern_scope": "known_pillars_only",
+    "useful_gods_scope": "known_pillars_only",
+    "relationship_scope": "known_pillars_only",
+    "luck_pillar_sequence_available": true,
+    "luck_start_timing_precision": "estimated",
+    "current_luck_precision": "estimated",
+    "internal_reference_time_used": true,
+    "internal_reference_time": "12:00",
+    "is_provisional_due_to_unknown_birth_time": true
+  },
+  "pillars": {
+    "year": "乙丑",
+    "month": "癸未",
+    "day": "丁巳",
+    "hour": null
+  },
+  "day_master": "丁",
+  "consultation": {
+    "has_consultation": true,
+    "primary_focus": "career",
+    "secondary_focus": [
+      "wealth",
+      "current_luck",
+      "self_understanding"
+    ],
+    "requires_cautious_language": false
+  },
+  "generation": {
+    "model": "gpt-5",
+    "response_status": "completed",
+    "response_id": "resp_0965a1730b74a36c016a7e80d4b0d8819aa8dd8b1ed4705b30",
+    "usage": {
+      "input_tokens": 12776,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      },
+      "output_tokens": 4948,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 17724
+    },
+    "method": "openai_responses_api_v1",
+    "status": "completed"
+  },
+  "quality": {
+    "valid": true,
+    "issue_count": 6,
+    "error_count": 0,
+    "warning_count": 6,
+    "issues": [
+      {
+        "code": "cross_section_advice_repetition",
+        "message": "同じ助言概念が多くのセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, current_luck, future_flow, advice",
+        "matched": "学習",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, relationships, advice",
+        "matched": "金→ルール",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, current_luck, future_flow, advice",
+        "matched": "水→情報",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, advice",
+        "matched": "土→安定",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, future_flow, advice",
+        "matched": "土→運用",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, relationships, health, current_luck, advice",
+        "matched": "火→勢い",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "pdf": {
+    "path": "output\\customers\\20260814_114320\\四柱推命鑑定書.pdf",
+    "size_bytes": 1627058
+  },
+  "created_at": "2026-08-14T11:45:01.213359+09:00",
+  "status": "completed",
+  "pdf_metadata": {
+    "version": "reading_pdf_v1",
+    "method": "html_to_pdf_playwright_chromium_v1",
+    "status": "ready",
+    "input_type": "ReadingProduct",
+    "intermediate_type": "html_document",
+    "output_types": [
+      "pdf_file",
+      "pdf_bytes"
+    ],
+    "backend": "playwright_chromium",
+    "page_format": "A4",
+    "print_background": true,
+    "prefer_css_page_size": true,
+    "uses_reading_renderer": true,
+    "recalculates_astrology": false,
+    "rewrites_ai_reading": false,
+    "exposes_generation_metadata": false,
+    "exposes_api_key": false,
+    "async_supported": true
+  }
+}

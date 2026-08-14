@@ -1,0 +1,67 @@
+{
+  "valid": false,
+  "issue_count": 7,
+  "error_count": 2,
+  "warning_count": 5,
+  "issues": [
+    {
+      "code": "health_astrology_specific_overreach",
+      "message": "健康章で、命式・五行などから具体的な身体状態または生活習慣を直接推測しています。",
+      "path": "sections.health.summary",
+      "value": "五行の水が強めで金が弱め。体調管理では冷え・循環・整える習慣に意識を。医学的診断ではありません。",
+      "matched": "冷え",
+      "severity": "error"
+    },
+    {
+      "code": "health_astrology_specific_overreach",
+      "message": "健康章で、命式・五行などから具体的な身体状態または生活習慣を直接推測しています。",
+      "path": "sections.health.detail",
+      "value": "五行の偏りとして、水が強め・金が弱めの示唆があります。生活面では、冷えや循環への配慮、呼吸を深める・姿勢を整えるといった「整える」行為（金の性質）を意識すると全体のバランスが取りやすくなります。ストレスが溜まると食神格の良さ（余裕・発想）が削がれやすいため、休息と栄養のリズムを崩しすぎないことが大切です。必要に応じて医療や専門家の助言も活用してください。",
+      "matched": "冷え",
+      "severity": "error"
+    },
+    {
+      "code": "cross_section_advice_repetition",
+      "message": "同じ助言概念が多くのセクションで繰り返されています。",
+      "path": "sections",
+      "value": "career, relationships, future_flow, advice",
+      "matched": "可視化",
+      "severity": "warning"
+    },
+    {
+      "code": "cross_section_advice_repetition",
+      "message": "同じ助言概念が多くのセクションで繰り返されています。",
+      "path": "sections",
+      "value": "career, wealth, future_flow, advice",
+      "matched": "仕組み化",
+      "severity": "warning"
+    },
+    {
+      "code": "fixed_element_translation_overuse",
+      "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+      "path": "sections",
+      "value": "career, wealth, future_flow, advice",
+      "matched": "金→仕組み化",
+      "severity": "warning"
+    },
+    {
+      "code": "fixed_element_translation_overuse",
+      "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+      "path": "sections",
+      "value": "core_personality, career, wealth, current_luck, advice",
+      "matched": "水→情報",
+      "severity": "warning"
+    },
+    {
+      "code": "fixed_element_translation_overuse",
+      "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+      "path": "sections",
+      "value": "career, wealth, future_flow, advice",
+      "matched": "土→安定",
+      "severity": "warning"
+    }
+  ],
+  "version": "reading_quality_v1",
+  "method": "customer_facing_quality_gate_v1",
+  "status": "ready_for_customer_facing_validation"
+}

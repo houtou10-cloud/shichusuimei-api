@@ -1,0 +1,43 @@
+{
+  "valid": false,
+  "issue_count": 4,
+  "error_count": 1,
+  "warning_count": 3,
+  "issues": [
+    {
+      "code": "internal_label_leak",
+      "message": "顧客向け文章に内部評価ラベルが残っています。",
+      "path": "sections.current_luck.detail",
+      "value": "現在は大運『丁亥』（37〜47歳期）にあり、進め方を自分仕様に整えるほど成果へつながりやすい流れです。地支の亥（水）は用神寄りで、変化や外部情報の取り込みが有利に働きやすい一方、天干の丁（比肩）は独力志向を高め、抱え込みに注意が必要です。2026年の歳運『丙午』は建禄の勢いがあり、活動が活発化。劫財の作用で横展開・連携が増える反面、比較・競争や負担増も起こりやすい配置です。統合運は『mixed（強弱混在）』で、金（基準）と水（情報）の運用次第で結果が変わりやすいタイミングと捉えます。",
+      "matched": "mixed",
+      "severity": "error"
+    },
+    {
+      "code": "cross_section_advice_repetition",
+      "message": "同じ助言概念が多くのセクションで繰り返されています。",
+      "path": "sections",
+      "value": "core_personality, career, wealth, future_flow, advice",
+      "matched": "可視化",
+      "severity": "warning"
+    },
+    {
+      "code": "cross_section_advice_repetition",
+      "message": "同じ助言概念が多くのセクションで繰り返されています。",
+      "path": "sections",
+      "value": "core_personality, career, future_flow, advice",
+      "matched": "学習",
+      "severity": "warning"
+    },
+    {
+      "code": "fixed_element_translation_overuse",
+      "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+      "path": "sections",
+      "value": "core_personality, career, wealth, current_luck, future_flow, advice",
+      "matched": "水→情報",
+      "severity": "warning"
+    }
+  ],
+  "version": "reading_quality_v1",
+  "method": "customer_facing_quality_gate_v1",
+  "status": "ready_for_customer_facing_validation"
+}

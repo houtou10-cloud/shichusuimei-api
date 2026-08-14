@@ -1,0 +1,12 @@
+{
+  "customer_id": "20260814_072818",
+  "name": "山田太郎",
+  "birth_date": "1985-07-17",
+  "birth_time": "21:50",
+  "birth_place": "石川県",
+  "gender": "female",
+  "concern": "今の仕事を続けるべきか、転職した方がよいのか悩んでいます。",
+  "desired_future": "自分に合った仕事を見つけ、安定した収入を得ながら長く働きたいです。",
+  "created_at": "2026-08-14T07:28:18.618496+09:00",
+  "schema_version": "customer_intake_v1"
+}

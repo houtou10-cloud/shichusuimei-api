@@ -751,6 +751,9 @@ def build_generation_payload(
         Any,
     ],
     *,
+    consultation_context: Optional[
+        Mapping[str, Any]
+    ] = None,
     model: Optional[str] = None,
     sections: Optional[
         Sequence[str]
@@ -814,6 +817,9 @@ def build_generation_payload(
     reading_request = (
         build_reading_request(
             reading_context,
+            consultation_context=(
+                consultation_context
+            ),
             sections=normalized_sections,
             language=language,
             tone=tone,
@@ -1668,6 +1674,9 @@ def generate_reading(
         Any,
     ],
     *,
+    consultation_context: Optional[
+        Mapping[str, Any]
+    ] = None,
     client: Any = None,
     api_key: Optional[str] = None,
     model: Optional[str] = None,
@@ -1752,6 +1761,9 @@ def generate_reading(
     generation = (
         build_generation_payload(
             reading_context,
+            consultation_context=(
+                consultation_context
+            ),
             model=model,
             sections=normalized_sections,
             language=language,
@@ -1862,6 +1874,9 @@ def generate_reading_text(
         Any,
     ],
     *,
+    consultation_context: Optional[
+        Mapping[str, Any]
+    ] = None,
     client: Any = None,
     api_key: Optional[str] = None,
     model: Optional[str] = None,
@@ -1885,6 +1900,9 @@ def generate_reading_text(
 
     result = generate_reading(
         reading_context,
+        consultation_context=(
+            consultation_context
+        ),
         client=client,
         api_key=api_key,
         model=model,
@@ -1910,6 +1928,9 @@ def generate_reading_json(
         Any,
     ],
     *,
+    consultation_context: Optional[
+        Mapping[str, Any]
+    ] = None,
     client: Any = None,
     api_key: Optional[str] = None,
     model: Optional[str] = None,
@@ -1933,6 +1954,9 @@ def generate_reading_json(
 
     result = generate_reading(
         reading_context,
+        consultation_context=(
+            consultation_context
+        ),
         client=client,
         api_key=api_key,
         model=model,
@@ -1965,6 +1989,9 @@ def generate_reading_from_context(
         Any,
     ],
     *,
+    consultation_context: Optional[
+        Mapping[str, Any]
+    ] = None,
     client: Any = None,
     api_key: Optional[str] = None,
     model: Optional[str] = None,
@@ -1979,6 +2006,9 @@ def generate_reading_from_context(
 
     result = generate_reading(
         reading_context,
+        consultation_context=(
+            consultation_context
+        ),
         client=client,
         api_key=api_key,
         model=model,
@@ -1995,6 +2025,9 @@ def calculate_ai_reading(
         Any,
     ],
     *,
+    consultation_context: Optional[
+        Mapping[str, Any]
+    ] = None,
     client: Any = None,
     api_key: Optional[str] = None,
     model: Optional[str] = None,
@@ -2009,6 +2042,9 @@ def calculate_ai_reading(
 
     return generate_reading_from_context(
         reading_context,
+        consultation_context=(
+            consultation_context
+        ),
         client=client,
         api_key=api_key,
         model=model,
@@ -2023,6 +2059,9 @@ def prepare_ai_generation_payload(
         Any,
     ],
     *,
+    consultation_context: Optional[
+        Mapping[str, Any]
+    ] = None,
     model: Optional[str] = None,
     sections: Optional[
         Sequence[str]
@@ -2037,6 +2076,9 @@ def prepare_ai_generation_payload(
 
     return build_generation_payload(
         reading_context,
+        consultation_context=(
+            consultation_context
+        ),
         model=model,
         sections=sections,
         output_format=output_format,

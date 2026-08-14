@@ -1,0 +1,82 @@
+{
+  "script_version": "generate_customer_reading_v1_2",
+  "customer_id": "20260814_065840",
+  "customer_name": "山田太郎",
+  "birth": {
+    "birth_date": "1985-07-17",
+    "birth_time": "21:50",
+    "birth_place": "石川県",
+    "gender": "female"
+  },
+  "pillars": {
+    "year": "乙丑",
+    "month": "癸未",
+    "day": "丁巳",
+    "hour": "辛亥"
+  },
+  "day_master": "丁",
+  "consultation": {
+    "has_consultation": true,
+    "primary_focus": "career",
+    "secondary_focus": [
+      "wealth",
+      "current_luck",
+      "self_understanding"
+    ],
+    "requires_cautious_language": false
+  },
+  "generation": {
+    "model": "gpt-5",
+    "response_status": "completed",
+    "response_id": "resp_0069eb2efd4b43c0016a7e3e1e2f7881999211c9a46a19c498",
+    "usage": {
+      "input_tokens": 11275,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 3584
+      },
+      "output_tokens": 5015,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 16290
+    },
+    "method": "openai_responses_api_v1",
+    "status": "completed"
+  },
+  "quality": {
+    "valid": true,
+    "issue_count": 0,
+    "issues": [],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "pdf": {
+    "path": "output\\customers\\20260814_065840\\四柱推命鑑定書.pdf",
+    "size_bytes": 1609773
+  },
+  "created_at": "2026-08-14T07:00:51.495710+09:00",
+  "status": "completed",
+  "pdf_metadata": {
+    "version": "reading_pdf_v1",
+    "method": "html_to_pdf_playwright_chromium_v1",
+    "status": "ready",
+    "input_type": "ReadingProduct",
+    "intermediate_type": "html_document",
+    "output_types": [
+      "pdf_file",
+      "pdf_bytes"
+    ],
+    "backend": "playwright_chromium",
+    "page_format": "A4",
+    "print_background": true,
+    "prefer_css_page_size": true,
+    "uses_reading_renderer": true,
+    "recalculates_astrology": false,
+    "rewrites_ai_reading": false,
+    "exposes_generation_metadata": false,
+    "exposes_api_key": false,
+    "async_supported": true
+  }
+}

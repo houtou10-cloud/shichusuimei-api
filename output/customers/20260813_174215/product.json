@@ -1,0 +1,331 @@
+{
+  "schema_version": "reading_product_v1",
+  "title": "四柱推命鑑定書",
+  "subject": {
+    "birth_date": "1990-05-15",
+    "birth_time": "14:30",
+    "birth_place": "愛知県名古屋市",
+    "gender": "male",
+    "timezone": "Asia/Tokyo"
+  },
+  "chart_summary": {
+    "pillars": {
+      "year": {
+        "position": "year",
+        "pillar": "庚午",
+        "stem": "庚",
+        "branch": "午",
+        "stem_ten_god": "比肩",
+        "twelve_stage": "沐浴",
+        "main_hidden_stem": "丁",
+        "main_hidden_stem_ten_god": "正官"
+      },
+      "month": {
+        "position": "month",
+        "pillar": "辛巳",
+        "stem": "辛",
+        "branch": "巳",
+        "stem_ten_god": "劫財",
+        "twelve_stage": "長生",
+        "main_hidden_stem": "丙",
+        "main_hidden_stem_ten_god": "偏官"
+      },
+      "day": {
+        "position": "day",
+        "pillar": "庚辰",
+        "stem": "庚",
+        "branch": "辰",
+        "stem_ten_god": null,
+        "twelve_stage": "養",
+        "main_hidden_stem": "戊",
+        "main_hidden_stem_ten_god": "偏印"
+      },
+      "hour": {
+        "position": "hour",
+        "pillar": "癸未",
+        "stem": "癸",
+        "branch": "未",
+        "stem_ten_god": "傷官",
+        "twelve_stage": "冠帯",
+        "main_hidden_stem": "己",
+        "main_hidden_stem_ten_god": "印綬"
+      }
+    },
+    "pillar_sequence": [
+      "庚午",
+      "辛巳",
+      "庚辰",
+      "癸未"
+    ],
+    "day_master": {
+      "stem": "庚",
+      "element": null,
+      "yin_yang": null,
+      "day_pillar": "庚辰"
+    },
+    "five_elements": {
+      "weighted_scores": {
+        "木": 0.4,
+        "火": 1.6,
+        "土": 1.8,
+        "金": 3.1,
+        "水": 1.1
+      },
+      "strongest_element": "金",
+      "weakest_element": "木"
+    },
+    "strength": {
+      "technical_label": "balanced",
+      "label": "中和",
+      "final_score": 51.95,
+      "confidence": "high"
+    },
+    "pattern": {
+      "primary_pattern": "偏官格",
+      "technical_pattern": "seven_killings",
+      "overall_judgment": "provisional_possible",
+      "confidence": "medium"
+    },
+    "useful_gods": {
+      "primary_useful_element": "水",
+      "secondary_useful_elements": [
+        "木",
+        "土"
+      ],
+      "final_useful_elements": [
+        "水",
+        "木",
+        "土"
+      ],
+      "unfavorable_elements": [],
+      "confidence": "high"
+    },
+    "current_luck": {
+      "ganzhi": "甲申",
+      "stem_ten_god": "偏財",
+      "start_age": 27.239884,
+      "end_age": 37.239884
+    },
+    "annual_luck": {
+      "year": 2026,
+      "ganzhi": "丙午",
+      "stem_ten_god": "偏官",
+      "twelve_stage": "沐浴"
+    }
+  },
+  "sections": [
+    {
+      "key": "core_personality",
+      "title": "本質・性格",
+      "summary": "強い金の質を持つ庚日主に、偏官格の要素が加わり、現実対応力・決断力・ルール意識と、スピード感ある行動性が同居。身強弱は中和のため、過度に突っ走り過ぎずバランス感も働きやすいタイプです。",
+      "detail": "・日主は庚辰。庚は原石の金属にたとえられ、切れ味・実務力・鍛えられるほど性能を発揮する気質。辰（土・水の気を含む）により、地に足をつけて判断する傾向が出やすいです。\n・格局は偏官格（seven_killings）の示唆。偏官は競争・スピード・課題解決に向かう力。適度なプレッシャーや期限があると、集中が高まり力を発揮しやすいタイプです。\n・身強弱は「中和」。押しの強さと配慮の両方が働きやすく、役割や状況に応じてモードを切り替えられるのが強みです。\n・五行バランスは金が最強・木が弱め。明確な基準で切り出すこと（整理・選別・品質管理）は得意。一方で、木に関わる企画・育成・関係拡大は、意識して時間をかけると伸びます。",
+      "evidence": [
+        "day_master.day_pillar=庚辰",
+        "pattern.primary_pattern=偏官格（technical_pattern=seven_killings）",
+        "strength.label=中和（balanced）",
+        "five_elements.weighted_scores 金=3.1 最強／木=0.4 最弱"
+      ],
+      "advice": [
+        "締切・KPI・勝ち筋など、基準を明確化すると持ち味が出ます。",
+        "決断前に「目的→選択肢→評価基準→決定」の手順を固定化して迷走を防ぐ。",
+        "弱い木の補強として、学習・育成・関係拡大の時間をスケジュールに組み込む。",
+        "反射的な強行より、短い検討→素早い試行→数値で評価のループを回す。"
+      ]
+    },
+    {
+      "key": "career",
+      "title": "仕事・適職",
+      "summary": "偏官格×庚の実務力は、課題解決・スピード・現場判断が鍵。用神は水・木・土。水=情報/流通/IT/リサーチ、木=企画/教育/ブランド、土=オペレーション/品質・リスク管理。現在大運は偏財（甲申）の終盤で、機会はあるが選別力が問われる局面です。",
+      "detail": "・命式傾向（偏官格×庚）：競争や期限のある環境、トラブル対応、改善・標準化、意思決定を要する役回りで力を出しやすい。\n・用神の方向性：\n  - 水（第一）：情報・データ・IT・SaaS・コンサル・リサーチ・流通/物流など「流れ」を扱う領域で相性良好。\n  - 木（第二）：企画・編集・教育・マーケ/ブランド・プロダクト成長など「育てる」仕事は、弱い木の補強にもなり、長期資産化に寄与。\n  - 土（第二）：PM/オペレーション設計・品質管理・法務/リスク/監査・CS基盤整備など「安定・土台づくり」に適性。\n・働き方：目標数値が明確なPJ型/KPI管理、現場裁量と意思決定の余地がある環境で能力が生きる。権限が曖昧な長期停滞には不向き。\n・副業/独立：偏財・財運期はチャンスと同時に分散しやすい。案件の選別（単価/継続性/紹介可能性）と、受注～納品の標準化が鍵。\n・今年（丙午：偏官）の年運は、挑戦テーマが来やすいが、勢い任せよりもリスク管理と法令順守の徹底が重要。",
+      "evidence": [
+        "pattern.primary_pattern=偏官格",
+        "useful_gods.primary_useful_element=水、secondary=木・土",
+        "current_luck.current_pillar.ganzhi=甲申（偏財）終盤",
+        "annual_luck.ganzhi=丙午（偏官）",
+        "natal_chart.pillars.month.stem_ten_god=劫財など、競争/自立性の示唆"
+      ],
+      "advice": [
+        "現在の本業は「収益性KPI」「裁量」「学習機会」の3条件で評価し、足りない分を副業で補完する設計に。",
+        "副業は水・木・土テーマでテスト（例：データ分析×業務改善、編集/講座作成、業務設計/品質管理支援）。",
+        "案件選別は「粗利率30%目安・支払サイト・再現性・紹介係数」をスコア化して判断。",
+        "独立は次大運（乙酉：正財）に向け、1年以内に顧客3社の継続収入モデルと標準SOPを作る。",
+        "偏官年は契約・安全面のリスク管理を強化（法務チェックリスト、PL/賠償保険の検討）。"
+      ]
+    },
+    {
+      "key": "wealth",
+      "title": "金運",
+      "summary": "命式上は水・木・土の活用で収入経路を増やしやすい一方、現在は偏財期終盤で機会過多になりやすい。次大運の正財期で収入の安定化を図る流れ。",
+      "detail": "・命式構造：金が強く、選別・管理が得意。用神の水・木・土を活かすほど、情報→企画→仕組化の流れができ、収入の再現性が高まりやすい。\n・現在運：甲申（偏財）終盤は、単発収入や外部案件が増えやすい反面、分散・未収・過剰稼働に注意が必要。\n・年運：丙午（偏官）は挑戦的な支出（先行投資・装備更新）が発生しやすいが、投資判断は実収支とリスク評価を併用して慎重に。\n・次運：乙酉（正財）では、単価よりも「安定稼働・継続契約・支払確度」の重みが増す見立て。",
+      "evidence": [
+        "useful_gods=水・木・土が有利方向",
+        "current_luck.current_pillar=偏財期の終盤",
+        "integrated_luck.overall_level=mixed",
+        "annual_luck=偏官（丙午）"
+      ],
+      "advice": [
+        "家計/事業のキャッシュフローを月次で可視化し、粗利と固定費の比率を管理。",
+        "単発より定額・継続課金型の比率を徐々に増やす。",
+        "先行投資は回収期間12～18カ月を上限目安に試算。",
+        "貯蓄は生活費6カ月分の緊急資金を最優先に。投資判断は専門情報とリスク許容度を前提に行う。"
+      ]
+    },
+    {
+      "key": "relationships",
+      "title": "恋愛・人間関係",
+      "summary": "庚の公正さと偏官のスピード感。約束や役割が明確だと関係が安定しやすい。木が弱めのため、育成・傾聴の時間配分を意識すると対人面がスムーズ。",
+      "detail": "・庚は境界やルールを重んじ、公平性を大切にする傾向。偏官要素により即断即決が出やすく、時に相手のプロセスを待つ余白が少なくなりがち。\n・五行の木が弱い点は、関係形成の「育てる・待つ」に意識的な努力が必要という示唆。手順や目的の共有、定期的な振り返りが有効。",
+      "evidence": [
+        "day_master=庚辰",
+        "pattern=偏官格",
+        "five_elements 木が最弱"
+      ],
+      "advice": [
+        "会議・対話では目的・結論・期限を先に合意し、進捗レビューを定例化。",
+        "相手の意図を要約して確認する「リピート・バック」を習慣化。",
+        "急ぎの判断ほど、影響を受ける相手を一人想定して配慮項目を1つ追加する。"
+      ]
+    },
+    {
+      "key": "health",
+      "title": "健康傾向",
+      "summary": "医学的診断ではなく五行上の傾向として、金が強く木が弱い配分。筋緊張・呼吸・自律神経のバランスケア、目・肝の休養を意識。現在の運勢は挑戦的になりやすいので休息リズムを崩し過ぎないこと。",
+      "detail": "・金が強い配分は、集中しすぎて身体のこわばりや浅い呼吸になりやすい傾向。\n・木が弱い配分は、目の酷使やリズムの乱れに注意。外光を浴びる運動、背中～側面を伸ばすストレッチ、睡眠・起床の固定化が有効。\n・偏官年はスピードが上がりやすく、無理をため込みがち。痛みや不調が続く場合は専門家に相談を。",
+      "evidence": [
+        "five_elements 金強・木弱",
+        "annual_luck=丙午（偏官）"
+      ],
+      "advice": [
+        "PC作業60～90分ごとに深呼吸と立位ストレッチ。",
+        "週2～3回の有酸素＋肩甲骨周りの可動域アップ。",
+        "睡眠・起床の固定とブルーライト管理。",
+        "体調に不安があれば医療専門家に相談し、自己判断で放置しない。"
+      ]
+    },
+    {
+      "key": "current_luck",
+      "title": "現在の運勢",
+      "summary": "大運は甲申（偏財）期の最終盤。年運は丙午（偏官）。全体として「機会は多いが、選別とリスク管理が成果を左右する」混合運。",
+      "detail": "・大運（甲申）：木（偏財）＝有益な外部資源・案件・人脈が入りやすい。終盤のため、続けるべき収益動線と手放すものの選別がテーマ。\n・歳運（丙午）：偏官＝挑戦や役割変化の刺激。スピードは出るが、暴走を防ぐガードレール（契約・品質・安全）の整備が前提。\n・統合運（mixed）：木が火を生じ、枝葉を広げる動きはプラス。一方で金と火の相剋で摩擦もあり、意思決定の精度差が結果に直結。",
+      "evidence": [
+        "current_luck.current_pillar=甲申（偏財）進捗90%",
+        "annual_luck=丙午（偏官）",
+        "integrated_luck.overall_level=mixed、overall_score=2.0"
+      ],
+      "advice": [
+        "今期で残す収益モデルを3本に絞り、SOPとKPIを確定。",
+        "年内は新規より既存の品質向上・LTV最大化を優先。",
+        "意思決定は「小さく試す→数値で評価→標準化」の三段運用で。",
+        "契約・法務・安全のチェックリストを整備し、レビュー担当を決める。"
+      ]
+    },
+    {
+      "key": "future_flow",
+      "title": "今後の流れ",
+      "summary": "次の大運は乙酉（正財）。「安定収益・仕組化・ブランドの継続性」に重心が移る流れ。長期的には土・水の活用期が再来し、基盤の強化と知の循環がテーマ。",
+      "detail": "・直近の転換：甲申→乙酉。正財期は、定額・定期・保守運用・サブスク・運用代行など、継続性の高い収益モデルが追い風。\n・中期：その後の丙戌（土・火）では、安定基盤（土）×挑戦（火）のバランス運。土を用いてリスク管理やオペレーションを固めると成果が持続しやすい。\n・長期：亥・子（いずれも水の地支期）が巡ると、学習・研究・情報循環（水）の追い風。ナレッジ資産の拡大・流通が鍵。",
+      "evidence": [
+        "current_luck.next_pillar=乙酉（正財）",
+        "luck_pillars 第5以降の土・水有利期の示唆（戌=土、亥子=水）",
+        "useful_gods=水・木・土が活かしどころ"
+      ],
+      "advice": [
+        "次大運開始前に、継続売上の柱（保守運用/サブスク/定額コンサル等）を整備。",
+        "オンボーディング～運用～更新のプロセスを数値化し、担当・SLA・品質基準を可視化。",
+        "土の要素（リスク・法務・会計）を強化し、契約更新率と未収率を管理。",
+        "ナレッジ（手順書・テンプレ・教材）を体系化し、水の循環（情報発信・紹介）を促す。"
+      ]
+    },
+    {
+      "key": "advice",
+      "title": "総合アドバイス",
+      "summary": "「選別」と「仕組化」で偏財期の広がりを正財期の安定へ橋渡し。用神の水・木・土を戦略的に取り入れ、無理なく継続できる収益モデルを固めましょう。",
+      "detail": "・今はチャンスの分散を畳む時期。水（情報/データ）で可視化し、木（育成/ブランド）で価値を育て、土（運用/法務/会計）で定着させる三層構造が有効。\n・偏官年はスピードが出る分、契約・品質・安全のガードを先に用意。次運の正財開始までに、継続収入の柱とSOPを揃えると、安定への移行がスムーズ。",
+      "evidence": [
+        "useful_gods.primary=水、secondary=木・土",
+        "current_luck=甲申（偏財）→next=乙酉（正財）",
+        "annual_luck=丙午（偏官）",
+        "strength=中和（バランスが効く）"
+      ],
+      "advice": [
+        "案件・収益の棚卸しを実施し、ROE/時間単価で上位3本に集中。",
+        "見積もりと契約テンプレを標準化（支払サイト・守秘・再委託・成果定義）。",
+        "LTV最大化のため、既存顧客のアップセル/クロスセル施策を月次で運用。",
+        "ナレッジを外部化（記事/セミナー/テンプレ配布）し、紹介経路を増やす。",
+        "週1回の財務レビュー（損益・CF・KPI）で意思決定の精度を上げる。"
+      ]
+    }
+  ],
+  "summary": "日主「庚辰」、身強弱は中和。命式は偏官格の傾向が示され、五行は金が最も強く、木が弱め。用神は水が第一、木・土が次点。現在は大運「甲申」（偏財）終盤、歳運は「丙午」（偏官）。全体運は混合だが、行動と選択で活かしやすい局面です。仕事・収入面の戦略づくりを中心に、次運（乙酉：正財）への橋渡しを意識すると安定化に近づきます。",
+  "disclaimer": "本鑑定は、提示いただいた四柱推命の計算済みデータ（日主・格局・用神・大運・歳運・通変星・十二運など）を事実として解釈した文章です。将来の出来事や成果を断定するものではありません。健康や金融に関わる判断は、実際の状況・専門家の助言・最新情報を併用してご判断ください。",
+  "generation": {
+    "model": "gpt-5",
+    "response_id": "resp_0a22ace4512c6daa016a7d83795ebc819aa275aa7a79b32ee2",
+    "response_status": "completed",
+    "usage": {
+      "input_tokens": 8637,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 2048
+      },
+      "output_tokens": 4035,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 12672
+    },
+    "sections": [
+      "core_personality",
+      "career",
+      "wealth",
+      "relationships",
+      "health",
+      "current_luck",
+      "future_flow",
+      "advice"
+    ],
+    "method": "openai_responses_api_v1",
+    "status": "completed"
+  },
+  "metadata": {
+    "created_at": "2026-08-13T08:43:28+00:00",
+    "reading_context_schema": "reading_context_v1",
+    "reading_context_method": "reading_context_v1",
+    "reading_context_status": "ready_for_ai_reading",
+    "source_metadata": {
+      "strength": {
+        "method": "final_strength_judgment_v2",
+        "status": "provisional_final_strength_judgment_v2"
+      },
+      "pattern": {
+        "method": "pattern_judgment_v2",
+        "status": "provisional_pattern_judgment_v2"
+      },
+      "useful_gods": {
+        "method": "useful_gods_v3",
+        "status": "provisional_useful_gods_v3"
+      },
+      "luck_pillars": {
+        "method": "luck_pillars_v2",
+        "status": "provisional_luck_pillars_v2"
+      },
+      "current_luck": {
+        "method": "current_luck_v1",
+        "status": "current_luck_resolved"
+      },
+      "annual_luck": {
+        "method": "annual_luck_v1",
+        "status": "provisional_annual_luck_v1"
+      },
+      "integrated_luck": {
+        "method": "integrated_luck_v1",
+        "status": "provisional_integrated_luck_v1"
+      }
+    },
+    "product_version": "reading_product_v1",
+    "recalculates_astrology": false,
+    "rewrites_ai_reading": false
+  },
+  "method": "reading_product_v1",
+  "status": "ready"
+}

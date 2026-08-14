@@ -1,0 +1,340 @@
+{
+  "schema_version": "reading_product_v1",
+  "title": "四柱推命鑑定書",
+  "subject": {
+    "birth_date": "1990-05-10",
+    "birth_time": "14:30",
+    "birth_place": "愛知県名古屋市",
+    "gender": "male",
+    "timezone": "Asia/Tokyo"
+  },
+  "chart_summary": {
+    "pillars": {
+      "year": {
+        "position": "year",
+        "pillar": "庚午",
+        "stem": "庚",
+        "branch": "午",
+        "stem_ten_god": "正官",
+        "twelve_stage": "長生",
+        "main_hidden_stem": "丁",
+        "main_hidden_stem_ten_god": "食神"
+      },
+      "month": {
+        "position": "month",
+        "pillar": "辛巳",
+        "stem": "辛",
+        "branch": "巳",
+        "stem_ten_god": "偏官",
+        "twelve_stage": "沐浴",
+        "main_hidden_stem": "丙",
+        "main_hidden_stem_ten_god": "傷官"
+      },
+      "day": {
+        "position": "day",
+        "pillar": "乙亥",
+        "stem": "乙",
+        "branch": "亥",
+        "stem_ten_god": null,
+        "twelve_stage": "死",
+        "main_hidden_stem": "壬",
+        "main_hidden_stem_ten_god": "印綬"
+      },
+      "hour": {
+        "position": "hour",
+        "pillar": "癸未",
+        "stem": "癸",
+        "branch": "未",
+        "stem_ten_god": "偏印",
+        "twelve_stage": "養",
+        "main_hidden_stem": "己",
+        "main_hidden_stem_ten_god": "偏財"
+      }
+    },
+    "pillar_sequence": [
+      "庚午",
+      "辛巳",
+      "乙亥",
+      "癸未"
+    ],
+    "day_master": {
+      "stem": "乙",
+      "element": null,
+      "yin_yang": null,
+      "day_pillar": "乙亥"
+    },
+    "five_elements": {
+      "weighted_scores": {
+        "木": 1.4,
+        "火": 1.6,
+        "土": 1.2,
+        "金": 2.1,
+        "水": 1.7
+      },
+      "strongest_element": "金",
+      "weakest_element": "土"
+    },
+    "strength": {
+      "technical_label": "weak",
+      "label": "身弱",
+      "final_score": 41.65,
+      "confidence": "high"
+    },
+    "pattern": {
+      "primary_pattern": "傷官格",
+      "technical_pattern": "hurting_officer",
+      "overall_judgment": "provisional_weakened",
+      "confidence": "medium"
+    },
+    "useful_gods": {
+      "primary_useful_element": "水",
+      "secondary_useful_elements": [
+        "木",
+        "土"
+      ],
+      "final_useful_elements": [
+        "水",
+        "木",
+        "土"
+      ],
+      "unfavorable_elements": [
+        "金",
+        "火",
+        "土"
+      ],
+      "confidence": "high"
+    },
+    "current_luck": {
+      "ganzhi": "甲申",
+      "stem_ten_god": "劫財",
+      "start_age": 28.906551,
+      "end_age": 38.906551
+    },
+    "annual_luck": {
+      "year": 2026,
+      "ganzhi": "丙午",
+      "stem_ten_god": "傷官",
+      "twelve_stage": "長生"
+    }
+  },
+  "sections": [
+    {
+      "key": "core_personality",
+      "title": "本質・性格",
+      "summary": "乙日主・身弱・傷官格により、繊細な観察眼と改良意識、言語化・表現力に優れます。ただし負荷が強い環境では神経が張り詰めやすく、評価や規律（官殺）への反発が出やすい一面も。五行は金が強く土が弱めで、プレッシャーを受けやすい分、土台づくりとクッション役を置くと安定します。",
+      "detail": "日主は乙（草木）。柔軟で成長志向が強く、周囲からの水（知恵・学び・支援）で伸び、木（創造・企画）で表現が冴えます。命式の中核は「傷官格」。既存のやり方を批判的に検討し、より良くする視点に長けます。身弱のため、単独で全負荷を背負うより、役割を分担し、情報・人の支援・仕組みの支えを得るほど能力が安定して発揮されます。五行バランスでは金が強く土が弱い傾向。金（規範・チェック）が強い場では緊張が高まりやすく、土（段取り・安全網）を補うと心身の余裕が生まれます。月柱に偏官（辛）と傷官（巳の丙）が並ぶため、鋭い判断と挑戦心は強い一方、完璧を求めて自他に厳しくなることも。年柱の正官（庚）は社会的な枠組みへの意識を与え、結果責任を意識するほど力が洗練されます。",
+      "evidence": [
+        "day_master.day_pillar=乙亥",
+        "strength.label=身弱, final_score=41.65",
+        "pattern.primary_pattern=傷官格（technical_pattern=harming_officer）",
+        "five_elements.weighted_scores: 金が最強, 土が最弱",
+        "natal_chart.month.stem=辛（偏官）, month.branch.main_hidden_stem=丙（傷官）",
+        "natal_chart.year.stem=庚（正官）"
+      ],
+      "advice": [
+        "批判・分析は「提案フォーマット」で出す（結論→根拠→代替案）。",
+        "土を補う時間管理：週次でタスクを区分（仕込み/制作/検証/反省）。",
+        "水を取り入れる：定期的な学習・情報収集・メンター面談を習慣化。",
+        "身弱を補うため、役割を抱え込みすぎず、権限委譲・外注を検討。"
+      ]
+    },
+    {
+      "key": "career",
+      "title": "仕事・適職",
+      "summary": "傷官格の創造・改善力を核に、「水・木・土」を活かす分野で力が出ます。現在大運は甲申（劫財＋金）で、企画・横展開・仲間との連携は進む一方、評価軸との衝突に注意。副業・独立は「学習→小規模実験→仕組み化→段階拡張」の順が適し、今年から来年にかけては過度な拡大は控えめに。",
+      "detail": "命式の型（傷官格）は、改善提案・新規企画・表現（言語化・設計）に強み。身弱のため、営業から経理まで単独完結型より、企画・編集・分析・設計など「頭脳と設計で価値を出す役割」に比重を置くと安定します。用神は水（学習・情報・研究）を最優先、次点で木（企画・表現）と土（オペレーション・安定化）。金・火が強まる局面では、締付けや露出が過剰になりやすく、過剰な対立・過剰発信は控えめに。現在大運の甲申は、木（比劫）の発動で横のつながり・共創の機会が増えやすい一方、申（金）の場では評価・統制の圧も。したがって、企画・編集・UX設計、業務改善、データ整理、ナレッジ化、B2B向けの提案型業務などがフィットしやすいです。副業や独立の入り口は、知見の体系化（講座・ノート・テンプレート・監修）や、プロジェクト単位の受託（要件定義・設計・検証）など、知的資本を核にした低リスク実験が相性良好。2026年の丙午（傷官＋火）が重なる年は露出や発信の勢いは出ますが、評価者との摩擦も生じやすいため、第三者レビューと契約・条件の明文化で守りを固めるのが安全です。",
+      "evidence": [
+        "pattern.primary_pattern=傷官格",
+        "strength.label=身弱",
+        "useful_gods.primary_useful_element=水, secondary=木・土",
+        "current_luck.current_pillar.ganzhi=甲申（劫財＋金）",
+        "annual_luck.ganzhi=丙午（傷官）",
+        "integrated_luck.overall_level=challenging"
+      ],
+      "advice": [
+        "職務領域を「設計・編集・改善」に寄せ、実働や雑務は自動化/外注を検討。",
+        "毎月1つ、知見資産（チェックリスト/テンプレ/手順書/小冊子）を作成し公開または販売テスト。",
+        "提案・改善は数値指標と検証計画をセットで提示し、衝突を避けて合意を取りにいく。",
+        "副業は週5〜10時間の枠で3カ月スプリント検証（小さく始め、利益より再現性を検証）。",
+        "契約・範囲・成果物定義をドキュメント化し、レビュー者を置く（火・金の強さ対策）。"
+      ]
+    },
+    {
+      "key": "wealth",
+      "title": "金運",
+      "summary": "命式構造としては「知的資本を積み上げて安定収入化」が相性良好。現在〜2026年は挑戦的な運気のため、収入源の分散と固定費の最適化で守りを固めると安定します。",
+      "detail": "用神の水・木は知識・企画の蓄積を示し、土は台帳・仕組み化。よって収入は「スキル標準化→反復提供→小口の複線化」で伸ばしやすい傾向。一方、金・火が強い現在運では、見栄え・広告費・即効性を追う動きに引っ張られやすく、費用先行や評価変動のリスクが増します。2026年は特に波が出やすいため、キャッシュフローを保守的に管理し、請求・回収の自動化や与信基準を整えるとぶれが減ります。",
+      "evidence": [
+        "useful_gods: 水・木・土が有利",
+        "five_elements: 金が強く土が弱い（管理の穴に注意）",
+        "current_luck=甲申（金の圧）, annual_luck=丙午（火）",
+        "integrated_luck.overall_level=challenging, score=-4.0"
+      ],
+      "advice": [
+        "固定費は3区分（必須/成果連動/裁量）で毎月見直し。",
+        "収入は「一次労働」と「資産化（テンプレ/ノウハウ/教材）」の2本柱に。",
+        "請求・見積・契約のテンプレート化、前金・着手金の基準明確化。",
+        "投資判断は専門情報と自身の収支データを併用し、短期での利益確約を前提にしない。"
+      ]
+    },
+    {
+      "key": "relationships",
+      "title": "恋愛・人間関係",
+      "summary": "観察眼が鋭く、言語化が得意。反面、傷官格由来の批評性が強く出ると相手に厳しさとして伝わることがあります。現在運は対立が起こりやすいため、合意形成のプロセスを丁寧に。",
+      "detail": "乙日主は気遣いと成長志向が強く、相手の変化をよく捉えます。傷官格は本来の優しさを「より良くしたい」という提案に変換しますが、受け止め方によっては評価・干渉と映ることも。金が強い局面（現在〜次運）では秩序や正しさへのこだわりが対立を生む場面があり、先に「感情の確認→要望の分離→選択肢提示」の順で話すと摩擦が減ります。",
+      "evidence": [
+        "day_master=乙",
+        "pattern=傷官格",
+        "five_elements: 金強, 土弱",
+        "current_luck.branch=申（金）"
+      ],
+      "advice": [
+        "提案は選択肢を2〜3用意し、相手に選んでもらう。",
+        "否定語を避け、事実と感情を分けて伝える。",
+        "合意事項はメモで共有し、誤解を減らす。"
+      ]
+    },
+    {
+      "key": "health",
+      "title": "健康傾向",
+      "summary": "五行の偏り（特に金が強く土が弱い）から、緊張や負荷が続くと疲労が表に出やすい傾向。水・土を補う生活リズムづくりが安定の鍵です。",
+      "detail": "医学的診断ではなく傾向として、金が強い時期は呼吸や筋緊張に関連するストレス反応が出やすく、土が弱いと消化・睡眠のリズムが乱れやすい傾向があります。水（休養・潤い）と土（規則性・食の安定）を意識し、過度な夜更かしや刺激の強い働き方は控えめに。違和感が続く場合は医療専門家へ早めに相談を。",
+      "evidence": [
+        "five_elements.weighted_scores: 金強・土弱",
+        "strength=身弱（無理の効きにくさ）",
+        "useful_gods: 水・土が有利"
+      ],
+      "advice": [
+        "睡眠・食事・運動を固定スケジュール化（同時刻就寝・起床、週2〜3の軽運動）。",
+        "水分補給と深い呼吸法でリセット時間を作る。",
+        "作業は90分ブロック＋10分休憩で緊張を抜く。",
+        "不調が続く場合は早めに医療機関へ相談。"
+      ]
+    },
+    {
+      "key": "current_luck",
+      "title": "現在の運勢",
+      "summary": "大運は甲申で、比劫（木）による横展開・自己主張が強まり、申（金）からの統制圧も受ける混合状態。2026年は丙午で火が強く、発信は伸びても摩擦が増えやすい年。統合的にはやや挑戦的な流れ。",
+      "detail": "大運：甲申（28.9〜38.9歳）。甲（劫財）は仲間・並走・自力推進を促し、申（金）は規範・審査の圧を強めます。比劫の後押しで企画・共創は動かしやすいが、ルールや評価と衝突しやすいため、根拠資料・契約整備・レビュー体制が鍵。歳運：2026年は丙午（傷官＋火）。表現・露出・改善提案が前面に出やすいが、言い過ぎ・やり過ぎは評価低下につながる恐れ。統合運：overall_score=-4.0で挑戦的だが、これは「準備を厚くすれば成果を拾える局面」と解釈可能。木（企画）を出し、水（土台・情報）で支え、土（運用）で安定化する三段構えが有効です。",
+      "evidence": [
+        "current_luck.current_pillar=甲申（stem_ten_god=劫財, branch_element=金）",
+        "annual_luck.ganzhi=丙午（stem_ten_god=傷官, branch/stem=火）",
+        "integrated_luck.overall_level=challenging, score=-4.0",
+        "current_luck.progress.progress_percent=73.54%（次運まで約2.65年）"
+      ],
+      "advice": [
+        "提案・発信は第三者レビューを必ず通す。",
+        "契約・与信・範囲の明文化でリスクを抑制。",
+        "評価者との合意形成を先に取り、実装は段階投入。",
+        "炎上しやすいテーマの発信は、裏取りと数値検証を添える。"
+      ]
+    },
+    {
+      "key": "future_flow",
+      "title": "今後の流れ",
+      "summary": "次の大運は乙酉（比肩＋金）。企画・自己軸（乙）は強まる一方、酉（金）の審査感は継続。中長期は「自分の型を磨き、再現性で評価を取る」方向が安定します。",
+      "detail": "現大運（甲申）は残り約2.6年。その後の乙酉（38.9〜48.9歳）は、乙（比肩）で自己基準・作品性が高まり、酉（金）で品質・審査の目が厳しくなります。よって、独立・副業を広げる場合も、奇抜さより「型の標準化」「事例の積み上げ」「品質保証（レビュー・監修）」が鍵。さらに先の丙戌（土が有利な支えあり、ただし火のプレッシャー）期に入る前に、台帳・手順・教育化を整え、他者が再現できる仕組みに落とし込んでおくと波に強くなります。",
+      "evidence": [
+        "current_luck.next_pillar=乙酉（stem_ten_god=比肩, branch_element=金）",
+        "luck_pillars.pillars[4]=丙戌（次々運の示唆：土の二次有利）"
+      ],
+      "advice": [
+        "次運までの2.6年で「自分の型」をマニュアル化（講座・手順・チェックリスト）。",
+        "ケーススタディを四半期ごとに1件公開し、再現性を可視化。",
+        "品質保証の枠（レビュー/監修/QA）を仕組みに組み込む。",
+        "顧客獲得は紹介・共同登壇・B2B連携など信頼経路を主軸に。"
+      ]
+    },
+    {
+      "key": "advice",
+      "title": "総合アドバイス",
+      "summary": "水→木→土の順で力を通す「学習・設計・仕組み化」が成功パターン。現在〜2026年は挑戦的なため、小さく検証し、合意と契約で守りを固めてから拡張を。",
+      "detail": "命式は傷官格×身弱。鋭い改善力を、用神（水・木・土）で支える設計が相性良好。現在運は比劫の追い風と金の圧が同居し、歳運の火で露出は増やしやすいが、摩擦も生じやすい局面です。したがって、意思決定は「学習（情報）→設計（企画）→仕組み（運用）」の順で小さく回し、検証で勝ち筋を見極めてから資源投入すると安定します。副業・独立は段階的に。特に契約・与信・レビュー体制がリスク管理の核心です。",
+      "evidence": [
+        "useful_gods: primary=水, secondary=木・土",
+        "pattern=傷官格, strength=身弱",
+        "integrated_luck.overall_level=challenging",
+        "current_luck=甲申, annual_luck=丙午"
+      ],
+      "advice": [
+        "週次ルーチン「学習2h→設計2h→仕組み2h」を固定し、資産化物を1点ずつ積み上げる。",
+        "副業は3カ月で1テーマを検証（仮説→MVP→指標→振り返り）。",
+        "契約・与信・範囲定義・着手金を標準化し、火・金の強さに備える。",
+        "評価者・決裁者との合意形成を先に行い、実装は段階的に。",
+        "体力配分（身弱対策）：タスクを午前「創造」、午後「検証・連絡」に分割。"
+      ]
+    }
+  ],
+  "summary": "生来は「傷官格」を軸に、発想力・改善志向が強く、身弱の乙日主として環境のサポート（人・仕組み・水木土の要素）を得るほど力を発揮しやすい命式です。現在の大運は甲申（劫財＋金）で、発想を動かす衝動は強まる一方、焦りや対立が出やすい流れ。2026年は丙午で火の勢いが強く、全体には挑戦的。次運の乙酉でも金のプレッシャーは継続するため、「水・木・土」を用いて仕組み化と協業を整えることが安定と成長の鍵になります。",
+  "disclaimer": "本鑑定は、提供いただいた計算済みデータ（日主・身強身弱・格局・用神・大運・歳運・通変星・十二運等）を根拠に文章化したものであり、再計算や断定的予言は行っていません。健康や投資に関する助言は一般的傾向であり、医療・金融の専門的助言を代替するものではありません。重要な判断は、実際の状況・専門家の意見と併せてご検討ください。",
+  "generation": {
+    "model": "gpt-5",
+    "response_id": "resp_0195d5d8e963f8d4016a7d6eb761b0819ab49d08cab8877844",
+    "response_status": "completed",
+    "usage": {
+      "input_tokens": 8685,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      },
+      "output_tokens": 4383,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 13068
+    },
+    "sections": [
+      "core_personality",
+      "career",
+      "wealth",
+      "relationships",
+      "health",
+      "current_luck",
+      "future_flow",
+      "advice"
+    ],
+    "method": "openai_responses_api_v1",
+    "status": "completed"
+  },
+  "metadata": {
+    "created_at": "2026-08-13T07:15:17+00:00",
+    "reading_context_schema": "reading_context_v1",
+    "reading_context_method": "reading_context_v1",
+    "reading_context_status": "ready_for_ai_reading",
+    "source_metadata": {
+      "strength": {
+        "method": "final_strength_judgment_v2",
+        "status": "provisional_final_strength_judgment_v2"
+      },
+      "pattern": {
+        "method": "pattern_judgment_v2",
+        "status": "provisional_pattern_judgment_v2"
+      },
+      "useful_gods": {
+        "method": "useful_gods_v3",
+        "status": "provisional_useful_gods_v3"
+      },
+      "luck_pillars": {
+        "method": "luck_pillars_v2",
+        "status": "provisional_luck_pillars_v2"
+      },
+      "current_luck": {
+        "method": "current_luck_v1",
+        "status": "current_luck_resolved"
+      },
+      "annual_luck": {
+        "method": "annual_luck_v1",
+        "status": "provisional_annual_luck_v1"
+      },
+      "integrated_luck": {
+        "method": "integrated_luck_v1",
+        "status": "provisional_integrated_luck_v1"
+      }
+    },
+    "product_version": "reading_product_v1",
+    "recalculates_astrology": false,
+    "rewrites_ai_reading": false
+  },
+  "method": "reading_product_v1",
+  "status": "ready"
+}
