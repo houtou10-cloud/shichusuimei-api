@@ -729,6 +729,56 @@ def calculate_chart(
         )
     )
 
+    # five_year_luck_v1
+    # 鑑定基準年を含む5年間を計算する。
+    # 初年度は鑑定基準日時、翌年以降は各年7月1日12:00を代表日時とする。
+    # 各年で大運を再判定するため、大運切替をまたぐ場合にも対応する。
+    five_year_luck = []
+    five_year_start_year = current_target_datetime.year
+
+    for year_offset in range(5):
+        five_year_year = five_year_start_year + year_offset
+
+        if year_offset == 0:
+            five_year_target_datetime = current_target_datetime
+        else:
+            five_year_target_datetime = datetime(
+                five_year_year,
+                7,
+                1,
+                12,
+                0,
+            )
+
+        five_year_current_luck = evaluate_current_luck(
+            birth_datetime=luck_birth_datetime,
+            target_datetime=five_year_target_datetime,
+            luck_pillars=luck_pillars,
+        )
+
+        five_year_annual_luck = calculate_annual_luck_for_datetime(
+            target_datetime=five_year_target_datetime,
+            day_master_stem=pillars["day_master"]["stem"],
+            useful_gods=useful_gods,
+            current_luck=five_year_current_luck,
+        )
+
+        five_year_integrated_luck = calculate_integrated_luck(
+            current_luck=five_year_current_luck,
+            annual_luck=five_year_annual_luck,
+            useful_gods=useful_gods,
+        )
+
+        five_year_luck.append(
+            {
+                "year": five_year_year,
+                "target_datetime": five_year_target_datetime.isoformat(),
+                "current_luck": five_year_current_luck,
+                "annual_luck": five_year_annual_luck,
+                "integrated_luck": five_year_integrated_luck,
+            }
+        )
+
     return {
         "input": {
             "birth_date": birth_date,
@@ -819,6 +869,10 @@ def calculate_chart(
 
         "integrated_luck": (
             integrated_luck
+        ),
+
+        "five_year_luck": (
+            five_year_luck
         ),
 
         "day_master": pillars["day_master"],
