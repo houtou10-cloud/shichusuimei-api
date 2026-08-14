@@ -3234,5 +3234,5 @@ def test_verified_1985_pattern_useful_gods_evidence_integrity():
     evidence = pattern_useful["evidence"]
     assert evidence["pattern_judgment"] == result["pattern_judgment"]
     assert evidence["weighted_five_elements"] == result["weighted_five_elements"]
-    assert evidence["technical_pattern"] == "indirect_resource"
+    assert evidence["pattern_info"]["technical_pattern"] == "indirect_resource"
 
