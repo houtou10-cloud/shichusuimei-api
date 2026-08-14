@@ -27,6 +27,7 @@ reading_renderer_v1
 
 from __future__ import annotations
 
+from datetime import datetime
 from html import escape
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Sequence, Union
@@ -214,6 +215,42 @@ def _display_html(
             value,
             empty=empty,
         )
+    )
+
+
+def _format_japanese_date(
+    value: Any,
+) -> str:
+    """ISO日時または日付を「YYYY年M月D日」へ整形する。"""
+    text = _text(
+        value
+    )
+
+    if not text:
+        return ""
+
+    normalized = text.replace(
+        "Z",
+        "+00:00",
+    )
+
+    try:
+        parsed = datetime.fromisoformat(
+            normalized
+        )
+    except ValueError:
+        try:
+            parsed = datetime.strptime(
+                text[:10],
+                "%Y-%m-%d",
+            )
+        except ValueError:
+            return text
+
+    return (
+        f"{parsed.year}年"
+        f"{parsed.month}月"
+        f"{parsed.day}日"
     )
 
 
@@ -1407,6 +1444,27 @@ body {
     opacity: 0.8;
 }
 
+.cover-customer {
+    margin: 2px 0 0;
+    font-size: 1.45rem;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+}
+
+.cover-reading-date {
+    margin: 18px 0 0;
+    font-size: 0.88rem;
+    letter-spacing: 0.1em;
+    opacity: 0.82;
+}
+
+.cover-brand {
+    margin: 34px 0 0;
+    font-size: 0.92rem;
+    letter-spacing: 0.18em;
+    opacity: 0.9;
+}
+
 .reading-card {
     position: relative;
     margin: 0 0 28px;
@@ -1876,6 +1934,47 @@ def render_reading_product_html(
         )
     )
 
+    customer_name = _text(
+        subject.get(
+            "name"
+        )
+    )
+
+    metadata = _safe_mapping(
+        product.metadata
+    )
+
+    reading_date = _format_japanese_date(
+        metadata.get(
+            "created_at"
+        )
+    )
+
+    brand_name = _text(
+        metadata.get(
+            "brand_name"
+        )
+    )
+
+    if customer_name:
+        cover_detail = f"""
+    <p class="cover-customer">
+        {_html(customer_name)} 様
+    </p>
+
+    {f'<p class="cover-reading-date">鑑定日　{_html(reading_date)}</p>' if reading_date else ''}
+
+    {f'<p class="cover-brand">{_html(brand_name)}</p>' if brand_name else ''}
+        """
+    else:
+        # 後方互換: パーソナライズ情報がない既存商品は
+        # 従来どおり生年月日を表示する。
+        cover_detail = f"""
+    <p class="cover-subtitle">
+        {birth_date}
+    </p>
+        """
+
     return f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -1908,9 +2007,7 @@ def render_reading_product_html(
 
     <div class="cover-line"></div>
 
-    <p class="cover-subtitle">
-        {birth_date}
-    </p>
+    {cover_detail}
 
 </header>
 
@@ -1925,7 +2022,7 @@ def render_reading_product_html(
 {_render_disclaimer(product)}
 
 <footer class="document-footer">
-    四柱推命鑑定
+    {_html(brand_name or "四柱推命鑑定")}
 </footer>
 
 </main>
