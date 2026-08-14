@@ -201,6 +201,8 @@ PRODUCT_TITLE = "四柱推命鑑定書"
 
 DOCUMENT_TITLE = "四柱推命鑑定書"
 
+BRAND_NAME = "四柱推命 八雲"
+
 BIRTH_COUNTRY_TYPE_JAPAN = "japan"
 BIRTH_COUNTRY_TYPE_OVERSEAS = "overseas"
 
@@ -2290,6 +2292,15 @@ def generate_customer_reading(
             generation_result,
             title=PRODUCT_TITLE,
             sections=SECTIONS,
+            customer_name=(
+                normalized_intake[
+                    "name"
+                ]
+            ),
+            reading_datetime=(
+                generation_started_at
+            ),
+            brand_name=BRAND_NAME,
         )
     )
 
