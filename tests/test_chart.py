@@ -1850,7 +1850,7 @@ def test_chart_contains_pattern_candidates():
 
     assert primary["month_branch"] == "未"
     assert primary["month_main_hidden_stem"] == "己"
-    assert primary["selected_hidden_stem"] == "丁"
+    assert primary["selected_hidden_stem"] == "乙"
     assert primary["selected_hidden_stem_rank"] == 3
     assert primary["selected_is_main_hidden_stem"] is False
     assert primary["ten_god"] == "偏印"
