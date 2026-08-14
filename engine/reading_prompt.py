@@ -523,6 +523,12 @@ def build_prompt_facts(
         )
     )
 
+    birth_time_status = _safe_dict(
+        reading_context.get(
+            "birth_time_status"
+        )
+    )
+
     natal_chart = _safe_dict(
         reading_context.get(
             "natal_chart"
@@ -607,6 +613,71 @@ def build_prompt_facts(
             ),
             "timezone": subject.get(
                 "timezone"
+            ),
+        },
+        "birth_time_status": {
+            "known": birth_time_status.get(
+                "known"
+            ),
+            "hour_pillar_available": (
+                birth_time_status.get(
+                    "hour_pillar_available"
+                )
+            ),
+            "calculation_scope": (
+                birth_time_status.get(
+                    "calculation_scope"
+                )
+            ),
+            "interpretation_scope": (
+                birth_time_status.get(
+                    "interpretation_scope"
+                )
+            ),
+            "five_elements_scope": (
+                birth_time_status.get(
+                    "five_elements_scope"
+                )
+            ),
+            "strength_scope": (
+                birth_time_status.get(
+                    "strength_scope"
+                )
+            ),
+            "pattern_scope": (
+                birth_time_status.get(
+                    "pattern_scope"
+                )
+            ),
+            "useful_gods_scope": (
+                birth_time_status.get(
+                    "useful_gods_scope"
+                )
+            ),
+            "relationship_scope": (
+                birth_time_status.get(
+                    "relationship_scope"
+                )
+            ),
+            "luck_start_timing_precision": (
+                birth_time_status.get(
+                    "luck_start_timing_precision"
+                )
+            ),
+            "current_luck_precision": (
+                birth_time_status.get(
+                    "current_luck_precision"
+                )
+            ),
+            "is_provisional_due_to_unknown_birth_time": (
+                birth_time_status.get(
+                    "is_provisional_due_to_unknown_birth_time"
+                )
+            ),
+            "reading_rule": (
+                birth_time_status.get(
+                    "reading_rule"
+                )
             ),
         },
         "natal_chart": {
@@ -965,6 +1036,124 @@ def build_selected_section_instructions(
         in normalized
     ]
 
+
+
+# ============================================================
+# Birth time uncertainty prompt block
+# ============================================================
+
+
+def build_birth_time_prompt_block(
+    reading_context: Mapping[
+        str,
+        Any,
+    ],
+) -> str:
+    """
+    出生時刻不明時だけ、
+    AIへ追加する厳格な解釈制約を返す。
+
+    旧reading_contextなどでbirth_time_statusが無い場合は、
+    従来挙動を壊さないため空文字を返す。
+    """
+
+    reading_context = _require_mapping(
+        reading_context,
+        "reading_context",
+    )
+
+    status = _safe_dict(
+        reading_context.get(
+            "birth_time_status"
+        )
+    )
+
+    if not status:
+        return ""
+
+    known = status.get(
+        "known"
+    )
+
+    if known is not False:
+        return ""
+
+    payload = {
+        "known": False,
+        "hour_pillar_available": (
+            status.get(
+                "hour_pillar_available"
+            )
+        ),
+        "calculation_scope": (
+            status.get(
+                "calculation_scope"
+            )
+        ),
+        "interpretation_scope": (
+            status.get(
+                "interpretation_scope"
+            )
+        ),
+        "five_elements_scope": (
+            status.get(
+                "five_elements_scope"
+            )
+        ),
+        "strength_scope": (
+            status.get(
+                "strength_scope"
+            )
+        ),
+        "pattern_scope": (
+            status.get(
+                "pattern_scope"
+            )
+        ),
+        "useful_gods_scope": (
+            status.get(
+                "useful_gods_scope"
+            )
+        ),
+        "luck_start_timing_precision": (
+            status.get(
+                "luck_start_timing_precision"
+            )
+        ),
+        "current_luck_precision": (
+            status.get(
+                "current_luck_precision"
+            )
+        ),
+    }
+
+    return f"""
+【出生時刻不明時の絶対条件】
+
+この鑑定では出生時刻が不明です。
+以下の制約は他の文章上の指示より優先してください。
+
+出生時刻状態:
+{_pretty_json(payload)}
+
+- 時柱を推測しないでください。
+- 仮の時柱を作成・補完しないでください。
+- reading_context に存在しない時干・時支・通変星・十二運・蔵干を創作しないでください。
+- 年柱・月柱・日柱から確認できる範囲だけを命式の事実として扱ってください。
+- 三柱で確認した結果を「命式全体で確定している」と表現しないでください。
+- 五行バランスは確認可能な三柱の範囲での評価です。「命式に○がない」「○が完全に欠けている」など、時柱まで含めた欠如を断定しないでください。
+- 通根が三柱で確認できない場合でも、時柱にも根が存在しないとは断定しないでください。
+- 身強身弱は入力された計算結果を再判定せず、出生時刻不明による暫定性・解釈範囲を維持してください。
+- 格局は入力された計算結果を再判定せず、出生時刻不明による暫定性・解釈範囲を維持してください。
+- 用神は入力された計算結果を再選定せず、出生時刻不明による暫定性・解釈範囲を維持してください。
+- 合・冲・刑・害・干合などは、確認可能な柱の範囲での結果として扱い、時柱由来の関係が存在しないとは断定しないでください。
+- 大運の順逆・干支列は入力された計算結果をそのまま使用してください。
+- 大運開始年齢・開始日時・現在大運の切り替わり時期について timing_precision が estimated の場合、厳密な確定値として断定しないでください。
+- 現在大運や次の大運について境界時期に触れる場合は、出生時刻不明により切り替わり時期に幅があることを明示してください。
+- 出生時刻が不明であること自体から、性格・健康・仕事・恋愛・金運・人生傾向を推測しないでください。
+- 不明な情報は不明のまま扱い、もっともらしい補完をしないでください。
+- 顧客向け文章では必要に応じて「確認可能な三柱の範囲では」「出生時刻が不明なため一部の判断には幅があります」など、自然な日本語で確度を説明してください。
+""".strip()
 
 
 # ============================================================
@@ -1364,6 +1553,10 @@ def build_system_prompt(
 11. 読み手を不必要に怖がらせる表現を避けてください。
 12. 悪い時期も「何を避けるか」「どう活かすか」を併記してください。
 13. 良い時期も過度な楽観を煽らず、活かす条件を示してください。
+14. 出生時刻が不明と明示されている場合、時柱を推測・補完・創作しないでください。
+15. 出生時刻不明時は、年柱・月柱・日柱の範囲で確認できる情報と、命式全体で確定できる情報を区別してください。
+16. 出生時刻不明時の五行・身強身弱・格局・用神・合冲刑害などは、入力されたscope・provisional・timing_precision等の不確実性情報を維持してください。
+17. 大運開始時期や現在大運の境界がestimatedの場合、厳密な確定値として断定しないでください。
 
 【健康】
 
@@ -1630,6 +1823,12 @@ def build_user_prompt(
         reading_context
     )
 
+    birth_time_block = (
+        build_birth_time_prompt_block(
+            reading_context
+        )
+    )
+
     consultation_block = (
         build_consultation_prompt_block(
             consultation_context
@@ -1740,6 +1939,8 @@ JSON Schema:
 - 入力値と矛盾する干支を生成しないこと。
 - 情報がない場合は推測で埋めないこと。
 
+{birth_time_block}
+
 【鑑定対象セクション】
 
 {section_text}
@@ -1782,6 +1983,10 @@ JSON Schema:
 21. 相談に関係しないセクションへ相談テーマを無理に持ち込まないでください。
 22. 根拠のない具体化で文章をもっともらしく見せないでください。
 23. 仕事・適職では、具体的な職業名より先に「向いている仕事の性質・役割・環境」を説明し、職業名は必要な場合だけ例示してください。
+24. 出生時刻不明の場合、時柱に基づく性格・適職・恋愛・健康・金運の説明を作らないでください。
+25. 出生時刻不明の場合、五行の少なさを命式全体の「欠如」と断定せず、確認可能な三柱の範囲での相対評価として説明してください。
+26. 出生時刻不明の場合、身強身弱・格局・用神の結果を再計算せず、reading_contextに示された暫定性とscopeを維持してください。
+27. 出生時刻不明の場合、大運開始年齢・切替時期がestimatedなら、厳密な確定時期として表現しないでください。
 """.strip()
 
 
@@ -2313,6 +2518,7 @@ __all__ = [
     "build_prompt_facts",
     "get_section_instruction",
     "build_selected_section_instructions",
+    "build_birth_time_prompt_block",
     "build_consultation_prompt_block",
     "build_system_prompt",
     "build_json_output_schema",
