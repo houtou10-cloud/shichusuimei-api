@@ -82,7 +82,7 @@ PowerShell:
 
 Version
 -------
-generate_customer_reading_v1_2
+generate_customer_reading_v1_3_country_gate
 """
 
 from __future__ import annotations
@@ -144,7 +144,7 @@ from engine.reading_quality import (
 
 
 SCRIPT_VERSION = (
-    "generate_customer_reading_v1_2"
+    "generate_customer_reading_v1_3_country_gate"
 )
 
 
@@ -179,6 +179,14 @@ STORE = False
 PRODUCT_TITLE = "四柱推命鑑定書"
 
 DOCUMENT_TITLE = "四柱推命鑑定書"
+
+BIRTH_COUNTRY_TYPE_JAPAN = "japan"
+BIRTH_COUNTRY_TYPE_OVERSEAS = "overseas"
+
+
+class OverseasBirthUnsupportedError(RuntimeError):
+    """海外出生の命式計算を安全に停止するための例外。"""
+
 
 
 # ============================================================
@@ -459,6 +467,67 @@ def normalize_name(
     return value
 
 
+def normalize_birth_country_type(
+    value: Any,
+) -> str:
+    """出生国区分を japan / overseas に正規化する。"""
+
+    if value is None:
+        return BIRTH_COUNTRY_TYPE_JAPAN
+
+    if not isinstance(value, str):
+        raise TypeError(
+            "出生国区分は文字列である必要があります。"
+        )
+
+    normalized = value.strip().lower()
+
+    if not normalized:
+        return BIRTH_COUNTRY_TYPE_JAPAN
+
+    if normalized in {"1", "日本", "国内", "japan", "jp"}:
+        return BIRTH_COUNTRY_TYPE_JAPAN
+
+    if normalized in {"2", "日本以外", "海外", "overseas", "foreign"}:
+        return BIRTH_COUNTRY_TYPE_OVERSEAS
+
+    raise ValueError(
+        "出生国区分は1（日本）または2（日本以外）で入力してください。"
+    )
+
+
+def normalize_birth_country(
+    value: Any,
+    *,
+    country_type: str,
+) -> str:
+    country_type = normalize_birth_country_type(country_type)
+
+    if country_type == BIRTH_COUNTRY_TYPE_JAPAN:
+        return "日本"
+
+    country = _require_non_empty_string(value, "出生国")
+    if len(country) > 100:
+        raise ValueError("出生国が長すぎます。")
+    return country
+
+
+def normalize_birth_city(
+    value: Any,
+    *,
+    country_type: str,
+) -> str:
+    country_type = normalize_birth_country_type(country_type)
+
+    if country_type == BIRTH_COUNTRY_TYPE_JAPAN:
+        return ""
+
+    city = _require_non_empty_string(value, "出生都市")
+    if len(city) > 200:
+        raise ValueError("出生都市が長すぎます。")
+    return city
+
+
 def normalize_birth_place(
     value: str,
 ) -> str:
@@ -535,85 +604,56 @@ def create_customer_dir(
 def prompt_customer_input() -> Dict[str, str]:
 
     print()
-    print(
-        "=" * 72
-    )
-    print(
-        "四柱推命鑑定書｜顧客情報入力"
-    )
-    print(
-        "=" * 72
-    )
+    print("=" * 72)
+    print("四柱推命鑑定書｜顧客情報入力")
+    print("=" * 72)
     print()
 
-    name = normalize_name(
-        input(
-            "お名前: "
-        )
+    name = normalize_name(input("お名前: "))
+    birth_date = normalize_birth_date(input("生年月日 YYYY-MM-DD: "))
+    birth_time = normalize_birth_time(input("出生時刻 HH:MM: "))
+
+    print()
+    print("出生国を選択してください")
+    print("1. 日本")
+    print("2. 日本以外")
+
+    birth_country_type = normalize_birth_country_type(
+        input("選択 1/2: ")
     )
 
-    birth_date = (
-        normalize_birth_date(
-            input(
-                "生年月日 YYYY-MM-DD: "
-            )
+    if birth_country_type == BIRTH_COUNTRY_TYPE_JAPAN:
+        birth_country = "日本"
+        birth_city = ""
+        birth_place = normalize_birth_place(
+            input("出生地（都道府県）: ")
         )
-    )
-
-    birth_time = (
-        normalize_birth_time(
-            input(
-                "出生時刻 HH:MM: "
-            )
+    else:
+        birth_country = normalize_birth_country(
+            input("出生国: "),
+            country_type=birth_country_type,
         )
-    )
-
-    birth_place = (
-        normalize_birth_place(
-            input(
-                "出生地: "
-            )
+        birth_city = normalize_birth_city(
+            input("出生都市: "),
+            country_type=birth_country_type,
         )
-    )
+        birth_place = f"{birth_country} {birth_city}".strip()
 
-    gender = normalize_gender(
-        input(
-            "性別 男性/女性: "
-        )
-    )
-
-    concern = _optional_string(
-        input(
-            "現在のお悩み: "
-        ),
-        "現在のお悩み",
-    )
-
-    desired_future = (
-        _optional_string(
-            input(
-                "理想の未来: "
-            ),
-            "理想の未来",
-        )
-    )
+    gender = normalize_gender(input("性別 男性/女性: "))
+    concern = _optional_string(input("現在のお悩み: "), "現在のお悩み")
+    desired_future = _optional_string(input("理想の未来: "), "理想の未来")
 
     return {
         "name": name,
-        "birth_date": (
-            birth_date
-        ),
-        "birth_time": (
-            birth_time
-        ),
-        "birth_place": (
-            birth_place
-        ),
+        "birth_date": birth_date,
+        "birth_time": birth_time,
+        "birth_country_type": birth_country_type,
+        "birth_country": birth_country,
+        "birth_city": birth_city,
+        "birth_place": birth_place,
         "gender": gender,
         "concern": concern,
-        "desired_future": (
-            desired_future
-        ),
+        "desired_future": desired_future,
     }
 
 
@@ -633,6 +673,15 @@ def build_chart_request(
         intake,
         "intake",
     )
+
+    country_type = normalize_birth_country_type(
+        intake.get("birth_country_type", BIRTH_COUNTRY_TYPE_JAPAN)
+    )
+
+    if country_type != BIRTH_COUNTRY_TYPE_JAPAN:
+        raise OverseasBirthUnsupportedError(
+            "海外出生は現在のv1.0では命式計算に対応していません。"
+        )
 
     return SimpleNamespace(
         birth_date=(
@@ -1071,6 +1120,11 @@ def build_summary(
                     "birth_time"
                 )
             ),
+            "birth_country_type": intake.get(
+                "birth_country_type", BIRTH_COUNTRY_TYPE_JAPAN
+            ),
+            "birth_country": intake.get("birth_country", "日本"),
+            "birth_city": intake.get("birth_city", ""),
             "birth_place": (
                 intake.get(
                     "birth_place"
@@ -1247,13 +1301,12 @@ def generate_customer_reading(
                 )
             )
         ),
-        "birth_place": (
-            normalize_birth_place(
-                intake.get(
-                    "birth_place"
-                )
-            )
+        "birth_country_type": normalize_birth_country_type(
+            intake.get("birth_country_type", BIRTH_COUNTRY_TYPE_JAPAN)
         ),
+        "birth_country": "",
+        "birth_city": "",
+        "birth_place": "",
         "gender": normalize_gender(
             intake.get(
                 "gender"
@@ -1279,7 +1332,26 @@ def generate_customer_reading(
         ),
     }
 
-    model = validate_environment()
+    country_type = normalized_intake["birth_country_type"]
+
+    normalized_intake["birth_country"] = normalize_birth_country(
+        intake.get("birth_country", "日本"),
+        country_type=country_type,
+    )
+    normalized_intake["birth_city"] = normalize_birth_city(
+        intake.get("birth_city", ""),
+        country_type=country_type,
+    )
+
+    if country_type == BIRTH_COUNTRY_TYPE_JAPAN:
+        normalized_intake["birth_place"] = normalize_birth_place(
+            intake.get("birth_place")
+        )
+    else:
+        normalized_intake["birth_place"] = (
+            f"{normalized_intake['birth_country']} "
+            f"{normalized_intake['birth_city']}"
+        ).strip()
 
     generation_started_at = (
         datetime.now()
@@ -1364,6 +1436,9 @@ def generate_customer_reading(
                 "birth_time"
             ]
         ),
+        "birth_country_type": normalized_intake["birth_country_type"],
+        "birth_country": normalized_intake["birth_country"],
+        "birth_city": normalized_intake["birth_city"],
         "birth_place": (
             normalized_intake[
                 "birth_place"
@@ -1390,7 +1465,7 @@ def generate_customer_reading(
             .isoformat()
         ),
         "schema_version": (
-            "customer_intake_v1"
+            "customer_intake_v2"
         ),
     }
 
@@ -1403,6 +1478,23 @@ def generate_customer_reading(
         "   OK"
     )
     print()
+
+    if normalized_intake["birth_country_type"] == BIRTH_COUNTRY_TYPE_OVERSEAS:
+        print("=" * 72)
+        print("海外出生のため命式計算を停止しました")
+        print("=" * 72)
+        print()
+        print("海外出生は現在のv1.0では命式計算に対応していません。")
+        print("誤ったタイムゾーン・サマータイム・時刻補正による")
+        print("命式生成を防ぐため、処理を停止しました。")
+        print()
+        print("顧客情報はintake.jsonへ保存済みです:")
+        print(f"  {intake_path.resolve()}")
+        raise OverseasBirthUnsupportedError(
+            "海外出生は現在のv1.0では命式計算に対応していません。"
+        )
+
+    model = validate_environment()
 
     # --------------------------------------------------------
     # 1. Chart
