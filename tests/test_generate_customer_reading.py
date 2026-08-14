@@ -57,6 +57,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from copy import deepcopy
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -961,6 +962,30 @@ def configure_full_fake_pipeline(
                 False
             ),
         },
+    )
+
+    # --------------------------------------------------------
+    # Default quality gate for non-LIVE E2E tests
+    # --------------------------------------------------------
+    #
+    # Auto-Repair導入後、古いfake鑑定文を実際の品質ゲートへ
+    # 通すと、文章品質warning/errorによりRepairが発動して
+    # OpenAI client生成へ進んでしまう。
+    #
+    # このhelperを使う通常E2Eの目的は外部APIを呼ばず、
+    # 顧客入力→Product→PDFの接続契約を確認すること。
+    #
+    # Auto-Repair専用テストでは、このpatchを各テスト内で
+    # invalid/validのFakeへ上書きする。
+    monkeypatch.setattr(
+        script_module,
+        "validate_customer_facing_reading",
+        lambda *args, **kwargs: (
+            script_module.ReadingQualityReport(
+                valid=True,
+                issues=(),
+            )
+        ),
     )
 
     return captured
@@ -1922,12 +1947,9 @@ def test_validate_generation_result_rejects_non_json(
     script_module,
     fake_generation_result,
 ):
-    broken = deepcopy(
-        fake_generation_result
-    )
-
-    broken.output_format = (
-        "text"
+    broken = replace(
+        fake_generation_result,
+        output_format="text",
     )
 
     with pytest.raises(
@@ -1942,11 +1964,10 @@ def test_validate_generation_result_rejects_missing_parsed(
     script_module,
     fake_generation_result,
 ):
-    broken = deepcopy(
-        fake_generation_result
+    broken = replace(
+        fake_generation_result,
+        parsed=None,
     )
-
-    broken.parsed = None
 
     with pytest.raises(
         RuntimeError
@@ -1960,12 +1981,9 @@ def test_validate_generation_result_rejects_incomplete_status(
     script_module,
     fake_generation_result,
 ):
-    broken = deepcopy(
-        fake_generation_result
-    )
-
-    broken.status = (
-        "incomplete"
+    broken = replace(
+        fake_generation_result,
+        status="incomplete",
     )
 
     with pytest.raises(
