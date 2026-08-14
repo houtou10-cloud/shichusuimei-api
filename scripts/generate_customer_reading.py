@@ -3,6 +3,7 @@ scripts/generate_customer_reading.py
 
 四柱推命鑑定書 v1.2
 本番顧客向け・相談内容連動・品質ゲート統合PDF生成スクリプト。
+出生時刻不明（三柱モード）に対応。
 
 処理フロー
 ----------
@@ -383,13 +384,31 @@ def normalize_birth_date(
 
 
 def normalize_birth_time(
-    value: str,
-) -> str:
+    value: Any,
+) -> str | None:
+    """
+    出生時刻をHH:MM形式へ正規化する。
 
-    value = _require_non_empty_string(
+    None または空文字は
+    「出生時刻不明」として正式に許可する。
+    """
+
+    if value is None:
+        return None
+
+    if not isinstance(
         value,
-        "出生時刻",
-    )
+        str,
+    ):
+        raise TypeError(
+            "出生時刻はHH:MM形式の文字列、"
+            "またはNoneで指定してください。"
+        )
+
+    value = value.strip()
+
+    if not value:
+        return None
 
     try:
         parsed = datetime.strptime(
@@ -400,6 +419,7 @@ def normalize_birth_time(
         raise ValueError(
             "出生時刻はHH:MM形式で"
             "入力してください。"
+            "不明の場合は空欄にしてください。"
         ) from exc
 
     return parsed.strftime(
@@ -601,7 +621,7 @@ def create_customer_dir(
 # ============================================================
 
 
-def prompt_customer_input() -> Dict[str, str]:
+def prompt_customer_input() -> Dict[str, Any]:
 
     print()
     print("=" * 72)
@@ -611,7 +631,12 @@ def prompt_customer_input() -> Dict[str, str]:
 
     name = normalize_name(input("お名前: "))
     birth_date = normalize_birth_date(input("生年月日 YYYY-MM-DD: "))
-    birth_time = normalize_birth_time(input("出生時刻 HH:MM: "))
+    birth_time = normalize_birth_time(
+        input(
+            "出生時刻 HH:MM "
+            "（不明の場合はEnter）: "
+        )
+    )
 
     print()
     print("出生国を選択してください")
@@ -712,7 +737,13 @@ def extract_pillars(
         str,
         Any,
     ],
-) -> Dict[str, str]:
+) -> Dict[str, str | None]:
+    """
+    chart_resultから表示・summary用の柱文字列を抽出する。
+
+    年柱・月柱・日柱は常に必須。
+    時柱は出生時刻不明時のみNoneを許可する。
+    """
 
     chart_result = _require_mapping(
         chart_result,
@@ -730,19 +761,16 @@ def extract_pillars(
 
     result: Dict[
         str,
-        str,
+        str | None,
     ] = {}
 
     for position in (
         "year",
         "month",
         "day",
-        "hour",
     ):
-        pillar_data = (
-            chart.get(
-                position
-            )
+        pillar_data = chart.get(
+            position
         )
 
         pillar_data = _require_mapping(
@@ -750,19 +778,58 @@ def extract_pillars(
             f"chart.{position}",
         )
 
-        pillar = (
-            pillar_data.get(
-                "pillar"
-            )
+        pillar = pillar_data.get(
+            "pillar"
         )
 
         result[
             position
-        ] = (
-            _require_non_empty_string(
-                pillar,
-                f"{position}柱",
+        ] = _require_non_empty_string(
+            pillar,
+            f"{position}柱",
+        )
+
+    hour_data = chart.get(
+        "hour"
+    )
+
+    if hour_data is None:
+        birth_time_status = chart_result.get(
+            "birth_time_status",
+            {},
+        )
+
+        if isinstance(
+            birth_time_status,
+            Mapping,
+        ):
+            birth_time_known = (
+                birth_time_status.get(
+                    "known"
+                )
             )
+
+            if birth_time_known is True:
+                raise RuntimeError(
+                    "出生時刻ありの命式で"
+                    "時柱が欠落しています。"
+                )
+
+        result["hour"] = None
+
+    else:
+        hour_data = _require_mapping(
+            hour_data,
+            "chart.hour",
+        )
+
+        result[
+            "hour"
+        ] = _require_non_empty_string(
+            hour_data.get(
+                "pillar"
+            ),
+            "hour柱",
         )
 
     return result
@@ -798,6 +865,57 @@ def extract_day_master(
             "stem"
         ),
         "日主",
+    )
+
+
+def format_pillars_for_display(
+    pillars: Mapping[
+        str,
+        Any,
+    ],
+) -> str:
+    """
+    命式をコンソール表示用の文字列へ変換する。
+
+    出生時刻不明なら時柱位置を
+    「出生時刻不明」と表示する。
+    """
+
+    pillars = _require_mapping(
+        pillars,
+        "pillars",
+    )
+
+    year = _require_non_empty_string(
+        pillars.get("year"),
+        "年柱",
+    )
+    month = _require_non_empty_string(
+        pillars.get("month"),
+        "月柱",
+    )
+    day = _require_non_empty_string(
+        pillars.get("day"),
+        "日柱",
+    )
+
+    hour_raw = pillars.get(
+        "hour"
+    )
+
+    if hour_raw is None:
+        hour = "出生時刻不明"
+    else:
+        hour = _require_non_empty_string(
+            hour_raw,
+            "時柱",
+        )
+
+    return (
+        f"{year} / "
+        f"{month} / "
+        f"{day} / "
+        f"{hour}"
     )
 
 
@@ -1066,7 +1184,7 @@ def build_summary(
     ],
     pillars: Mapping[
         str,
-        str,
+        Any,
     ],
     day_master: str,
     consultation_context: Mapping[
@@ -1078,6 +1196,7 @@ def build_summary(
     pdf_size: int,
     model: str,
     quality_report: ReadingQualityReport | None = None,
+    birth_time_status: Mapping[str, Any] | None = None,
 ) -> Dict[str, Any]:
 
     focus = (
@@ -1136,6 +1255,17 @@ def build_summary(
                 )
             ),
         },
+
+        "birth_time_status": (
+            _json_safe_copy(
+                birth_time_status
+            )
+            if isinstance(
+                birth_time_status,
+                Mapping,
+            )
+            else None
+        ),
 
         "pillars": {
             "year": (
@@ -1521,11 +1651,36 @@ def generate_customer_reading(
 
     print(
         "   "
-        f"{pillars['year']} / "
-        f"{pillars['month']} / "
-        f"{pillars['day']} / "
-        f"{pillars['hour']}"
+        + format_pillars_for_display(
+            pillars
+        )
     )
+
+    birth_time_status = (
+        chart_result.get(
+            "birth_time_status",
+            {},
+        )
+    )
+
+    if (
+        isinstance(
+            birth_time_status,
+            Mapping,
+        )
+        and birth_time_status.get(
+            "known"
+        )
+        is False
+    ):
+        print(
+            "   ※ 出生時刻不明のため、"
+            "時柱なしの三柱モードで鑑定します。"
+        )
+        print(
+            "   ※ 大運開始時期・現在大運の境界は"
+            "推定扱いです。"
+        )
 
     # --------------------------------------------------------
     # 2. Reading context
@@ -1903,6 +2058,11 @@ def generate_customer_reading(
         quality_report=(
             quality_report
         ),
+        birth_time_status=(
+            chart_result.get(
+                "birth_time_status"
+            )
+        ),
     )
 
     summary[
@@ -1974,6 +2134,14 @@ def generate_customer_reading(
         "model": (
             model
         ),
+        "birth_time_status": (
+            _json_safe_copy(
+                chart_result.get(
+                    "birth_time_status",
+                    {},
+                )
+            )
+        ),
     }
 
 
@@ -2036,11 +2204,33 @@ def print_completion(
 
     print(
         "  "
-        f"{pillars['year']} / "
-        f"{pillars['month']} / "
-        f"{pillars['day']} / "
-        f"{pillars['hour']}"
+        + format_pillars_for_display(
+            pillars
+        )
     )
+
+    birth_time_status = result.get(
+        "birth_time_status",
+        {},
+    )
+
+    if (
+        isinstance(
+            birth_time_status,
+            Mapping,
+        )
+        and birth_time_status.get(
+            "known"
+        )
+        is False
+    ):
+        print(
+            "  ※ 出生時刻不明："
+            "年柱・月柱・日柱を中心に鑑定"
+        )
+        print(
+            "  ※ 大運の開始・切替時期は推定"
+        )
 
     print(
         "日主: "
