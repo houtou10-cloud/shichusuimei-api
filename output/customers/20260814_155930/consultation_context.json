@@ -1,0 +1,92 @@
+{
+  "version": "consultation_context_v1",
+  "input": {
+    "concern": "今の部署は残業が多く、他の部署に行けばよいのか迷っています。",
+    "desired_future": "ストレスを抱えずに働きたいです。"
+  },
+  "has_consultation": true,
+  "focus": {
+    "primary": "health",
+    "secondary": [
+      "current_luck"
+    ],
+    "detected_categories": [
+      "health",
+      "current_luck"
+    ],
+    "category_scores": {
+      "career": 0,
+      "wealth": 0,
+      "relationships": 0,
+      "health": 1,
+      "current_luck": 1,
+      "future_flow": 0,
+      "self_understanding": 0
+    },
+    "priority_sections": [
+      "health",
+      "current_luck",
+      "advice"
+    ],
+    "relevant_sections": [
+      "health",
+      "current_luck",
+      "future_flow",
+      "advice"
+    ]
+  },
+  "safety": {
+    "medical_decision_caution": false,
+    "financial_decision_caution": false,
+    "certainty_caution": false,
+    "warnings": [],
+    "requires_cautious_language": false
+  },
+  "ai_usage_policy": {
+    "consultation_role": "focus_only",
+    "astrology_is_source_of_facts": true,
+    "consultation_may_change_astrology": false,
+    "consultation_may_change_pillars": false,
+    "consultation_may_change_day_master": false,
+    "consultation_may_change_strength": false,
+    "consultation_may_change_pattern": false,
+    "consultation_may_change_useful_gods": false,
+    "consultation_may_change_luck": false,
+    "customer_desire_is_not_evidence": true,
+    "customer_concern_is_not_evidence": true,
+    "must_not_confirm_customer_assumption": true,
+    "must_not_guarantee_future": true,
+    "must_not_make_medical_diagnosis": true,
+    "must_not_guarantee_financial_result": true,
+    "must_explain_with_chart_evidence": true
+  },
+  "instructions": [
+    "相談内容は鑑定の焦点づけにのみ使用し、命式・日主・身強身弱・格局・用神・大運・歳運などの計算済み事実を変更しないこと。",
+    "相談者の希望や前提を、四柱推命上の根拠として扱わないこと。",
+    "鑑定上の主張は可能な限り、reading_context内の計算済みデータに根拠を置くこと。",
+    "相談者が望む結論へ迎合せず、命式上の傾向と現実的な選択肢を分けて説明すること。",
+    "未来・成功・結婚・転職・収入などを確定的に断言しないこと。",
+    "相談内容に直接関係するセクションでは、一般論だけで終わらず、相談者が現在どこに迷っているかを踏まえて説明すること。",
+    "今回の主な相談焦点は「health」。ただしこの分類自体を鑑定書本文へ機械的に表示する必要はない。",
+    "特に重点を置く候補セクション: health, current_luck, future_flow, advice"
+  ],
+  "validation": {
+    "valid": true,
+    "has_input": true,
+    "concern_length": 30,
+    "desired_future_length": 16,
+    "combined_length": 46,
+    "max_concern_chars": 2000,
+    "max_desired_future_chars": 2000,
+    "max_combined_chars": 3500
+  },
+  "source": {
+    "concern_source": "customer_input",
+    "desired_future_source": "customer_input",
+    "astrology_source": "reading_context"
+  },
+  "recalculates_astrology": false,
+  "rewrites_chart_facts": false,
+  "method": "consultation_context_v1",
+  "status": "ready_for_ai_reading"
+}

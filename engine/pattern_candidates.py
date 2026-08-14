@@ -51,6 +51,12 @@ v1で扱う候補:
 最終成立を確定しない。
 """
 
+from engine.ten_gods import (
+    calculate_ten_god,
+)
+
+
+
 
 # =========================================================
 # Constants
@@ -354,15 +360,277 @@ def find_exposure_positions(
 # =========================================================
 
 
+def get_day_master_stem_from_chart(
+    chart_data: dict,
+) -> str:
+    """
+    chart_dataの日柱から日主天干を取得する。
+    """
+    validate_chart_data(
+        chart_data
+    )
+
+    day = chart_data[
+        "day"
+    ]
+
+    day_master_stem = day.get(
+        "stem"
+    )
+
+    validate_day_master_stem(
+        day_master_stem
+    )
+
+    return day_master_stem
+
+
+def build_month_hidden_stem_sources(
+    chart_data: dict,
+) -> list[dict]:
+    """
+    月支の全蔵干について、
+    通変星・普通格対応・透干状況を整理する。
+
+    重要:
+    - 日干そのものは透干位置に含めない。
+    - 比肩・劫財などSTANDARD_PATTERN_BY_TEN_GODに
+      対応しない十神は、普通格候補にはしない。
+    - hidden_stemsの並び順は既存エンジンの順位を保持する。
+    """
+    validate_chart_data(
+        chart_data
+    )
+
+    month = chart_data[
+        "month"
+    ]
+
+    day_master_stem = (
+        get_day_master_stem_from_chart(
+            chart_data
+        )
+    )
+
+    hidden_stems = list(
+        month[
+            "hidden_stems"
+        ]
+    )
+
+    main_hidden_stem = month[
+        "main_hidden_stem"
+    ]
+
+    # 既存pillarデータに通変星一覧があれば利用する。
+    # テスト用fixtureなどでNoneの場合はcalculate_ten_godで補う。
+    supplied_ten_gods = {}
+
+    raw_hidden_ten_gods = (
+        month.get(
+            "hidden_stem_ten_gods",
+            [],
+        )
+    )
+
+    if isinstance(
+        raw_hidden_ten_gods,
+        list,
+    ):
+        for item in raw_hidden_ten_gods:
+            if not isinstance(
+                item,
+                dict,
+            ):
+                continue
+
+            stem = item.get(
+                "stem"
+            )
+            ten_god = item.get(
+                "ten_god"
+            )
+
+            if (
+                isinstance(
+                    stem,
+                    str,
+                )
+                and isinstance(
+                    ten_god,
+                    str,
+                )
+            ):
+                supplied_ten_gods[
+                    stem
+                ] = ten_god
+
+    sources: list[dict] = []
+
+    for index, hidden_stem in enumerate(
+        hidden_stems
+    ):
+        ten_god = supplied_ten_gods.get(
+            hidden_stem
+        )
+
+        if ten_god is None:
+            ten_god = calculate_ten_god(
+                day_master_stem,
+                hidden_stem,
+            )
+
+        pattern_rule = (
+            STANDARD_PATTERN_BY_TEN_GOD.get(
+                ten_god
+            )
+        )
+
+        exposure_positions = (
+            find_exposure_positions(
+                hidden_stem,
+                chart_data,
+            )
+        )
+
+        sources.append(
+            {
+                "stem": hidden_stem,
+                "rank": index + 1,
+                "ten_god": ten_god,
+                "pattern_rule": (
+                    pattern_rule
+                ),
+                "is_standard_pattern": (
+                    pattern_rule
+                    is not None
+                ),
+                "is_main_hidden_stem": (
+                    hidden_stem
+                    == main_hidden_stem
+                ),
+                "is_exposed": bool(
+                    exposure_positions
+                ),
+                "exposure_positions": (
+                    exposure_positions
+                ),
+            }
+        )
+
+    return sources
+
+
+def select_standard_pattern_source(
+    chart_data: dict,
+) -> dict | None:
+    """
+    普通格の取格元となる月支蔵干を1件選ぶ。
+
+    八雲採用ルール:
+    1. 月支蔵干のうち普通格に対応するものを対象とする。
+    2. 天干へ透出している蔵干があれば、それを優先する。
+    3. 複数が透出している場合、
+       主蔵干が透出していれば主蔵干を優先する。
+    4. 主蔵干が透出していなければ、
+       hidden_stemsの既存順位が高い透干蔵干を優先する。
+    5. 普通格対応の透干蔵干がなければ、
+       従来互換として主蔵干を使用する。
+    6. 主蔵干が比肩・劫財など普通格対象外ならNoneを返す。
+
+    この関数は格局成立を確定しない。
+    後続pattern_judgmentへ渡す候補の取格元だけを選ぶ。
+    """
+    validate_chart_data(
+        chart_data
+    )
+
+    month = chart_data[
+        "month"
+    ]
+
+    main_hidden_stem = month[
+        "main_hidden_stem"
+    ]
+
+    sources = (
+        build_month_hidden_stem_sources(
+            chart_data
+        )
+    )
+
+    standard_sources = [
+        source
+        for source in sources
+        if source[
+            "is_standard_pattern"
+        ]
+    ]
+
+    exposed_sources = [
+        source
+        for source in standard_sources
+        if source[
+            "is_exposed"
+        ]
+    ]
+
+    if exposed_sources:
+        exposed_main = next(
+            (
+                source
+                for source
+                in exposed_sources
+                if source[
+                    "is_main_hidden_stem"
+                ]
+            ),
+            None,
+        )
+
+        if exposed_main is not None:
+            return exposed_main
+
+        return min(
+            exposed_sources,
+            key=lambda source: (
+                source[
+                    "rank"
+                ]
+            ),
+        )
+
+    main_source = next(
+        (
+            source
+            for source in standard_sources
+            if source[
+                "stem"
+            ]
+            == main_hidden_stem
+        ),
+        None,
+    )
+
+    return main_source
+
+
 def build_standard_pattern_candidate(
     chart_data: dict,
 ) -> dict | None:
     """
-    月支主蔵干の通変星から
+    月支蔵干の透干状況を考慮して
     普通格候補を1件抽出する。
 
-    比肩・劫財の場合は、
-    普通格候補をここでは作らない。
+    従来版:
+        月支主蔵干だけから普通格を選択。
+
+    現在版:
+        月支全蔵干のうち普通格対象となる十神を確認し、
+        透干している蔵干を優先して取格元を選ぶ。
+        有効な透干がなければ主蔵干へフォールバックする。
+
+    比肩・劫財は普通格候補をここでは作らない。
     """
     validate_chart_data(
         chart_data
@@ -380,34 +648,56 @@ def build_standard_pattern_candidate(
         "main_hidden_stem"
     ]
 
-    ten_god = month[
-        "main_hidden_stem_ten_god"
-    ]
-
-    pattern_rule = (
-        STANDARD_PATTERN_BY_TEN_GOD.get(
-            ten_god
+    source = (
+        select_standard_pattern_source(
+            chart_data
         )
     )
+
+    if source is None:
+        return None
+
+    selected_hidden_stem = source[
+        "stem"
+    ]
+
+    ten_god = source[
+        "ten_god"
+    ]
+
+    pattern_rule = source[
+        "pattern_rule"
+    ]
 
     if pattern_rule is None:
         return None
 
-    exposure_positions = (
-        find_exposure_positions(
-            main_hidden_stem,
-            chart_data,
-        )
+    is_exposed = source[
+        "is_exposed"
+    ]
+
+    exposure_positions = list(
+        source[
+            "exposure_positions"
+        ]
     )
 
-    is_exposed = bool(
-        exposure_positions
+    selected_is_main = (
+        source[
+            "is_main_hidden_stem"
+        ]
     )
 
     confidence = (
         "high"
         if is_exposed
         else "medium"
+    )
+
+    selection_source = (
+        "month_main_hidden_stem"
+        if selected_is_main
+        else "month_exposed_hidden_stem"
     )
 
     return {
@@ -425,13 +715,31 @@ def build_standard_pattern_candidate(
             "standard_pattern"
         ),
         "source": (
-            "month_main_hidden_stem"
+            selection_source
+        ),
+        "selection_rule": (
+            "exposed_month_hidden_stem_priority_v1"
         ),
         "month_branch": (
             month_branch
         ),
+        # 既存互換用。
+        # 月支本来の主蔵干は変更しない。
         "month_main_hidden_stem": (
             main_hidden_stem
+        ),
+        # 実際に今回の普通格候補の根拠として
+        # 選択された月支蔵干。
+        "selected_hidden_stem": (
+            selected_hidden_stem
+        ),
+        "selected_hidden_stem_rank": (
+            source[
+                "rank"
+            ]
+        ),
+        "selected_is_main_hidden_stem": (
+            selected_is_main
         ),
         "ten_god": (
             ten_god
@@ -451,12 +759,25 @@ def build_standard_pattern_candidate(
         "is_provisional": True,
         "notes": [
             (
-                "月支主蔵干の通変星から"
-                "抽出した普通格候補です。"
+                "月支全蔵干の通変星と"
+                "透干状況を確認して"
+                "普通格候補を抽出しています。"
             ),
             (
-                "透干している場合は"
-                "候補confidenceを高くしています。"
+                "普通格に対応する月支蔵干が"
+                "天干へ透出している場合は、"
+                "非透干の主蔵干より優先します。"
+            ),
+            (
+                "複数の普通格対象蔵干が"
+                "透出している場合は、"
+                "主蔵干、次いで既存蔵干順位を"
+                "優先します。"
+            ),
+            (
+                "有効な透干蔵干がない場合は"
+                "従来互換として月支主蔵干を"
+                "候補元にします。"
             ),
             (
                 "格局成立・破格・救応は"
@@ -717,6 +1038,15 @@ def candidate_priority(
 
     これは格局の優劣ではなく、
     候補抽出段階での代表候補選定規則。
+
+    八雲採用ルール:
+    1. 月支蔵干から普通格候補が得られ、
+       その取格元が天干へ透出している場合は
+       最優先する。
+    2. 建禄格候補を次に優先する。
+    3. 羊刃格候補を次に優先する。
+    4. 非透干の普通格候補は
+       フォールバック候補として扱う。
     """
     if not isinstance(
         candidate,
@@ -733,46 +1063,43 @@ def candidate_priority(
         )
     )
 
-    # 月令が比肩・劫財系の場合は、
-    # 建禄・羊刃候補を優先候補として扱う。
-    #
-    # ただし、陰干の羊刃候補など
-    # requires_school_rule=True の候補は
-    # 流派依存性があるため、
-    # 通常の普通格候補より無条件には優先しない。
-    #
-    # これにより、
-    #
-    #   standard_pattern
-    #       ↓
-    #   possible / strong
-    #
-    # と判定できる候補が存在する場合に、
-    # 流派依存の羊刃候補が
-    # primary_candidate を奪うことを防ぐ。
+    pattern_group = (
+        candidate.get(
+            "pattern_group"
+        )
+    )
+
+    # -----------------------------------------------------
+    # 透干している普通格を最優先
+    # -----------------------------------------------------
+
+    if (
+        pattern_group
+        == "standard_pattern"
+        and candidate.get(
+            "is_exposed"
+        )
+    ):
+        return 400
+
+    # -----------------------------------------------------
+    # 特殊月令格
+    # -----------------------------------------------------
+
     if technical_pattern == "jianlu":
         return 300
 
     if technical_pattern == "yangren":
-        if candidate.get(
-            "requires_school_rule",
-            False,
-        ):
-            return 190
-
         return 290
 
+    # -----------------------------------------------------
+    # 非透干普通格
+    # -----------------------------------------------------
+
     if (
-        candidate.get(
-            "pattern_group"
-        )
+        pattern_group
         == "standard_pattern"
     ):
-        if candidate.get(
-            "is_exposed"
-        ):
-            return 220
-
         return 200
 
     return 0
@@ -991,6 +1318,11 @@ def evaluate_pattern_candidates(
                     "main_hidden_stem_ten_god"
                 ]
             ),
+            "standard_pattern_sources": (
+                build_month_hidden_stem_sources(
+                    chart_data
+                )
+            ),
         },
         "day_master_stem": (
             day_master_stem
@@ -1006,12 +1338,15 @@ def evaluate_pattern_candidates(
         ),
         "notes": [
             (
-                "月支主蔵干とその通変星を"
-                "中心に格局候補を抽出しています。"
+                "普通格では月支全蔵干の"
+                "通変星と透干状況を確認し、"
+                "有効な透干蔵干を優先して"
+                "代表候補を抽出しています。"
             ),
             (
-                "普通格では月支主蔵干の"
-                "透干状況も記録しています。"
+                "普通格対象の透干蔵干がない場合は、"
+                "従来互換として月支主蔵干を"
+                "候補元にしています。"
             ),
             (
                 "建禄格・羊刃格は"

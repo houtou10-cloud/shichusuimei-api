@@ -6,7 +6,7 @@ pattern_candidates.py が抽出した「格局候補」を受け取り、
 
 - 格局候補
 - final_strength_judgment
-- 月令主蔵干の透干
+- 月支格局採用蔵干の透干
 - stem_transformation_judgment
 - branch_relation_strength
 - 流派差フラグ
@@ -867,16 +867,35 @@ def collect_breaking_factors(
             False,
         )
     ):
+        selected_is_main = candidate.get(
+            "selected_is_main_hidden_stem"
+        )
+
+        # 旧候補との互換性を維持する。
+        # selected_is_main_hidden_stem が False の場合だけ、
+        # 月支主蔵干ではなく「格局候補として採用した蔵干」を指す。
+        if selected_is_main is False:
+            factor_type = (
+                "selected_month_hidden_stem_not_exposed"
+            )
+            description = (
+                "格局候補として採用した月支蔵干が"
+                "天干へ透出していません。"
+            )
+        else:
+            factor_type = (
+                "main_hidden_stem_not_exposed"
+            )
+            description = (
+                "月支主蔵干が天干へ"
+                "透出していません。"
+            )
+
         factors.append(
             {
-                "type": (
-                    "main_hidden_stem_not_exposed"
-                ),
+                "type": factor_type,
                 "severity": "low",
-                "description": (
-                    "月支主蔵干が天干へ"
-                    "透出していません。"
-                ),
+                "description": description,
             }
         )
 
@@ -980,16 +999,35 @@ def collect_rescue_factors(
         "is_exposed",
         False,
     ):
+        selected_is_main = candidate.get(
+            "selected_is_main_hidden_stem"
+        )
+
+        # pattern_candidates v1 の新仕様では、
+        # 月支の副蔵干が透干して普通格候補に採用される場合がある。
+        # その場合に「月支主蔵干が透出」と誤表示しない。
+        if selected_is_main is False:
+            factor_type = (
+                "selected_month_hidden_stem_exposed"
+            )
+            description = (
+                "格局候補として採用した月支蔵干が"
+                "天干へ透出しています。"
+            )
+        else:
+            factor_type = (
+                "main_hidden_stem_exposed"
+            )
+            description = (
+                "月支主蔵干が天干へ"
+                "透出しています。"
+            )
+
         factors.append(
             {
-                "type": (
-                    "main_hidden_stem_exposed"
-                ),
+                "type": factor_type,
                 "strength": "medium",
-                "description": (
-                    "月支主蔵干が天干へ"
-                    "透出しています。"
-                ),
+                "description": description,
             }
         )
 
@@ -1709,8 +1747,8 @@ def evaluate_pattern_judgment(
                 "候補を基礎に判定しています。"
             ),
             (
-                "普通格では月支主蔵干の"
-                "透干を成立度の補助情報として"
+                "普通格では格局候補として採用した"
+                "月支蔵干の透干を成立度の補助情報として"
                 "評価しています。"
             ),
             (
