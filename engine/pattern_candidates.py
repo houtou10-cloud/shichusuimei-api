@@ -1038,6 +1038,15 @@ def candidate_priority(
 
     これは格局の優劣ではなく、
     候補抽出段階での代表候補選定規則。
+
+    八雲採用ルール:
+    1. 月支蔵干から普通格候補が得られ、
+       その取格元が天干へ透出している場合は
+       最優先する。
+    2. 建禄格候補を次に優先する。
+    3. 羊刃格候補を次に優先する。
+    4. 非透干の普通格候補は
+       フォールバック候補として扱う。
     """
     if not isinstance(
         candidate,
@@ -1054,25 +1063,43 @@ def candidate_priority(
         )
     )
 
-    # 月令が比肩・劫財系の場合は
-    # 建禄・羊刃候補を優先する。
+    pattern_group = (
+        candidate.get(
+            "pattern_group"
+        )
+    )
+
+    # -----------------------------------------------------
+    # 透干している普通格を最優先
+    # -----------------------------------------------------
+
+    if (
+        pattern_group
+        == "standard_pattern"
+        and candidate.get(
+            "is_exposed"
+        )
+    ):
+        return 400
+
+    # -----------------------------------------------------
+    # 特殊月令格
+    # -----------------------------------------------------
+
     if technical_pattern == "jianlu":
         return 300
 
     if technical_pattern == "yangren":
         return 290
 
+    # -----------------------------------------------------
+    # 非透干普通格
+    # -----------------------------------------------------
+
     if (
-        candidate.get(
-            "pattern_group"
-        )
+        pattern_group
         == "standard_pattern"
     ):
-        if candidate.get(
-            "is_exposed"
-        ):
-            return 220
-
         return 200
 
     return 0
