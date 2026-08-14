@@ -144,7 +144,7 @@ from engine.reading_quality import (
 
 
 SCRIPT_VERSION = (
-    "generate_customer_reading_v1_3_country_gate"
+    "generate_customer_reading_v1_2"
 )
 
 
