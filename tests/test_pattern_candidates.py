@@ -504,67 +504,45 @@ def test_find_exposure_positions_invalid_target_type():
 
 @pytest.mark.parametrize(
     (
-        "ten_god",
+        "day_stem",
+        "month_main_hidden_stem",
+        "month_main_hidden_stem_ten_god",
         "pattern",
         "technical_pattern",
     ),
     [
-        (
-            "正官",
-            "正官格",
-            "direct_officer",
-        ),
-        (
-            "偏官",
-            "偏官格",
-            "seven_killings",
-        ),
-        (
-            "正財",
-            "正財格",
-            "direct_wealth",
-        ),
-        (
-            "偏財",
-            "偏財格",
-            "indirect_wealth",
-        ),
-        (
-            "印綬",
-            "印綬格",
-            "direct_resource",
-        ),
-        (
-            "正印",
-            "印綬格",
-            "direct_resource",
-        ),
-        (
-            "偏印",
-            "偏印格",
-            "indirect_resource",
-        ),
-        (
-            "食神",
-            "食神格",
-            "eating_god",
-        ),
-        (
-            "傷官",
-            "傷官格",
-            "hurting_officer",
-        ),
+        ("甲", "辛", "正官", "正官格", "direct_officer"),
+        ("甲", "庚", "偏官", "偏官格", "seven_killings"),
+        ("甲", "己", "正財", "正財格", "direct_wealth"),
+        ("甲", "戊", "偏財", "偏財格", "indirect_wealth"),
+        ("甲", "癸", "印綬", "印綬格", "direct_resource"),
+        ("甲", "癸", "正印", "印綬格", "direct_resource"),
+        ("甲", "壬", "偏印", "偏印格", "indirect_resource"),
+        ("甲", "丙", "食神", "食神格", "eating_god"),
+        ("甲", "丁", "傷官", "傷官格", "hurting_officer"),
     ],
 )
 def test_build_standard_pattern_candidate(
-    ten_god,
+    day_stem,
+    month_main_hidden_stem,
+    month_main_hidden_stem_ten_god,
     pattern,
     technical_pattern,
 ):
     chart = make_chart(
-        month_main_hidden_stem_ten_god=(
-            ten_god
+        day_stem=day_stem,
+        month_hidden_stems=[
+            month_main_hidden_stem,
+        ],
+        month_main_hidden_stem=(
+            month_main_hidden_stem
         ),
+        month_main_hidden_stem_ten_god=(
+            month_main_hidden_stem_ten_god
+        ),
+        year_stem="乙",
+        month_stem="己",
+        hour_stem="辛",
     )
 
     result = (
@@ -573,52 +551,65 @@ def test_build_standard_pattern_candidate(
         )
     )
 
-    assert (
-        result["pattern"]
-        == pattern
-    )
-
+    assert result["pattern"] == pattern
     assert (
         result["technical_pattern"]
         == technical_pattern
     )
-
     assert (
         result["pattern_group"]
         == "standard_pattern"
     )
-
     assert (
         result["source"]
         == "month_main_hidden_stem"
     )
-
+    assert (
+        result["selected_hidden_stem"]
+        == month_main_hidden_stem
+    )
+    assert (
+        result["selected_is_main_hidden_stem"]
+        is True
+    )
     assert (
         result["candidate_status"]
         == "provisional_candidate"
     )
-
-    assert (
-        result["is_provisional"]
-        is True
-    )
+    assert result["is_provisional"] is True
 
 
 @pytest.mark.parametrize(
-    "ten_god",
+    (
+        "day_stem",
+        "month_main_hidden_stem",
+        "month_main_hidden_stem_ten_god",
+    ),
     [
-        "比肩",
-        "劫財",
-        "不明",
+        ("乙", "乙", "比肩"),
+        ("乙", "甲", "劫財"),
+        ("乙", "乙", "不明"),
     ],
 )
 def test_build_standard_pattern_candidate_none(
-    ten_god,
+    day_stem,
+    month_main_hidden_stem,
+    month_main_hidden_stem_ten_god,
 ):
     chart = make_chart(
-        month_main_hidden_stem_ten_god=(
-            ten_god
+        day_stem=day_stem,
+        month_hidden_stems=[
+            month_main_hidden_stem,
+        ],
+        month_main_hidden_stem=(
+            month_main_hidden_stem
         ),
+        month_main_hidden_stem_ten_god=(
+            month_main_hidden_stem_ten_god
+        ),
+        year_stem="丙",
+        month_stem="戊",
+        hour_stem="庚",
     )
 
     result = (
@@ -632,9 +623,15 @@ def test_build_standard_pattern_candidate_none(
 
 def test_standard_pattern_exposed_high_confidence():
     chart = make_chart(
+        day_stem="乙",
         month_stem="己",
+        month_hidden_stems=[
+            "己",
+        ],
         month_main_hidden_stem="己",
         month_main_hidden_stem_ten_god="偏財",
+        year_stem="甲",
+        hour_stem="壬",
     )
 
     result = (
@@ -663,9 +660,13 @@ def test_standard_pattern_exposed_high_confidence():
 
 def test_standard_pattern_not_exposed_medium_confidence():
     chart = make_chart(
+        day_stem="乙",
         year_stem="甲",
         month_stem="癸",
         hour_stem="丁",
+        month_hidden_stems=[
+            "己",
+        ],
         month_main_hidden_stem="己",
         month_main_hidden_stem_ten_god="偏財",
     )
@@ -1032,12 +1033,34 @@ def test_determine_primary_candidate_empty():
 
 
 def test_determine_primary_candidate_prefers_jianlu():
-    standard = make_candidate("indirect_wealth", "standard_pattern", is_exposed=True)
-    yangren = make_candidate("yangren", "special_month_pattern")
-    jianlu = make_candidate("jianlu", "special_month_pattern")
-    result = determine_primary_candidate([standard, yangren, jianlu])
-    # 新仕様: 月支蔵干から透干した普通格候補を最優先する。
+    standard = make_candidate(
+        "indirect_wealth",
+        "standard_pattern",
+        is_exposed=True,
+    )
+
+    yangren = make_candidate(
+        "yangren",
+        "special_month_pattern",
+    )
+
+    jianlu = make_candidate(
+        "jianlu",
+        "special_month_pattern",
+    )
+
+    result = (
+        determine_primary_candidate(
+            [
+                standard,
+                yangren,
+                jianlu,
+            ]
+        )
+    )
+
     assert result is standard
+
 
 def test_determine_primary_candidate_invalid_type():
     with pytest.raises(
@@ -1139,8 +1162,14 @@ def test_evaluate_pattern_candidates_standard_only():
     chart = make_chart(
         day_stem="乙",
         month_branch="未",
+        month_hidden_stems=[
+            "己",
+        ],
         month_main_hidden_stem="己",
         month_main_hidden_stem_ten_god="偏財",
+        year_stem="甲",
+        month_stem="癸",
+        hour_stem="丁",
     )
 
     result = (
@@ -1284,8 +1313,14 @@ def test_evaluate_pattern_candidates_no_candidate():
     chart = make_chart(
         day_stem="乙",
         month_branch="未",
+        month_hidden_stems=[
+            "乙",
+        ],
         month_main_hidden_stem="乙",
         month_main_hidden_stem_ten_god="比肩",
+        year_stem="丙",
+        month_stem="戊",
+        hour_stem="庚",
     )
 
     result = (
@@ -1342,19 +1377,52 @@ def test_evaluate_pattern_candidates_month_context():
         )
     )
 
+    month_context = result[
+        "month_context"
+    ]
+
     assert (
-        result["month_context"]
-        == {
-            "month_stem": "癸",
-            "month_branch": "未",
-            "hidden_stems": [
-                "己",
-                "丁",
-                "乙",
-            ],
-            "main_hidden_stem": "己",
-            "main_hidden_stem_ten_god": "偏財",
-        }
+        month_context["month_stem"]
+        == "癸"
+    )
+    assert (
+        month_context["month_branch"]
+        == "未"
+    )
+    assert (
+        month_context["hidden_stems"]
+        == [
+            "己",
+            "丁",
+            "乙",
+        ]
+    )
+    assert (
+        month_context["main_hidden_stem"]
+        == "己"
+    )
+    assert (
+        month_context[
+            "main_hidden_stem_ten_god"
+        ]
+        == "偏財"
+    )
+
+    sources = month_context[
+        "standard_pattern_sources"
+    ]
+
+    assert sources[0]["stem"] == "己"
+    assert sources[1]["stem"] == "丁"
+    assert (
+        sources[1]["is_exposed"]
+        is True
+    )
+    assert (
+        sources[1]["exposure_positions"]
+        == [
+            "hour",
+        ]
     )
 
     assert (
@@ -1467,14 +1535,14 @@ def test_verified_1985_pattern_candidate():
         result["primary_candidate"][
             "pattern"
         ]
-        == "偏財格"
+        == "食神格"
     )
 
     assert (
         result["primary_candidate"][
             "technical_pattern"
         ]
-        == "indirect_wealth"
+        == "eating_god"
     )
 
     assert (
@@ -1493,21 +1561,158 @@ def test_verified_1985_pattern_candidate():
 
     assert (
         result["primary_candidate"][
-            "ten_god"
+            "selected_hidden_stem"
         ]
-        == "偏財"
+        == "丁"
     )
 
     assert (
         result["primary_candidate"][
-            "is_exposed"
+            "selected_hidden_stem_rank"
+        ]
+        == 2
+    )
+
+    assert (
+        result["primary_candidate"][
+            "selected_is_main_hidden_stem"
         ]
         is False
     )
 
     assert (
         result["primary_candidate"][
+            "ten_god"
+        ]
+        == "食神"
+    )
+
+    assert (
+        result["primary_candidate"][
+            "source"
+        ]
+        == "month_exposed_hidden_stem"
+    )
+
+    assert (
+        result["primary_candidate"][
+            "is_exposed"
+        ]
+        is True
+    )
+
+    assert (
+        result["primary_candidate"][
+            "exposure_positions"
+        ]
+        == [
+            "hour",
+        ]
+    )
+
+    assert (
+        result["primary_candidate"][
             "confidence"
         ]
-        == "medium"
+        == "high"
     )
+
+
+# =========================================================
+# regression: exposed month hidden stem has priority
+# 甲子 / 辛未 / 乙巳 / 丁亥
+# =========================================================
+
+
+def test_exposed_month_hidden_stem_has_priority_over_unexposed_main_hidden_stem():
+    chart = {
+        "year": make_pillar(
+            pillar="甲子",
+            stem="甲",
+            branch="子",
+            stem_ten_god="劫財",
+            hidden_stems=[
+                "癸",
+            ],
+            main_hidden_stem="癸",
+            main_hidden_stem_ten_god="偏印",
+        ),
+        "month": make_pillar(
+            pillar="辛未",
+            stem="辛",
+            branch="未",
+            stem_ten_god="偏官",
+            hidden_stems=[
+                "己",
+                "丁",
+                "乙",
+            ],
+            main_hidden_stem="己",
+            main_hidden_stem_ten_god="偏財",
+        ),
+        "day": make_pillar(
+            pillar="乙巳",
+            stem="乙",
+            branch="巳",
+            stem_ten_god=None,
+            hidden_stems=[
+                "丙",
+                "戊",
+                "庚",
+            ],
+            main_hidden_stem="丙",
+            main_hidden_stem_ten_god="傷官",
+        ),
+        "hour": make_pillar(
+            pillar="丁亥",
+            stem="丁",
+            branch="亥",
+            stem_ten_god="食神",
+            hidden_stems=[
+                "壬",
+                "甲",
+            ],
+            main_hidden_stem="壬",
+            main_hidden_stem_ten_god="印綬",
+        ),
+    }
+
+    result = evaluate_pattern_candidates(
+        chart,
+        "乙",
+    )
+
+    primary = result[
+        "primary_candidate"
+    ]
+
+    assert primary["pattern"] == "食神格"
+    assert (
+        primary["technical_pattern"]
+        == "eating_god"
+    )
+    assert (
+        primary["month_main_hidden_stem"]
+        == "己"
+    )
+    assert (
+        primary["selected_hidden_stem"]
+        == "丁"
+    )
+    assert (
+        primary["selected_is_main_hidden_stem"]
+        is False
+    )
+    assert (
+        primary["source"]
+        == "month_exposed_hidden_stem"
+    )
+    assert primary["is_exposed"] is True
+    assert (
+        primary["exposure_positions"]
+        == [
+            "hour",
+        ]
+    )
+    assert primary["confidence"] == "high"
+
