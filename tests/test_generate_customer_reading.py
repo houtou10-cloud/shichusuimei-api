@@ -2535,7 +2535,6 @@ def test_generate_customer_reading_auto_repair_then_passes(
         return ReadingRepairResult(
             original=deepcopy(ai_reading),
             repaired=deepcopy(repaired),
-            changed=True,
             issue_count=1,
             error_count=0,
             warning_count=1,
@@ -2776,7 +2775,6 @@ def test_generate_customer_reading_auto_repair_second_attempt_passes(
         return ReadingRepairResult(
             original=deepcopy(ai_reading),
             repaired=repaired,
-            changed=True,
             issue_count=1,
             error_count=0,
             warning_count=1,
@@ -2894,7 +2892,6 @@ def test_generate_customer_reading_auto_repair_exhaustion_raises(
         return ReadingRepairResult(
             original=deepcopy(ai_reading),
             repaired=deepcopy(ai_reading),
-            changed=False,
             issue_count=1,
             error_count=1,
             warning_count=0,
