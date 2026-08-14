@@ -318,6 +318,7 @@ def test_real_chart_contains_required_reading_layers(
         "current_luck",
         "annual_luck",
         "integrated_luck",
+        "five_year_luck",
     }
 
     assert required_keys.issubset(
