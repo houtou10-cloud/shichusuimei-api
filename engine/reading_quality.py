@@ -52,6 +52,7 @@ WARNING_ISSUE_CODES = frozenset(
         "formulaic_phrase_overuse",
         "sentence_ending_overuse",
         "future_flow_style_repetition",
+        "useful_gods_role_confusion",
     }
 )
 
@@ -1740,6 +1741,265 @@ def find_future_flow_style_repetition(
     )
 
 
+
+def _extract_useful_gods_role_data(
+    reading_context: Mapping[str, Any] | None,
+) -> tuple[str | None, tuple[str, ...]]:
+    """
+    reading_contextから主用神と補助用神を取り出す。
+    """
+
+    if not isinstance(
+        reading_context,
+        Mapping,
+    ):
+        return (None, ())
+
+    useful_gods = reading_context.get(
+        "useful_gods"
+    )
+
+    if not isinstance(
+        useful_gods,
+        Mapping,
+    ):
+        return (None, ())
+
+    primary_raw = useful_gods.get(
+        "primary_useful_element"
+    )
+
+    if (
+        not isinstance(primary_raw, str)
+        or not primary_raw.strip()
+    ):
+        return (None, ())
+
+    primary = primary_raw.strip()
+
+    secondary_raw = useful_gods.get(
+        "secondary_useful_elements"
+    )
+
+    secondary: list[str] = []
+
+    if (
+        isinstance(
+            secondary_raw,
+            Sequence,
+        )
+        and not isinstance(
+            secondary_raw,
+            (str, bytes, bytearray),
+        )
+    ):
+        for value in secondary_raw:
+            if (
+                isinstance(value, str)
+                and value.strip()
+                and value.strip() != primary
+            ):
+                normalized = value.strip()
+
+                if normalized not in secondary:
+                    secondary.append(
+                        normalized
+                    )
+
+    return (
+        primary,
+        tuple(secondary),
+    )
+
+
+def _useful_gods_sentence_chunks(
+    text: str,
+) -> tuple[str, ...]:
+    """
+    用神役割判定用に文章を文単位へ分ける。
+    """
+
+    normalized = _normalize_text(
+        text
+    )
+
+    if not normalized:
+        return ()
+
+    chunks = [
+        chunk.strip()
+        for chunk in re.split(
+            r"(?<=[。！？!?])|[\n\r]+",
+            normalized,
+        )
+        if chunk.strip()
+    ]
+
+    return tuple(chunks)
+
+
+def _chunk_has_explicit_secondary_role(
+    chunk: str,
+) -> bool:
+    """
+    同一文内で補助側の役割が明示されているか。
+    """
+
+    return any(
+        marker in chunk
+        for marker in (
+            "補助",
+            "補助用神",
+            "副用神",
+            "サポート",
+        )
+    )
+
+
+def _find_confused_useful_god_chunk(
+    text: str,
+    *,
+    primary: str,
+    secondary: Sequence[str],
+) -> str | None:
+    """
+    主用神と補助用神を同格の「用神」と
+    表現している文を返す。
+    """
+
+    all_elements = (
+        "木",
+        "火",
+        "土",
+        "金",
+        "水",
+    )
+
+    secondary_set = set(
+        secondary
+    )
+
+    for chunk in _useful_gods_sentence_chunks(
+        text
+    ):
+        if "用神" not in chunk:
+            continue
+
+        mentioned_elements = {
+            element
+            for element in all_elements
+            if element in chunk
+        }
+
+        if not mentioned_elements:
+            continue
+
+        if _chunk_has_explicit_secondary_role(
+            chunk
+        ):
+            continue
+
+        non_primary = (
+            mentioned_elements
+            - {primary}
+        )
+
+        if non_primary:
+            if (
+                not secondary_set
+                or non_primary
+                & secondary_set
+            ):
+                return chunk
+
+        for element in all_elements:
+            if element == primary:
+                continue
+
+            direct_patterns = (
+                f"{element}が用神",
+                f"{element}は用神",
+                f"{element}を用神",
+                f"用神は{element}",
+                f"用神が{element}",
+                f"用神として{element}",
+                f"用神（{element}",
+                f"用神({element}",
+                f"用神の{element}",
+            )
+
+            if any(
+                pattern in chunk
+                for pattern in direct_patterns
+            ):
+                return chunk
+
+    return None
+
+
+def find_useful_gods_role_confusion(
+    ai_reading: Mapping[str, Any],
+    *,
+    reading_context: Mapping[str, Any] | None = None,
+) -> tuple[QualityIssue, ...]:
+    """
+    主用神と補助用神の役割混同を検出する。
+
+    primary_useful_element を主用神、
+    secondary_useful_elements を補助用神として扱う。
+    """
+
+    _require_mapping(
+        ai_reading,
+        name="ai_reading",
+    )
+
+    primary, secondary = (
+        _extract_useful_gods_role_data(
+            reading_context
+        )
+    )
+
+    if primary is None:
+        return ()
+
+    issues: list[QualityIssue] = []
+
+    for item in iter_customer_facing_texts(
+        ai_reading
+    ):
+        matched_chunk = (
+            _find_confused_useful_god_chunk(
+                item.text,
+                primary=primary,
+                secondary=secondary,
+            )
+        )
+
+        if matched_chunk is None:
+            continue
+
+        issues.append(
+            QualityIssue(
+                code=(
+                    "useful_gods_role_confusion"
+                ),
+                message=(
+                    "主用神と補助用神が"
+                    "同格の用神として"
+                    "表現されています。"
+                ),
+                path=item.path,
+                value=item.text,
+                matched=matched_chunk,
+            )
+        )
+
+    return tuple(
+        issues
+    )
+
+
 def find_summary_detail_repetition(
     ai_reading: Mapping[str, Any],
 ) -> tuple[QualityIssue, ...]:
@@ -2674,6 +2934,16 @@ def validate_customer_facing_reading(
         )
     )
 
+    # 用神と補助用神の役割整合性。
+    # 計算済みreading_contextを正として、
+    # 顧客向け文章の混同だけをwarningにする。
+    issues.extend(
+        find_useful_gods_role_confusion(
+            ai_reading,
+            reading_context=reading_context,
+        )
+    )
+
     issues.extend(
         find_repeated_advice_concepts(
             ai_reading
@@ -2795,6 +3065,7 @@ __all__ = [
     "find_formulaic_phrase_overuse",
     "find_sentence_ending_overuse",
     "find_future_flow_style_repetition",
+    "find_useful_gods_role_confusion",
     "find_repeated_advice_concepts",
     "find_fixed_element_translation_overuse",
     "find_health_specific_overreach",
