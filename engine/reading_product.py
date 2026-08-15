@@ -444,51 +444,94 @@ def build_chart_summary(
             "natal_chart"
         )
     )
+
     day_master = _safe_dict(
         reading_context.get(
             "day_master"
         )
     )
+
     five_elements = _safe_dict(
         reading_context.get(
             "five_elements"
         )
     )
+
     strength = _safe_dict(
         reading_context.get(
             "strength"
         )
     )
+
     pattern = _safe_dict(
         reading_context.get(
             "pattern"
         )
     )
+
     useful_gods = _safe_dict(
         reading_context.get(
             "useful_gods"
         )
     )
+
     luck = _safe_dict(
         reading_context.get(
             "luck"
         )
     )
+
+    # ========================================================
+    # Luck pillars
+    # ========================================================
+
+    luck_pillars = _safe_dict(
+        luck.get(
+            "luck_pillars"
+        )
+    )
+
+    luck_pillar_items = [
+        _safe_dict(
+            pillar
+        )
+        for pillar
+        in _safe_list(
+            luck_pillars.get(
+                "pillars"
+            )
+        )
+    ]
+
+    # ========================================================
+    # Annual luck
+    # ========================================================
+
     annual_luck = _safe_dict(
         luck.get(
             "annual_luck"
         )
     )
+
+    # ========================================================
+    # Current luck
+    # ========================================================
+
     current_luck = _safe_dict(
         luck.get(
             "current_luck"
         )
     )
+
     current_pillar = _safe_dict(
         current_luck.get(
             "current_pillar"
         )
     )
+
+    # ========================================================
+    # Natal pillars
+    # ========================================================
 
     pillars = {
         position: _extract_pillar(
@@ -504,13 +547,19 @@ def build_chart_summary(
         )
     }
 
+    # ========================================================
+    # Product chart summary
+    # ========================================================
+
     return {
         "pillars": pillars,
+
         "pillar_sequence": _safe_list(
             natal_chart.get(
                 "pillar_sequence"
             )
         ),
+
         "day_master": {
             "stem": day_master.get(
                 "stem"
@@ -525,6 +574,7 @@ def build_chart_summary(
                 "day_pillar"
             ),
         },
+
         "five_elements": {
             "weighted_scores": _safe_dict(
                 five_elements.get(
@@ -542,6 +592,7 @@ def build_chart_summary(
                 )
             ),
         },
+
         "strength": {
             "technical_label": (
                 strength.get(
@@ -558,9 +609,12 @@ def build_chart_summary(
                 "confidence"
             ),
         },
+
         "pattern": {
-            "primary_pattern": pattern.get(
-                "primary_pattern"
+            "primary_pattern": (
+                pattern.get(
+                    "primary_pattern"
+                )
             ),
             "technical_pattern": (
                 pattern.get(
@@ -572,10 +626,13 @@ def build_chart_summary(
                     "overall_judgment"
                 )
             ),
-            "confidence": pattern.get(
-                "confidence"
+            "confidence": (
+                pattern.get(
+                    "confidence"
+                )
             ),
         },
+
         "useful_gods": {
             "primary_useful_element": (
                 useful_gods.get(
@@ -589,50 +646,189 @@ def build_chart_summary(
                     )
                 )
             ),
-            "final_useful_elements": _safe_list(
-                useful_gods.get(
-                    "final_useful_elements"
+            "final_useful_elements": (
+                _safe_list(
+                    useful_gods.get(
+                        "final_useful_elements"
+                    )
                 )
             ),
-            "unfavorable_elements": _safe_list(
-                useful_gods.get(
-                    "unfavorable_elements"
+            "unfavorable_elements": (
+                _safe_list(
+                    useful_gods.get(
+                        "unfavorable_elements"
+                    )
                 )
             ),
-            "confidence": useful_gods.get(
-                "confidence"
+            "confidence": (
+                useful_gods.get(
+                    "confidence"
+                )
             ),
         },
+
         "current_luck": {
-            "ganzhi": current_pillar.get(
-                "ganzhi"
+            "ganzhi": (
+                current_pillar.get(
+                    "ganzhi"
+                )
             ),
-            "stem_ten_god": current_pillar.get(
-                "stem_ten_god"
+            "stem_ten_god": (
+                current_pillar.get(
+                    "stem_ten_god"
+                )
             ),
-            "start_age": current_pillar.get(
-                "start_age"
+            "start_age": (
+                current_pillar.get(
+                    "start_age"
+                )
             ),
-            "end_age": current_pillar.get(
-                "end_age"
+            "end_age": (
+                current_pillar.get(
+                    "end_age"
+                )
             ),
         },
+
+        # ====================================================
+        # v1.1
+        # 10年ごとの大運一覧
+        # ====================================================
+
+        "luck_pillars": {
+            "direction": (
+                luck_pillars.get(
+                    "direction"
+                )
+            ),
+
+            "direction_japanese": (
+                luck_pillars.get(
+                    "direction_japanese"
+                )
+            ),
+
+            "start_age": (
+                luck_pillars.get(
+                    "start_age"
+                )
+            ),
+
+            "start_age_detail": (
+                _safe_dict(
+                    luck_pillars.get(
+                        "start_age_detail"
+                    )
+                )
+            ),
+
+            "pillar_count": len(
+                luck_pillar_items
+            ),
+
+            "pillars": [
+                {
+                    "index": (
+                        pillar.get(
+                            "index"
+                        )
+                    ),
+
+                    "ganzhi": (
+                        pillar.get(
+                            "ganzhi"
+                        )
+                    ),
+
+                    "stem": (
+                        pillar.get(
+                            "stem"
+                        )
+                    ),
+
+                    "branch": (
+                        pillar.get(
+                            "branch"
+                        )
+                    ),
+
+                    "stem_element": (
+                        pillar.get(
+                            "stem_element"
+                        )
+                    ),
+
+                    "branch_element": (
+                        pillar.get(
+                            "branch_element"
+                        )
+                    ),
+
+                    "stem_ten_god": (
+                        pillar.get(
+                            "stem_ten_god"
+                        )
+                    ),
+
+                    "start_age": (
+                        pillar.get(
+                            "start_age"
+                        )
+                    ),
+
+                    "end_age": (
+                        pillar.get(
+                            "end_age"
+                        )
+                    ),
+
+                    "stem_useful_relation": (
+                        _safe_dict(
+                            pillar.get(
+                                "stem_useful_relation"
+                            )
+                        )
+                    ),
+
+                    "branch_useful_relation": (
+                        _safe_dict(
+                            pillar.get(
+                                "branch_useful_relation"
+                            )
+                        )
+                    ),
+                }
+                for pillar
+                in luck_pillar_items
+            ],
+        },
+
         "annual_luck": {
-            "year": annual_luck.get(
-                "year"
+            "year": (
+                annual_luck.get(
+                    "year"
+                )
             ),
-            "ganzhi": annual_luck.get(
-                "ganzhi"
+
+            "ganzhi": (
+                annual_luck.get(
+                    "ganzhi"
+                )
             ),
-            "stem_ten_god": annual_luck.get(
-                "stem_ten_god"
+
+            "stem_ten_god": (
+                annual_luck.get(
+                    "stem_ten_god"
+                )
             ),
-            "twelve_stage": annual_luck.get(
-                "twelve_stage"
+
+            "twelve_stage": (
+                annual_luck.get(
+                    "twelve_stage"
+                )
             ),
         },
     }
-
 
 def validate_generation_result(
     generation_result: ReadingGenerationResult,
