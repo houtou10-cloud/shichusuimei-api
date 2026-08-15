@@ -849,7 +849,6 @@ def configure_full_fake_pipeline(
     captured = {
         "generate_reading": None,
         "product": None,
-        "product_call": None,
     }
 
     def fake_generate_reading(
@@ -888,9 +887,6 @@ def configure_full_fake_pipeline(
         *,
         title,
         sections,
-        customer_name=None,
-        reading_datetime=None,
-        brand_name=None,
     ):
         product = FakeProduct(
             title=title,
@@ -901,59 +897,9 @@ def configure_full_fake_pipeline(
             sections=sections,
         )
 
-        # 本番のReadingProductと同じく、
-        # 表紙用の顧客情報をfake productにも反映する。
-        if customer_name:
-            product._data[
-                "subject"
-            ][
-                "name"
-            ] = customer_name
-
-        if brand_name:
-            product._data[
-                "metadata"
-            ][
-                "brand_name"
-            ] = brand_name
-
-        if reading_datetime is not None:
-            product._data[
-                "metadata"
-            ][
-                "created_at"
-            ] = (
-                reading_datetime
-                .astimezone()
-                .replace(
-                    microsecond=0
-                )
-                .isoformat()
-            )
-
         captured[
             "product"
         ] = product
-
-        captured[
-            "product_call"
-        ] = {
-            "reading_context": deepcopy(
-                reading_context
-            ),
-            "generation_result": deepcopy(
-                generation_result
-            ),
-            "title": title,
-            "sections": tuple(
-                sections
-            ),
-            "customer_name": customer_name,
-            "reading_datetime": (
-                reading_datetime
-            ),
-            "brand_name": brand_name,
-        }
 
         return product
 
@@ -1140,98 +1086,6 @@ def test_generate_customer_reading_full_fake_e2e(
             "generate_reading"
         ]
         is not None
-    )
-
-
-def test_generate_customer_reading_passes_cover_metadata_to_product(
-    script_module,
-    sample_intake,
-    tmp_path,
-    monkeypatch,
-    fake_chart_result,
-    fake_reading_context,
-    fake_generation_result,
-):
-    captured = (
-        configure_full_fake_pipeline(
-            script_module=(
-                script_module
-            ),
-            tmp_path=tmp_path,
-            monkeypatch=(
-                monkeypatch
-            ),
-            fake_chart_result=(
-                fake_chart_result
-            ),
-            fake_reading_context=(
-                fake_reading_context
-            ),
-            fake_generation_result=(
-                fake_generation_result
-            ),
-        )
-    )
-
-    script_module.generate_customer_reading(
-        sample_intake
-    )
-
-    call = captured[
-        "product_call"
-    ]
-
-    assert call is not None
-
-    assert (
-        call[
-            "customer_name"
-        ]
-        == "山田太郎"
-    )
-
-    assert (
-        call[
-            "brand_name"
-        ]
-        == "四柱推命 八雲"
-    )
-
-    assert (
-        call[
-            "reading_datetime"
-        ]
-        is not None
-    )
-
-    product_data = captured[
-        "product"
-    ].to_dict()
-
-    assert (
-        product_data[
-            "subject"
-        ][
-            "name"
-        ]
-        == "山田太郎"
-    )
-
-    assert (
-        product_data[
-            "metadata"
-        ][
-            "brand_name"
-        ]
-        == "四柱推命 八雲"
-    )
-
-    assert (
-        product_data[
-            "metadata"
-        ].get(
-            "created_at"
-        )
     )
 
 
@@ -3130,3 +2984,415 @@ def test_generate_customer_reading_auto_repair_exhaustion_raises(
         repair_count
         == script_module.MAX_REPAIR_ATTEMPTS
     )
+
+# ============================================================
+# Targeted warning Auto-Repair
+# ============================================================
+
+
+def test_should_auto_repair_valid_report_with_useful_gods_warning(
+    script_module,
+):
+    from engine.reading_quality import (
+        QualityIssue,
+        ReadingQualityReport,
+    )
+
+    report = ReadingQualityReport(
+        valid=True,
+        issues=(
+            QualityIssue(
+                code="useful_gods_role_confusion",
+                path="sections.wealth.detail",
+                message=(
+                    "主用神と補助用神が"
+                    "同格の用神として"
+                    "表現されています。"
+                ),
+                value="用神は金・水・土です。",
+                matched="用神は金・水・土です。",
+            ),
+        ),
+    )
+
+    assert (
+        script_module.should_auto_repair(
+            report
+        )
+        is True
+    )
+
+    assert (
+        script_module.get_auto_repair_issue_codes(
+            report
+        )
+        == (
+            "useful_gods_role_confusion",
+        )
+    )
+
+
+def test_should_not_auto_repair_style_warning_only(
+    script_module,
+):
+    from engine.reading_quality import (
+        QualityIssue,
+        ReadingQualityReport,
+    )
+
+    report = ReadingQualityReport(
+        valid=True,
+        issues=(
+            QualityIssue(
+                code="sentence_ending_overuse",
+                path="sections",
+                message=(
+                    "同じ説明語尾が"
+                    "多数章で続いています。"
+                ),
+                value="career, wealth",
+                matched="でしょう",
+            ),
+        ),
+    )
+
+    assert (
+        script_module.should_auto_repair(
+            report
+        )
+        is False
+    )
+
+    assert (
+        script_module.get_auto_repair_issue_codes(
+            report
+        )
+        == ()
+    )
+
+
+def test_generate_customer_reading_repairs_targeted_warning_even_when_valid(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    from copy import deepcopy
+
+    from engine.reading_quality import (
+        QualityIssue,
+        ReadingQualityReport,
+    )
+    from engine.reading_repair import (
+        ReadingRepairResult,
+    )
+
+    configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    targeted_warning = (
+        ReadingQualityReport(
+            valid=True,
+            issues=(
+                QualityIssue(
+                    code="useful_gods_role_confusion",
+                    path="sections.wealth.detail",
+                    message=(
+                        "主用神と補助用神が"
+                        "同格の用神として"
+                        "表現されています。"
+                    ),
+                    value="用神は火・土です。",
+                    matched="用神は火・土です。",
+                ),
+            ),
+        )
+    )
+
+    style_warning_only = (
+        ReadingQualityReport(
+            valid=True,
+            issues=(
+                QualityIssue(
+                    code="sentence_ending_overuse",
+                    path="sections",
+                    message=(
+                        "同じ説明語尾が"
+                        "多数章で続いています。"
+                    ),
+                    value="career, wealth",
+                    matched="でしょう",
+                ),
+            ),
+        )
+    )
+
+    quality_count = 0
+    repair_count = 0
+
+    def fake_quality(
+        ai_reading,
+        *,
+        reading_context,
+        consultation_context=None,
+    ):
+        nonlocal quality_count
+        quality_count += 1
+
+        if quality_count == 1:
+            return targeted_warning
+
+        return style_warning_only
+
+    def fake_repair(
+        ai_reading,
+        quality_report,
+        *,
+        reading_context,
+        consultation_context=None,
+        client=None,
+        api_key=None,
+        model=None,
+        sections=None,
+        max_output_tokens=None,
+        reasoning_effort=None,
+        store=None,
+    ):
+        nonlocal repair_count
+        repair_count += 1
+
+        repaired = deepcopy(
+            ai_reading
+        )
+
+        repaired[
+            "sections"
+        ][
+            "wealth"
+        ][
+            "detail"
+        ] = (
+            "用神は火です。"
+            "土は補助として活かします。"
+        )
+
+        return ReadingRepairResult(
+            original=deepcopy(
+                ai_reading
+            ),
+            repaired=repaired,
+            issue_count=1,
+            error_count=0,
+            warning_count=1,
+            repaired_issue_codes=(
+                "useful_gods_role_confusion",
+            ),
+            response_id=(
+                "resp_repair_targeted_warning"
+            ),
+            response_status="completed",
+            model=model or "gpt-5",
+            usage={},
+        )
+
+    monkeypatch.setattr(
+        script_module,
+        "validate_customer_facing_reading",
+        fake_quality,
+    )
+
+    monkeypatch.setattr(
+        script_module,
+        "repair_reading",
+        fake_repair,
+    )
+
+    result = (
+        script_module.generate_customer_reading(
+            sample_intake
+        )
+    )
+
+    assert quality_count == 2
+    assert repair_count == 1
+
+    assert (
+        result[
+            "repair_history"
+        ][
+            "attempt_count"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "repair_history"
+        ][
+            "repaired"
+        ]
+        is True
+    )
+
+    final_codes = {
+        issue["code"]
+        for issue
+        in result[
+            "quality_report"
+        ][
+            "issues"
+        ]
+    }
+
+    assert (
+        "useful_gods_role_confusion"
+        not in final_codes
+    )
+
+    assert (
+        "sentence_ending_overuse"
+        in final_codes
+    )
+
+
+def test_generate_customer_reading_targeted_warning_exhaustion_raises(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    from copy import deepcopy
+
+    from engine.reading_quality import (
+        QualityIssue,
+        ReadingQualityError,
+        ReadingQualityReport,
+    )
+    from engine.reading_repair import (
+        ReadingRepairResult,
+    )
+
+    configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    targeted_warning = (
+        ReadingQualityReport(
+            valid=True,
+            issues=(
+                QualityIssue(
+                    code="useful_gods_role_confusion",
+                    path="sections.wealth.detail",
+                    message=(
+                        "主用神と補助用神が"
+                        "同格の用神として"
+                        "表現されています。"
+                    ),
+                    value="用神は火・土です。",
+                    matched="用神は火・土です。",
+                ),
+            ),
+        )
+    )
+
+    quality_count = 0
+    repair_count = 0
+
+    def always_targeted_warning(
+        ai_reading,
+        *,
+        reading_context,
+        consultation_context=None,
+    ):
+        nonlocal quality_count
+        quality_count += 1
+        return targeted_warning
+
+    def fake_repair(
+        ai_reading,
+        quality_report,
+        *,
+        reading_context,
+        consultation_context=None,
+        client=None,
+        api_key=None,
+        model=None,
+        sections=None,
+        max_output_tokens=None,
+        reasoning_effort=None,
+        store=None,
+    ):
+        nonlocal repair_count
+        repair_count += 1
+
+        return ReadingRepairResult(
+            original=deepcopy(
+                ai_reading
+            ),
+            repaired=deepcopy(
+                ai_reading
+            ),
+            issue_count=1,
+            error_count=0,
+            warning_count=1,
+            repaired_issue_codes=(
+                "useful_gods_role_confusion",
+            ),
+            response_id=(
+                "resp_repair_targeted_"
+                f"{repair_count:03d}"
+            ),
+            response_status="completed",
+            model=model or "gpt-5",
+            usage={},
+        )
+
+    monkeypatch.setattr(
+        script_module,
+        "validate_customer_facing_reading",
+        always_targeted_warning,
+    )
+
+    monkeypatch.setattr(
+        script_module,
+        "repair_reading",
+        fake_repair,
+    )
+
+    with pytest.raises(
+        ReadingQualityError
+    ):
+        script_module.generate_customer_reading(
+            sample_intake
+        )
+
+    assert (
+        repair_count
+        == script_module.MAX_REPAIR_ATTEMPTS
+    )
+
+    assert (
+        quality_count
+        == (
+            1
+            + script_module.MAX_REPAIR_ATTEMPTS
+        )
+    )
+
