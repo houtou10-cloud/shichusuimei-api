@@ -49,6 +49,9 @@ WARNING_ISSUE_CODES = frozenset(
         "within_section_text_repetition",
         "cross_section_phrase_repetition",
         "future_flow_yearly_repetition",
+        "formulaic_phrase_overuse",
+        "sentence_ending_overuse",
+        "future_flow_style_repetition",
     }
 )
 
@@ -226,6 +229,77 @@ INTERNAL_FIELD_NAMES = (
     "ai_usage_policy",
     "schema_version",
 )
+
+
+
+# ============================================================
+# Customer-facing style repetition rules
+# ============================================================
+#
+# ここでは単語そのものではなく、
+# 「AI鑑定で使い回されやすい説明の型」を見る。
+#
+# 一般的な丁寧語
+#   - してください
+#   - しましょう
+#   - 傾向があります
+#   - 流れです
+# は対象外とする。
+FORMULAIC_STYLE_PATTERNS = (
+    (
+        "示されています",
+        re.compile(
+            r"示されています"
+        ),
+    ),
+    (
+        "と読みます",
+        re.compile(
+            r"と読みます"
+        ),
+    ),
+    (
+        "が鍵です",
+        re.compile(
+            r"が鍵です"
+        ),
+    ),
+    (
+        "ことが重要です",
+        re.compile(
+            r"ことが重要です"
+        ),
+    ),
+    (
+        "と考えられます",
+        re.compile(
+            r"と考えられます"
+        ),
+    ),
+)
+
+# 章をまたいで同じ説明語尾が続くと、
+# テンプレート感が強くなる表現だけを対象にする。
+#
+# 「です」「ます」単体は当然対象外。
+SENTENCE_ENDING_STYLE_PATTERNS = (
+    (
+        "といえます",
+        re.compile(
+            r"といえます[。！？!?]?"
+        ),
+    ),
+    (
+        "でしょう",
+        re.compile(
+            r"でしょう[。！？!?]?"
+        ),
+    ),
+)
+
+FORMULAIC_STYLE_MIN_SECTIONS = 4
+SENTENCE_ENDING_MIN_SECTIONS = 5
+FUTURE_FLOW_STYLE_MIN_YEARS = 4
 
 
 SNAKE_CASE_RE = re.compile(
@@ -1206,6 +1280,452 @@ def _section_customer_items(
     )
 
 
+
+def _non_yearly_customer_texts_by_section(
+    ai_reading: Mapping[str, Any],
+) -> dict[str, tuple[CustomerFacingText, ...]]:
+    """
+    通常セクション本文を章単位で返す。
+
+    future_flow.yearly は別の専用検査で扱う。
+    titleは文体反復検査から除外する。
+    """
+
+    result: dict[
+        str,
+        list[CustomerFacingText],
+    ] = {}
+
+    for item in iter_customer_facing_texts(
+        ai_reading
+    ):
+        if (
+            not item.path.startswith(
+                "sections."
+            )
+            or item.kind == "title"
+            or ".yearly["
+            in item.path
+        ):
+            continue
+
+        section_name = (
+            _section_name_from_path(
+                item.path
+            )
+        )
+
+        if not section_name:
+            continue
+
+        result.setdefault(
+            section_name,
+            [],
+        ).append(
+            item
+        )
+
+    return {
+        section_name: tuple(items)
+        for section_name, items
+        in result.items()
+    }
+
+
+def find_formulaic_phrase_overuse(
+    ai_reading: Mapping[str, Any],
+    *,
+    min_sections: int = (
+        FORMULAIC_STYLE_MIN_SECTIONS
+    ),
+) -> tuple[QualityIssue, ...]:
+    """
+    AI鑑定で使い回されやすい定型表現が、
+    多数の章にまたがって反復された場合に検出する。
+
+    2～3章程度の自然な共有は許容する。
+    """
+
+    if (
+        not isinstance(
+            min_sections,
+            int,
+        )
+        or isinstance(
+            min_sections,
+            bool,
+        )
+        or min_sections < 2
+    ):
+        raise ValueError(
+            "min_sectionsは2以上のint"
+            "である必要があります。"
+        )
+
+    section_map = (
+        _non_yearly_customer_texts_by_section(
+            ai_reading
+        )
+    )
+
+    issues: list[
+        QualityIssue
+    ] = []
+
+    for label, pattern in (
+        FORMULAIC_STYLE_PATTERNS
+    ):
+        matched_sections: list[
+            str
+        ] = []
+
+        for section_name, items in (
+            section_map.items()
+        ):
+            if any(
+                pattern.search(
+                    item.text
+                )
+                is not None
+                for item in items
+            ):
+                matched_sections.append(
+                    section_name
+                )
+
+        if (
+            len(
+                matched_sections
+            )
+            < min_sections
+        ):
+            continue
+
+        issues.append(
+            QualityIssue(
+                code=(
+                    "formulaic_phrase_overuse"
+                ),
+                message=(
+                    "同じ説明の定型表現が"
+                    "多数のセクションで"
+                    "繰り返されています。"
+                ),
+                path="sections",
+                value=", ".join(
+                    matched_sections
+                ),
+                matched=label,
+            )
+        )
+
+    return tuple(
+        issues
+    )
+
+
+def find_sentence_ending_overuse(
+    ai_reading: Mapping[str, Any],
+    *,
+    min_sections: int = (
+        SENTENCE_ENDING_MIN_SECTIONS
+    ),
+) -> tuple[QualityIssue, ...]:
+    """
+    同じ説明語尾が多数章で続く場合を検出する。
+
+    一般的な「です・ます」や、
+    adviceの「してください・しましょう」は
+    対象にしない。
+    """
+
+    if (
+        not isinstance(
+            min_sections,
+            int,
+        )
+        or isinstance(
+            min_sections,
+            bool,
+        )
+        or min_sections < 2
+    ):
+        raise ValueError(
+            "min_sectionsは2以上のint"
+            "である必要があります。"
+        )
+
+    section_map = (
+        _non_yearly_customer_texts_by_section(
+            ai_reading
+        )
+    )
+
+    issues: list[
+        QualityIssue
+    ] = []
+
+    for label, pattern in (
+        SENTENCE_ENDING_STYLE_PATTERNS
+    ):
+        matched_sections: list[
+            str
+        ] = []
+
+        for section_name, items in (
+            section_map.items()
+        ):
+            if any(
+                pattern.search(
+                    item.text
+                )
+                is not None
+                for item in items
+            ):
+                matched_sections.append(
+                    section_name
+                )
+
+        if (
+            len(
+                matched_sections
+            )
+            < min_sections
+        ):
+            continue
+
+        issues.append(
+            QualityIssue(
+                code=(
+                    "sentence_ending_overuse"
+                ),
+                message=(
+                    "同じ説明語尾が多数の"
+                    "セクションで続いており、"
+                    "文章が定型的に見えます。"
+                ),
+                path="sections",
+                value=", ".join(
+                    matched_sections
+                ),
+                matched=label,
+            )
+        )
+
+    return tuple(
+        issues
+    )
+
+
+def _future_flow_yearly_mappings(
+    ai_reading: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], ...]:
+    reading = _require_mapping(
+        ai_reading,
+        name="ai_reading",
+    )
+
+    sections = reading.get(
+        "sections"
+    )
+
+    if not isinstance(
+        sections,
+        Mapping,
+    ):
+        return ()
+
+    future_flow = sections.get(
+        "future_flow"
+    )
+
+    if not isinstance(
+        future_flow,
+        Mapping,
+    ):
+        return ()
+
+    yearly = future_flow.get(
+        "yearly"
+    )
+
+    if not (
+        isinstance(
+            yearly,
+            Sequence,
+        )
+        and not isinstance(
+            yearly,
+            (
+                str,
+                bytes,
+                bytearray,
+            ),
+        )
+    ):
+        return ()
+
+    return tuple(
+        item
+        for item in yearly
+        if isinstance(
+            item,
+            Mapping,
+        )
+    )
+
+
+def find_future_flow_style_repetition(
+    ai_reading: Mapping[str, Any],
+    *,
+    min_years: int = (
+        FUTURE_FLOW_STYLE_MIN_YEARS
+    ),
+) -> tuple[QualityIssue, ...]:
+    """
+    future_flow.yearly の年別文章で、
+    同じ定型表現・説明語尾を
+    4年以上にわたって使い回した場合に検出する。
+
+    titleは対象外。
+    adviceの一般的な命令語尾も対象外。
+    """
+
+    if (
+        not isinstance(
+            min_years,
+            int,
+        )
+        or isinstance(
+            min_years,
+            bool,
+        )
+        or min_years < 2
+    ):
+        raise ValueError(
+            "min_yearsは2以上のint"
+            "である必要があります。"
+        )
+
+    yearly = (
+        _future_flow_yearly_mappings(
+            ai_reading
+        )
+    )
+
+    if not yearly:
+        return ()
+
+    # 年ごとに summary / detail だけを対象にする。
+    # adviceは「してください」等が自然に続くため除外。
+    yearly_texts: list[
+        str
+    ] = []
+
+    for item in yearly:
+        yearly_texts.append(
+            " ".join(
+                value
+                for value in (
+                    _normalize_text(
+                        item.get(
+                            "summary"
+                        )
+                    ),
+                    _normalize_text(
+                        item.get(
+                            "detail"
+                        )
+                    ),
+                )
+                if value
+            )
+        )
+
+    style_patterns = (
+        FORMULAIC_STYLE_PATTERNS
+        + SENTENCE_ENDING_STYLE_PATTERNS
+    )
+
+    issues: list[
+        QualityIssue
+    ] = []
+
+    for label, pattern in (
+        style_patterns
+    ):
+        matched_indexes = [
+            index
+            for index, text
+            in enumerate(
+                yearly_texts
+            )
+            if (
+                text
+                and pattern.search(
+                    text
+                )
+                is not None
+            )
+        ]
+
+        if (
+            len(
+                matched_indexes
+            )
+            < min_years
+        ):
+            continue
+
+        matched_years: list[
+            str
+        ] = []
+
+        for index in matched_indexes:
+            raw_year = yearly[
+                index
+            ].get(
+                "year"
+            )
+
+            year_text = (
+                _normalize_text(
+                    raw_year
+                )
+                or str(
+                    index
+                )
+            )
+
+            matched_years.append(
+                year_text
+            )
+
+        issues.append(
+            QualityIssue(
+                code=(
+                    "future_flow_style_repetition"
+                ),
+                message=(
+                    "5年運の複数年で"
+                    "同じ説明の型が"
+                    "繰り返されています。"
+                ),
+                path=(
+                    "sections.future_flow"
+                ),
+                value=", ".join(
+                    matched_years
+                ),
+                matched=label,
+            )
+        )
+
+    return tuple(
+        issues
+    )
+
+
 def find_summary_detail_repetition(
     ai_reading: Mapping[str, Any],
 ) -> tuple[QualityIssue, ...]:
@@ -2117,6 +2637,29 @@ def validate_customer_facing_reading(
         )
     )
 
+    # 販売版v1の文体品質チェック。
+    #
+    # 同じAI的な言い回し・説明語尾の
+    # 過剰反復をwarningとして報告する。
+    # 単独ではPDF生成を停止しない。
+    issues.extend(
+        find_formulaic_phrase_overuse(
+            ai_reading
+        )
+    )
+
+    issues.extend(
+        find_sentence_ending_overuse(
+            ai_reading
+        )
+    )
+
+    issues.extend(
+        find_future_flow_style_repetition(
+            ai_reading
+        )
+    )
+
     issues.extend(
         find_repeated_advice_concepts(
             ai_reading
@@ -2235,6 +2778,9 @@ __all__ = [
     "find_within_section_text_repetition",
     "find_cross_section_phrase_repetition",
     "find_future_flow_yearly_repetition",
+    "find_formulaic_phrase_overuse",
+    "find_sentence_ending_overuse",
+    "find_future_flow_style_repetition",
     "find_repeated_advice_concepts",
     "find_fixed_element_translation_overuse",
     "find_health_specific_overreach",
