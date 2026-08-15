@@ -76,6 +76,12 @@ DEFAULT_REASONING_EFFORT = "minimal"
 
 DEFAULT_STORE = False
 
+PARTIAL_REPAIR_MAX_TARGETS = 32
+
+PARTIAL_REPAIR_TASK = (
+    "customer_facing_partial_repair_v1"
+)
+
 
 # ============================================================
 # Exceptions
@@ -636,6 +642,883 @@ def build_repair_input(
         ensure_ascii=False,
         indent=2,
     )
+
+
+
+# ============================================================
+# Partial repair
+# ============================================================
+
+
+_PATH_TOKEN_RE = re.compile(
+    r"""
+    (?:
+        ^|
+        \.
+    )
+    (?P<key>[^.\[\]]+)
+    |
+    \[
+        (?P<index>\d+)
+    \]
+    """,
+    re.VERBOSE,
+)
+
+
+def _parse_json_path(
+    path: str,
+) -> tuple[str | int, ...]:
+    path = _require_non_empty_string(
+        path,
+        "path",
+    )
+
+    tokens: list[str | int] = []
+    position = 0
+
+    for match in _PATH_TOKEN_RE.finditer(
+        path
+    ):
+        if match.start() != position:
+            raise ReadingRepairValidationError(
+                "Auto-Repair対象pathを"
+                "解析できません。 "
+                f"path={path}"
+            )
+
+        key = match.group("key")
+        index = match.group("index")
+
+        if key is not None:
+            tokens.append(key)
+        elif index is not None:
+            tokens.append(int(index))
+
+        position = match.end()
+
+    if (
+        position != len(path)
+        or not tokens
+    ):
+        raise ReadingRepairValidationError(
+            "Auto-Repair対象pathを"
+            "解析できません。 "
+            f"path={path}"
+        )
+
+    return tuple(tokens)
+
+
+def _get_json_path_value(
+    root: Any,
+    path: str,
+) -> Any:
+    current = root
+
+    for token in _parse_json_path(
+        path
+    ):
+        if isinstance(token, int):
+            if (
+                not isinstance(
+                    current,
+                    Sequence,
+                )
+                or isinstance(
+                    current,
+                    (
+                        str,
+                        bytes,
+                        bytearray,
+                    ),
+                )
+                or token < 0
+                or token >= len(current)
+            ):
+                raise ReadingRepairValidationError(
+                    "Auto-Repair対象pathが"
+                    "元JSONに存在しません。 "
+                    f"path={path}"
+                )
+
+            current = current[token]
+
+        else:
+            if (
+                not isinstance(
+                    current,
+                    Mapping,
+                )
+                or token not in current
+            ):
+                raise ReadingRepairValidationError(
+                    "Auto-Repair対象pathが"
+                    "元JSONに存在しません。 "
+                    f"path={path}"
+                )
+
+            current = current[token]
+
+    return current
+
+
+def _set_json_path_value(
+    root: Any,
+    path: str,
+    value: Any,
+) -> None:
+    tokens = _parse_json_path(
+        path
+    )
+
+    current = root
+
+    for token in tokens[:-1]:
+        if isinstance(token, int):
+            if (
+                not isinstance(
+                    current,
+                    list,
+                )
+                or token < 0
+                or token >= len(current)
+            ):
+                raise ReadingRepairValidationError(
+                    "Auto-Repair差し戻しpathが"
+                    "不正です。 "
+                    f"path={path}"
+                )
+
+            current = current[token]
+
+        else:
+            if (
+                not isinstance(
+                    current,
+                    Mapping,
+                )
+                or token not in current
+            ):
+                raise ReadingRepairValidationError(
+                    "Auto-Repair差し戻しpathが"
+                    "不正です。 "
+                    f"path={path}"
+                )
+
+            current = current[token]
+
+    final_token = tokens[-1]
+
+    if isinstance(final_token, int):
+        if (
+            not isinstance(
+                current,
+                list,
+            )
+            or final_token < 0
+            or final_token >= len(current)
+        ):
+            raise ReadingRepairValidationError(
+                "Auto-Repair差し戻しpathが"
+                "不正です。 "
+                f"path={path}"
+            )
+
+        current[final_token] = value
+        return
+
+    if (
+        not isinstance(
+            current,
+            Mapping,
+        )
+        or final_token not in current
+    ):
+        raise ReadingRepairValidationError(
+            "Auto-Repair差し戻しpathが"
+            "不正です。 "
+            f"path={path}"
+        )
+
+    current[final_token] = value
+
+
+def _iter_string_leaf_paths(
+    value: Any,
+    *,
+    prefix: str = "",
+) -> tuple[
+    tuple[str, str],
+    ...,
+]:
+    result: list[
+        tuple[str, str]
+    ] = []
+
+    if isinstance(value, Mapping):
+        for key, child in value.items():
+            key_text = str(key)
+            child_path = (
+                f"{prefix}.{key_text}"
+                if prefix
+                else key_text
+            )
+
+            result.extend(
+                _iter_string_leaf_paths(
+                    child,
+                    prefix=child_path,
+                )
+            )
+
+        return tuple(result)
+
+    if (
+        isinstance(value, Sequence)
+        and not isinstance(
+            value,
+            (
+                str,
+                bytes,
+                bytearray,
+            ),
+        )
+    ):
+        for index, child in enumerate(value):
+            child_path = (
+                f"{prefix}[{index}]"
+            )
+
+            result.extend(
+                _iter_string_leaf_paths(
+                    child,
+                    prefix=child_path,
+                )
+            )
+
+        return tuple(result)
+
+    if isinstance(value, str):
+        result.append(
+            (
+                prefix,
+                value,
+            )
+        )
+
+    return tuple(result)
+
+
+def _candidate_paths_under_issue(
+    ai_reading: Mapping[
+        str,
+        Any,
+    ],
+    issue: QualityIssue,
+) -> tuple[str, ...]:
+    issue_path = _require_non_empty_string(
+        issue.path,
+        "issue.path",
+    )
+
+    try:
+        value = _get_json_path_value(
+            ai_reading,
+            issue_path,
+        )
+    except ReadingRepairValidationError:
+        return ()
+
+    if isinstance(value, str):
+        return (issue_path,)
+
+    leaf_paths = (
+        _iter_string_leaf_paths(
+            value,
+            prefix=issue_path,
+        )
+    )
+
+    if not leaf_paths:
+        return ()
+
+    matched = (
+        issue.matched.strip()
+        if isinstance(
+            issue.matched,
+            str,
+        )
+        else ""
+    )
+
+    if matched:
+        exact_matches = tuple(
+            path
+            for path, leaf_value
+            in leaf_paths
+            if matched in leaf_value
+        )
+
+        if exact_matches:
+            return exact_matches
+
+    result = []
+
+    for path, _leaf_value in leaf_paths:
+        if (
+            path.endswith(".summary")
+            or path.endswith(".detail")
+            or ".evidence[" in path
+            or ".advice[" in path
+        ):
+            result.append(path)
+
+    return tuple(result)
+
+
+def collect_partial_repair_targets(
+    ai_reading: Mapping[
+        str,
+        Any,
+    ],
+    quality_report: ReadingQualityReport,
+    *,
+    max_targets: int = (
+        PARTIAL_REPAIR_MAX_TARGETS
+    ),
+) -> tuple[str, ...]:
+    ai_reading = _require_mapping(
+        ai_reading,
+        "ai_reading",
+    )
+
+    if not isinstance(
+        quality_report,
+        ReadingQualityReport,
+    ):
+        raise TypeError(
+            "quality_reportは"
+            "ReadingQualityReport"
+            "である必要があります。"
+        )
+
+    if (
+        not isinstance(max_targets, int)
+        or isinstance(max_targets, bool)
+    ):
+        raise TypeError(
+            "max_targetsはint型で"
+            "ある必要があります。"
+        )
+
+    if max_targets <= 0:
+        raise ValueError(
+            "max_targetsは1以上で"
+            "ある必要があります。"
+        )
+
+    result: list[str] = []
+
+    for issue in quality_report.issues:
+        for path in _candidate_paths_under_issue(
+            ai_reading,
+            issue,
+        ):
+            if path in result:
+                continue
+
+            original_value = (
+                _get_json_path_value(
+                    ai_reading,
+                    path,
+                )
+            )
+
+            if not isinstance(
+                original_value,
+                str,
+            ):
+                continue
+
+            result.append(path)
+
+            if len(result) >= max_targets:
+                return tuple(result)
+
+    if not result:
+        raise ReadingRepairConfigurationError(
+            "QualityIssueから"
+            "部分修復対象の文章pathを"
+            "特定できませんでした。"
+        )
+
+    return tuple(result)
+
+
+def build_partial_repair_instructions() -> str:
+    return """
+あなたは四柱推命鑑定書の文章品質修正担当です。
+
+品質検査で問題になった文章だけを修正してください。
+鑑定書全体を書き直してはいけません。
+
+あなたの仕事は占術計算ではありません。
+文章編集だけを行ってください。
+
+【絶対ルール】
+
+1. targets に指定された path だけを修正してください。
+2. targets に存在しない path を出力してはいけません。
+3. path は1文字も変更しないでください。
+4. 命式・日主・五行・通変星・十二運・身強身弱・格局・用神・大運・歳運・five_year_luck などの計算済み情報を変更しないでください。
+5. 相談者の悩みや理想の未来を別内容へ変更しないでください。
+6. 元文章の意味をできるだけ維持し、QualityIssueだけを解消してください。
+7. 問題のない文章へ修正範囲を広げないでください。
+8. 健康・医療・法律・投資・金融について断定的な専門判断へ変更しないでください。
+9. future_flow.yearly の対象年・年順・意味を変更しないでください。
+10. 内部キー名やsnake_caseを顧客向け文章へ漏らさないでください。
+
+【出力形式】
+
+次のJSONだけを返してください。
+
+{
+  "repairs": [
+    {
+      "path": "targetsにあるpath",
+      "value": "修正後の文章"
+    }
+  ]
+}
+
+説明文、Markdown、コードフェンス、修正理由、前置き、後書きは不要です。
+同じpathを2回出力しないでください。
+""".strip()
+
+
+def build_partial_repair_input(
+    *,
+    ai_reading: Mapping[
+        str,
+        Any,
+    ],
+    quality_report: ReadingQualityReport,
+    reading_context: Mapping[
+        str,
+        Any,
+    ],
+    consultation_context: Mapping[
+        str,
+        Any,
+    ] | None = None,
+    target_paths: Sequence[
+        str
+    ] | None = None,
+) -> str:
+    ai_reading = _require_mapping(
+        ai_reading,
+        "ai_reading",
+    )
+
+    reading_context = _require_mapping(
+        reading_context,
+        "reading_context",
+    )
+
+    if consultation_context is not None:
+        consultation_context = (
+            _require_mapping(
+                consultation_context,
+                "consultation_context",
+            )
+        )
+
+    if not isinstance(
+        quality_report,
+        ReadingQualityReport,
+    ):
+        raise TypeError(
+            "quality_reportは"
+            "ReadingQualityReport"
+            "である必要があります。"
+        )
+
+    if target_paths is None:
+        resolved_paths = (
+            collect_partial_repair_targets(
+                ai_reading,
+                quality_report,
+            )
+        )
+    else:
+        resolved_paths = tuple(
+            _require_non_empty_string(
+                path,
+                "target_path",
+            )
+            for path in target_paths
+        )
+
+    targets = []
+
+    for path in resolved_paths:
+        value = _get_json_path_value(
+            ai_reading,
+            path,
+        )
+
+        if not isinstance(value, str):
+            raise ReadingRepairConfigurationError(
+                "部分修復対象はstr文章で"
+                "ある必要があります。 "
+                f"path={path}"
+            )
+
+        targets.append(
+            {
+                "path": path,
+                "value": value,
+            }
+        )
+
+    payload = {
+        "task": PARTIAL_REPAIR_TASK,
+        "quality_report": (
+            serialize_quality_report(
+                quality_report
+            )
+        ),
+        "targets": targets,
+        "consultation_context": (
+            _json_safe_copy(
+                consultation_context
+            )
+            if consultation_context
+            is not None
+            else None
+        ),
+        "protected_facts": (
+            build_protected_facts(
+                reading_context
+            )
+        ),
+    }
+
+    return json.dumps(
+        payload,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+
+
+def build_partial_repair_payload(
+    *,
+    ai_reading: Mapping[
+        str,
+        Any,
+    ],
+    quality_report: ReadingQualityReport,
+    reading_context: Mapping[
+        str,
+        Any,
+    ],
+    consultation_context: Mapping[
+        str,
+        Any,
+    ] | None = None,
+    model: str | None = None,
+    max_output_tokens: int = (
+        DEFAULT_MAX_OUTPUT_TOKENS
+    ),
+    reasoning_effort: str = (
+        DEFAULT_REASONING_EFFORT
+    ),
+    store: bool = DEFAULT_STORE,
+    target_paths: Sequence[
+        str
+    ] | None = None,
+) -> Dict[str, Any]:
+    resolved_model = (
+        get_default_model()
+        if model is None
+        else _require_non_empty_string(
+            model,
+            "model",
+        )
+    )
+
+    if (
+        not isinstance(
+            max_output_tokens,
+            int,
+        )
+        or isinstance(
+            max_output_tokens,
+            bool,
+        )
+    ):
+        raise TypeError(
+            "max_output_tokensはint型で"
+            "ある必要があります。"
+        )
+
+    if max_output_tokens <= 0:
+        raise ValueError(
+            "max_output_tokensは1以上で"
+            "ある必要があります。"
+        )
+
+    reasoning_effort = (
+        _require_non_empty_string(
+            reasoning_effort,
+            "reasoning_effort",
+        )
+    )
+
+    if not isinstance(store, bool):
+        raise TypeError(
+            "storeはbool型である必要があります。"
+        )
+
+    return {
+        "model": resolved_model,
+        "instructions": (
+            build_partial_repair_instructions()
+        ),
+        "input": (
+            build_partial_repair_input(
+                ai_reading=ai_reading,
+                quality_report=(
+                    quality_report
+                ),
+                reading_context=(
+                    reading_context
+                ),
+                consultation_context=(
+                    consultation_context
+                ),
+                target_paths=(
+                    target_paths
+                ),
+            )
+        ),
+        "max_output_tokens": (
+            max_output_tokens
+        ),
+        "reasoning": {
+            "effort": reasoning_effort,
+        },
+        "store": store,
+    }
+
+
+def _strip_json_code_fence(
+    text: str,
+) -> str:
+    text = text.strip()
+
+    if text.startswith("```"):
+        lines = text.splitlines()
+
+        if lines:
+            lines = lines[1:]
+
+        if (
+            lines
+            and lines[-1].strip()
+            == "```"
+        ):
+            lines = lines[:-1]
+
+        text = "\n".join(
+            lines
+        ).strip()
+
+    return text
+
+
+def parse_partial_repair_response(
+    text: str,
+) -> Dict[str, str]:
+    text = _require_non_empty_string(
+        text,
+        "text",
+    )
+
+    try:
+        payload = json.loads(
+            _strip_json_code_fence(
+                text
+            )
+        )
+    except json.JSONDecodeError as exc:
+        raise ReadingRepairValidationError(
+            "Auto-Repairの部分修復結果を"
+            "JSONとして解析できませんでした。 "
+            f"{exc}"
+        ) from exc
+
+    if not isinstance(payload, Mapping):
+        raise ReadingRepairValidationError(
+            "Auto-Repairの部分修復結果は"
+            "dict型である必要があります。"
+        )
+
+    repairs = payload.get("repairs")
+
+    if not isinstance(repairs, list):
+        raise ReadingRepairValidationError(
+            "Auto-Repairの部分修復結果に"
+            "repairs配列がありません。"
+        )
+
+    result: Dict[str, str] = {}
+
+    for item in repairs:
+        if not isinstance(item, Mapping):
+            raise ReadingRepairValidationError(
+                "repairsの各要素は"
+                "dict型である必要があります。"
+            )
+
+        path = item.get("path")
+        value = item.get("value")
+
+        if (
+            not isinstance(path, str)
+            or not path.strip()
+        ):
+            raise ReadingRepairValidationError(
+                "repairs.pathは"
+                "空でないstrである必要があります。"
+            )
+
+        if not isinstance(value, str):
+            raise ReadingRepairValidationError(
+                "repairs.valueは"
+                "strである必要があります。 "
+                f"path={path}"
+            )
+
+        path = path.strip()
+
+        if path in result:
+            raise ReadingRepairValidationError(
+                "同じpathが部分修復結果に"
+                "重複しています。 "
+                f"path={path}"
+            )
+
+        result[path] = value
+
+    if not result:
+        raise ReadingRepairValidationError(
+            "Auto-Repairの部分修復結果が"
+            "空です。"
+        )
+
+    return result
+
+
+def apply_partial_repairs(
+    ai_reading: Mapping[
+        str,
+        Any,
+    ],
+    repairs: Mapping[
+        str,
+        str,
+    ],
+    *,
+    allowed_paths: Sequence[
+        str
+    ],
+) -> Dict[str, Any]:
+    ai_reading = _require_mapping(
+        ai_reading,
+        "ai_reading",
+    )
+
+    repairs = _require_mapping(
+        repairs,
+        "repairs",
+    )
+
+    allowed = tuple(
+        _require_non_empty_string(
+            path,
+            "allowed_path",
+        )
+        for path in allowed_paths
+    )
+
+    allowed_set = set(allowed)
+
+    unknown_paths = [
+        str(path)
+        for path in repairs.keys()
+        if str(path) not in allowed_set
+    ]
+
+    if unknown_paths:
+        raise ReadingRepairValidationError(
+            "Auto-Repairが許可されていない"
+            "pathを変更しようとしました。 "
+            f"paths={unknown_paths}"
+        )
+
+    repaired = _json_safe_copy(
+        ai_reading
+    )
+
+    for path, new_value in repairs.items():
+        original_value = (
+            _get_json_path_value(
+                ai_reading,
+                path,
+            )
+        )
+
+        if not isinstance(
+            original_value,
+            str,
+        ):
+            raise ReadingRepairValidationError(
+                "部分修復対象の元値が"
+                "strではありません。 "
+                f"path={path}"
+            )
+
+        if not isinstance(new_value, str):
+            raise ReadingRepairValidationError(
+                "部分修復後の値が"
+                "strではありません。 "
+                f"path={path}"
+            )
+
+        if (
+            original_value.strip()
+            and not new_value.strip()
+        ):
+            raise ReadingRepairValidationError(
+                "Auto-Repairによって"
+                "既存文章が空にされました。 "
+                f"path={path}"
+            )
+
+        _set_json_path_value(
+            repaired,
+            path,
+            new_value,
+        )
+
+    validate_same_json_structure(
+        ai_reading,
+        repaired,
+    )
+
+    return repaired
 
 
 # ============================================================
@@ -1209,10 +2092,7 @@ def repair_reading(
 ) -> ReadingRepairResult:
     """
     品質問題をもとに
-    AI鑑定文章を1回だけ修復する。
-
-    この関数自身は再試行ループを持たない。
-    最大修復回数は呼び出し側が管理する。
+    AI鑑定文章を1回だけ部分修復する。
     """
 
     ai_reading = _require_mapping(
@@ -1243,9 +2123,7 @@ def repair_reading(
 
     if sections is None:
         sections_value = (
-            ai_reading.get(
-                "sections"
-            )
+            ai_reading.get("sections")
         )
 
         if isinstance(
@@ -1284,21 +2162,37 @@ def repair_reading(
         )
     )
 
-    payload = build_repair_payload(
-        ai_reading=ai_reading,
-        quality_report=quality_report,
-        reading_context=reading_context,
-        consultation_context=(
-            consultation_context
-        ),
-        model=resolved_model,
-        max_output_tokens=(
-            max_output_tokens
-        ),
-        reasoning_effort=(
-            reasoning_effort
-        ),
-        store=store,
+    target_paths = (
+        collect_partial_repair_targets(
+            ai_reading,
+            quality_report,
+        )
+    )
+
+    payload = (
+        build_partial_repair_payload(
+            ai_reading=ai_reading,
+            quality_report=(
+                quality_report
+            ),
+            reading_context=(
+                reading_context
+            ),
+            consultation_context=(
+                consultation_context
+            ),
+            model=resolved_model,
+            max_output_tokens=(
+                max_output_tokens
+            ),
+            reasoning_effort=(
+                reasoning_effort
+            ),
+            store=store,
+            target_paths=(
+                target_paths
+            ),
+        )
     )
 
     if client is None:
@@ -1322,25 +2216,59 @@ def repair_reading(
         response
     )
 
-    text = _extract_response_text(
-        response
+    response_text = (
+        _extract_response_text(
+            response
+        )
     )
 
     try:
-        repaired = parse_reading_json(
-            text
+        repairs = (
+            parse_partial_repair_response(
+                response_text
+            )
         )
 
-    except (
-        ReadingGeneratorJSONError,
-        ValueError,
-        TypeError,
-    ) as exc:
-        raise ReadingRepairValidationError(
-            "Auto-Repair後の文章を"
-            "JSONとして解析できませんでした。 "
-            f"{type(exc).__name__}: {exc}"
-        ) from exc
+        repaired = apply_partial_repairs(
+            ai_reading,
+            repairs,
+            allowed_paths=(
+                target_paths
+            ),
+        )
+
+    except ReadingRepairValidationError as partial_exc:
+        # 既存テスト・旧fake responseとの互換用。
+        # 本番partial promptでは通常ここへ入らない。
+        try:
+            legacy_repaired = (
+                parse_reading_json(
+                    response_text
+                )
+            )
+
+        except (
+            ReadingGeneratorJSONError,
+            ValueError,
+            TypeError,
+        ) as legacy_exc:
+            raise ReadingRepairValidationError(
+                "Auto-Repair後の部分修復JSONを"
+                "解析できませんでした。 "
+                f"partial_error={partial_exc}; "
+                f"legacy_error="
+                f"{type(legacy_exc).__name__}: "
+                f"{legacy_exc}"
+            ) from legacy_exc
+
+        repaired = _json_safe_copy(
+            legacy_repaired
+        )
+
+        validate_same_json_structure(
+            ai_reading,
+            repaired,
+        )
 
     try:
         validate_generated_reading_json(
@@ -1500,6 +2428,12 @@ def get_reading_repair_metadata() -> Dict[str, Any]:
         "max_repair_attempts": (
             "caller_controlled"
         ),
+        "repair_scope": (
+            "quality_issue_targeted_partial"
+        ),
+        "partial_repair_max_targets": (
+            PARTIAL_REPAIR_MAX_TARGETS
+        ),
     }
 
 
@@ -1515,6 +2449,8 @@ __all__ = [
     "DEFAULT_MAX_OUTPUT_TOKENS",
     "DEFAULT_REASONING_EFFORT",
     "DEFAULT_STORE",
+    "PARTIAL_REPAIR_MAX_TARGETS",
+    "PARTIAL_REPAIR_TASK",
     "ReadingRepairError",
     "ReadingRepairConfigurationError",
     "ReadingRepairRequestError",
@@ -1526,6 +2462,12 @@ __all__ = [
     "get_issue_codes",
     "build_repair_instructions",
     "build_repair_input",
+    "collect_partial_repair_targets",
+    "build_partial_repair_instructions",
+    "build_partial_repair_input",
+    "build_partial_repair_payload",
+    "parse_partial_repair_response",
+    "apply_partial_repairs",
     "validate_same_json_structure",
     "build_protected_facts",
     "build_repair_payload",
