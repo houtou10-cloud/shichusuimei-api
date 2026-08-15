@@ -41,7 +41,7 @@ product.json
     ↓
 write_reading_product_pdf()
     ↓
-四柱推命鑑定書_鑑定者名様.pdf
+四柱推命鑑定書.pdf
     ↓
 summary.json
 
@@ -197,11 +197,18 @@ REPAIR_REASONING_EFFORT = "minimal"
 
 REPAIR_STORE = False
 
+# valid=True のwarningでも、
+# 占術上の事実整合性に関わるものは
+# Auto-Repair対象とする。
+AUTO_REPAIR_WARNING_CODES = frozenset(
+    {
+        "useful_gods_role_confusion",
+    }
+)
+
 PRODUCT_TITLE = "四柱推命鑑定書"
 
 DOCUMENT_TITLE = "四柱推命鑑定書"
-
-BRAND_NAME = "四柱推命 八雲"
 
 BIRTH_COUNTRY_TYPE_JAPAN = "japan"
 BIRTH_COUNTRY_TYPE_OVERSEAS = "overseas"
@@ -223,8 +230,8 @@ OUTPUT_ROOT = (
 )
 
 
-PDF_FILENAME_PREFIX = (
-    "四柱推命鑑定書"
+PDF_FILENAME = (
+    "四柱推命鑑定書.pdf"
 )
 
 INTAKE_FILENAME = (
@@ -518,70 +525,6 @@ def normalize_name(
         )
 
     return value
-
-
-def sanitize_filename_component(
-    value: str,
-) -> str:
-    """
-    Windows / macOS / Linux で扱いやすいように、
-    ファイル名へ使用する文字列を安全化する。
-
-    顧客名そのものは変更せず、
-    PDFファイル名へ埋め込むときだけ使用する。
-    """
-
-    value = _require_non_empty_string(
-        value,
-        "ファイル名要素",
-    )
-
-    # Windowsで禁止されている記号と制御文字を置換する。
-    value = re.sub(
-        r'[<>:"/\\|?*\x00-\x1f]',
-        "_",
-        value,
-    )
-
-    # 連続する空白は1文字へまとめる。
-    value = re.sub(
-        r"\s+",
-        " ",
-        value,
-    ).strip()
-
-    # Windowsでは末尾のピリオド・空白を扱えないため除去する。
-    value = value.rstrip(
-        " ."
-    )
-
-    if not value:
-        return "鑑定者"
-
-    # 顧客名はnormalize_name()で100文字以下だが、
-    # パス長の余裕を確保するためファイル名用は80文字へ制限する。
-    return value[:80]
-
-
-def build_pdf_filename(
-    customer_name: str,
-) -> str:
-    """
-    顧客名入りの納品用PDFファイル名を生成する。
-
-    例:
-        佐藤美咲
-        -> 四柱推命鑑定書_佐藤美咲様.pdf
-    """
-
-    safe_name = sanitize_filename_component(
-        customer_name
-    )
-
-    return (
-        f"{PDF_FILENAME_PREFIX}_"
-        f"{safe_name}様.pdf"
-    )
 
 
 def normalize_birth_country_type(
@@ -1074,6 +1017,109 @@ def validate_generation_result(
             "鑑定生成がcompletedではありません。 "
             f"status={result.status}"
         )
+
+
+def get_auto_repair_issue_codes(
+    report: ReadingQualityReport,
+) -> tuple[str, ...]:
+    """
+    valid=Trueでも修復すべき
+    重要warning codeを返す。
+    """
+
+    if not isinstance(
+        report,
+        ReadingQualityReport,
+    ):
+        raise TypeError(
+            "quality_reportが"
+            "ReadingQualityReportではありません。"
+        )
+
+    result: list[str] = []
+
+    for issue in report.issues:
+        if (
+            issue.code
+            in AUTO_REPAIR_WARNING_CODES
+            and issue.code
+            not in result
+        ):
+            result.append(
+                issue.code
+            )
+
+    return tuple(
+        result
+    )
+
+
+def should_auto_repair(
+    report: ReadingQualityReport,
+) -> bool:
+    """
+    Auto-Repair開始・継続条件。
+
+    - errorがある
+    - valid=Trueでも重要warningがある
+    """
+
+    if not isinstance(
+        report,
+        ReadingQualityReport,
+    ):
+        raise TypeError(
+            "quality_reportが"
+            "ReadingQualityReportではありません。"
+        )
+
+    if not report.valid:
+        return True
+
+    return bool(
+        get_auto_repair_issue_codes(
+            report
+        )
+    )
+
+
+def ensure_no_required_repair_issues(
+    report: ReadingQualityReport,
+) -> None:
+    """
+    PDF生成前の最終防波堤。
+
+    valid=Trueでも重要warningが
+    残っていれば停止する。
+    """
+
+    if not isinstance(
+        report,
+        ReadingQualityReport,
+    ):
+        raise TypeError(
+            "quality_reportが"
+            "ReadingQualityReportではありません。"
+        )
+
+    codes = (
+        get_auto_repair_issue_codes(
+            report
+        )
+    )
+
+    if not codes:
+        return
+
+    raise ReadingQualityError(
+        "顧客向け鑑定文章に"
+        "Auto-Repair必須の品質問題が"
+        "残っています。 "
+        "codes="
+        + ", ".join(
+            codes
+        )
+    )
 
 
 def validate_quality_report(
@@ -1777,11 +1823,7 @@ def generate_customer_reading(
 
     pdf_path = (
         customer_dir
-        / build_pdf_filename(
-            normalized_intake[
-                "name"
-            ]
-        )
+        / PDF_FILENAME
     )
 
     summary_path = (
@@ -2148,7 +2190,9 @@ def generate_customer_reading(
 
     if (
         AUTO_REPAIR_ENABLED
-        and not quality_report.valid
+        and should_auto_repair(
+            quality_report
+        )
     ):
         print()
         print(
@@ -2263,7 +2307,9 @@ def generate_customer_reading(
                 f"{quality_report.issue_count}"
             )
 
-            if quality_report.valid:
+            if not should_auto_repair(
+                quality_report
+            ):
                 print(
                     "   OK"
                 )
@@ -2336,6 +2382,10 @@ def generate_customer_reading(
         quality_report
     )
 
+    ensure_no_required_repair_issues(
+        quality_report
+    )
+
     print(
         "   OK"
     )
@@ -2360,15 +2410,6 @@ def generate_customer_reading(
             generation_result,
             title=PRODUCT_TITLE,
             sections=SECTIONS,
-            customer_name=(
-                normalized_intake[
-                    "name"
-                ]
-            ),
-            reading_datetime=(
-                generation_started_at
-            ),
-            brand_name=BRAND_NAME,
         )
     )
 
