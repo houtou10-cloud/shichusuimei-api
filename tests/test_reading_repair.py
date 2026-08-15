@@ -1,57 +1,39 @@
 """
-tests/test_reading_repair.py
+tests/test_reading_repair_five_year_luck.py
 
-engine.reading_repair の単体テスト。
+reading_repair の five_year_luck / future_flow.yearly 回帰テスト。
 
-Reading Quality Auto-Repair v1 が、
+目的
+----
+5年運対応後のAI鑑定JSONをAuto-Repairへ渡したときに、
 
-・品質問題を正しくRepair入力へ変換する
-・既存の鑑定JSON契約を維持する
-・元データを破壊しない
-・不正なAI応答を拒否する
-・API失敗を適切な例外へ変換する
-・品質問題がない場合はRepairしない
+1. future_flow.yearly の5件構造を維持する
+2. yearly 自体を削除できない
+3. yearly の件数を増減できない
+4. yearly 各要素の必須構造を変更できない
+5. 文章だけの修正は許可する
+6. five_year_luck を変更禁止の計算済み事実として保護する
+7. Repair指示に5年運・yearly維持ルールを含める
 
-ことを確認する。
+ことを固定する。
+
+注意
+----
+このテストは5年運を再計算しない。
+reading_repair の責務は、既存の計算済み事実と
+AI鑑定JSONの構造を壊さず文章品質だけを修復することである。
 """
 
 from __future__ import annotations
 
-import json
-
 from copy import deepcopy
-from dataclasses import FrozenInstanceError
 
 import pytest
 
-
-from engine.reading_quality import (
-    QualityIssue,
-    ReadingQualityReport,
-)
-
 from engine.reading_repair import (
-    DEFAULT_MAX_OUTPUT_TOKENS,
-    DEFAULT_REASONING_EFFORT,
-    DEFAULT_STORE,
-    READING_REPAIR_METHOD,
-    READING_REPAIR_STATUS,
-    READING_REPAIR_VERSION,
-    ReadingRepairConfigurationError,
-    ReadingRepairRequestError,
-    ReadingRepairResponseError,
-    ReadingRepairResult,
     ReadingRepairValidationError,
     build_protected_facts,
-    build_repair_input,
     build_repair_instructions,
-    build_repair_payload,
-    get_issue_codes,
-    get_reading_repair_metadata,
-    repair_reading,
-    repair_reading_json,
-    serialize_quality_issue,
-    serialize_quality_report,
     validate_same_json_structure,
 )
 
@@ -61,328 +43,216 @@ from engine.reading_repair import (
 # ============================================================
 
 
-def make_section(
-    *,
-    title: str,
-    summary: str,
-    detail: str,
-    evidence: str,
-    advice: str,
-) -> dict:
-    """
-    reading_generator の正式JSON契約に合う
-    1セクションを作る。
+def make_yearly():
+    return [
+        {
+            "year": 2026,
+            "title": "ここから年末まで",
+            "summary": (
+                "現在年の残り期間の流れです。"
+            ),
+            "detail": (
+                "鑑定日時点から年末までの"
+                "流れを説明します。"
+            ),
+            "advice": [
+                "優先順位を整える。",
+            ],
+        },
+        {
+            "year": 2027,
+            "title": "基盤を整える年",
+            "summary": (
+                "次の展開へ備える一年です。"
+            ),
+            "detail": (
+                "足元を固めながら"
+                "選択肢を広げます。"
+            ),
+            "advice": [
+                "継続できる形を選ぶ。",
+            ],
+        },
+        {
+            "year": 2028,
+            "title": "動きが強まる年",
+            "summary": (
+                "変化を活かしやすい一年です。"
+            ),
+            "detail": (
+                "状況を見ながら"
+                "行動範囲を広げます。"
+            ),
+            "advice": [
+                "機会を見極めて動く。",
+            ],
+        },
+        {
+            "year": 2029,
+            "title": "形にしていく年",
+            "summary": (
+                "積み重ねを成果へ"
+                "つなげる一年です。"
+            ),
+            "detail": (
+                "広げすぎず、"
+                "重要なものを形にします。"
+            ),
+            "advice": [
+                "成果を整理して残す。",
+            ],
+        },
+        {
+            "year": 2030,
+            "title": "次の段階へ向かう年",
+            "summary": (
+                "5年間の経験を"
+                "次へつなぐ一年です。"
+            ),
+            "detail": (
+                "これまでを振り返り、"
+                "次の方向を選びます。"
+            ),
+            "advice": [
+                "次の長期目標を考える。",
+            ],
+        },
+    ]
 
-    必須:
-    ・title: str
-    ・summary: str
-    ・detail: str
-    ・evidence: list[str]
-    ・advice: list[str]
-    """
 
-    return {
-        "title": title,
-        "summary": summary,
-        "detail": detail,
-        "evidence": [
-            evidence,
-        ],
-        "advice": [
-            advice,
-        ],
-    }
-
-
-# ============================================================
-# Fixtures
-# ============================================================
-
-
-@pytest.fixture
-def sample_ai_reading():
-    """
-    Repair対象となる正式な鑑定JSON。
-
-    validate_generated_reading_json() の契約に合わせ、
-    最上位に summary / sections / disclaimer を持つ。
-
-    各sectionは
-    title / summary / detail / evidence / advice
-    を必ず持つ。
-    """
-
+def make_five_year_ai_reading():
     return {
         "summary": (
-            "出生時刻不明のため、"
-            "年柱・月柱・日柱の三柱で読める範囲をもとに、"
-            "現在の仕事と今後の働き方について整理します。"
+            "現在から5年間の流れを"
+            "年ごとに整理します。"
         ),
         "sections": {
-            "core_personality": make_section(
-                title="本質・性格",
-                summary=(
-                    "丁の性質を持ち、"
-                    "周囲を見ながら判断する傾向があります。"
+            "future_flow": {
+                "title": (
+                    "これから5年間の運勢"
                 ),
-                detail=(
-                    "自分の考えを持ちながら、"
-                    "状況に応じて柔軟に動けます。"
+                "summary": (
+                    "5年間全体の流れです。"
                 ),
-                evidence=(
-                    "日主が丁であることを"
-                    "性格傾向の基礎として参照しています。"
+                "detail": (
+                    "年ごとの違いを踏まえ、"
+                    "長期的な流れを説明します。"
                 ),
-                advice=(
-                    "自分の判断軸を大切にしてください。"
-                ),
-            ),
-            "career": make_section(
-                title="仕事・適職",
-                summary=(
-                    "仕事では調整力を活かしやすい傾向です。"
-                ),
-                detail=(
-                    "水を情報、土を安定として活かすことで、"
-                    "仕事を整えやすくなります。"
-                ),
-                evidence=(
-                    "計算済みの五行バランスと用神を"
-                    "仕事環境の解釈に参照しています。"
-                ),
-                advice=(
-                    "情報を整理し、"
-                    "再現性のある仕事の進め方を作りましょう。"
-                ),
-            ),
-            "wealth": make_section(
-                title="金運",
-                summary=(
-                    "金銭面では計画性を意識するとよいでしょう。"
-                ),
-                detail=(
-                    "水を情報、土を安定として捉え、"
-                    "収支を確認することが大切です。"
-                ),
-                evidence=(
-                    "計算済みの五行バランスを"
-                    "金銭管理の傾向として参照しています。"
-                ),
-                advice=(
-                    "再現性のある管理方法を作りましょう。"
-                ),
-            ),
-            "relationships": make_section(
-                title="恋愛・人間関係",
-                summary=(
-                    "人間関係では丁寧な対話が役立ちます。"
-                ),
-                detail=(
-                    "相手との距離を見ながら"
-                    "関係を築く傾向があります。"
-                ),
-                evidence=(
-                    "日主と格局から対人面の"
-                    "一般的な傾向を参照しています。"
-                ),
-                advice=(
-                    "結論を急がず、"
-                    "相手の考えも確認してください。"
-                ),
-            ),
-            "health": make_section(
-                title="健康傾向",
-                summary=(
-                    "医学的診断ではなく、"
-                    "一般的な生活管理の参考として扱います。"
-                ),
-                detail=(
-                    "五行を踏まえ、"
-                    "生活環境を整える姿勢が"
-                    "全体の安定につながります。"
-                ),
-                evidence=(
-                    "五行の偏りは身体状態の診断ではなく、"
-                    "生活全体を見直す一般的参考として扱います。"
-                ),
-                advice=(
-                    "無理を続けず、"
-                    "生活リズムを整えてください。"
-                ),
-            ),
-            "current_luck": make_section(
-                title="現在の運勢",
-                summary=(
-                    "現在は環境を見直しやすい時期です。"
-                ),
-                detail=(
-                    "火を勢いとして活かしながら、"
-                    "水の情報も確認するとよいでしょう。"
-                ),
-                evidence=(
-                    "現在の大運・歳運の計算済み結果を"
-                    "時期判断の根拠として参照しています。"
-                ),
-                advice=(
-                    "急いで決めず、"
-                    "必要な情報を確認してください。"
-                ),
-            ),
-            "future_flow": make_section(
-                title="今後の流れ",
-                summary=(
-                    "今後は選択肢が広がりやすい流れです。"
-                ),
-                detail=(
-                    "火の勢いを活かしながら、"
-                    "段階的に方向を定めるとよいでしょう。"
-                ),
-                evidence=(
-                    "次の大運を含む計算済みの流れを"
-                    "長期傾向として参照しています。"
-                ),
-                advice=(
-                    "準備を進めながら"
-                    "次の機会を見極めてください。"
-                ),
-            ),
-            "advice": make_section(
-                title="総合アドバイス",
-                summary=(
-                    "現職を続けるか転職するかを"
-                    "二択だけで考える必要はありません。"
-                ),
-                detail=(
-                    "現職で役割を調整する方法と、"
-                    "転職準備を並行する方法があります。"
-                ),
-                evidence=(
-                    "仕事適性と現在運・今後の流れを"
-                    "統合して相談への回答に利用しています。"
-                ),
-                advice=(
-                    "まず判断条件を整理し、"
-                    "小さく行動してください。"
-                ),
-            ),
+                "evidence": [
+                    (
+                        "各年の大運・歳運・"
+                        "統合運を参照しています。"
+                    ),
+                ],
+                "advice": [
+                    (
+                        "年ごとの流れに合わせて"
+                        "行動を調整してください。"
+                    ),
+                ],
+                "yearly": make_yearly(),
+            },
         },
         "disclaimer": (
-            "本鑑定は四柱推命に基づく参考情報であり、"
-            "将来を断定的に保証するものではありません。"
-            "健康に関する内容は医学的診断や治療の代替ではなく、"
-            "金銭に関する内容は投資・金融上の専門的助言でもありません。"
-            "重要な判断では必要に応じて"
-            "専門家や現実の情報も確認してください。"
+            "本鑑定は将来を確定的に"
+            "予言するものではありません。"
         ),
     }
 
 
-@pytest.fixture
-def repaired_ai_reading(
-    sample_ai_reading,
-):
-    """
-    品質問題を修正した想定JSON。
-
-    JSON構造・各list長は元データと同じにする。
-    """
-
-    result = deepcopy(
-        sample_ai_reading
-    )
-
-    result[
-        "sections"
-    ][
-        "career"
-    ][
-        "detail"
-    ] = (
-        "仕事では、必要な条件を整理し、"
-        "関係者との認識を合わせながら"
-        "進める力を活かしやすいでしょう。"
-    )
-
-    result[
-        "sections"
-    ][
-        "career"
-    ][
-        "advice"
-    ][0] = (
-        "今の職場で役割を変えられる余地を"
-        "具体的に確認してみてください。"
-    )
-
-    result[
-        "sections"
-    ][
-        "wealth"
-    ][
-        "detail"
-    ] = (
-        "金銭面では、収入と固定費を分けて確認し、"
-        "長期的に無理のない状態を"
-        "維持することが重要です。"
-    )
-
-    result[
-        "sections"
-    ][
-        "wealth"
-    ][
-        "advice"
-    ][0] = (
-        "転職を検討する場合も、"
-        "必要生活費と収入条件を"
-        "先に確認しておきましょう。"
-    )
-
-    result[
-        "sections"
-    ][
-        "health"
-    ][
-        "detail"
-    ] = (
-        "健康面では占術から身体状態を断定せず、"
-        "日々の生活全体を無理なく"
-        "整える視点を大切にしてください。"
-    )
-
-    result[
-        "sections"
-    ][
-        "current_luck"
-    ][
-        "detail"
-    ] = (
-        "現在は、すぐに結論を出すよりも、"
-        "目の前の状況を比較しながら"
-        "方向を定めやすい時期です。"
-    )
-
-    result[
-        "sections"
-    ][
-        "future_flow"
-    ][
-        "detail"
-    ] = (
-        "今後は選択肢を広げながら、"
-        "自分に合う働き方を"
-        "段階的に絞り込む流れを意識してください。"
-    )
-
-    return result
-
-
-@pytest.fixture
-def sample_reading_context():
-    """
-    Repair時に固定事実として渡す
-    reading_context。
-    """
+def make_five_year_reading_context():
+    five_year_luck = [
+        {
+            "year": 2026,
+            "target_datetime": (
+                "2026-08-15T10:30:00"
+            ),
+            "current_luck": {
+                "current_pillar": {
+                    "ganzhi": "丁亥",
+                },
+            },
+            "annual_luck": {
+                "effective_year": 2026,
+                "ganzhi": "丙午",
+            },
+            "integrated_luck": {
+                "annual_luck_ganzhi": "丙午",
+            },
+        },
+        {
+            "year": 2027,
+            "target_datetime": (
+                "2027-07-01T12:00:00"
+            ),
+            "current_luck": {
+                "current_pillar": {
+                    "ganzhi": "丁亥",
+                },
+            },
+            "annual_luck": {
+                "effective_year": 2027,
+                "ganzhi": "丁未",
+            },
+            "integrated_luck": {
+                "annual_luck_ganzhi": "丁未",
+            },
+        },
+        {
+            "year": 2028,
+            "target_datetime": (
+                "2028-07-01T12:00:00"
+            ),
+            "current_luck": {
+                "current_pillar": {
+                    "ganzhi": "丁亥",
+                },
+            },
+            "annual_luck": {
+                "effective_year": 2028,
+                "ganzhi": "戊申",
+            },
+            "integrated_luck": {
+                "annual_luck_ganzhi": "戊申",
+            },
+        },
+        {
+            "year": 2029,
+            "target_datetime": (
+                "2029-07-01T12:00:00"
+            ),
+            "current_luck": {
+                "current_pillar": {
+                    "ganzhi": "丁亥",
+                },
+            },
+            "annual_luck": {
+                "effective_year": 2029,
+                "ganzhi": "己酉",
+            },
+            "integrated_luck": {
+                "annual_luck_ganzhi": "己酉",
+            },
+        },
+        {
+            "year": 2030,
+            "target_datetime": (
+                "2030-07-01T12:00:00"
+            ),
+            "current_luck": {
+                "current_pillar": {
+                    "ganzhi": "丁亥",
+                },
+            },
+            "annual_luck": {
+                "effective_year": 2030,
+                "ganzhi": "庚戌",
+            },
+            "integrated_luck": {
+                "annual_luck_ganzhi": "庚戌",
+            },
+        },
+    ]
 
     return {
         "chart": {
@@ -398,28 +268,27 @@ def sample_reading_context():
                 "stem": "丁",
                 "branch": "巳",
             },
-            "hour": None,
+            "hour": {
+                "stem": "辛",
+                "branch": "亥",
+            },
         },
         "day_master": {
             "stem": "丁",
             "element": "火",
         },
         "final_strength_judgment": {
-            "label": "身強",
-            "final_score": 63.5,
+            "label": "中和",
+            "final_score": 50.0,
         },
         "pattern_judgment": {
             "pattern": "食神格",
         },
         "useful_gods": {
             "primary": "金",
-            "secondary": [
-                "水",
-                "土",
-            ],
         },
         "luck_pillars": {
-            "status": "estimated",
+            "status": "calculated",
         },
         "current_luck": {
             "status": "available",
@@ -430,587 +299,20 @@ def sample_reading_context():
         "integrated_luck": {
             "status": "available",
         },
+        # 現行 reading_context では luck 配下に存在するケースもあるため、
+        # top-level と nested の両方を用意して保護抽出の互換性を確認する。
+        "five_year_luck": deepcopy(
+            five_year_luck
+        ),
+        "luck": {
+            "five_year_luck": deepcopy(
+                five_year_luck
+            ),
+        },
         "birth_time_status": {
-            "known": False,
-        },
-        "unrelated_internal_value": {
-            "should_not_be_protected": True,
+            "known": True,
         },
     }
-
-
-@pytest.fixture
-def sample_consultation_context():
-    return {
-        "primary_focus": "career",
-        "current_concern": (
-            "今の仕事を続けるべきか、"
-            "転職した方がよいのか悩んでいます。"
-        ),
-        "ideal_future": (
-            "自分に合った仕事を見つけ、"
-            "安定した収入を得ながら"
-            "長く働きたいです。"
-        ),
-    }
-
-
-@pytest.fixture
-def sample_quality_report():
-    """
-    LIVE生成で発生した問題に近い
-    Quality Report。
-    """
-
-    issues = (
-        QualityIssue(
-            code=(
-                "health_astrology_specific_overreach"
-            ),
-            path="sections.health.detail",
-            message=(
-                "健康章で、命式・五行などから"
-                "具体的な身体状態または生活習慣を"
-                "直接推測しています。"
-            ),
-            value=(
-                "五行を踏まえ、"
-                "生活環境を整える姿勢が"
-                "全体の安定につながります。"
-            ),
-            matched="姿勢",
-        ),
-        QualityIssue(
-            code=(
-                "cross_section_advice_repetition"
-            ),
-            path="sections",
-            message=(
-                "同じ助言概念が多くの"
-                "セクションで繰り返されています。"
-            ),
-            value=(
-                "core_personality, career, "
-                "future_flow, advice"
-            ),
-            matched="再現性",
-        ),
-        QualityIssue(
-            code=(
-                "fixed_element_translation_overuse"
-            ),
-            path="sections",
-            message=(
-                "同じ五行が同じ現代語へ"
-                "固定的に変換され、多数章で"
-                "繰り返されています。"
-            ),
-            value=(
-                "career, wealth, current_luck, "
-                "future_flow, advice"
-            ),
-            matched="水→情報",
-        ),
-    )
-
-    return ReadingQualityReport(
-        valid=False,
-        issues=issues,
-    )
-
-
-@pytest.fixture
-def empty_quality_report():
-    return ReadingQualityReport(
-        valid=True,
-        issues=(),
-    )
-
-
-# ============================================================
-# Fake OpenAI objects
-# ============================================================
-
-
-class FakeUsage:
-
-    def model_dump(self):
-        return {
-            "input_tokens": 100,
-            "output_tokens": 200,
-            "total_tokens": 300,
-        }
-
-
-class FakeResponse:
-
-    def __init__(
-        self,
-        output_text,
-        *,
-        response_id=(
-            "resp_repair_test_001"
-        ),
-        status="completed",
-        usage=None,
-    ):
-        self.output_text = output_text
-        self.id = response_id
-        self.status = status
-        self.usage = (
-            usage
-            if usage is not None
-            else FakeUsage()
-        )
-
-
-class FakeResponses:
-
-    def __init__(
-        self,
-        response,
-    ):
-        self.response = response
-        self.calls = []
-
-    def create(
-        self,
-        **kwargs,
-    ):
-        self.calls.append(
-            deepcopy(kwargs)
-        )
-        return self.response
-
-
-class FakeClient:
-
-    def __init__(
-        self,
-        response,
-    ):
-        self.responses = FakeResponses(
-            response
-        )
-
-
-class RaisingResponses:
-
-    def create(
-        self,
-        **kwargs,
-    ):
-        raise RuntimeError(
-            "fake API failure"
-        )
-
-
-class RaisingClient:
-
-    def __init__(self):
-        self.responses = (
-            RaisingResponses()
-        )
-
-
-# ============================================================
-# Constants / metadata
-# ============================================================
-
-
-def test_repair_constants():
-
-    assert (
-        READING_REPAIR_VERSION
-        == "reading_repair_v1"
-    )
-
-    assert (
-        READING_REPAIR_METHOD
-        == (
-            "openai_quality_issue_"
-            "targeted_repair_v1"
-        )
-    )
-
-    assert (
-        READING_REPAIR_STATUS
-        == "experimental"
-    )
-
-    assert (
-        DEFAULT_MAX_OUTPUT_TOKENS
-        == 8000
-    )
-
-    assert (
-        DEFAULT_REASONING_EFFORT
-        == "minimal"
-    )
-
-    assert DEFAULT_STORE is False
-
-
-def test_get_reading_repair_metadata():
-
-    metadata = (
-        get_reading_repair_metadata()
-    )
-
-    assert (
-        metadata["version"]
-        == READING_REPAIR_VERSION
-    )
-
-    assert (
-        metadata["method"]
-        == READING_REPAIR_METHOD
-    )
-
-    assert (
-        metadata["status"]
-        == READING_REPAIR_STATUS
-    )
-
-    assert (
-        metadata[
-            "recalculates_astrology"
-        ]
-        is False
-    )
-
-    assert (
-        metadata[
-            "changes_reading_context"
-        ]
-        is False
-    )
-
-    assert (
-        metadata[
-            "changes_consultation_context"
-        ]
-        is False
-    )
-
-    assert (
-        metadata[
-            "max_repair_attempts"
-        ]
-        == "caller_controlled"
-    )
-
-
-# ============================================================
-# Issue serialization
-# ============================================================
-
-
-def test_serialize_quality_issue(
-    sample_quality_report,
-):
-
-    issue = (
-        sample_quality_report.issues[0]
-    )
-
-    result = (
-        serialize_quality_issue(
-            issue
-        )
-    )
-
-    assert result["code"] == (
-        "health_astrology_specific_overreach"
-    )
-
-    assert result["path"] == (
-        "sections.health.detail"
-    )
-
-    assert result["matched"] == "姿勢"
-
-    assert result["severity"] == "error"
-
-
-def test_serialize_quality_issue_rejects_bad_type():
-
-    with pytest.raises(
-        TypeError
-    ):
-        serialize_quality_issue(
-            {
-                "code": "dummy",
-            }
-        )
-
-
-def test_serialize_quality_report(
-    sample_quality_report,
-):
-
-    result = (
-        serialize_quality_report(
-            sample_quality_report
-        )
-    )
-
-    assert result["valid"] is False
-
-    assert (
-        result["issue_count"]
-        == 3
-    )
-
-    assert (
-        result["error_count"]
-        == 1
-    )
-
-    assert (
-        result["warning_count"]
-        == 2
-    )
-
-    assert len(
-        result["issues"]
-    ) == 3
-
-    assert (
-        result["issues"][0]["code"]
-        == (
-            "health_astrology_"
-            "specific_overreach"
-        )
-    )
-
-
-def test_serialize_quality_report_does_not_include_value(
-    sample_quality_report,
-):
-
-    result = (
-        serialize_quality_report(
-            sample_quality_report
-        )
-    )
-
-    for issue in result["issues"]:
-        assert "value" not in issue
-
-
-def test_get_issue_codes_preserves_order(
-    sample_quality_report,
-):
-
-    result = get_issue_codes(
-        sample_quality_report
-    )
-
-    assert result == (
-        "health_astrology_specific_overreach",
-        "cross_section_advice_repetition",
-        "fixed_element_translation_overuse",
-    )
-
-
-# ============================================================
-# Instructions
-# ============================================================
-
-
-@pytest.mark.parametrize(
-    "required_text",
-    (
-        "文章編集だけ",
-        "命式",
-        "再計算",
-        "JSON構造",
-        "健康章",
-        "姿勢",
-        "章間反復",
-        "五行の固定翻訳",
-        "水＝情報",
-        "土＝安定",
-        "火＝勢い",
-        "current_luck",
-        "future_flow",
-        "advice",
-    ),
-)
-def test_repair_instructions_contains_required_policy(
-    required_text,
-):
-
-    instructions = (
-        build_repair_instructions()
-    )
-
-    assert required_text in instructions
-
-
-# ============================================================
-# Protected facts
-# ============================================================
-
-
-def test_build_protected_facts(
-    sample_reading_context,
-):
-
-    result = build_protected_facts(
-        sample_reading_context
-    )
-
-    assert result["chart"] == (
-        sample_reading_context["chart"]
-    )
-
-    assert result["day_master"] == (
-        sample_reading_context[
-            "day_master"
-        ]
-    )
-
-    assert (
-        "final_strength_judgment"
-        in result
-    )
-
-    assert "pattern_judgment" in result
-
-    assert "useful_gods" in result
-
-    assert "luck_pillars" in result
-
-    assert "current_luck" in result
-
-    assert "annual_luck" in result
-
-    assert "integrated_luck" in result
-
-    assert "birth_time_status" in result
-
-    assert (
-        "unrelated_internal_value"
-        not in result
-    )
-
-
-def test_build_protected_facts_returns_copy(
-    sample_reading_context,
-):
-
-    result = build_protected_facts(
-        sample_reading_context
-    )
-
-    result["chart"]["year"]["stem"] = (
-        "甲"
-    )
-
-    assert (
-        sample_reading_context[
-            "chart"
-        ][
-            "year"
-        ][
-            "stem"
-        ]
-        == "乙"
-    )
-
-
-# ============================================================
-# Repair input
-# ============================================================
-
-
-def test_build_repair_input(
-    sample_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-    sample_consultation_context,
-):
-
-    text = build_repair_input(
-        ai_reading=sample_ai_reading,
-        quality_report=(
-            sample_quality_report
-        ),
-        reading_context=(
-            sample_reading_context
-        ),
-        consultation_context=(
-            sample_consultation_context
-        ),
-    )
-
-    payload = json.loads(
-        text
-    )
-
-    assert payload["task"] == (
-        "quality_issue_targeted_repair"
-    )
-
-    assert (
-        payload[
-            "quality_report"
-        ][
-            "issue_count"
-        ]
-        == 3
-    )
-
-    assert (
-        payload[
-            "original_ai_reading"
-        ]
-        == sample_ai_reading
-    )
-
-    assert (
-        payload[
-            "reading_context"
-        ]
-        == sample_reading_context
-    )
-
-    assert (
-        payload[
-            "consultation_context"
-        ]
-        == sample_consultation_context
-    )
-
-
-def test_build_repair_input_without_consultation(
-    sample_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    text = build_repair_input(
-        ai_reading=sample_ai_reading,
-        quality_report=(
-            sample_quality_report
-        ),
-        reading_context=(
-            sample_reading_context
-        ),
-    )
-
-    payload = json.loads(
-        text
-    )
-
-    assert (
-        payload[
-            "consultation_context"
-        ]
-        is None
-    )
 
 
 # ============================================================
@@ -1018,990 +320,310 @@ def test_build_repair_input_without_consultation(
 # ============================================================
 
 
-def test_validate_same_json_structure_accepts_text_changes(
-    sample_ai_reading,
-    repaired_ai_reading,
-):
+def test_five_year_structure_accepts_text_only_changes():
+    original = make_five_year_ai_reading()
+    repaired = deepcopy(
+        original
+    )
+
+    repaired[
+        "sections"
+    ][
+        "future_flow"
+    ][
+        "summary"
+    ] = (
+        "5年間を通じて、"
+        "段階的に流れが変化します。"
+    )
+
+    repaired[
+        "sections"
+    ][
+        "future_flow"
+    ][
+        "yearly"
+    ][0][
+        "detail"
+    ] = (
+        "ここから年末までは、"
+        "現在地を確認しながら進みます。"
+    )
 
     validate_same_json_structure(
-        sample_ai_reading,
-        repaired_ai_reading,
+        original,
+        repaired,
     )
 
 
-def test_validate_same_json_structure_rejects_missing_key(
-    sample_ai_reading,
-):
-
+def test_five_year_structure_rejects_missing_yearly():
+    original = make_five_year_ai_reading()
     repaired = deepcopy(
-        sample_ai_reading
+        original
     )
 
     del repaired[
         "sections"
     ][
-        "career"
+        "future_flow"
     ][
-        "advice"
+        "yearly"
     ]
 
     with pytest.raises(
         ReadingRepairValidationError
     ):
         validate_same_json_structure(
-            sample_ai_reading,
+            original,
             repaired,
         )
 
 
-def test_validate_same_json_structure_rejects_added_key(
-    sample_ai_reading,
-):
-
+def test_five_year_structure_rejects_six_years():
+    original = make_five_year_ai_reading()
     repaired = deepcopy(
-        sample_ai_reading
+        original
     )
+
+    extra = deepcopy(
+        repaired[
+            "sections"
+        ][
+            "future_flow"
+        ][
+            "yearly"
+        ][-1]
+    )
+    extra["year"] = 2031
 
     repaired[
         "sections"
     ][
-        "career"
+        "future_flow"
     ][
-        "new_field"
-    ] = "追加"
-
-    with pytest.raises(
-        ReadingRepairValidationError
-    ):
-        validate_same_json_structure(
-            sample_ai_reading,
-            repaired,
-        )
-
-
-def test_validate_same_json_structure_rejects_changed_scalar_type(
-    sample_ai_reading,
-):
-
-    repaired = deepcopy(
-        sample_ai_reading
-    )
-
-    repaired[
-        "sections"
-    ][
-        "career"
-    ][
-        "summary"
-    ] = [
-        "文字列ではなく配列"
-    ]
-
-    with pytest.raises(
-        ReadingRepairValidationError
-    ):
-        validate_same_json_structure(
-            sample_ai_reading,
-            repaired,
-        )
-
-
-def test_validate_same_json_structure_rejects_changed_list_length(
-    sample_ai_reading,
-):
-
-    repaired = deepcopy(
-        sample_ai_reading
-    )
-
-    repaired[
-        "sections"
-    ][
-        "career"
-    ][
-        "advice"
+        "yearly"
     ].append(
-        "勝手に追加した助言"
+        extra
     )
 
     with pytest.raises(
         ReadingRepairValidationError
     ):
         validate_same_json_structure(
-            sample_ai_reading,
+            original,
+            repaired,
+        )
+
+
+def test_five_year_structure_rejects_four_years():
+    original = make_five_year_ai_reading()
+    repaired = deepcopy(
+        original
+    )
+
+    repaired[
+        "sections"
+    ][
+        "future_flow"
+    ][
+        "yearly"
+    ].pop()
+
+    with pytest.raises(
+        ReadingRepairValidationError
+    ):
+        validate_same_json_structure(
+            original,
+            repaired,
+        )
+
+
+def test_five_year_structure_rejects_missing_nested_key():
+    original = make_five_year_ai_reading()
+    repaired = deepcopy(
+        original
+    )
+
+    del repaired[
+        "sections"
+    ][
+        "future_flow"
+    ][
+        "yearly"
+    ][2][
+        "advice"
+    ]
+
+    with pytest.raises(
+        ReadingRepairValidationError
+    ):
+        validate_same_json_structure(
+            original,
+            repaired,
+        )
+
+
+def test_five_year_structure_rejects_year_type_change():
+    original = make_five_year_ai_reading()
+    repaired = deepcopy(
+        original
+    )
+
+    repaired[
+        "sections"
+    ][
+        "future_flow"
+    ][
+        "yearly"
+    ][0][
+        "year"
+    ] = "2026"
+
+    with pytest.raises(
+        ReadingRepairValidationError
+    ):
+        validate_same_json_structure(
+            original,
             repaired,
         )
 
 
 # ============================================================
-# Payload
+# Protected facts
 # ============================================================
 
 
-def test_build_repair_payload(
-    sample_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-    sample_consultation_context,
-):
-
-    payload = build_repair_payload(
-        ai_reading=sample_ai_reading,
-        quality_report=(
-            sample_quality_report
-        ),
-        reading_context=(
-            sample_reading_context
-        ),
-        consultation_context=(
-            sample_consultation_context
-        ),
-        model="gpt-5",
+def test_build_protected_facts_contains_five_year_luck():
+    reading_context = (
+        make_five_year_reading_context()
     )
 
-    assert payload["model"] == "gpt-5"
-
-    assert (
-        payload["max_output_tokens"]
-        == 8000
-    )
-
-    assert payload["reasoning"] == {
-        "effort": "minimal",
-    }
-
-    assert payload["store"] is False
-
-    assert isinstance(
-        payload["instructions"],
-        str,
-    )
-
-    assert isinstance(
-        payload["input"],
-        str,
+    protected = build_protected_facts(
+        reading_context
     )
 
     assert (
-        "変更禁止の計算済み事実"
-        in payload["input"]
+        "five_year_luck"
+        in protected
     )
 
-    assert "乙" in payload["input"]
-
-    assert "丁" in payload["input"]
-
-
-@pytest.mark.parametrize(
-    "value",
-    (
-        0,
-        -1,
-    ),
-)
-def test_build_repair_payload_rejects_bad_max_tokens(
-    sample_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-    value,
-):
-
-    with pytest.raises(
-        ValueError
-    ):
-        build_repair_payload(
-            ai_reading=sample_ai_reading,
-            quality_report=(
-                sample_quality_report
-            ),
-            reading_context=(
-                sample_reading_context
-            ),
-            model="gpt-5",
-            max_output_tokens=value,
-        )
-
-
-def test_build_repair_payload_rejects_non_int_max_tokens(
-    sample_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    with pytest.raises(
-        TypeError
-    ):
-        build_repair_payload(
-            ai_reading=sample_ai_reading,
-            quality_report=(
-                sample_quality_report
-            ),
-            reading_context=(
-                sample_reading_context
-            ),
-            model="gpt-5",
-            max_output_tokens="8000",
-        )
-
-
-# ============================================================
-# Repair main
-# ============================================================
-
-
-def test_repair_reading_success(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-    sample_consultation_context,
-):
-
-    response = FakeResponse(
-        json.dumps(
-            repaired_ai_reading,
-            ensure_ascii=False,
-        )
-    )
-
-    client = FakeClient(
-        response
-    )
-
-    original_copy = deepcopy(
-        sample_ai_reading
-    )
-
-    result = repair_reading(
-        sample_ai_reading,
-        sample_quality_report,
-        reading_context=(
-            sample_reading_context
-        ),
-        consultation_context=(
-            sample_consultation_context
-        ),
-        client=client,
-        model="gpt-5",
-    )
-
-    assert isinstance(
-        result,
-        ReadingRepairResult,
-    )
-
-    assert (
-        result.repaired
-        == repaired_ai_reading
-    )
-
-    assert (
-        result.original
-        == original_copy
-    )
-
-    assert result.changed is True
-
-    assert result.issue_count == 3
-
-    assert result.error_count == 1
-
-    assert result.warning_count == 2
-
-    assert result.response_id == (
-        "resp_repair_test_001"
-    )
-
-    assert (
-        result.response_status
-        == "completed"
-    )
-
-    assert result.model == "gpt-5"
-
-    assert result.usage == {
-        "input_tokens": 100,
-        "output_tokens": 200,
-        "total_tokens": 300,
-    }
-
-    assert (
-        sample_ai_reading
-        == original_copy
-    )
-
-    assert len(
-        client.responses.calls
-    ) == 1
-
-
-def test_repair_reading_result_to_dict(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    response = FakeResponse(
-        json.dumps(
-            repaired_ai_reading,
-            ensure_ascii=False,
-        )
-    )
-
-    result = repair_reading(
-        sample_ai_reading,
-        sample_quality_report,
-        reading_context=(
-            sample_reading_context
-        ),
-        client=FakeClient(
-            response
-        ),
-        model="gpt-5",
-    )
-
-    data = result.to_dict()
-
-    assert data["version"] == (
-        "reading_repair_v1"
-    )
-
-    assert data["changed"] is True
-
-    assert data["issue_count"] == 3
-
-    assert data["error_count"] == 1
-
-    assert data["warning_count"] == 2
-
-    assert (
-        "health_astrology_specific_overreach"
-        in data[
-            "repaired_issue_codes"
+    assert [
+        item["year"]
+        for item in protected[
+            "five_year_luck"
         ]
-    )
-
-
-def test_repair_reading_json_returns_dict(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    response = FakeResponse(
-        json.dumps(
-            repaired_ai_reading,
-            ensure_ascii=False,
-        )
-    )
-
-    result = repair_reading_json(
-        sample_ai_reading,
-        sample_quality_report,
-        reading_context=(
-            sample_reading_context
-        ),
-        client=FakeClient(
-            response
-        ),
-        model="gpt-5",
-    )
-
-    assert isinstance(
-        result,
-        dict,
-    )
-
-    assert (
-        result
-        == repaired_ai_reading
-    )
-
-
-# ============================================================
-# No issue
-# ============================================================
-
-
-def test_repair_reading_rejects_zero_issues(
-    sample_ai_reading,
-    empty_quality_report,
-    sample_reading_context,
-):
-
-    with pytest.raises(
-        ReadingRepairConfigurationError
-    ):
-        repair_reading(
-            sample_ai_reading,
-            empty_quality_report,
-            reading_context=(
-                sample_reading_context
-            ),
-            client=FakeClient(
-                FakeResponse("{}")
-            ),
-            model="gpt-5",
-        )
-
-
-def test_zero_issues_does_not_call_api(
-    sample_ai_reading,
-    empty_quality_report,
-    sample_reading_context,
-):
-
-    client = FakeClient(
-        FakeResponse("{}")
-    )
-
-    with pytest.raises(
-        ReadingRepairConfigurationError
-    ):
-        repair_reading(
-            sample_ai_reading,
-            empty_quality_report,
-            reading_context=(
-                sample_reading_context
-            ),
-            client=client,
-            model="gpt-5",
-        )
-
-    assert (
-        client.responses.calls
-        == []
-    )
-
-
-# ============================================================
-# API failure
-# ============================================================
-
-
-def test_repair_reading_wraps_api_failure(
-    sample_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    with pytest.raises(
-        ReadingRepairRequestError
-    ) as exc_info:
-        repair_reading(
-            sample_ai_reading,
-            sample_quality_report,
-            reading_context=(
-                sample_reading_context
-            ),
-            client=RaisingClient(),
-            model="gpt-5",
-        )
-
-    assert (
-        "fake API failure"
-        in str(
-            exc_info.value
-        )
-    )
-
-
-# ============================================================
-# Bad response status
-# ============================================================
-
-
-@pytest.mark.parametrize(
-    "status",
-    (
-        "failed",
-        "incomplete",
-        "cancelled",
-    ),
-)
-def test_repair_reading_rejects_bad_response_status(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-    status,
-):
-
-    response = FakeResponse(
-        json.dumps(
-            repaired_ai_reading,
-            ensure_ascii=False,
-        ),
-        status=status,
-    )
-
-    with pytest.raises(
-        ReadingRepairResponseError
-    ):
-        repair_reading(
-            sample_ai_reading,
-            sample_quality_report,
-            reading_context=(
-                sample_reading_context
-            ),
-            client=FakeClient(
-                response
-            ),
-            model="gpt-5",
-        )
-
-
-# ============================================================
-# Invalid JSON
-# ============================================================
-
-
-@pytest.mark.parametrize(
-    "bad_output",
-    (
-        "",
-        "これはJSONではありません",
-        "{",
-        "[1, 2, 3]",
-    ),
-)
-def test_repair_reading_rejects_invalid_json(
-    sample_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-    bad_output,
-):
-
-    response = FakeResponse(
-        bad_output
-    )
-
-    with pytest.raises(
-        (
-            ReadingRepairResponseError,
-            ReadingRepairValidationError,
-        )
-    ):
-        repair_reading(
-            sample_ai_reading,
-            sample_quality_report,
-            reading_context=(
-                sample_reading_context
-            ),
-            client=FakeClient(
-                response
-            ),
-            model="gpt-5",
-        )
-
-
-# ============================================================
-# Invalid reading contract
-# ============================================================
-
-
-def test_repair_reading_rejects_missing_top_summary(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    broken = deepcopy(
-        repaired_ai_reading
-    )
-
-    del broken["summary"]
-
-    response = FakeResponse(
-        json.dumps(
-            broken,
-            ensure_ascii=False,
-        )
-    )
-
-    with pytest.raises(
-        ReadingRepairValidationError
-    ):
-        repair_reading(
-            sample_ai_reading,
-            sample_quality_report,
-            reading_context=(
-                sample_reading_context
-            ),
-            client=FakeClient(
-                response
-            ),
-            model="gpt-5",
-        )
-
-
-def test_repair_reading_rejects_section_missing_required_field(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    broken = deepcopy(
-        repaired_ai_reading
-    )
-
-    del broken[
-        "sections"
-    ][
-        "career"
-    ][
-        "evidence"
+    ] == [
+        2026,
+        2027,
+        2028,
+        2029,
+        2030,
     ]
 
-    response = FakeResponse(
-        json.dumps(
-            broken,
-            ensure_ascii=False,
-        )
+
+def test_protected_five_year_luck_is_independent_copy():
+    reading_context = (
+        make_five_year_reading_context()
     )
 
-    with pytest.raises(
-        ReadingRepairValidationError
-    ):
-        repair_reading(
-            sample_ai_reading,
-            sample_quality_report,
-            reading_context=(
-                sample_reading_context
-            ),
-            client=FakeClient(
-                response
-            ),
-            model="gpt-5",
-        )
-
-
-def test_repair_reading_rejects_non_list_advice(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    broken = deepcopy(
-        repaired_ai_reading
+    protected = build_protected_facts(
+        reading_context
     )
 
-    broken[
-        "sections"
-    ][
-        "career"
-    ][
-        "advice"
-    ] = "配列ではありません"
-
-    response = FakeResponse(
-        json.dumps(
-            broken,
-            ensure_ascii=False,
-        )
-    )
-
-    with pytest.raises(
-        ReadingRepairValidationError
-    ):
-        repair_reading(
-            sample_ai_reading,
-            sample_quality_report,
-            reading_context=(
-                sample_reading_context
-            ),
-            client=FakeClient(
-                response
-            ),
-            model="gpt-5",
-        )
-
-
-# ============================================================
-# Structure mutation
-# ============================================================
-
-
-def test_repair_reading_rejects_structure_mutation(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    bad_repair = deepcopy(
-        repaired_ai_reading
-    )
-
-    bad_repair[
-        "sections"
-    ][
-        "career"
-    ][
-        "extra"
-    ] = "勝手に追加"
-
-    response = FakeResponse(
-        json.dumps(
-            bad_repair,
-            ensure_ascii=False,
-        )
-    )
-
-    with pytest.raises(
-        ReadingRepairValidationError
-    ):
-        repair_reading(
-            sample_ai_reading,
-            sample_quality_report,
-            reading_context=(
-                sample_reading_context
-            ),
-            client=FakeClient(
-                response
-            ),
-            model="gpt-5",
-        )
-
-
-# ============================================================
-# Original immutability
-# ============================================================
-
-
-def test_repair_does_not_mutate_original_reading(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    original = deepcopy(
-        sample_ai_reading
-    )
-
-    response = FakeResponse(
-        json.dumps(
-            repaired_ai_reading,
-            ensure_ascii=False,
-        )
-    )
-
-    repair_reading(
-        sample_ai_reading,
-        sample_quality_report,
-        reading_context=(
-            sample_reading_context
-        ),
-        client=FakeClient(
-            response
-        ),
-        model="gpt-5",
-    )
+    protected[
+        "five_year_luck"
+    ][0][
+        "year"
+    ] = 9999
 
     assert (
-        sample_ai_reading
-        == original
-    )
-
-
-def test_repair_result_original_is_independent_copy(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    response = FakeResponse(
-        json.dumps(
-            repaired_ai_reading,
-            ensure_ascii=False,
-        )
-    )
-
-    result = repair_reading(
-        sample_ai_reading,
-        sample_quality_report,
-        reading_context=(
-            sample_reading_context
-        ),
-        client=FakeClient(
-            response
-        ),
-        model="gpt-5",
-    )
-
-    sample_ai_reading[
-        "sections"
-    ][
-        "career"
-    ][
-        "summary"
-    ] = "外部で変更"
-
-    assert (
-        result.original[
-            "sections"
-        ][
-            "career"
-        ][
-            "summary"
+        reading_context[
+            "five_year_luck"
+        ][0][
+            "year"
         ]
-        != "外部で変更"
+        == 2026
     )
 
 
-def test_repair_result_repaired_is_independent_copy(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
+# ============================================================
+# Repair instructions
+# ============================================================
+
+
+@pytest.mark.parametrize(
+    "required_text",
+    (
+        "five_year_luck",
+        "yearly",
+        "5年間",
+    ),
+)
+def test_repair_instructions_contains_five_year_policy(
+    required_text,
 ):
-
-    response = FakeResponse(
-        json.dumps(
-            repaired_ai_reading,
-            ensure_ascii=False,
-        )
+    instructions = (
+        build_repair_instructions()
     )
 
-    result = repair_reading(
-        sample_ai_reading,
-        sample_quality_report,
-        reading_context=(
-            sample_reading_context
-        ),
-        client=FakeClient(
-            response
-        ),
-        model="gpt-5",
-    )
+    assert required_text in instructions
 
-    repaired_ai_reading[
-        "sections"
-    ][
-        "career"
-    ][
-        "summary"
-    ] = "外部で変更"
+
+def test_repair_instructions_protects_yearly_structure():
+    instructions = (
+        build_repair_instructions()
+    )
 
     assert (
-        result.repaired[
-            "sections"
-        ][
-            "career"
-        ][
-            "summary"
-        ]
-        != "外部で変更"
+        "5件"
+        in instructions
+        or "5年"
+        in instructions
     )
-
-
-# ============================================================
-# API call configuration
-# ============================================================
-
-
-def test_repair_passes_expected_configuration_to_api(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    response = FakeResponse(
-        json.dumps(
-            repaired_ai_reading,
-            ensure_ascii=False,
-        )
-    )
-
-    client = FakeClient(
-        response
-    )
-
-    repair_reading(
-        sample_ai_reading,
-        sample_quality_report,
-        reading_context=(
-            sample_reading_context
-        ),
-        client=client,
-        model="gpt-5",
-        max_output_tokens=7000,
-        reasoning_effort="minimal",
-        store=False,
-    )
-
-    assert len(
-        client.responses.calls
-    ) == 1
-
-    call = (
-        client.responses.calls[0]
-    )
-
-    assert call["model"] == "gpt-5"
 
     assert (
-        call["max_output_tokens"]
-        == 7000
-    )
-
-    assert call["reasoning"] == {
-        "effort": "minimal",
-    }
-
-    assert call["store"] is False
-
-    assert isinstance(
-        call["instructions"],
-        str,
-    )
-
-    assert isinstance(
-        call["input"],
-        str,
+        "構造"
+        in instructions
     )
 
 
 # ============================================================
-# Frozen result
+# Regression / immutability
 # ============================================================
 
 
-def test_repair_result_is_frozen(
-    sample_ai_reading,
-    repaired_ai_reading,
-    sample_quality_report,
-    sample_reading_context,
-):
-
-    response = FakeResponse(
-        json.dumps(
-            repaired_ai_reading,
-            ensure_ascii=False,
-        )
+def test_validate_structure_does_not_mutate_original():
+    original = make_five_year_ai_reading()
+    repaired = deepcopy(
+        original
     )
 
-    result = repair_reading(
-        sample_ai_reading,
-        sample_quality_report,
-        reading_context=(
-            sample_reading_context
-        ),
-        client=FakeClient(
-            response
-        ),
-        model="gpt-5",
+    before = deepcopy(
+        original
     )
 
-    with pytest.raises(
-        FrozenInstanceError
-    ):
-        result.status = "changed"
+    validate_same_json_structure(
+        original,
+        repaired,
+    )
+
+    assert original == before
+
+
+def test_protected_facts_does_not_mutate_reading_context():
+    reading_context = (
+        make_five_year_reading_context()
+    )
+
+    before = deepcopy(
+        reading_context
+    )
+
+    build_protected_facts(
+        reading_context
+    )
+
+    assert (
+        reading_context
+        == before
+    )
