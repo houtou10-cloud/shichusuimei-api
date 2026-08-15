@@ -181,7 +181,7 @@ LANGUAGE = "ja"
 
 TONE = "professional_warm"
 
-MAX_OUTPUT_TOKENS = 8000
+MAX_OUTPUT_TOKENS = 12000
 
 REASONING_EFFORT = "minimal"
 
