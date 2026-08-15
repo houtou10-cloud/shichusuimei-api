@@ -288,17 +288,18 @@ SENTENCE_ENDING_STYLE_PATTERNS = (
         re.compile(
             r"といえます[。！？!?]?"
         ),
+        5,
     ),
     (
         "でしょう",
         re.compile(
             r"でしょう[。！？!?]?"
         ),
+        7,
     ),
 )
 
 FORMULAIC_STYLE_MIN_SECTIONS = 4
-SENTENCE_ENDING_MIN_SECTIONS = 5
 FUTURE_FLOW_STYLE_MIN_YEARS = 4
 
 
@@ -1426,10 +1427,6 @@ def find_formulaic_phrase_overuse(
 
 def find_sentence_ending_overuse(
     ai_reading: Mapping[str, Any],
-    *,
-    min_sections: int = (
-        SENTENCE_ENDING_MIN_SECTIONS
-    ),
 ) -> tuple[QualityIssue, ...]:
     """
     同じ説明語尾が多数章で続く場合を検出する。
@@ -1438,22 +1435,6 @@ def find_sentence_ending_overuse(
     adviceの「してください・しましょう」は
     対象にしない。
     """
-
-    if (
-        not isinstance(
-            min_sections,
-            int,
-        )
-        or isinstance(
-            min_sections,
-            bool,
-        )
-        or min_sections < 2
-    ):
-        raise ValueError(
-            "min_sectionsは2以上のint"
-            "である必要があります。"
-        )
 
     section_map = (
         _non_yearly_customer_texts_by_section(
@@ -1465,7 +1446,7 @@ def find_sentence_ending_overuse(
         QualityIssue
     ] = []
 
-    for label, pattern in (
+    for label, pattern, min_sections in (
         SENTENCE_ENDING_STYLE_PATTERNS
     ):
         matched_sections: list[
@@ -1658,9 +1639,26 @@ def find_future_flow_style_repetition(
             )
         )
 
-    style_patterns = (
-        FORMULAIC_STYLE_PATTERNS
-        + SENTENCE_ENDING_STYLE_PATTERNS
+    style_patterns = tuple(
+        (
+            label,
+            pattern,
+        )
+        for label, pattern in (
+            FORMULAIC_STYLE_PATTERNS
+        )
+    ) + tuple(
+        (
+            label,
+            pattern,
+        )
+        for (
+            label,
+            pattern,
+            _min_sections,
+        ) in (
+            SENTENCE_ENDING_STYLE_PATTERNS
+        )
     )
 
     issues: list[
