@@ -1626,6 +1626,8 @@ def build_system_prompt(
 - ただし歳運そのものを説明する場合は、「2026年の歳運『丙午』」のように対象年を明示して構いません。
 - 翌年以降は、それぞれ独立した一年のテーマとして説明してください。
 - 5年間すべてを同じ文章量で機械的に並べず、現在年を詳しく、翌年・翌々年をやや詳しく、4年目・5年目を要点中心にまとめてください。
+- JSON出力で future_flow を生成する場合は yearly を必ず5件返し、five_year_luck と同じ年順にしてください。
+- yearly の各要素は year / title / summary / detail / advice を必ず含め、年別の内容を section.detail だけへ押し込まないでください。
 - 最後に5年間を俯瞰し、「追い風になりやすい時期」「慎重さが役立つ時期」「流れの切り替わり」を比較してまとめてください。
 - 各年を「必ず良い」「必ず悪い」と順位づけせず、活かし方と注意点として説明してください。
 
@@ -1732,9 +1734,7 @@ def build_json_output_schema(
     section_properties = {}
 
     for section in normalized:
-        section_properties[
-            section
-        ] = {
+        section_schema = {
             "type": "object",
             "required": [
                 "title",
@@ -1767,6 +1767,60 @@ def build_json_output_schema(
                 },
             },
         }
+
+        # future_flow だけは、
+        # 5年間を年別の構造データとして
+        # 必ず返す。
+        if section == "future_flow":
+            section_schema[
+                "required"
+            ].append(
+                "yearly"
+            )
+
+            section_schema[
+                "properties"
+            ][
+                "yearly"
+            ] = {
+                "type": "array",
+                "minItems": 5,
+                "maxItems": 5,
+                "items": {
+                    "type": "object",
+                    "required": [
+                        "year",
+                        "title",
+                        "summary",
+                        "detail",
+                        "advice",
+                    ],
+                    "properties": {
+                        "year": {
+                            "type": "integer",
+                        },
+                        "title": {
+                            "type": "string",
+                        },
+                        "summary": {
+                            "type": "string",
+                        },
+                        "detail": {
+                            "type": "string",
+                        },
+                        "advice": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                            },
+                        },
+                    },
+                },
+            }
+
+        section_properties[
+            section
+        ] = section_schema
 
     return {
         "type": "object",
@@ -1944,8 +1998,14 @@ def build_user_prompt(
         section_text += (
             "\n\n【future_flow追加指示】\n"
             "- このセクションでは、現在年から5年間を扱ってください。\n"
+            "- title は「これから5年間の運勢」を基本としてください。\n"
+            "- yearly は必ず5件返し、five_year_luck と同じ年順にしてください。\n"
+            "- yearly の year は入力された対象年をそのまま使用してください。\n"
+            "- yearly の各要素には title / summary / detail / advice を必ず含めてください。\n"
             "- 先頭年は鑑定日時点から年末までの残り期間として扱ってください。\n"
+            "- 先頭年の title は「ここから年末まで」など、残り期間であることが自然に伝わる表現にしてください。\n"
             "- 2年目・3年目は比較的詳しく、4年目・5年目は要点を簡潔に整理してください。\n"
+            "- section.summary / section.detail では、年別説明の単純な繰り返しではなく、5年間全体の流れ・転換点・活かしどころを総括してください。\n"
             "- 年ごとの違いを示した後、5年間全体の流れを総括してください。\n"
             "- 単年データを5年間へ引き延ばさず、five_year_luck の各年データを使ってください。"
         )
