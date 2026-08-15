@@ -1,0 +1,255 @@
+{
+  "script_version": "generate_customer_reading_v1_2",
+  "customer_id": "20260815_175752",
+  "customer_name": "山本彩花",
+  "birth": {
+    "birth_date": "1995-11-08",
+    "birth_time": "06:40",
+    "birth_country_type": "japan",
+    "birth_country": "日本",
+    "birth_city": "",
+    "birth_place": "大阪府",
+    "gender": "female"
+  },
+  "birth_time_status": {
+    "known": true,
+    "hour_pillar_available": true,
+    "calculation_scope": "four_pillars",
+    "interpretation_scope": "full_chart",
+    "five_elements_scope": "full_chart",
+    "root_scope": "full_chart",
+    "strength_scope": "full_chart",
+    "pattern_scope": "full_chart",
+    "useful_gods_scope": "full_chart",
+    "relationship_scope": "full_chart",
+    "luck_pillar_sequence_available": true,
+    "luck_start_timing_precision": "normal",
+    "current_luck_precision": "normal",
+    "internal_reference_time_used": false,
+    "internal_reference_time": null,
+    "is_provisional_due_to_unknown_birth_time": false
+  },
+  "pillars": {
+    "year": "乙亥",
+    "month": "丁亥",
+    "day": "癸卯",
+    "hour": "乙卯"
+  },
+  "day_master": "癸",
+  "consultation": {
+    "has_consultation": true,
+    "primary_focus": "relationships",
+    "secondary_focus": [
+      "current_luck",
+      "future_flow"
+    ],
+    "requires_cautious_language": false
+  },
+  "generation": {
+    "model": "gpt-5",
+    "response_status": "completed",
+    "response_id": "resp_0853e427384e4a87016a802a21b70887d092e15b20e99b8480",
+    "usage": {
+      "input_tokens": 21577,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      },
+      "output_tokens": 6240,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 27817
+    },
+    "method": "openai_responses_api_v1",
+    "status": "completed"
+  },
+  "quality": {
+    "valid": true,
+    "issue_count": 5,
+    "error_count": 0,
+    "warning_count": 5,
+    "issues": [
+      {
+        "code": "formulaic_phrase_overuse",
+        "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, relationships, current_luck, future_flow",
+        "matched": "示されています",
+        "severity": "warning"
+      },
+      {
+        "code": "formulaic_phrase_overuse",
+        "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, relationships, current_luck",
+        "matched": "と読みます",
+        "severity": "warning"
+      },
+      {
+        "code": "cross_section_advice_repetition",
+        "message": "同じ助言概念が多くのセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, current_luck, future_flow, advice",
+        "matched": "可視化",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, relationships, current_luck, future_flow",
+        "matched": "木→成長",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, wealth, relationships, health, future_flow, advice",
+        "matched": "土→安定",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "repair": {
+    "enabled": true,
+    "max_attempts": 2,
+    "attempt_count": 0,
+    "repaired": false,
+    "initial_quality": {
+      "valid": true,
+      "issue_count": 5,
+      "error_count": 0,
+      "warning_count": 5,
+      "issues": [
+        {
+          "code": "formulaic_phrase_overuse",
+          "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+          "path": "sections",
+          "value": "career, relationships, current_luck, future_flow",
+          "matched": "示されています",
+          "severity": "warning"
+        },
+        {
+          "code": "formulaic_phrase_overuse",
+          "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, career, wealth, relationships, current_luck",
+          "matched": "と読みます",
+          "severity": "warning"
+        },
+        {
+          "code": "cross_section_advice_repetition",
+          "message": "同じ助言概念が多くのセクションで繰り返されています。",
+          "path": "sections",
+          "value": "career, wealth, current_luck, future_flow, advice",
+          "matched": "可視化",
+          "severity": "warning"
+        },
+        {
+          "code": "fixed_element_translation_overuse",
+          "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, career, relationships, current_luck, future_flow",
+          "matched": "木→成長",
+          "severity": "warning"
+        },
+        {
+          "code": "fixed_element_translation_overuse",
+          "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, wealth, relationships, health, future_flow, advice",
+          "matched": "土→安定",
+          "severity": "warning"
+        }
+      ],
+      "version": "reading_quality_v1",
+      "method": "customer_facing_quality_gate_v1",
+      "status": "ready_for_customer_facing_validation"
+    },
+    "attempts": [],
+    "final_quality": {
+      "valid": true,
+      "issue_count": 5,
+      "error_count": 0,
+      "warning_count": 5,
+      "issues": [
+        {
+          "code": "formulaic_phrase_overuse",
+          "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+          "path": "sections",
+          "value": "career, relationships, current_luck, future_flow",
+          "matched": "示されています",
+          "severity": "warning"
+        },
+        {
+          "code": "formulaic_phrase_overuse",
+          "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, career, wealth, relationships, current_luck",
+          "matched": "と読みます",
+          "severity": "warning"
+        },
+        {
+          "code": "cross_section_advice_repetition",
+          "message": "同じ助言概念が多くのセクションで繰り返されています。",
+          "path": "sections",
+          "value": "career, wealth, current_luck, future_flow, advice",
+          "matched": "可視化",
+          "severity": "warning"
+        },
+        {
+          "code": "fixed_element_translation_overuse",
+          "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, career, relationships, current_luck, future_flow",
+          "matched": "木→成長",
+          "severity": "warning"
+        },
+        {
+          "code": "fixed_element_translation_overuse",
+          "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, wealth, relationships, health, future_flow, advice",
+          "matched": "土→安定",
+          "severity": "warning"
+        }
+      ],
+      "version": "reading_quality_v1",
+      "method": "customer_facing_quality_gate_v1",
+      "status": "ready_for_customer_facing_validation"
+    },
+    "final_valid": true
+  },
+  "pdf": {
+    "path": "output\\customers\\20260815_175752\\四柱推命鑑定書_山本彩花様.pdf",
+    "size_bytes": 1702064
+  },
+  "created_at": "2026-08-15T17:59:31.942199+09:00",
+  "status": "completed",
+  "pdf_metadata": {
+    "version": "reading_pdf_v1",
+    "method": "html_to_pdf_playwright_chromium_v1",
+    "status": "ready",
+    "input_type": "ReadingProduct",
+    "intermediate_type": "html_document",
+    "output_types": [
+      "pdf_file",
+      "pdf_bytes"
+    ],
+    "backend": "playwright_chromium",
+    "page_format": "A4",
+    "print_background": true,
+    "prefer_css_page_size": true,
+    "uses_reading_renderer": true,
+    "recalculates_astrology": false,
+    "rewrites_ai_reading": false,
+    "exposes_generation_metadata": false,
+    "exposes_api_key": false,
+    "async_supported": true
+  }
+}

@@ -27,6 +27,7 @@ reading_renderer_v1
 
 from __future__ import annotations
 
+from datetime import datetime
 from html import escape
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Sequence, Union
@@ -214,6 +215,42 @@ def _display_html(
             value,
             empty=empty,
         )
+    )
+
+
+def _format_japanese_date(
+    value: Any,
+) -> str:
+    """ISO日時または日付を「YYYY年M月D日」へ整形する。"""
+    text = _text(
+        value
+    )
+
+    if not text:
+        return ""
+
+    normalized = text.replace(
+        "Z",
+        "+00:00",
+    )
+
+    try:
+        parsed = datetime.fromisoformat(
+            normalized
+        )
+    except ValueError:
+        try:
+            parsed = datetime.strptime(
+                text[:10],
+                "%Y-%m-%d",
+            )
+        except ValueError:
+            return text
+
+    return (
+        f"{parsed.year}年"
+        f"{parsed.month}月"
+        f"{parsed.day}日"
     )
 
 
@@ -1155,6 +1192,163 @@ def _render_overall_summary(
 """
 
 
+def _render_yearly_flow(
+    section: Mapping[
+        str,
+        Any,
+    ],
+) -> str:
+    """
+    future_flow.yearly を顧客向けHTMLへ描画する。
+
+    - 占術再計算はしない。
+    - ReadingProduct内の年順を維持する。
+    - 不正な要素は安全に無視する。
+    - year は表示用データとして扱い、
+      title / summary / detail / advice は
+      既存Rendererと同じくHTML escapeする。
+    """
+
+    if (
+        section.get("key")
+        != "future_flow"
+    ):
+        return ""
+
+    yearly = section.get(
+        "yearly"
+    )
+
+    if not isinstance(
+        yearly,
+        Sequence,
+    ) or isinstance(
+        yearly,
+        (str, bytes, bytearray),
+    ):
+        return ""
+
+    rendered_items = []
+
+    for item in yearly:
+        if not isinstance(
+            item,
+            Mapping,
+        ):
+            continue
+
+        year = _display_html(
+            item.get(
+                "year"
+            ),
+            empty="",
+        )
+
+        title = _display_html(
+            item.get(
+                "title"
+            ),
+            empty="",
+        )
+
+        summary = _text(
+            item.get(
+                "summary"
+            )
+        )
+
+        detail = _text(
+            item.get(
+                "detail"
+            )
+        )
+
+        advice = _render_list(
+            item.get(
+                "advice"
+            ),
+            css_class=(
+                "yearly-flow-advice-list"
+            ),
+        )
+
+        heading_parts = []
+
+        if year:
+            heading_parts.append(
+                f"""
+                <span class="yearly-flow-year">
+                    {year}
+                </span>
+                """
+            )
+
+        if title:
+            heading_parts.append(
+                f"""
+                <span class="yearly-flow-title">
+                    {title}
+                </span>
+                """
+            )
+
+        if not heading_parts:
+            continue
+
+        summary_html = ""
+
+        if summary:
+            summary_html = f"""
+            <div class="yearly-flow-summary">
+                {_paragraphs(summary)}
+            </div>
+            """
+
+        detail_html = ""
+
+        if detail:
+            detail_html = f"""
+            <div class="yearly-flow-detail">
+                {_paragraphs(detail)}
+            </div>
+            """
+
+        advice_html = ""
+
+        if advice:
+            advice_html = f"""
+            <div class="yearly-flow-advice">
+                <h4>この年の活かし方</h4>
+                {advice}
+            </div>
+            """
+
+        rendered_items.append(
+            f"""
+        <article class="yearly-flow-item">
+            <div class="yearly-flow-header">
+                {''.join(heading_parts)}
+            </div>
+
+            {summary_html}
+
+            {detail_html}
+
+            {advice_html}
+        </article>
+            """
+        )
+
+    if not rendered_items:
+        return ""
+
+    return f"""
+    <div class="yearly-flow">
+        {''.join(rendered_items)}
+    </div>
+    """
+
+
 def _render_section(
     section: Mapping[
         str,
@@ -1214,6 +1408,12 @@ def _render_section(
         </div>
         """
 
+    yearly_html = (
+        _render_yearly_flow(
+            section
+        )
+    )
+
     evidence_html = ""
 
     if evidence:
@@ -1250,6 +1450,8 @@ def _render_section(
     {summary_html}
 
     {detail_html}
+
+    {yearly_html}
 
     {evidence_html}
 
@@ -1405,6 +1607,27 @@ body {
     font-size: 0.95rem;
     letter-spacing: 0.16em;
     opacity: 0.8;
+}
+
+.cover-customer {
+    margin: 2px 0 0;
+    font-size: 1.45rem;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+}
+
+.cover-reading-date {
+    margin: 18px 0 0;
+    font-size: 0.88rem;
+    letter-spacing: 0.1em;
+    opacity: 0.82;
+}
+
+.cover-brand {
+    margin: 34px 0 0;
+    font-size: 0.92rem;
+    letter-spacing: 0.18em;
+    opacity: 0.9;
 }
 
 .reading-card {
@@ -1656,6 +1879,80 @@ body {
     margin-bottom: 28px;
 }
 
+.yearly-flow {
+    margin: 30px 0 8px;
+    display: grid;
+    gap: 18px;
+}
+
+.yearly-flow-item {
+    padding: 22px 24px;
+    background: #fcfaf6;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+}
+
+.yearly-flow-header {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-bottom: 14px;
+}
+
+.yearly-flow-year {
+    color: var(--accent);
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.yearly-flow-year::after {
+    content: "年";
+}
+
+.yearly-flow-title {
+    color: var(--deep);
+    font-size: 1.02rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.yearly-flow-summary {
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.yearly-flow-detail {
+    margin-bottom: 14px;
+}
+
+.yearly-flow-advice {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dotted var(--line);
+}
+
+.yearly-flow-advice h4 {
+    margin: 0 0 8px;
+    color: var(--accent);
+    font-size: 0.86rem;
+    letter-spacing: 0.06em;
+}
+
+.yearly-flow-advice-list {
+    margin: 0;
+    padding-left: 1.4em;
+}
+
+.yearly-flow-advice-list li {
+    margin: 6px 0;
+}
+
 .section-block {
     margin-top: 28px;
     padding-top: 20px;
@@ -1727,6 +2024,14 @@ body {
         padding: 28px 20px;
     }
 
+    .yearly-flow-item {
+        padding: 18px 16px;
+    }
+
+    .yearly-flow-header {
+        gap: 6px 10px;
+    }
+
     .info-grid,
     .chart-summary-grid,
     .luck-grid {
@@ -1796,6 +2101,11 @@ body {
     .reading-section {
         break-inside: auto;
         page-break-inside: auto;
+    }
+
+    .yearly-flow-item {
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 
     .section-lead,
@@ -1876,6 +2186,47 @@ def render_reading_product_html(
         )
     )
 
+    customer_name = _text(
+        subject.get(
+            "name"
+        )
+    )
+
+    metadata = _safe_mapping(
+        product.metadata
+    )
+
+    reading_date = _format_japanese_date(
+        metadata.get(
+            "created_at"
+        )
+    )
+
+    brand_name = _text(
+        metadata.get(
+            "brand_name"
+        )
+    )
+
+    if customer_name:
+        cover_detail = f"""
+    <p class="cover-customer">
+        {_html(customer_name)} 様
+    </p>
+
+    {f'<p class="cover-reading-date">鑑定日　{_html(reading_date)}</p>' if reading_date else ''}
+
+    {f'<p class="cover-brand">{_html(brand_name)}</p>' if brand_name else ''}
+        """
+    else:
+        # 後方互換: パーソナライズ情報がない既存商品は
+        # 従来どおり生年月日を表示する。
+        cover_detail = f"""
+    <p class="cover-subtitle">
+        {birth_date}
+    </p>
+        """
+
     return f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -1908,9 +2259,7 @@ def render_reading_product_html(
 
     <div class="cover-line"></div>
 
-    <p class="cover-subtitle">
-        {birth_date}
-    </p>
+    {cover_detail}
 
 </header>
 
@@ -1925,7 +2274,7 @@ def render_reading_product_html(
 {_render_disclaimer(product)}
 
 <footer class="document-footer">
-    四柱推命鑑定
+    {_html(brand_name or "四柱推命鑑定")}
 </footer>
 
 </main>

@@ -1,0 +1,110 @@
+{
+  "enabled": true,
+  "max_attempts": 2,
+  "attempt_count": 0,
+  "repaired": false,
+  "initial_quality": {
+    "valid": true,
+    "issue_count": 5,
+    "error_count": 0,
+    "warning_count": 5,
+    "issues": [
+      {
+        "code": "formulaic_phrase_overuse",
+        "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, relationships, current_luck, future_flow",
+        "matched": "示されています",
+        "severity": "warning"
+      },
+      {
+        "code": "formulaic_phrase_overuse",
+        "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, relationships, current_luck",
+        "matched": "と読みます",
+        "severity": "warning"
+      },
+      {
+        "code": "cross_section_advice_repetition",
+        "message": "同じ助言概念が多くのセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, current_luck, future_flow, advice",
+        "matched": "可視化",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, relationships, current_luck, future_flow",
+        "matched": "木→成長",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, wealth, relationships, health, future_flow, advice",
+        "matched": "土→安定",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "attempts": [],
+  "final_quality": {
+    "valid": true,
+    "issue_count": 5,
+    "error_count": 0,
+    "warning_count": 5,
+    "issues": [
+      {
+        "code": "formulaic_phrase_overuse",
+        "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, relationships, current_luck, future_flow",
+        "matched": "示されています",
+        "severity": "warning"
+      },
+      {
+        "code": "formulaic_phrase_overuse",
+        "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, relationships, current_luck",
+        "matched": "と読みます",
+        "severity": "warning"
+      },
+      {
+        "code": "cross_section_advice_repetition",
+        "message": "同じ助言概念が多くのセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, current_luck, future_flow, advice",
+        "matched": "可視化",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, relationships, current_luck, future_flow",
+        "matched": "木→成長",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, wealth, relationships, health, future_flow, advice",
+        "matched": "土→安定",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "final_valid": true
+}

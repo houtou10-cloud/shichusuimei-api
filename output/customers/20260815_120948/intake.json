@@ -1,0 +1,15 @@
+{
+  "customer_id": "20260815_120948",
+  "name": "佐藤美咲",
+  "birth_date": "1990-03-25",
+  "birth_time": "14:30",
+  "birth_country_type": "japan",
+  "birth_country": "日本",
+  "birth_city": "",
+  "birth_place": "東京都",
+  "gender": "female",
+  "concern": "転職して新しい仕事に挑戦したいのですが、収入が下がる可能性があり決断できずにいます。",
+  "desired_future": "自分の強みを活かせる仕事で収入を安定させ、将来的には専門性を高めていきたいです。",
+  "created_at": "2026-08-15T12:09:48.953217+09:00",
+  "schema_version": "customer_intake_v1"
+}

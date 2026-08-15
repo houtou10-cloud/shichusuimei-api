@@ -47,6 +47,10 @@ summary.json
 14. 例外処理
 15. main()の終了コード
 16. 最終品質ゲート
+17. 表紙への顧客名引き渡し
+18. 表紙への鑑定日時引き渡し
+19. 表紙へのブランド名引き渡し
+20. 顧客名入りPDFファイル名
 
 このテストはOpenAI APIを呼ばない。
 Playwrightも起動しない。
@@ -849,6 +853,7 @@ def configure_full_fake_pipeline(
     captured = {
         "generate_reading": None,
         "product": None,
+        "product_options": None,
     }
 
     def fake_generate_reading(
@@ -887,6 +892,9 @@ def configure_full_fake_pipeline(
         *,
         title,
         sections,
+        customer_name=None,
+        reading_datetime=None,
+        brand_name=None,
     ):
         product = FakeProduct(
             title=title,
@@ -900,6 +908,20 @@ def configure_full_fake_pipeline(
         captured[
             "product"
         ] = product
+
+        captured[
+            "product_options"
+        ] = {
+            "customer_name": (
+                customer_name
+            ),
+            "reading_datetime": (
+                reading_datetime
+            ),
+            "brand_name": (
+                brand_name
+            ),
+        }
 
         return product
 
@@ -2431,6 +2453,163 @@ def test_generate_customer_reading_v1_1_final_gate(
     )
 
 
+
+# ============================================================
+# Cover / PDF filename regression
+# ============================================================
+
+
+def test_build_customer_pdf_filename_contains_customer_name(
+    script_module,
+):
+    """
+    PDFファイル名は、
+    顧客名入りの販売用仕様を維持する。
+    """
+
+    filename = (
+        script_module.build_customer_pdf_filename(
+            "田中浩二"
+        )
+    )
+
+    assert (
+        filename
+        == "四柱推命鑑定書_田中浩二様.pdf"
+    )
+
+
+def test_build_customer_pdf_filename_removes_windows_invalid_chars(
+    script_module,
+):
+    """
+    顧客名にWindows予約文字が含まれても、
+    安全なPDF名へ整形する。
+    """
+
+    filename = (
+        script_module.build_customer_pdf_filename(
+            '田中/浩二:*?'
+        )
+    )
+
+    assert (
+        filename
+        == "四柱推命鑑定書_田中浩二様.pdf"
+    )
+
+
+def test_generate_customer_reading_passes_cover_personalization(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    """
+    表紙用の顧客名・鑑定日時・ブランド名が、
+    build_reading_product()へ
+    必ず引き渡されることを固定する。
+    """
+
+    captured = configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    result = (
+        script_module.generate_customer_reading(
+            sample_intake
+        )
+    )
+
+    options = captured[
+        "product_options"
+    ]
+
+    assert options is not None
+
+    assert (
+        options[
+            "customer_name"
+        ]
+        == "山田太郎"
+    )
+
+    assert (
+        options[
+            "reading_datetime"
+        ]
+        is not None
+    )
+
+    assert (
+        options[
+            "brand_name"
+        ]
+        == "四柱推命 八雲"
+    )
+
+    assert (
+        result[
+            "pdf_path"
+        ].name
+        == "四柱推命鑑定書_山田太郎様.pdf"
+    )
+
+
+def test_generate_customer_reading_pdf_filename_changes_with_customer(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    """
+    固定名へ回帰しないことを確認する。
+
+    顧客名が変わればPDF名も変わる。
+    """
+
+    intake = deepcopy(
+        sample_intake
+    )
+
+    intake[
+        "name"
+    ] = "佐藤美咲"
+
+    configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    result = (
+        script_module.generate_customer_reading(
+            intake
+        )
+    )
+
+    assert (
+        result[
+            "pdf_path"
+        ].name
+        == "四柱推命鑑定書_佐藤美咲様.pdf"
+    )
+
+
 # ============================================================
 # Auto-Repair integration
 # ============================================================
@@ -2984,3 +3163,415 @@ def test_generate_customer_reading_auto_repair_exhaustion_raises(
         repair_count
         == script_module.MAX_REPAIR_ATTEMPTS
     )
+
+# ============================================================
+# Targeted warning Auto-Repair
+# ============================================================
+
+
+def test_should_auto_repair_valid_report_with_useful_gods_warning(
+    script_module,
+):
+    from engine.reading_quality import (
+        QualityIssue,
+        ReadingQualityReport,
+    )
+
+    report = ReadingQualityReport(
+        valid=True,
+        issues=(
+            QualityIssue(
+                code="useful_gods_role_confusion",
+                path="sections.wealth.detail",
+                message=(
+                    "主用神と補助用神が"
+                    "同格の用神として"
+                    "表現されています。"
+                ),
+                value="用神は金・水・土です。",
+                matched="用神は金・水・土です。",
+            ),
+        ),
+    )
+
+    assert (
+        script_module.should_auto_repair(
+            report
+        )
+        is True
+    )
+
+    assert (
+        script_module.get_auto_repair_issue_codes(
+            report
+        )
+        == (
+            "useful_gods_role_confusion",
+        )
+    )
+
+
+def test_should_not_auto_repair_style_warning_only(
+    script_module,
+):
+    from engine.reading_quality import (
+        QualityIssue,
+        ReadingQualityReport,
+    )
+
+    report = ReadingQualityReport(
+        valid=True,
+        issues=(
+            QualityIssue(
+                code="sentence_ending_overuse",
+                path="sections",
+                message=(
+                    "同じ説明語尾が"
+                    "多数章で続いています。"
+                ),
+                value="career, wealth",
+                matched="でしょう",
+            ),
+        ),
+    )
+
+    assert (
+        script_module.should_auto_repair(
+            report
+        )
+        is False
+    )
+
+    assert (
+        script_module.get_auto_repair_issue_codes(
+            report
+        )
+        == ()
+    )
+
+
+def test_generate_customer_reading_repairs_targeted_warning_even_when_valid(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    from copy import deepcopy
+
+    from engine.reading_quality import (
+        QualityIssue,
+        ReadingQualityReport,
+    )
+    from engine.reading_repair import (
+        ReadingRepairResult,
+    )
+
+    configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    targeted_warning = (
+        ReadingQualityReport(
+            valid=True,
+            issues=(
+                QualityIssue(
+                    code="useful_gods_role_confusion",
+                    path="sections.wealth.detail",
+                    message=(
+                        "主用神と補助用神が"
+                        "同格の用神として"
+                        "表現されています。"
+                    ),
+                    value="用神は火・土です。",
+                    matched="用神は火・土です。",
+                ),
+            ),
+        )
+    )
+
+    style_warning_only = (
+        ReadingQualityReport(
+            valid=True,
+            issues=(
+                QualityIssue(
+                    code="sentence_ending_overuse",
+                    path="sections",
+                    message=(
+                        "同じ説明語尾が"
+                        "多数章で続いています。"
+                    ),
+                    value="career, wealth",
+                    matched="でしょう",
+                ),
+            ),
+        )
+    )
+
+    quality_count = 0
+    repair_count = 0
+
+    def fake_quality(
+        ai_reading,
+        *,
+        reading_context,
+        consultation_context=None,
+    ):
+        nonlocal quality_count
+        quality_count += 1
+
+        if quality_count == 1:
+            return targeted_warning
+
+        return style_warning_only
+
+    def fake_repair(
+        ai_reading,
+        quality_report,
+        *,
+        reading_context,
+        consultation_context=None,
+        client=None,
+        api_key=None,
+        model=None,
+        sections=None,
+        max_output_tokens=None,
+        reasoning_effort=None,
+        store=None,
+    ):
+        nonlocal repair_count
+        repair_count += 1
+
+        repaired = deepcopy(
+            ai_reading
+        )
+
+        repaired[
+            "sections"
+        ][
+            "wealth"
+        ][
+            "detail"
+        ] = (
+            "用神は火です。"
+            "土は補助として活かします。"
+        )
+
+        return ReadingRepairResult(
+            original=deepcopy(
+                ai_reading
+            ),
+            repaired=repaired,
+            issue_count=1,
+            error_count=0,
+            warning_count=1,
+            repaired_issue_codes=(
+                "useful_gods_role_confusion",
+            ),
+            response_id=(
+                "resp_repair_targeted_warning"
+            ),
+            response_status="completed",
+            model=model or "gpt-5",
+            usage={},
+        )
+
+    monkeypatch.setattr(
+        script_module,
+        "validate_customer_facing_reading",
+        fake_quality,
+    )
+
+    monkeypatch.setattr(
+        script_module,
+        "repair_reading",
+        fake_repair,
+    )
+
+    result = (
+        script_module.generate_customer_reading(
+            sample_intake
+        )
+    )
+
+    assert quality_count == 2
+    assert repair_count == 1
+
+    assert (
+        result[
+            "repair_history"
+        ][
+            "attempt_count"
+        ]
+        == 1
+    )
+
+    assert (
+        result[
+            "repair_history"
+        ][
+            "repaired"
+        ]
+        is True
+    )
+
+    final_codes = {
+        issue["code"]
+        for issue
+        in result[
+            "quality_report"
+        ][
+            "issues"
+        ]
+    }
+
+    assert (
+        "useful_gods_role_confusion"
+        not in final_codes
+    )
+
+    assert (
+        "sentence_ending_overuse"
+        in final_codes
+    )
+
+
+def test_generate_customer_reading_targeted_warning_exhaustion_raises(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    from copy import deepcopy
+
+    from engine.reading_quality import (
+        QualityIssue,
+        ReadingQualityError,
+        ReadingQualityReport,
+    )
+    from engine.reading_repair import (
+        ReadingRepairResult,
+    )
+
+    configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    targeted_warning = (
+        ReadingQualityReport(
+            valid=True,
+            issues=(
+                QualityIssue(
+                    code="useful_gods_role_confusion",
+                    path="sections.wealth.detail",
+                    message=(
+                        "主用神と補助用神が"
+                        "同格の用神として"
+                        "表現されています。"
+                    ),
+                    value="用神は火・土です。",
+                    matched="用神は火・土です。",
+                ),
+            ),
+        )
+    )
+
+    quality_count = 0
+    repair_count = 0
+
+    def always_targeted_warning(
+        ai_reading,
+        *,
+        reading_context,
+        consultation_context=None,
+    ):
+        nonlocal quality_count
+        quality_count += 1
+        return targeted_warning
+
+    def fake_repair(
+        ai_reading,
+        quality_report,
+        *,
+        reading_context,
+        consultation_context=None,
+        client=None,
+        api_key=None,
+        model=None,
+        sections=None,
+        max_output_tokens=None,
+        reasoning_effort=None,
+        store=None,
+    ):
+        nonlocal repair_count
+        repair_count += 1
+
+        return ReadingRepairResult(
+            original=deepcopy(
+                ai_reading
+            ),
+            repaired=deepcopy(
+                ai_reading
+            ),
+            issue_count=1,
+            error_count=0,
+            warning_count=1,
+            repaired_issue_codes=(
+                "useful_gods_role_confusion",
+            ),
+            response_id=(
+                "resp_repair_targeted_"
+                f"{repair_count:03d}"
+            ),
+            response_status="completed",
+            model=model or "gpt-5",
+            usage={},
+        )
+
+    monkeypatch.setattr(
+        script_module,
+        "validate_customer_facing_reading",
+        always_targeted_warning,
+    )
+
+    monkeypatch.setattr(
+        script_module,
+        "repair_reading",
+        fake_repair,
+    )
+
+    with pytest.raises(
+        ReadingQualityError
+    ):
+        script_module.generate_customer_reading(
+            sample_intake
+        )
+
+    assert (
+        repair_count
+        == script_module.MAX_REPAIR_ATTEMPTS
+    )
+
+    assert (
+        quality_count
+        == (
+            1
+            + script_module.MAX_REPAIR_ATTEMPTS
+        )
+    )
+

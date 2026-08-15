@@ -1,0 +1,15 @@
+{
+  "customer_id": "20260815_195512",
+  "name": "田中浩二",
+  "birth_date": "1976-02-14",
+  "birth_time": "10:20",
+  "birth_country_type": "japan",
+  "birth_country": "日本",
+  "birth_city": "",
+  "birth_place": "福岡県",
+  "gender": "male",
+  "concern": "上司や同僚との人間関係に疲れている。仕事自体は嫌いではないが、このまま今の会社に残るべきか迷っている。",
+  "desired_future": "人間関係のストレスを減らし、自分らしく落ち着いて働きたい。今の職場に残るか環境を変えるか判断し、安定した働き方を実現したい。",
+  "created_at": "2026-08-15T19:55:12.272088+09:00",
+  "schema_version": "customer_intake_v1"
+}

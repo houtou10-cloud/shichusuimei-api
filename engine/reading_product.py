@@ -172,6 +172,48 @@ def _utc_now_iso() -> str:
     )
 
 
+def _datetime_to_iso(
+    value: Any,
+) -> str:
+    """
+    商品生成日時をISO 8601文字列へ正規化する。
+
+    Noneの場合は従来どおりUTC現在時刻を使用する。
+    datetimeが渡された場合は、その日時を基準にする。
+    """
+    if value is None:
+        return _utc_now_iso()
+
+    if isinstance(
+        value,
+        datetime,
+    ):
+        if value.tzinfo is None:
+            value = value.astimezone()
+
+        return (
+            value
+            .replace(
+                microsecond=0
+            )
+            .isoformat()
+        )
+
+    if isinstance(
+        value,
+        str,
+    ):
+        value = value.strip()
+
+        if value:
+            return value
+
+    raise TypeError(
+        "created_atはdatetime、ISO形式文字列、"
+        "またはNoneで指定してください。"
+    )
+
+
 def normalize_product_sections(
     sections: Optional[
         Sequence[str]
@@ -297,6 +339,8 @@ def build_product_subject(
         str,
         Any,
     ],
+    *,
+    name: Optional[str] = None,
 ) -> Dict[str, Any]:
     reading_context = _require_mapping(
         reading_context,
@@ -309,7 +353,7 @@ def build_product_subject(
         )
     )
 
-    return {
+    result = {
         "birth_date": subject.get(
             "birth_date"
         ),
@@ -326,6 +370,15 @@ def build_product_subject(
             "timezone"
         ),
     }
+
+    normalized_name = _optional_string(
+        name
+    )
+
+    if normalized_name:
+        result["name"] = normalized_name
+
+    return result
 
 
 def _extract_pillar(
@@ -702,7 +755,7 @@ def build_product_section(
         )
     )
 
-    return {
+    result = {
         "key": section,
         "title": (
             source_title
@@ -749,6 +802,28 @@ def build_product_section(
             and item.strip()
         ],
     }
+
+    # future_flow だけは、
+    # AIが生成した5年間の年別構造を
+    # 商品データまで保持する。
+    #
+    # 他セクションには yearly を追加せず、
+    # 既存の商品JSON契約への影響を最小化する。
+    if (
+        section
+        == "future_flow"
+        and "yearly"
+        in section_data
+    ):
+        result[
+            "yearly"
+        ] = _safe_list(
+            section_data.get(
+                "yearly"
+            )
+        )
+
+    return result
 
 
 def build_product_sections(
@@ -862,14 +937,19 @@ def build_product_metadata(
         str,
         Any,
     ],
+    *,
+    created_at: Any = None,
+    brand_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     reading_context = _require_mapping(
         reading_context,
         "reading_context",
     )
 
-    return {
-        "created_at": _utc_now_iso(),
+    metadata = {
+        "created_at": _datetime_to_iso(
+            created_at
+        ),
         "reading_context_schema": (
             reading_context.get(
                 "schema_version"
@@ -897,6 +977,19 @@ def build_product_metadata(
         "rewrites_ai_reading": False,
     }
 
+    normalized_brand_name = (
+        _optional_string(
+            brand_name
+        )
+    )
+
+    if normalized_brand_name:
+        metadata[
+            "brand_name"
+        ] = normalized_brand_name
+
+    return metadata
+
 
 def build_reading_product(
     reading_context: Mapping[
@@ -909,6 +1002,9 @@ def build_reading_product(
     sections: Optional[
         Sequence[str]
     ] = None,
+    customer_name: Optional[str] = None,
+    reading_datetime: Any = None,
+    brand_name: Optional[str] = None,
 ) -> ReadingProduct:
     reading_context = _require_mapping(
         reading_context,
@@ -979,7 +1075,8 @@ def build_reading_product(
     return ReadingProduct(
         title=title,
         subject=build_product_subject(
-            reading_context
+            reading_context,
+            name=customer_name,
         ),
         chart_summary=build_chart_summary(
             reading_context
@@ -998,7 +1095,11 @@ def build_reading_product(
             generation_result
         ),
         metadata=build_product_metadata(
-            reading_context
+            reading_context,
+            created_at=(
+                reading_datetime
+            ),
+            brand_name=brand_name,
         ),
     )
 

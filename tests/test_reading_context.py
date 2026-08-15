@@ -931,6 +931,7 @@ def test_luck_container_required_keys(
         "current_luck",
         "annual_luck",
         "integrated_luck",
+        "five_year_luck",
     }
 
 

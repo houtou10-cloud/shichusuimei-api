@@ -1,0 +1,94 @@
+{
+  "enabled": true,
+  "max_attempts": 2,
+  "attempt_count": 0,
+  "repaired": false,
+  "initial_quality": {
+    "valid": true,
+    "issue_count": 4,
+    "error_count": 0,
+    "warning_count": 4,
+    "issues": [
+      {
+        "code": "cross_section_advice_repetition",
+        "message": "同じ助言概念が多くのセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, current_luck, future_flow, advice",
+        "matched": "人脈",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, current_luck, future_flow, advice",
+        "matched": "水→情報",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "career, current_luck, future_flow, advice",
+        "matched": "水→人脈",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, wealth, future_flow, advice",
+        "matched": "土→安定",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "attempts": [],
+  "final_quality": {
+    "valid": true,
+    "issue_count": 4,
+    "error_count": 0,
+    "warning_count": 4,
+    "issues": [
+      {
+        "code": "cross_section_advice_repetition",
+        "message": "同じ助言概念が多くのセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, current_luck, future_flow, advice",
+        "matched": "人脈",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, current_luck, future_flow, advice",
+        "matched": "水→情報",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "career, current_luck, future_flow, advice",
+        "matched": "水→人脈",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, wealth, future_flow, advice",
+        "matched": "土→安定",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "final_valid": true
+}

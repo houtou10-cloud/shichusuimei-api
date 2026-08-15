@@ -1,0 +1,228 @@
+{
+  "script_version": "generate_customer_reading_v1_2",
+  "customer_id": "20260815_171715",
+  "customer_name": "梅村基樹",
+  "birth": {
+    "birth_date": "1984-07-10",
+    "birth_time": "22:45",
+    "birth_country_type": "japan",
+    "birth_country": "日本",
+    "birth_city": "",
+    "birth_place": "愛知県",
+    "gender": "male"
+  },
+  "birth_time_status": {
+    "known": true,
+    "hour_pillar_available": true,
+    "calculation_scope": "four_pillars",
+    "interpretation_scope": "full_chart",
+    "five_elements_scope": "full_chart",
+    "root_scope": "full_chart",
+    "strength_scope": "full_chart",
+    "pattern_scope": "full_chart",
+    "useful_gods_scope": "full_chart",
+    "relationship_scope": "full_chart",
+    "luck_pillar_sequence_available": true,
+    "luck_start_timing_precision": "normal",
+    "current_luck_precision": "normal",
+    "internal_reference_time_used": false,
+    "internal_reference_time": null,
+    "is_provisional_due_to_unknown_birth_time": false
+  },
+  "pillars": {
+    "year": "甲子",
+    "month": "辛未",
+    "day": "乙巳",
+    "hour": "丁亥"
+  },
+  "day_master": "乙",
+  "consultation": {
+    "has_consultation": true,
+    "primary_focus": "career",
+    "secondary_focus": [],
+    "requires_cautious_language": false
+  },
+  "generation": {
+    "model": "gpt-5",
+    "response_status": "completed",
+    "response_id": "resp_01521a876a31d141016a80209ae37c87d08b5b1f5e10a7561d",
+    "usage": {
+      "input_tokens": 21456,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      },
+      "output_tokens": 5489,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 26945
+    },
+    "method": "openai_responses_api_v1",
+    "status": "completed"
+  },
+  "quality": {
+    "valid": true,
+    "issue_count": 4,
+    "error_count": 0,
+    "warning_count": 4,
+    "issues": [
+      {
+        "code": "cross_section_advice_repetition",
+        "message": "同じ助言概念が多くのセクションで繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, advice",
+        "matched": "可視化",
+        "severity": "warning"
+      },
+      {
+        "code": "cross_section_advice_repetition",
+        "message": "同じ助言概念が多くのセクションで繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, future_flow, advice",
+        "matched": "標準化",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, relationships, current_luck",
+        "matched": "水→情報",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, future_flow, advice",
+        "matched": "土→標準化",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "repair": {
+    "enabled": true,
+    "max_attempts": 2,
+    "attempt_count": 0,
+    "repaired": false,
+    "initial_quality": {
+      "valid": true,
+      "issue_count": 4,
+      "error_count": 0,
+      "warning_count": 4,
+      "issues": [
+        {
+          "code": "cross_section_advice_repetition",
+          "message": "同じ助言概念が多くのセクションで繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, career, wealth, advice",
+          "matched": "可視化",
+          "severity": "warning"
+        },
+        {
+          "code": "cross_section_advice_repetition",
+          "message": "同じ助言概念が多くのセクションで繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, career, future_flow, advice",
+          "matched": "標準化",
+          "severity": "warning"
+        },
+        {
+          "code": "fixed_element_translation_overuse",
+          "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+          "path": "sections",
+          "value": "career, wealth, relationships, current_luck",
+          "matched": "水→情報",
+          "severity": "warning"
+        },
+        {
+          "code": "fixed_element_translation_overuse",
+          "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, career, future_flow, advice",
+          "matched": "土→標準化",
+          "severity": "warning"
+        }
+      ],
+      "version": "reading_quality_v1",
+      "method": "customer_facing_quality_gate_v1",
+      "status": "ready_for_customer_facing_validation"
+    },
+    "attempts": [],
+    "final_quality": {
+      "valid": true,
+      "issue_count": 4,
+      "error_count": 0,
+      "warning_count": 4,
+      "issues": [
+        {
+          "code": "cross_section_advice_repetition",
+          "message": "同じ助言概念が多くのセクションで繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, career, wealth, advice",
+          "matched": "可視化",
+          "severity": "warning"
+        },
+        {
+          "code": "cross_section_advice_repetition",
+          "message": "同じ助言概念が多くのセクションで繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, career, future_flow, advice",
+          "matched": "標準化",
+          "severity": "warning"
+        },
+        {
+          "code": "fixed_element_translation_overuse",
+          "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+          "path": "sections",
+          "value": "career, wealth, relationships, current_luck",
+          "matched": "水→情報",
+          "severity": "warning"
+        },
+        {
+          "code": "fixed_element_translation_overuse",
+          "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+          "path": "sections",
+          "value": "core_personality, career, future_flow, advice",
+          "matched": "土→標準化",
+          "severity": "warning"
+        }
+      ],
+      "version": "reading_quality_v1",
+      "method": "customer_facing_quality_gate_v1",
+      "status": "ready_for_customer_facing_validation"
+    },
+    "final_valid": true
+  },
+  "pdf": {
+    "path": "output\\customers\\20260815_171715\\四柱推命鑑定書_梅村基樹様.pdf",
+    "size_bytes": 1697700
+  },
+  "created_at": "2026-08-15T17:18:25.885040+09:00",
+  "status": "completed",
+  "pdf_metadata": {
+    "version": "reading_pdf_v1",
+    "method": "html_to_pdf_playwright_chromium_v1",
+    "status": "ready",
+    "input_type": "ReadingProduct",
+    "intermediate_type": "html_document",
+    "output_types": [
+      "pdf_file",
+      "pdf_bytes"
+    ],
+    "backend": "playwright_chromium",
+    "page_format": "A4",
+    "print_background": true,
+    "prefer_css_page_size": true,
+    "uses_reading_renderer": true,
+    "recalculates_astrology": false,
+    "rewrites_ai_reading": false,
+    "exposes_generation_metadata": false,
+    "exposes_api_key": false,
+    "async_supported": true
+  }
+}

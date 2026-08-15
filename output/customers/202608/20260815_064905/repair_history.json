@@ -1,0 +1,62 @@
+{
+  "enabled": true,
+  "max_attempts": 2,
+  "attempt_count": 0,
+  "repaired": false,
+  "initial_quality": {
+    "valid": true,
+    "issue_count": 2,
+    "error_count": 0,
+    "warning_count": 2,
+    "issues": [
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, advice",
+        "matched": "金→ルール",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, current_luck, future_flow",
+        "matched": "水→情報",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "attempts": [],
+  "final_quality": {
+    "valid": true,
+    "issue_count": 2,
+    "error_count": 0,
+    "warning_count": 2,
+    "issues": [
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, advice",
+        "matched": "金→ルール",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, current_luck, future_flow",
+        "matched": "水→情報",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "final_valid": true
+}

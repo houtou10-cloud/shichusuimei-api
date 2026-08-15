@@ -1,0 +1,15 @@
+{
+  "customer_id": "20260815_180404",
+  "name": "鈴木健太",
+  "birth_date": "1984-07-10",
+  "birth_time": "22:45",
+  "birth_country_type": "japan",
+  "birth_country": "日本",
+  "birth_city": "",
+  "birth_place": "愛知県",
+  "gender": "male",
+  "concern": "本業だけでは将来に不安があり、副業に挑戦しているが成果が出ない。自分に向いている稼ぎ方が分からない。",
+  "desired_future": "自分の強みを活かした副業を育て、安定した副収入を作りたい。5年間で収入源を増やし、経済的な余裕を持ちたい。",
+  "created_at": "2026-08-15T18:04:04.280908+09:00",
+  "schema_version": "customer_intake_v1"
+}

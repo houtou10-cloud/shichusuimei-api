@@ -45,6 +45,14 @@ WARNING_ISSUE_CODES = frozenset(
     {
         "cross_section_advice_repetition",
         "fixed_element_translation_overuse",
+        "summary_detail_repetition",
+        "within_section_text_repetition",
+        "cross_section_phrase_repetition",
+        "future_flow_yearly_repetition",
+        "formulaic_phrase_overuse",
+        "sentence_ending_overuse",
+        "future_flow_style_repetition",
+        "useful_gods_role_confusion",
     }
 )
 
@@ -213,6 +221,7 @@ INTERNAL_FIELD_NAMES = (
     "reading_context",
     "consultation_context",
     "integrated_luck",
+    "five_year_luck",
     "day_master",
     "strength_judgment",
     "weighted_strength_judgment",
@@ -221,6 +230,78 @@ INTERNAL_FIELD_NAMES = (
     "ai_usage_policy",
     "schema_version",
 )
+
+
+
+# ============================================================
+# Customer-facing style repetition rules
+# ============================================================
+#
+# ここでは単語そのものではなく、
+# 「AI鑑定で使い回されやすい説明の型」を見る。
+#
+# 一般的な丁寧語
+#   - してください
+#   - しましょう
+#   - 傾向があります
+#   - 流れです
+# は対象外とする。
+FORMULAIC_STYLE_PATTERNS = (
+    (
+        "示されています",
+        re.compile(
+            r"示されています"
+        ),
+    ),
+    (
+        "と読みます",
+        re.compile(
+            r"と読みます"
+        ),
+    ),
+    (
+        "が鍵です",
+        re.compile(
+            r"が鍵です"
+        ),
+    ),
+    (
+        "ことが重要です",
+        re.compile(
+            r"ことが重要です"
+        ),
+    ),
+    (
+        "と考えられます",
+        re.compile(
+            r"と考えられます"
+        ),
+    ),
+)
+
+# 章をまたいで同じ説明語尾が続くと、
+# テンプレート感が強くなる表現だけを対象にする。
+#
+# 「です」「ます」単体は当然対象外。
+SENTENCE_ENDING_STYLE_PATTERNS = (
+    (
+        "といえます",
+        re.compile(
+            r"といえます[。！？!?]?"
+        ),
+        5,
+    ),
+    (
+        "でしょう",
+        re.compile(
+            r"でしょう[。！？!?]?"
+        ),
+        7,
+    ),
+)
+
+FORMULAIC_STYLE_MIN_SECTIONS = 4
+FUTURE_FLOW_STYLE_MIN_YEARS = 4
 
 
 SNAKE_CASE_RE = re.compile(
@@ -371,6 +452,7 @@ REPEATED_ADVICE_CONCEPTS = (
     "学習",
     "段階的",
     "チェックリスト",
+    "抱え込み",
 )
 
 MAX_ADVICE_CONCEPT_SECTIONS = 3
@@ -589,6 +671,89 @@ def iter_customer_facing_texts(
                         kind=field_name,
                     )
                 )
+
+        # -------------------------------------------------
+        # future_flow.yearly
+        # -------------------------------------------------
+        #
+        # 5年運の年別文章も、通常セクションと同じ
+        # 顧客向け品質ゲートへ流す。
+        #
+        # year は計算済みの構造データなので、
+        # CustomerFacingText には含めない。
+        #
+        # パスは必ず sections.future_flow... 配下に
+        # 維持する。これにより章横断の重複検査では
+        # 5年分を5章ではなく future_flow という
+        # 1章として扱える。
+        if section_name == "future_flow":
+            yearly = section_value.get(
+                "yearly"
+            )
+
+            if (
+                isinstance(yearly, Sequence)
+                and not isinstance(
+                    yearly,
+                    (str, bytes, bytearray),
+                )
+            ):
+                for yearly_index, yearly_value in enumerate(
+                    yearly
+                ):
+                    if not isinstance(
+                        yearly_value,
+                        Mapping,
+                    ):
+                        continue
+
+                    yearly_base_path = (
+                        f"{base_path}."
+                        f"yearly[{yearly_index}]"
+                    )
+
+                    for field_name in (
+                        "title",
+                        "summary",
+                        "detail",
+                    ):
+                        yearly_text = _normalize_text(
+                            yearly_value.get(
+                                field_name
+                            )
+                        )
+
+                        if not yearly_text:
+                            continue
+
+                        results.append(
+                            CustomerFacingText(
+                                path=(
+                                    f"{yearly_base_path}."
+                                    f"{field_name}"
+                                ),
+                                text=yearly_text,
+                                kind=field_name,
+                            )
+                        )
+
+                    for advice_index, advice_text in (
+                        _iter_string_list(
+                            yearly_value.get(
+                                "advice"
+                            )
+                        )
+                    ):
+                        results.append(
+                            CustomerFacingText(
+                                path=(
+                                    f"{yearly_base_path}."
+                                    f"advice[{advice_index}]"
+                                ),
+                                text=advice_text,
+                                kind="advice",
+                            )
+                        )
 
     return tuple(results)
 
@@ -994,6 +1159,1402 @@ def find_unsupported_numeric_claims(
     return tuple(issues)
 
 
+
+def _normalize_repetition_text(
+    value: Any,
+) -> str:
+    """
+    重複比較専用の軽い正規化。
+
+    意味解析やAI判定は行わず、
+    空白・句読点など表記差だけを吸収する。
+    """
+
+    text = _normalize_text(
+        value
+    )
+
+    if not text:
+        return ""
+
+    return re.sub(
+        r"[\s\u3000、。,.・!！?？"
+        r"「」『』（）()【】［］\[\]"
+        r"：:；;／/・\-―—～〜~]+",
+        "",
+        text,
+    ).lower()
+
+
+def _sentence_chunks(
+    value: Any,
+) -> tuple[str, ...]:
+    """
+    同一フィールド内の明確な文反復検出用。
+
+    短すぎる断片は対象外とする。
+    """
+
+    text = _normalize_text(
+        value
+    )
+
+    if not text:
+        return ()
+
+    raw_chunks = re.split(
+        r"[。！？!?\n]+",
+        text,
+    )
+
+    chunks = []
+
+    for raw in raw_chunks:
+        normalized = (
+            _normalize_repetition_text(
+                raw
+            )
+        )
+
+        if len(normalized) < 10:
+            continue
+
+        chunks.append(
+            normalized
+        )
+
+    return tuple(chunks)
+
+
+def _substantial_overlap(
+    first: Any,
+    second: Any,
+    *,
+    min_chars: int = 18,
+) -> bool:
+    """
+    一方の文章がもう一方へほぼ丸ごと含まれる
+    明確な重複だけを検出する。
+
+    キーワード共有だけではTrueにしない。
+    """
+
+    left = _normalize_repetition_text(
+        first
+    )
+    right = _normalize_repetition_text(
+        second
+    )
+
+    if (
+        len(left) < min_chars
+        or len(right) < min_chars
+    ):
+        return False
+
+    if left == right:
+        return True
+
+    shorter, longer = (
+        (left, right)
+        if len(left) <= len(right)
+        else (right, left)
+    )
+
+    return shorter in longer
+
+
+def _section_customer_items(
+    ai_reading: Mapping[str, Any],
+    section_name: str,
+) -> tuple[CustomerFacingText, ...]:
+    return tuple(
+        item
+        for item in iter_customer_facing_texts(
+            ai_reading
+        )
+        if (
+            _section_name_from_path(
+                item.path
+            )
+            == section_name
+        )
+    )
+
+
+
+def _non_yearly_customer_texts_by_section(
+    ai_reading: Mapping[str, Any],
+) -> dict[str, tuple[CustomerFacingText, ...]]:
+    """
+    通常セクション本文を章単位で返す。
+
+    future_flow.yearly は別の専用検査で扱う。
+    titleは文体反復検査から除外する。
+    """
+
+    result: dict[
+        str,
+        list[CustomerFacingText],
+    ] = {}
+
+    for item in iter_customer_facing_texts(
+        ai_reading
+    ):
+        if (
+            not item.path.startswith(
+                "sections."
+            )
+            or item.kind == "title"
+            or ".yearly["
+            in item.path
+        ):
+            continue
+
+        section_name = (
+            _section_name_from_path(
+                item.path
+            )
+        )
+
+        if not section_name:
+            continue
+
+        result.setdefault(
+            section_name,
+            [],
+        ).append(
+            item
+        )
+
+    return {
+        section_name: tuple(items)
+        for section_name, items
+        in result.items()
+    }
+
+
+def find_formulaic_phrase_overuse(
+    ai_reading: Mapping[str, Any],
+    *,
+    min_sections: int = (
+        FORMULAIC_STYLE_MIN_SECTIONS
+    ),
+) -> tuple[QualityIssue, ...]:
+    """
+    AI鑑定で使い回されやすい定型表現が、
+    多数の章にまたがって反復された場合に検出する。
+
+    2～3章程度の自然な共有は許容する。
+    """
+
+    if (
+        not isinstance(
+            min_sections,
+            int,
+        )
+        or isinstance(
+            min_sections,
+            bool,
+        )
+        or min_sections < 2
+    ):
+        raise ValueError(
+            "min_sectionsは2以上のint"
+            "である必要があります。"
+        )
+
+    section_map = (
+        _non_yearly_customer_texts_by_section(
+            ai_reading
+        )
+    )
+
+    issues: list[
+        QualityIssue
+    ] = []
+
+    for label, pattern in (
+        FORMULAIC_STYLE_PATTERNS
+    ):
+        matched_sections: list[
+            str
+        ] = []
+
+        for section_name, items in (
+            section_map.items()
+        ):
+            if any(
+                pattern.search(
+                    item.text
+                )
+                is not None
+                for item in items
+            ):
+                matched_sections.append(
+                    section_name
+                )
+
+        if (
+            len(
+                matched_sections
+            )
+            < min_sections
+        ):
+            continue
+
+        issues.append(
+            QualityIssue(
+                code=(
+                    "formulaic_phrase_overuse"
+                ),
+                message=(
+                    "同じ説明の定型表現が"
+                    "多数のセクションで"
+                    "繰り返されています。"
+                ),
+                path="sections",
+                value=", ".join(
+                    matched_sections
+                ),
+                matched=label,
+            )
+        )
+
+    return tuple(
+        issues
+    )
+
+
+def find_sentence_ending_overuse(
+    ai_reading: Mapping[str, Any],
+) -> tuple[QualityIssue, ...]:
+    """
+    同じ説明語尾が多数章で続く場合を検出する。
+
+    一般的な「です・ます」や、
+    adviceの「してください・しましょう」は
+    対象にしない。
+    """
+
+    section_map = (
+        _non_yearly_customer_texts_by_section(
+            ai_reading
+        )
+    )
+
+    issues: list[
+        QualityIssue
+    ] = []
+
+    for label, pattern, min_sections in (
+        SENTENCE_ENDING_STYLE_PATTERNS
+    ):
+        matched_sections: list[
+            str
+        ] = []
+
+        for section_name, items in (
+            section_map.items()
+        ):
+            # 語尾の単調さは主に説明本文で評価する。
+            #
+            # evidence は「〜と読みます」等の根拠説明が
+            # 自然に反復しやすく、advice も丁寧語が
+            # 繰り返されやすいため、sentence-ending
+            # overuse の集計対象からは除外する。
+            explanatory_items = (
+                item
+                for item in items
+                if item.kind
+                in {
+                    "summary",
+                    "detail",
+                }
+            )
+
+            if any(
+                pattern.search(
+                    item.text
+                )
+                is not None
+                for item in explanatory_items
+            ):
+                matched_sections.append(
+                    section_name
+                )
+
+        if (
+            len(
+                matched_sections
+            )
+            < min_sections
+        ):
+            continue
+
+        issues.append(
+            QualityIssue(
+                code=(
+                    "sentence_ending_overuse"
+                ),
+                message=(
+                    "同じ説明語尾が多数の"
+                    "セクションで続いており、"
+                    "文章が定型的に見えます。"
+                ),
+                path="sections",
+                value=", ".join(
+                    matched_sections
+                ),
+                matched=label,
+            )
+        )
+
+    return tuple(
+        issues
+    )
+
+
+def _future_flow_yearly_mappings(
+    ai_reading: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], ...]:
+    reading = _require_mapping(
+        ai_reading,
+        name="ai_reading",
+    )
+
+    sections = reading.get(
+        "sections"
+    )
+
+    if not isinstance(
+        sections,
+        Mapping,
+    ):
+        return ()
+
+    future_flow = sections.get(
+        "future_flow"
+    )
+
+    if not isinstance(
+        future_flow,
+        Mapping,
+    ):
+        return ()
+
+    yearly = future_flow.get(
+        "yearly"
+    )
+
+    if not (
+        isinstance(
+            yearly,
+            Sequence,
+        )
+        and not isinstance(
+            yearly,
+            (
+                str,
+                bytes,
+                bytearray,
+            ),
+        )
+    ):
+        return ()
+
+    return tuple(
+        item
+        for item in yearly
+        if isinstance(
+            item,
+            Mapping,
+        )
+    )
+
+
+def find_future_flow_style_repetition(
+    ai_reading: Mapping[str, Any],
+    *,
+    min_years: int = (
+        FUTURE_FLOW_STYLE_MIN_YEARS
+    ),
+) -> tuple[QualityIssue, ...]:
+    """
+    future_flow.yearly の年別文章で、
+    同じ定型表現・説明語尾を
+    4年以上にわたって使い回した場合に検出する。
+
+    titleは対象外。
+    adviceの一般的な命令語尾も対象外。
+    """
+
+    if (
+        not isinstance(
+            min_years,
+            int,
+        )
+        or isinstance(
+            min_years,
+            bool,
+        )
+        or min_years < 2
+    ):
+        raise ValueError(
+            "min_yearsは2以上のint"
+            "である必要があります。"
+        )
+
+    yearly = (
+        _future_flow_yearly_mappings(
+            ai_reading
+        )
+    )
+
+    if not yearly:
+        return ()
+
+    # 年ごとに summary / detail だけを対象にする。
+    # adviceは「してください」等が自然に続くため除外。
+    yearly_texts: list[
+        str
+    ] = []
+
+    for item in yearly:
+        yearly_texts.append(
+            " ".join(
+                value
+                for value in (
+                    _normalize_text(
+                        item.get(
+                            "summary"
+                        )
+                    ),
+                    _normalize_text(
+                        item.get(
+                            "detail"
+                        )
+                    ),
+                )
+                if value
+            )
+        )
+
+    style_patterns = tuple(
+        (
+            label,
+            pattern,
+        )
+        for label, pattern in (
+            FORMULAIC_STYLE_PATTERNS
+        )
+    ) + tuple(
+        (
+            label,
+            pattern,
+        )
+        for (
+            label,
+            pattern,
+            _min_sections,
+        ) in (
+            SENTENCE_ENDING_STYLE_PATTERNS
+        )
+    )
+
+    issues: list[
+        QualityIssue
+    ] = []
+
+    for label, pattern in (
+        style_patterns
+    ):
+        matched_indexes = [
+            index
+            for index, text
+            in enumerate(
+                yearly_texts
+            )
+            if (
+                text
+                and pattern.search(
+                    text
+                )
+                is not None
+            )
+        ]
+
+        if (
+            len(
+                matched_indexes
+            )
+            < min_years
+        ):
+            continue
+
+        matched_years: list[
+            str
+        ] = []
+
+        for index in matched_indexes:
+            raw_year = yearly[
+                index
+            ].get(
+                "year"
+            )
+
+            year_text = (
+                _normalize_text(
+                    raw_year
+                )
+                or str(
+                    index
+                )
+            )
+
+            matched_years.append(
+                year_text
+            )
+
+        issues.append(
+            QualityIssue(
+                code=(
+                    "future_flow_style_repetition"
+                ),
+                message=(
+                    "5年運の複数年で"
+                    "同じ説明の型が"
+                    "繰り返されています。"
+                ),
+                path=(
+                    "sections.future_flow"
+                ),
+                value=", ".join(
+                    matched_years
+                ),
+                matched=label,
+            )
+        )
+
+    return tuple(
+        issues
+    )
+
+
+
+def _extract_useful_gods_role_data(
+    reading_context: Mapping[str, Any] | None,
+) -> tuple[str | None, tuple[str, ...]]:
+    """
+    reading_contextから主用神と補助用神を取り出す。
+    """
+
+    if not isinstance(
+        reading_context,
+        Mapping,
+    ):
+        return (None, ())
+
+    useful_gods = reading_context.get(
+        "useful_gods"
+    )
+
+    if not isinstance(
+        useful_gods,
+        Mapping,
+    ):
+        return (None, ())
+
+    primary_raw = useful_gods.get(
+        "primary_useful_element"
+    )
+
+    if (
+        not isinstance(primary_raw, str)
+        or not primary_raw.strip()
+    ):
+        return (None, ())
+
+    primary = primary_raw.strip()
+
+    secondary_raw = useful_gods.get(
+        "secondary_useful_elements"
+    )
+
+    secondary: list[str] = []
+
+    if (
+        isinstance(
+            secondary_raw,
+            Sequence,
+        )
+        and not isinstance(
+            secondary_raw,
+            (str, bytes, bytearray),
+        )
+    ):
+        for value in secondary_raw:
+            if (
+                isinstance(value, str)
+                and value.strip()
+                and value.strip() != primary
+            ):
+                normalized = value.strip()
+
+                if normalized not in secondary:
+                    secondary.append(
+                        normalized
+                    )
+
+    return (
+        primary,
+        tuple(secondary),
+    )
+
+
+def _useful_gods_sentence_chunks(
+    text: str,
+) -> tuple[str, ...]:
+    """
+    用神役割判定用に文章を文単位へ分ける。
+    """
+
+    normalized = _normalize_text(
+        text
+    )
+
+    if not normalized:
+        return ()
+
+    chunks = [
+        chunk.strip()
+        for chunk in re.split(
+            r"(?<=[。！？!?])|[\n\r]+",
+            normalized,
+        )
+        if chunk.strip()
+    ]
+
+    return tuple(chunks)
+
+
+def _chunk_has_explicit_secondary_role(
+    chunk: str,
+) -> bool:
+    """
+    同一文内で補助側の役割が明示されているか。
+    """
+
+    return any(
+        marker in chunk
+        for marker in (
+            "補助",
+            "補助用神",
+            "副用神",
+            "サポート",
+        )
+    )
+
+
+def _find_confused_useful_god_chunk(
+    text: str,
+    *,
+    primary: str,
+    secondary: Sequence[str],
+) -> str | None:
+    """
+    主用神と補助用神を同格の「用神」と
+    表現している文を返す。
+    """
+
+    all_elements = (
+        "木",
+        "火",
+        "土",
+        "金",
+        "水",
+    )
+
+    secondary_set = set(
+        secondary
+    )
+
+    for chunk in _useful_gods_sentence_chunks(
+        text
+    ):
+        if "用神" not in chunk:
+            continue
+
+        mentioned_elements = {
+            element
+            for element in all_elements
+            if element in chunk
+        }
+
+        if not mentioned_elements:
+            continue
+
+        if _chunk_has_explicit_secondary_role(
+            chunk
+        ):
+            continue
+
+        non_primary = (
+            mentioned_elements
+            - {primary}
+        )
+
+        if non_primary:
+            if (
+                not secondary_set
+                or non_primary
+                & secondary_set
+            ):
+                return chunk
+
+        for element in all_elements:
+            if element == primary:
+                continue
+
+            direct_patterns = (
+                f"{element}が用神",
+                f"{element}は用神",
+                f"{element}を用神",
+                f"用神は{element}",
+                f"用神が{element}",
+                f"用神として{element}",
+                f"用神（{element}",
+                f"用神({element}",
+                f"用神の{element}",
+            )
+
+            if any(
+                pattern in chunk
+                for pattern in direct_patterns
+            ):
+                return chunk
+
+    return None
+
+
+def find_useful_gods_role_confusion(
+    ai_reading: Mapping[str, Any],
+    *,
+    reading_context: Mapping[str, Any] | None = None,
+) -> tuple[QualityIssue, ...]:
+    """
+    主用神と補助用神の役割混同を検出する。
+
+    primary_useful_element を主用神、
+    secondary_useful_elements を補助用神として扱う。
+    """
+
+    _require_mapping(
+        ai_reading,
+        name="ai_reading",
+    )
+
+    primary, secondary = (
+        _extract_useful_gods_role_data(
+            reading_context
+        )
+    )
+
+    if primary is None:
+        return ()
+
+    issues: list[QualityIssue] = []
+
+    for item in iter_customer_facing_texts(
+        ai_reading
+    ):
+        matched_chunk = (
+            _find_confused_useful_god_chunk(
+                item.text,
+                primary=primary,
+                secondary=secondary,
+            )
+        )
+
+        if matched_chunk is None:
+            continue
+
+        issues.append(
+            QualityIssue(
+                code=(
+                    "useful_gods_role_confusion"
+                ),
+                message=(
+                    "主用神と補助用神が"
+                    "同格の用神として"
+                    "表現されています。"
+                ),
+                path=item.path,
+                value=item.text,
+                matched=matched_chunk,
+            )
+        )
+
+    return tuple(
+        issues
+    )
+
+
+def find_summary_detail_repetition(
+    ai_reading: Mapping[str, Any],
+) -> tuple[QualityIssue, ...]:
+    """
+    同一セクションのsummaryとdetailが
+    ほぼ同文になっている場合を検出する。
+    """
+
+    reading = _require_mapping(
+        ai_reading,
+        name="ai_reading",
+    )
+
+    sections = reading.get(
+        "sections"
+    )
+
+    if not isinstance(
+        sections,
+        Mapping,
+    ):
+        return ()
+
+    issues: list[QualityIssue] = []
+
+    for section_name, section in (
+        sections.items()
+    ):
+        if (
+            not isinstance(
+                section_name,
+                str,
+            )
+            or not isinstance(
+                section,
+                Mapping,
+            )
+        ):
+            continue
+
+        summary = section.get(
+            "summary"
+        )
+        detail = section.get(
+            "detail"
+        )
+
+        if not _substantial_overlap(
+            summary,
+            detail,
+        ):
+            continue
+
+        issues.append(
+            QualityIssue(
+                code=(
+                    "summary_detail_repetition"
+                ),
+                message=(
+                    "要約と詳細本文の内容が"
+                    "過度に重複しています。"
+                ),
+                path=(
+                    f"sections.{section_name}"
+                ),
+                value=(
+                    f"summary={_normalize_text(summary)!r}; "
+                    f"detail={_normalize_text(detail)!r}"
+                ),
+                matched=(
+                    _normalize_text(
+                        summary
+                    )
+                ),
+            )
+        )
+
+    return tuple(
+        issues
+    )
+
+
+def find_within_section_text_repetition(
+    ai_reading: Mapping[str, Any],
+) -> tuple[QualityIssue, ...]:
+    """
+    同一セクション内の明確な文章コピーを検出する。
+
+    - 同じフィールド内で同一文が2回以上
+    - detail / adviceなど異なるフィールド間で
+      長文がほぼ同一
+
+    titleは対象外。
+    future_flow.yearly固有の重複は別検査へ任せる。
+    """
+
+    issues: list[QualityIssue] = []
+    section_map = _section_text_map(
+        ai_reading
+    )
+
+    for section_name, items in (
+        section_map.items()
+    ):
+        ordinary_items = [
+            item
+            for item in items
+            if (
+                item.kind != "title"
+                and ".yearly["
+                not in item.path
+            )
+        ]
+
+        detected = False
+
+        # 1フィールド内の同一文反復
+        for item in ordinary_items:
+            chunks = _sentence_chunks(
+                item.text
+            )
+
+            if (
+                len(chunks)
+                != len(set(chunks))
+            ):
+                issues.append(
+                    QualityIssue(
+                        code=(
+                            "within_section_text_repetition"
+                        ),
+                        message=(
+                            "同一セクション内で"
+                            "同じ文章が繰り返されています。"
+                        ),
+                        path=(
+                            f"sections.{section_name}"
+                        ),
+                        value=item.text,
+                        matched=next(
+                            (
+                                chunk
+                                for chunk
+                                in chunks
+                                if chunks.count(
+                                    chunk
+                                ) > 1
+                            ),
+                            None,
+                        ),
+                    )
+                )
+                detected = True
+                break
+
+        if detected:
+            continue
+
+        # 異なるフィールド間のコピー
+        for left_index, left in enumerate(
+            ordinary_items
+        ):
+            for right in ordinary_items[
+                left_index + 1:
+            ]:
+                # summary-detail は専用issueへ任せる
+                if {
+                    left.kind,
+                    right.kind,
+                } == {
+                    "summary",
+                    "detail",
+                }:
+                    continue
+
+                if not _substantial_overlap(
+                    left.text,
+                    right.text,
+                ):
+                    continue
+
+                issues.append(
+                    QualityIssue(
+                        code=(
+                            "within_section_text_repetition"
+                        ),
+                        message=(
+                            "同一セクション内の"
+                            "複数フィールドで文章が"
+                            "過度に重複しています。"
+                        ),
+                        path=(
+                            f"sections.{section_name}"
+                        ),
+                        value=(
+                            f"{left.path}: {left.text} | "
+                            f"{right.path}: {right.text}"
+                        ),
+                        matched=(
+                            left.text
+                            if len(
+                                _normalize_repetition_text(
+                                    left.text
+                                )
+                            )
+                            <= len(
+                                _normalize_repetition_text(
+                                    right.text
+                                )
+                            )
+                            else right.text
+                        ),
+                    )
+                )
+                detected = True
+                break
+
+            if detected:
+                break
+
+    return tuple(
+        issues
+    )
+
+
+def find_cross_section_phrase_repetition(
+    ai_reading: Mapping[str, Any],
+    *,
+    min_sections: int = 3,
+) -> tuple[QualityIssue, ...]:
+    """
+    3章以上で同一の長い文章が使い回された場合を検出する。
+
+    2章程度の自然な重なりは許容する。
+    """
+
+    if (
+        not isinstance(
+            min_sections,
+            int,
+        )
+        or isinstance(
+            min_sections,
+            bool,
+        )
+        or min_sections < 3
+    ):
+        raise ValueError(
+            "min_sectionsは3以上のint"
+            "である必要があります。"
+        )
+
+    section_map = _section_text_map(
+        ai_reading
+    )
+
+    phrase_sections: dict[
+        str,
+        set[str],
+    ] = {}
+
+    phrase_original: dict[
+        str,
+        str,
+    ] = {}
+
+    for section_name, items in (
+        section_map.items()
+    ):
+        for item in items:
+            if (
+                item.kind == "title"
+                or ".yearly["
+                in item.path
+            ):
+                continue
+
+            normalized = (
+                _normalize_repetition_text(
+                    item.text
+                )
+            )
+
+            if len(normalized) < 18:
+                continue
+
+            phrase_sections.setdefault(
+                normalized,
+                set(),
+            ).add(
+                section_name
+            )
+
+            phrase_original.setdefault(
+                normalized,
+                item.text,
+            )
+
+    issues: list[QualityIssue] = []
+
+    for normalized, matched_sections in (
+        phrase_sections.items()
+    ):
+        if (
+            len(matched_sections)
+            < min_sections
+        ):
+            continue
+
+        issues.append(
+            QualityIssue(
+                code=(
+                    "cross_section_phrase_repetition"
+                ),
+                message=(
+                    "同じ長い文章が複数の"
+                    "セクションで使い回されています。"
+                ),
+                path="sections",
+                value=", ".join(
+                    sorted(
+                        matched_sections
+                    )
+                ),
+                matched=(
+                    phrase_original[
+                        normalized
+                    ]
+                ),
+            )
+        )
+
+    return tuple(
+        issues
+    )
+
+
+def find_future_flow_yearly_repetition(
+    ai_reading: Mapping[str, Any],
+) -> tuple[QualityIssue, ...]:
+    """
+    future_flow総括とyearlyのコピー、
+    または複数年で同じ年別本文を
+    使い回しているケースを検出する。
+
+    年別titleはテーマ名なので対象外。
+    """
+
+    reading = _require_mapping(
+        ai_reading,
+        name="ai_reading",
+    )
+
+    sections = reading.get(
+        "sections"
+    )
+
+    if not isinstance(
+        sections,
+        Mapping,
+    ):
+        return ()
+
+    future_flow = sections.get(
+        "future_flow"
+    )
+
+    if not isinstance(
+        future_flow,
+        Mapping,
+    ):
+        return ()
+
+    yearly = future_flow.get(
+        "yearly"
+    )
+
+    if not (
+        isinstance(
+            yearly,
+            Sequence,
+        )
+        and not isinstance(
+            yearly,
+            (str, bytes, bytearray),
+        )
+    ):
+        return ()
+
+    yearly_items = [
+        item
+        for item in yearly
+        if isinstance(
+            item,
+            Mapping,
+        )
+    ]
+
+    issues: list[QualityIssue] = []
+
+    overview_texts = [
+        future_flow.get(
+            "summary"
+        ),
+        future_flow.get(
+            "detail"
+        ),
+    ]
+
+    for overview in overview_texts:
+        if not _normalize_text(
+            overview
+        ):
+            continue
+
+        found = False
+
+        for yearly_item in yearly_items:
+            for field_name in (
+                "summary",
+                "detail",
+            ):
+                if not _substantial_overlap(
+                    overview,
+                    yearly_item.get(
+                        field_name
+                    ),
+                ):
+                    continue
+
+                issues.append(
+                    QualityIssue(
+                        code=(
+                            "future_flow_yearly_repetition"
+                        ),
+                        message=(
+                            "5年間の総括と年別本文が"
+                            "過度に重複しています。"
+                        ),
+                        path=(
+                            "sections.future_flow"
+                        ),
+                        value=(
+                            _normalize_text(
+                                overview
+                            )
+                        ),
+                        matched=(
+                            _normalize_text(
+                                yearly_item.get(
+                                    field_name
+                                )
+                            )
+                        ),
+                    )
+                )
+                found = True
+                break
+
+            if found:
+                break
+
+        if found:
+            return tuple(
+                issues
+            )
+
+    # 複数年で同一本文を3回以上使い回すケース
+    for field_name in (
+        "summary",
+        "detail",
+    ):
+        occurrences: dict[
+            str,
+            list[int],
+        ] = {}
+
+        originals: dict[
+            str,
+            str,
+        ] = {}
+
+        for index, yearly_item in enumerate(
+            yearly_items
+        ):
+            raw = yearly_item.get(
+                field_name
+            )
+            normalized = (
+                _normalize_repetition_text(
+                    raw
+                )
+            )
+
+            if len(normalized) < 18:
+                continue
+
+            occurrences.setdefault(
+                normalized,
+                [],
+            ).append(
+                index
+            )
+
+            originals.setdefault(
+                normalized,
+                _normalize_text(
+                    raw
+                ),
+            )
+
+        for normalized, indexes in (
+            occurrences.items()
+        ):
+            if len(indexes) < 3:
+                continue
+
+            issues.append(
+                QualityIssue(
+                    code=(
+                        "future_flow_yearly_repetition"
+                    ),
+                    message=(
+                        "複数年で同じ年別本文が"
+                        "使い回されています。"
+                    ),
+                    path=(
+                        "sections.future_flow"
+                    ),
+                    value=(
+                        ",".join(
+                            str(
+                                index
+                            )
+                            for index
+                            in indexes
+                        )
+                    ),
+                    matched=(
+                        originals[
+                            normalized
+                        ]
+                    ),
+                )
+            )
+
+            return tuple(
+                issues
+            )
+
+    return tuple(
+        issues
+    )
+
+
 def find_repeated_advice_concepts(
     ai_reading: Mapping[str, Any],
     *,
@@ -1322,6 +2883,67 @@ def validate_customer_facing_reading(
         )
     )
 
+    # v1販売版の文章重複チェック。
+    #
+    # すべてwarning扱いとし、
+    # 単独ではPDF生成を停止しない。
+    issues.extend(
+        find_summary_detail_repetition(
+            ai_reading
+        )
+    )
+
+    issues.extend(
+        find_within_section_text_repetition(
+            ai_reading
+        )
+    )
+
+    issues.extend(
+        find_cross_section_phrase_repetition(
+            ai_reading
+        )
+    )
+
+    issues.extend(
+        find_future_flow_yearly_repetition(
+            ai_reading
+        )
+    )
+
+    # 販売版v1の文体品質チェック。
+    #
+    # 同じAI的な言い回し・説明語尾の
+    # 過剰反復をwarningとして報告する。
+    # 単独ではPDF生成を停止しない。
+    issues.extend(
+        find_formulaic_phrase_overuse(
+            ai_reading
+        )
+    )
+
+    issues.extend(
+        find_sentence_ending_overuse(
+            ai_reading
+        )
+    )
+
+    issues.extend(
+        find_future_flow_style_repetition(
+            ai_reading
+        )
+    )
+
+    # 用神と補助用神の役割整合性。
+    # 計算済みreading_contextを正として、
+    # 顧客向け文章の混同だけをwarningにする。
+    issues.extend(
+        find_useful_gods_role_confusion(
+            ai_reading,
+            reading_context=reading_context,
+        )
+    )
+
     issues.extend(
         find_repeated_advice_concepts(
             ai_reading
@@ -1436,6 +3058,14 @@ __all__ = [
     "find_internal_key_leaks",
     "find_overconfident_claims",
     "find_unsupported_numeric_claims",
+    "find_summary_detail_repetition",
+    "find_within_section_text_repetition",
+    "find_cross_section_phrase_repetition",
+    "find_future_flow_yearly_repetition",
+    "find_formulaic_phrase_overuse",
+    "find_sentence_ending_overuse",
+    "find_future_flow_style_repetition",
+    "find_useful_gods_role_confusion",
     "find_repeated_advice_concepts",
     "find_fixed_element_translation_overuse",
     "find_health_specific_overreach",

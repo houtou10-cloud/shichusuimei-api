@@ -1,7 +1,7 @@
 """
 engine/reading_prompt.py
 
-AI鑑定文生成用プロンプト構築モジュール。\nconsultation_context_v1 の任意連動に対応。
+AI鑑定文生成用プロンプト構築モジュール。\nconsultation_context_v1 の任意連動と five_year_luck の5年展望に対応。
 
 目的
 ----
@@ -1053,6 +1053,256 @@ def build_prompt_facts(
 
 
 # ============================================================
+# Five-year prompt facts
+# ============================================================
+
+
+def build_five_year_prompt_facts(
+    reading_context: Mapping[
+        str,
+        Any,
+    ],
+) -> List[Dict[str, Any]]:
+    """
+    reading_context.luck.five_year_luck を
+    AI鑑定用の5年展望データへ整形する。
+
+    重要:
+    - 占術計算は行わない。
+    - reading_context に保存済みの値だけを使用する。
+    - five_year_luck が存在しない旧contextでは空listを返す。
+    - 現在年と将来年の文章上の役割を period_type で補助する。
+    """
+
+    reading_context = _require_mapping(
+        reading_context,
+        "reading_context",
+    )
+
+    luck = _safe_dict(
+        reading_context.get(
+            "luck"
+        )
+    )
+
+    raw_entries = _safe_list(
+        luck.get(
+            "five_year_luck"
+        )
+    )
+
+    result: List[
+        Dict[str, Any]
+    ] = []
+
+    for index, raw_entry in enumerate(
+        raw_entries
+    ):
+        if not isinstance(
+            raw_entry,
+            Mapping,
+        ):
+            continue
+
+        entry = _safe_dict(
+            raw_entry
+        )
+
+        current_luck = _safe_dict(
+            entry.get(
+                "current_luck"
+            )
+        )
+        annual_luck = _safe_dict(
+            entry.get(
+                "annual_luck"
+            )
+        )
+        integrated_luck = _safe_dict(
+            entry.get(
+                "integrated_luck"
+            )
+        )
+
+        result.append(
+            {
+                "year": (
+                    entry.get(
+                        "year"
+                    )
+                ),
+                "target_datetime": (
+                    entry.get(
+                        "target_datetime"
+                    )
+                ),
+                "period_type": (
+                    "current_year_remaining"
+                    if index == 0
+                    else "full_future_year"
+                ),
+                "current_luck": {
+                    "has_current_luck": (
+                        current_luck.get(
+                            "has_current_luck"
+                        )
+                    ),
+                    "phase": (
+                        current_luck.get(
+                            "phase"
+                        )
+                    ),
+                    "current_pillar": (
+                        current_luck.get(
+                            "current_pillar"
+                        )
+                    ),
+                    "next_pillar": (
+                        current_luck.get(
+                            "next_pillar"
+                        )
+                    ),
+                    "years_until_next_luck": (
+                        current_luck.get(
+                            "years_until_next_luck"
+                        )
+                    ),
+                    "timing_precision": (
+                        current_luck.get(
+                            "timing_precision"
+                        )
+                    ),
+                    "timing_is_estimated": (
+                        current_luck.get(
+                            "timing_is_estimated"
+                        )
+                    ),
+                },
+                "annual_luck": {
+                    "year": (
+                        annual_luck.get(
+                            "year"
+                        )
+                    ),
+                    "calendar_year": (
+                        annual_luck.get(
+                            "calendar_year"
+                        )
+                    ),
+                    "effective_year": (
+                        annual_luck.get(
+                            "effective_year"
+                        )
+                    ),
+                    "ganzhi": (
+                        annual_luck.get(
+                            "ganzhi"
+                        )
+                    ),
+                    "stem_element": (
+                        annual_luck.get(
+                            "stem_element"
+                        )
+                    ),
+                    "branch_element": (
+                        annual_luck.get(
+                            "branch_element"
+                        )
+                    ),
+                    "stem_ten_god": (
+                        annual_luck.get(
+                            "stem_ten_god"
+                        )
+                    ),
+                    "twelve_stage": (
+                        annual_luck.get(
+                            "twelve_stage"
+                        )
+                    ),
+                    "stem_useful_relation": (
+                        annual_luck.get(
+                            "stem_useful_relation"
+                        )
+                    ),
+                    "branch_useful_relation": (
+                        annual_luck.get(
+                            "branch_useful_relation"
+                        )
+                    ),
+                    "current_luck_relation": (
+                        annual_luck.get(
+                            "current_luck_relation"
+                        )
+                    ),
+                },
+                "integrated_luck": {
+                    "current_luck_ganzhi": (
+                        integrated_luck.get(
+                            "current_luck_ganzhi"
+                        )
+                    ),
+                    "annual_luck_ganzhi": (
+                        integrated_luck.get(
+                            "annual_luck_ganzhi"
+                        )
+                    ),
+                    "agreement_level": (
+                        integrated_luck.get(
+                            "agreement_level"
+                        )
+                    ),
+                    "overall_score": (
+                        integrated_luck.get(
+                            "overall_score"
+                        )
+                    ),
+                    "overall_level": (
+                        integrated_luck.get(
+                            "overall_level"
+                        )
+                    ),
+                    "confidence": (
+                        integrated_luck.get(
+                            "confidence"
+                        )
+                    ),
+                    "annual_ten_god": (
+                        integrated_luck.get(
+                            "annual_ten_god"
+                        )
+                    ),
+                    "annual_twelve_stage": (
+                        integrated_luck.get(
+                            "annual_twelve_stage"
+                        )
+                    ),
+                    "element_interactions": (
+                        integrated_luck.get(
+                            "element_interactions"
+                        )
+                    ),
+                    "current_luck_useful": (
+                        integrated_luck.get(
+                            "current_luck_useful"
+                        )
+                    ),
+                    "annual_luck_useful": (
+                        integrated_luck.get(
+                            "annual_luck_useful"
+                        )
+                    ),
+                    "timing_is_estimated": (
+                        integrated_luck.get(
+                            "timing_is_estimated"
+                        )
+                    ),
+                },
+            }
+        )
+
+    return result
+
+# ============================================================
 # Section instructions
 # ============================================================
 
@@ -1677,6 +1927,20 @@ def build_system_prompt(
 16. 出生時刻不明時の五行・身強身弱・格局・用神・合冲刑害などは、入力されたscope・provisional・timing_precision等の不確実性情報を維持してください。
 17. 大運開始時期や現在大運の境界がestimatedの場合、厳密な確定値として断定しないでください。
 
+【5年間の運勢】
+- five_year_luck が入力されている場合は、現在年から5年間を年ごとに比較して説明してください。
+- 5年分の歳運を自分で再計算せず、入力された各年の current_luck / annual_luck / integrated_luck をそのまま根拠として使用してください。
+- 各年の大運が同じとは限りません。必ずその年の current_luck と annual_luck の組み合わせを見てください。
+- 現在年は「1月から12月までの一年全体」ではなく、鑑定日時点から年末までの残り期間として説明してください。
+- 現在年の実践説明では「○○年は」を繰り返さず、「ここから年末にかけて」「今年残りの期間」「これからの数か月」など、鑑定日時点に合う自然な表現を優先してください。
+- ただし歳運そのものを説明する場合は、「2026年の歳運『丙午』」のように対象年を明示して構いません。
+- 翌年以降は、それぞれ独立した一年のテーマとして説明してください。
+- 5年間すべてを同じ文章量で機械的に並べず、現在年を詳しく、翌年・翌々年をやや詳しく、4年目・5年目を要点中心にまとめてください。
+- JSON出力で future_flow を生成する場合は yearly を必ず5件返し、five_year_luck と同じ年順にしてください。
+- yearly の各要素は year / title / summary / detail / advice を必ず含め、年別の内容を section.detail だけへ押し込まないでください。
+- 最後に5年間を俯瞰し、「追い風になりやすい時期」「慎重さが役立つ時期」「流れの切り替わり」を比較してまとめてください。
+- 各年を「必ず良い」「必ず悪い」と順位づけせず、活かし方と注意点として説明してください。
+
 【健康】
 
 健康については医学的診断を行わないでください。
@@ -1726,7 +1990,7 @@ def build_system_prompt(
 - 相談者の職業や事業形態が入力されていない場合は、一般化した選択肢として説明し、特定の職業・会社員・経営者・自営業などと決めつけないでください。
 - JSONの evidence は、内部キーや英語ラベルをそのまま並べるだけでなく、顧客が理解できる自然な日本語で記述してください。
 - evidence には、可能な限り「どの計算済み事実が、どの解釈につながるか」が分かる表現を使ってください。
-- evidence は顧客へそのまま提示される文章として完成させてください。reading_context、consultation_context、natal_chart、day_master、five_elements、strength、pattern、useful_gods、current_luck、annual_luck、integrated_luck などの内部キー名を evidence に出力しないでください。
+- evidence は顧客へそのまま提示される文章として完成させてください。reading_context、consultation_context、natal_chart、day_master、five_elements、strength、pattern、useful_gods、current_luck、annual_luck、integrated_luck、five_year_luck などの内部キー名を evidence に出力しないでください。
 - evidence に「xxx.yyy.zzz」のようなJSONパス、snake_caseのフィールド名、内部変数名、デバッグ用ラベルを出力しないでください。
 - evidence で「キー=値」「field=value」のような内部データ表記を使わないでください。
 - summary / detail / evidence / advice のすべてで、mixed、overall、positive、negative、neutral などの内部評価ラベルを絶対に出力しないでください。
@@ -1799,9 +2063,7 @@ def build_json_output_schema(
     section_properties = {}
 
     for section in normalized:
-        section_properties[
-            section
-        ] = {
+        section_schema = {
             "type": "object",
             "required": [
                 "title",
@@ -1834,6 +2096,57 @@ def build_json_output_schema(
                 },
             },
         }
+
+        if section == "future_flow":
+            section_schema[
+                "required"
+            ].append(
+                "yearly"
+            )
+
+            section_schema[
+                "properties"
+            ][
+                "yearly"
+            ] = {
+                "type": "array",
+                "minItems": 5,
+                "maxItems": 5,
+                "items": {
+                    "type": "object",
+                    "required": [
+                        "year",
+                        "title",
+                        "summary",
+                        "detail",
+                        "advice",
+                    ],
+                    "properties": {
+                        "year": {
+                            "type": "integer",
+                        },
+                        "title": {
+                            "type": "string",
+                        },
+                        "summary": {
+                            "type": "string",
+                        },
+                        "detail": {
+                            "type": "string",
+                        },
+                        "advice": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                            },
+                        },
+                    },
+                },
+            }
+
+        section_properties[
+            section
+        ] = section_schema
 
     return {
         "type": "object",
@@ -1960,6 +2273,19 @@ def build_user_prompt(
         reading_context
     )
 
+    five_year_facts = (
+        build_five_year_prompt_facts(
+            reading_context
+        )
+    )
+
+    if five_year_facts:
+        facts[
+            "luck"
+        ][
+            "five_year_luck"
+        ] = five_year_facts
+
     birth_time_block = (
         build_birth_time_prompt_block(
             reading_context
@@ -2008,6 +2334,26 @@ def build_user_prompt(
     section_text = "\n\n".join(
         section_lines
     )
+
+    if (
+        "future_flow"
+        in normalized_sections
+        and five_year_facts
+    ):
+        section_text += (
+            "\n\n【future_flow追加指示】\n"
+            "- このセクションでは、現在年から5年間を扱ってください。\n"
+            "- title は「これから5年間の運勢」を基本としてください。\n"
+            "- yearly は必ず5件返し、five_year_luck と同じ年順にしてください。\n"
+            "- yearly の year は入力された対象年をそのまま使用してください。\n"
+            "- yearly の各要素には title / summary / detail / advice を必ず含めてください。\n"
+            "- 先頭年は鑑定日時点から年末までの残り期間として扱ってください。\n"
+            "- 先頭年の title は「ここから年末まで」など、残り期間であることが自然に伝わる表現にしてください。\n"
+            "- 2年目・3年目は比較的詳しく、4年目・5年目は要点を簡潔に整理してください。\n"
+            "- section.summary / section.detail では、年別説明の単純な繰り返しではなく、5年間全体の流れ・転換点・活かしどころを総括してください。\n"
+            "- 年ごとの違いを示した後、5年間全体の流れを総括してください。\n"
+            "- 単年データを5年間へ引き延ばさず、five_year_luck の各年データを使ってください。"
+        )
 
     if output_format == "json":
         schema = (
@@ -2106,6 +2452,11 @@ JSON Schema:
 1. 命式の特徴と現在の運勢を混同しないでください。
 2. 生来の特徴は natal_chart / day_master / strength / pattern を中心に説明してください。
 3. 現在の運勢は current_luck / annual_luck / integrated_luck を中心に説明してください。
+3-A. five_year_luck がある場合、future_flow では5年分を年ごとに比較し、各年の current_luck / annual_luck / integrated_luck を組み合わせて説明してください。
+3-B. five_year_luck の先頭年は鑑定日時点から年末までの残り期間です。先頭年について「○○年は」を何度も繰り返さず、「ここから年末にかけて」「今年残りの期間」「これからの数か月」などを優先してください。
+3-C. 翌年以降は各年のテーマを明示し、年ごとの違いが分かるようにしてください。
+3-D. future_flow の最後には、5年間全体の傾向・転換点・活かしどころ・注意点を総括してください。
+3-E. 現在年を含む5年間の内容を、単年の annual_luck だけから引き伸ばして書かないでください。必ず five_year_luck に存在する各年の計算済みデータを使用してください。
 4. useful_gods は「活かしやすい方向性」として扱ってください。
 5. integrated_luck の overall_score は絶対的な吉凶値として扱わないでください。
 6. confidence が低い場合は、断定度を下げてください。
@@ -2675,6 +3026,7 @@ __all__ = [
     "DEFAULT_MAX_SUMMARY_CHARS",
     "validate_reading_context",
     "build_prompt_facts",
+    "build_five_year_prompt_facts",
     "get_section_instruction",
     "build_selected_section_instructions",
     "build_birth_time_prompt_block",

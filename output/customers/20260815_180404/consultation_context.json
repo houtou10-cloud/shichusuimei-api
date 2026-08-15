@@ -1,0 +1,99 @@
+{
+  "version": "consultation_context_v1",
+  "input": {
+    "concern": "本業だけでは将来に不安があり、副業に挑戦しているが成果が出ない。自分に向いている稼ぎ方が分からない。",
+    "desired_future": "自分の強みを活かした副業を育て、安定した副収入を作りたい。5年間で収入源を増やし、経済的な余裕を持ちたい。"
+  },
+  "has_consultation": true,
+  "focus": {
+    "primary": "wealth",
+    "secondary": [
+      "self_understanding",
+      "career",
+      "future_flow"
+    ],
+    "detected_categories": [
+      "wealth",
+      "self_understanding",
+      "career",
+      "future_flow"
+    ],
+    "category_scores": {
+      "career": 2,
+      "wealth": 6,
+      "relationships": 0,
+      "health": 0,
+      "current_luck": 0,
+      "future_flow": 1,
+      "self_understanding": 4
+    },
+    "priority_sections": [
+      "wealth",
+      "current_luck",
+      "future_flow",
+      "advice"
+    ],
+    "relevant_sections": [
+      "core_personality",
+      "career",
+      "wealth",
+      "current_luck",
+      "future_flow",
+      "advice"
+    ]
+  },
+  "safety": {
+    "medical_decision_caution": false,
+    "financial_decision_caution": false,
+    "certainty_caution": false,
+    "warnings": [],
+    "requires_cautious_language": false
+  },
+  "ai_usage_policy": {
+    "consultation_role": "focus_only",
+    "astrology_is_source_of_facts": true,
+    "consultation_may_change_astrology": false,
+    "consultation_may_change_pillars": false,
+    "consultation_may_change_day_master": false,
+    "consultation_may_change_strength": false,
+    "consultation_may_change_pattern": false,
+    "consultation_may_change_useful_gods": false,
+    "consultation_may_change_luck": false,
+    "customer_desire_is_not_evidence": true,
+    "customer_concern_is_not_evidence": true,
+    "must_not_confirm_customer_assumption": true,
+    "must_not_guarantee_future": true,
+    "must_not_make_medical_diagnosis": true,
+    "must_not_guarantee_financial_result": true,
+    "must_explain_with_chart_evidence": true
+  },
+  "instructions": [
+    "相談内容は鑑定の焦点づけにのみ使用し、命式・日主・身強身弱・格局・用神・大運・歳運などの計算済み事実を変更しないこと。",
+    "相談者の希望や前提を、四柱推命上の根拠として扱わないこと。",
+    "鑑定上の主張は可能な限り、reading_context内の計算済みデータに根拠を置くこと。",
+    "相談者が望む結論へ迎合せず、命式上の傾向と現実的な選択肢を分けて説明すること。",
+    "未来・成功・結婚・転職・収入などを確定的に断言しないこと。",
+    "相談内容に直接関係するセクションでは、一般論だけで終わらず、相談者が現在どこに迷っているかを踏まえて説明すること。",
+    "今回の主な相談焦点は「wealth」。ただしこの分類自体を鑑定書本文へ機械的に表示する必要はない。",
+    "特に重点を置く候補セクション: core_personality, career, wealth, current_luck, future_flow, advice"
+  ],
+  "validation": {
+    "valid": true,
+    "has_input": true,
+    "concern_length": 50,
+    "desired_future_length": 53,
+    "combined_length": 103,
+    "max_concern_chars": 2000,
+    "max_desired_future_chars": 2000,
+    "max_combined_chars": 3500
+  },
+  "source": {
+    "concern_source": "customer_input",
+    "desired_future_source": "customer_input",
+    "astrology_source": "reading_context"
+  },
+  "recalculates_astrology": false,
+  "rewrites_chart_facts": false,
+  "method": "consultation_context_v1",
+  "status": "ready_for_ai_reading"
+}

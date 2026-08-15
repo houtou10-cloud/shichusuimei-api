@@ -1,0 +1,358 @@
+{
+  "enabled": true,
+  "max_attempts": 2,
+  "attempt_count": 1,
+  "repaired": true,
+  "initial_quality": {
+    "valid": true,
+    "issue_count": 12,
+    "error_count": 0,
+    "warning_count": 12,
+    "issues": [
+      {
+        "code": "formulaic_phrase_overuse",
+        "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, health, current_luck, future_flow, advice",
+        "matched": "示されています",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.career.summary",
+        "value": "偏印格×身強の丙は、企画・新機軸・課題解決の場で光ります。用神は金・水・土で、仕組み化（ルール・品質）、情報・調整、地固め・実務基盤がカギ。現在大運は乙未で土が助け、年運2026年は火が強く主張過多になりやすい時期。上司・同僚との関係疲労には、金・土を意識した進め方で緩和が期待できます。",
+        "matched": "用神は金・水・土で、仕組み化（ルール・品質）、情報・調整、地固め・実務基盤がカギ。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.career.detail",
+        "value": "ご相談は「このまま今の会社に残るべきか」。命式の強みは、課題の核心を見つけて新しい切り口で突破する力（偏印×丙）。活かし方の鍵は用神の金・水・土です。金＝基準・品質・見える化、水＝情報収集・関係調整、土＝段取り・運用設計。これらを前面に出すと、独創性が周囲に伝わりやすく、衝突を避けて成果に変換しやすくなります。\n選択肢の比較:\n- 現職に残る: 乙未大運の土が基盤整備を後押し。社内で合意形成の型（承認フロー、期限、品質基準）を設け、あなたの新機軸を小規模PoC→段階拡大で進めると噛み合いやすい。2026年は火が強く意見がぶつかりやすいので、資料・数値・第三者の視点（水・金）で補強すると有効。\n- 環境を変える: 2028〜2029年は年運に金が巡り、評価・ルール面の追い風が見込めるため、成果の形式化ポートフォリオを整える時期と相性が良い。転職・部署移動・業務の比重変更など、選択肢を段階的に広げる計画に適します。\n判断基準は「今の職場で金・土（水）を実装できる余地があるか」。具体的には、提案の評価軸が明確か、意思決定の期限が守られるか、役割が曖昧になりにくいか。余地があれば残留で改善を、構造的に難しければ2027〜2029年に向け準備→実行の二段構えが現実的です。",
+        "matched": "活かし方の鍵は用神の金・水・土です。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.career.evidence[1]",
+        "value": "用神に金・水・土が挙がり、仕組み化・情報連携・基盤整備が成果転換の鍵になります。",
+        "matched": "用神に金・水・土が挙がり、仕組み化・情報連携・基盤整備が成果転換の鍵になります。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.wealth.detail",
+        "value": "偏印格×身強のため、収入は「独自性を形式化して評価につなぐ」戦略が相性良好です。用神の金・土が示すのは、条件・契約・手順・コストの見える化。2026年は勢いでの拡張や楽観に注意。2027年は地固め、2028〜2029年は金の後押しで、規約や単価基準の再交渉・固定費の整理など「数字とルール」で積み上げる発想が合います。2030年は偏財が巡る指標があり、条件面のチャンスと支出管理の両面で判断力が問われます。金融商品の推奨や利益保証には結びつけず、現実の収支・リスクと併用して判断してください。",
+        "matched": "用神の金・土が示すのは、条件・契約・手順・コストの見える化。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.wealth.evidence[0]",
+        "value": "用神が金・土で、契約・基準・コスト管理を整えるほど金運が安定しやすい配置です。",
+        "matched": "用神が金・土で、契約・基準・コスト管理を整えるほど金運が安定しやすい配置です。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.advice.summary",
+        "value": "判断の軸は「今の職場で用神（金・水・土）を実装できるか」。できるなら残留改善、難しいなら2027準備→2028〜2029本格展開→2030選別の段階戦略。",
+        "matched": "判断の軸は「今の職場で用神（金・水・土）を実装できるか」。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.advice.evidence[0]",
+        "value": "用神が金・水・土であるため、仕組み・基準・情報の整備が環境適応と成果化の鍵になると読みます。",
+        "matched": "用神が金・水・土であるため、仕組み・基準・情報の整備が環境適応と成果化の鍵になると読みます。",
+        "severity": "warning"
+      },
+      {
+        "code": "cross_section_advice_repetition",
+        "message": "同じ助言概念が多くのセクションで繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, current_luck, future_flow, advice",
+        "matched": "可視化",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, wealth, relationships, future_flow, advice",
+        "matched": "土→安定",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, current_luck, future_flow, advice",
+        "matched": "土→段取り",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "wealth, health, current_luck, future_flow",
+        "matched": "火→勢い",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "repair": {
+        "version": "reading_repair_v1",
+        "method": "openai_quality_issue_targeted_repair_v1",
+        "status": "completed",
+        "changed": true,
+        "issue_count": 12,
+        "error_count": 0,
+        "warning_count": 12,
+        "repaired_issue_codes": [
+          "formulaic_phrase_overuse",
+          "useful_gods_role_confusion",
+          "cross_section_advice_repetition",
+          "fixed_element_translation_overuse"
+        ],
+        "response_id": "resp_092918c094de57f8016a8045deccac819887ec68540e51bbcc",
+        "response_status": "completed",
+        "usage": {
+          "input_tokens": 5288,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "output_tokens": 3064,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 8352
+        },
+        "model": "gpt-5"
+      },
+      "quality_before": {
+        "valid": true,
+        "issue_count": 12,
+        "error_count": 0,
+        "warning_count": 12,
+        "issues": [
+          {
+            "code": "formulaic_phrase_overuse",
+            "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+            "path": "sections",
+            "value": "career, wealth, health, current_luck, future_flow, advice",
+            "matched": "示されています",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.career.summary",
+            "value": "偏印格×身強の丙は、企画・新機軸・課題解決の場で光ります。用神は金・水・土で、仕組み化（ルール・品質）、情報・調整、地固め・実務基盤がカギ。現在大運は乙未で土が助け、年運2026年は火が強く主張過多になりやすい時期。上司・同僚との関係疲労には、金・土を意識した進め方で緩和が期待できます。",
+            "matched": "用神は金・水・土で、仕組み化（ルール・品質）、情報・調整、地固め・実務基盤がカギ。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.career.detail",
+            "value": "ご相談は「このまま今の会社に残るべきか」。命式の強みは、課題の核心を見つけて新しい切り口で突破する力（偏印×丙）。活かし方の鍵は用神の金・水・土です。金＝基準・品質・見える化、水＝情報収集・関係調整、土＝段取り・運用設計。これらを前面に出すと、独創性が周囲に伝わりやすく、衝突を避けて成果に変換しやすくなります。\n選択肢の比較:\n- 現職に残る: 乙未大運の土が基盤整備を後押し。社内で合意形成の型（承認フロー、期限、品質基準）を設け、あなたの新機軸を小規模PoC→段階拡大で進めると噛み合いやすい。2026年は火が強く意見がぶつかりやすいので、資料・数値・第三者の視点（水・金）で補強すると有効。\n- 環境を変える: 2028〜2029年は年運に金が巡り、評価・ルール面の追い風が見込めるため、成果の形式化ポートフォリオを整える時期と相性が良い。転職・部署移動・業務の比重変更など、選択肢を段階的に広げる計画に適します。\n判断基準は「今の職場で金・土（水）を実装できる余地があるか」。具体的には、提案の評価軸が明確か、意思決定の期限が守られるか、役割が曖昧になりにくいか。余地があれば残留で改善を、構造的に難しければ2027〜2029年に向け準備→実行の二段構えが現実的です。",
+            "matched": "活かし方の鍵は用神の金・水・土です。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.career.evidence[1]",
+            "value": "用神に金・水・土が挙がり、仕組み化・情報連携・基盤整備が成果転換の鍵になります。",
+            "matched": "用神に金・水・土が挙がり、仕組み化・情報連携・基盤整備が成果転換の鍵になります。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.wealth.detail",
+            "value": "偏印格×身強のため、収入は「独自性を形式化して評価につなぐ」戦略が相性良好です。用神の金・土が示すのは、条件・契約・手順・コストの見える化。2026年は勢いでの拡張や楽観に注意。2027年は地固め、2028〜2029年は金の後押しで、規約や単価基準の再交渉・固定費の整理など「数字とルール」で積み上げる発想が合います。2030年は偏財が巡る指標があり、条件面のチャンスと支出管理の両面で判断力が問われます。金融商品の推奨や利益保証には結びつけず、現実の収支・リスクと併用して判断してください。",
+            "matched": "用神の金・土が示すのは、条件・契約・手順・コストの見える化。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.wealth.evidence[0]",
+            "value": "用神が金・土で、契約・基準・コスト管理を整えるほど金運が安定しやすい配置です。",
+            "matched": "用神が金・土で、契約・基準・コスト管理を整えるほど金運が安定しやすい配置です。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.advice.summary",
+            "value": "判断の軸は「今の職場で用神（金・水・土）を実装できるか」。できるなら残留改善、難しいなら2027準備→2028〜2029本格展開→2030選別の段階戦略。",
+            "matched": "判断の軸は「今の職場で用神（金・水・土）を実装できるか」。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.advice.evidence[0]",
+            "value": "用神が金・水・土であるため、仕組み・基準・情報の整備が環境適応と成果化の鍵になると読みます。",
+            "matched": "用神が金・水・土であるため、仕組み・基準・情報の整備が環境適応と成果化の鍵になると読みます。",
+            "severity": "warning"
+          },
+          {
+            "code": "cross_section_advice_repetition",
+            "message": "同じ助言概念が多くのセクションで繰り返されています。",
+            "path": "sections",
+            "value": "core_personality, career, current_luck, future_flow, advice",
+            "matched": "可視化",
+            "severity": "warning"
+          },
+          {
+            "code": "fixed_element_translation_overuse",
+            "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+            "path": "sections",
+            "value": "core_personality, wealth, relationships, future_flow, advice",
+            "matched": "土→安定",
+            "severity": "warning"
+          },
+          {
+            "code": "fixed_element_translation_overuse",
+            "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+            "path": "sections",
+            "value": "core_personality, career, current_luck, future_flow, advice",
+            "matched": "土→段取り",
+            "severity": "warning"
+          },
+          {
+            "code": "fixed_element_translation_overuse",
+            "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+            "path": "sections",
+            "value": "wealth, health, current_luck, future_flow",
+            "matched": "火→勢い",
+            "severity": "warning"
+          }
+        ],
+        "version": "reading_quality_v1",
+        "method": "customer_facing_quality_gate_v1",
+        "status": "ready_for_customer_facing_validation"
+      },
+      "quality_after": {
+        "valid": true,
+        "issue_count": 5,
+        "error_count": 0,
+        "warning_count": 5,
+        "issues": [
+          {
+            "code": "formulaic_phrase_overuse",
+            "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+            "path": "sections",
+            "value": "career, wealth, health, current_luck, future_flow, advice",
+            "matched": "示されています",
+            "severity": "warning"
+          },
+          {
+            "code": "cross_section_advice_repetition",
+            "message": "同じ助言概念が多くのセクションで繰り返されています。",
+            "path": "sections",
+            "value": "career, wealth, current_luck, future_flow, advice",
+            "matched": "見える化",
+            "severity": "warning"
+          },
+          {
+            "code": "fixed_element_translation_overuse",
+            "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+            "path": "sections",
+            "value": "core_personality, wealth, relationships, future_flow, advice",
+            "matched": "土→安定",
+            "severity": "warning"
+          },
+          {
+            "code": "fixed_element_translation_overuse",
+            "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+            "path": "sections",
+            "value": "core_personality, career, current_luck, future_flow, advice",
+            "matched": "土→段取り",
+            "severity": "warning"
+          },
+          {
+            "code": "fixed_element_translation_overuse",
+            "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+            "path": "sections",
+            "value": "wealth, health, current_luck, future_flow",
+            "matched": "火→勢い",
+            "severity": "warning"
+          }
+        ],
+        "version": "reading_quality_v1",
+        "method": "customer_facing_quality_gate_v1",
+        "status": "ready_for_customer_facing_validation"
+      }
+    }
+  ],
+  "final_quality": {
+    "valid": true,
+    "issue_count": 5,
+    "error_count": 0,
+    "warning_count": 5,
+    "issues": [
+      {
+        "code": "formulaic_phrase_overuse",
+        "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, health, current_luck, future_flow, advice",
+        "matched": "示されています",
+        "severity": "warning"
+      },
+      {
+        "code": "cross_section_advice_repetition",
+        "message": "同じ助言概念が多くのセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, current_luck, future_flow, advice",
+        "matched": "見える化",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, wealth, relationships, future_flow, advice",
+        "matched": "土→安定",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, current_luck, future_flow, advice",
+        "matched": "土→段取り",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "wealth, health, current_luck, future_flow",
+        "matched": "火→勢い",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "final_valid": true
+}
