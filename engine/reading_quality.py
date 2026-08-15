@@ -1475,12 +1475,28 @@ def find_sentence_ending_overuse(
         for section_name, items in (
             section_map.items()
         ):
+            # 語尾の単調さは主に説明本文で評価する。
+            #
+            # evidence は「〜と読みます」等の根拠説明が
+            # 自然に反復しやすく、advice も丁寧語が
+            # 繰り返されやすいため、sentence-ending
+            # overuse の集計対象からは除外する。
+            explanatory_items = (
+                item
+                for item in items
+                if item.kind
+                in {
+                    "summary",
+                    "detail",
+                }
+            )
+
             if any(
                 pattern.search(
                     item.text
                 )
                 is not None
-                for item in items
+                for item in explanatory_items
             ):
                 matched_sections.append(
                     section_name
