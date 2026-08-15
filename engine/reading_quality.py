@@ -213,6 +213,7 @@ INTERNAL_FIELD_NAMES = (
     "reading_context",
     "consultation_context",
     "integrated_luck",
+    "five_year_luck",
     "day_master",
     "strength_judgment",
     "weighted_strength_judgment",
@@ -589,6 +590,89 @@ def iter_customer_facing_texts(
                         kind=field_name,
                     )
                 )
+
+        # -------------------------------------------------
+        # future_flow.yearly
+        # -------------------------------------------------
+        #
+        # 5年運の年別文章も、通常セクションと同じ
+        # 顧客向け品質ゲートへ流す。
+        #
+        # year は計算済みの構造データなので、
+        # CustomerFacingText には含めない。
+        #
+        # パスは必ず sections.future_flow... 配下に
+        # 維持する。これにより章横断の重複検査では
+        # 5年分を5章ではなく future_flow という
+        # 1章として扱える。
+        if section_name == "future_flow":
+            yearly = section_value.get(
+                "yearly"
+            )
+
+            if (
+                isinstance(yearly, Sequence)
+                and not isinstance(
+                    yearly,
+                    (str, bytes, bytearray),
+                )
+            ):
+                for yearly_index, yearly_value in enumerate(
+                    yearly
+                ):
+                    if not isinstance(
+                        yearly_value,
+                        Mapping,
+                    ):
+                        continue
+
+                    yearly_base_path = (
+                        f"{base_path}."
+                        f"yearly[{yearly_index}]"
+                    )
+
+                    for field_name in (
+                        "title",
+                        "summary",
+                        "detail",
+                    ):
+                        yearly_text = _normalize_text(
+                            yearly_value.get(
+                                field_name
+                            )
+                        )
+
+                        if not yearly_text:
+                            continue
+
+                        results.append(
+                            CustomerFacingText(
+                                path=(
+                                    f"{yearly_base_path}."
+                                    f"{field_name}"
+                                ),
+                                text=yearly_text,
+                                kind=field_name,
+                            )
+                        )
+
+                    for advice_index, advice_text in (
+                        _iter_string_list(
+                            yearly_value.get(
+                                "advice"
+                            )
+                        )
+                    ):
+                        results.append(
+                            CustomerFacingText(
+                                path=(
+                                    f"{yearly_base_path}."
+                                    f"advice[{advice_index}]"
+                                ),
+                                text=advice_text,
+                                kind="advice",
+                            )
+                        )
 
     return tuple(results)
 
