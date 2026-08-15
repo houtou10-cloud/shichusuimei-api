@@ -41,7 +41,7 @@ product.json
     ↓
 write_reading_product_pdf()
     ↓
-四柱推命鑑定書.pdf
+四柱推命鑑定書_<お名前>様.pdf
     ↓
 summary.json
 
@@ -210,6 +210,8 @@ PRODUCT_TITLE = "四柱推命鑑定書"
 
 DOCUMENT_TITLE = "四柱推命鑑定書"
 
+BRAND_NAME = "四柱推命 八雲"
+
 BIRTH_COUNTRY_TYPE_JAPAN = "japan"
 BIRTH_COUNTRY_TYPE_OVERSEAS = "overseas"
 
@@ -230,8 +232,12 @@ OUTPUT_ROOT = (
 )
 
 
-PDF_FILENAME = (
-    "四柱推命鑑定書.pdf"
+PDF_FILENAME_PREFIX = (
+    "四柱推命鑑定書_"
+)
+
+PDF_FILENAME_SUFFIX = (
+    "様.pdf"
 )
 
 INTAKE_FILENAME = (
@@ -265,6 +271,69 @@ PRODUCT_FILENAME = (
 SUMMARY_FILENAME = (
     "summary.json"
 )
+
+
+# ============================================================
+# PDF filename
+# ============================================================
+
+
+def build_customer_pdf_filename(
+    customer_name: str,
+) -> str:
+    """
+    顧客名入りPDFファイル名を生成する。
+
+    例:
+        田中浩二
+        -> 四柱推命鑑定書_田中浩二様.pdf
+
+    Windowsで使用できない文字は除去する。
+    """
+
+    if not isinstance(
+        customer_name,
+        str,
+    ):
+        raise TypeError(
+            "customer_nameは文字列で"
+            "指定してください。"
+        )
+
+    normalized = (
+        customer_name.strip()
+    )
+
+    if not normalized:
+        raise ValueError(
+            "customer_nameが空です。"
+        )
+
+    # Windows予約文字と制御文字を除去。
+    normalized = re.sub(
+        r'[<>:"/\\|?*\x00-\x1f]',
+        "",
+        normalized,
+    )
+
+    # 末尾のドット・空白はWindowsで不安定。
+    normalized = (
+        normalized.rstrip(
+            ". "
+        )
+    )
+
+    if not normalized:
+        raise ValueError(
+            "PDFファイル名に使用できる"
+            "customer_nameがありません。"
+        )
+
+    return (
+        PDF_FILENAME_PREFIX
+        + normalized
+        + PDF_FILENAME_SUFFIX
+    )
 
 
 # ============================================================
@@ -1821,9 +1890,17 @@ def generate_customer_reading(
         / PRODUCT_FILENAME
     )
 
+    pdf_filename = (
+        build_customer_pdf_filename(
+            normalized_intake[
+                "name"
+            ]
+        )
+    )
+
     pdf_path = (
         customer_dir
-        / PDF_FILENAME
+        / pdf_filename
     )
 
     summary_path = (
@@ -2410,6 +2487,17 @@ def generate_customer_reading(
             generation_result,
             title=PRODUCT_TITLE,
             sections=SECTIONS,
+            customer_name=(
+                normalized_intake[
+                    "name"
+                ]
+            ),
+            reading_datetime=(
+                generation_started_at
+            ),
+            brand_name=(
+                BRAND_NAME
+            ),
         )
     )
 
