@@ -23,6 +23,7 @@ OpenAI Responses APIで文章のみを修正する。
 from __future__ import annotations
 
 import json
+import re
 
 from copy import deepcopy
 from dataclasses import dataclass
