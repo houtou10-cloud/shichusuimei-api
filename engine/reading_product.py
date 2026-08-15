@@ -755,7 +755,7 @@ def build_product_section(
         )
     )
 
-    return {
+    result = {
         "key": section,
         "title": (
             source_title
@@ -802,6 +802,28 @@ def build_product_section(
             and item.strip()
         ],
     }
+
+    # future_flow だけは、
+    # AIが生成した5年間の年別構造を
+    # 商品データまで保持する。
+    #
+    # 他セクションには yearly を追加せず、
+    # 既存の商品JSON契約への影響を最小化する。
+    if (
+        section
+        == "future_flow"
+        and "yearly"
+        in section_data
+    ):
+        result[
+            "yearly"
+        ] = _safe_list(
+            section_data.get(
+                "yearly"
+            )
+        )
+
+    return result
 
 
 def build_product_sections(
