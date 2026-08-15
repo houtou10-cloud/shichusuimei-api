@@ -508,6 +508,20 @@ future_flow:
 今後の流れと変化。
 current_luckの言い換えにしない。
 
+【5年間の年運構造】
+
+five_year_luck は計算済みの5年間の年運情報です。
+future_flow 内の yearly は、この five_year_luck に基づく年別鑑定です。
+
+yearly の構造を変更しないでください。
+元の yearly が5件なら、修正後も必ず5件を維持してください。
+各年の year、title、summary、detail、advice など、
+既存のキーを追加・削除・変更しないでください。
+年の順序を入れ替えないでください。
+5年間の対象年を変更しないでください。
+five_year_luck の計算済み内容を再計算、推測、補完しないでください。
+文章品質の修正が必要な場合も、yearly の各年を独立した年運として維持してください。
+
 advice:
 最終判断、優先順位、
 最初の具体的行動。
@@ -755,6 +769,7 @@ PROTECTED_CONTEXT_KEYS = frozenset(
         "luck_pillars",
         "current_luck",
         "annual_luck",
+        "five_year_luck",
         "integrated_luck",
         "birth_time_status",
     }
