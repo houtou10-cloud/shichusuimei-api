@@ -790,7 +790,9 @@ def test_detects_desho_overuse_across_many_sections():
         "career",
         "wealth",
         "relationships",
+        "health",
         "current_luck",
+        "advice",
     ):
         reading[
             "sections"
@@ -811,6 +813,39 @@ def test_detects_desho_overuse_across_many_sections():
     assert (
         SENTENCE_ENDING_OVERUSE
         in codes(report)
+    )
+
+
+def test_desho_in_six_sections_is_tolerated():
+    reading = make_reading()
+
+    for section_name in (
+        "career",
+        "wealth",
+        "relationships",
+        "health",
+        "future_flow",
+        "advice",
+    ):
+        reading[
+            "sections"
+        ][
+            section_name
+        ][
+            "summary"
+        ] = (
+            f"{section_name}では、"
+            "状況を確認すると"
+            "よいでしょう。"
+        )
+
+    report = validate(
+        reading
+    )
+
+    assert (
+        SENTENCE_ENDING_OVERUSE
+        not in codes(report)
     )
 
 
