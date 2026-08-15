@@ -47,6 +47,10 @@ summary.json
 14. 例外処理
 15. main()の終了コード
 16. 最終品質ゲート
+17. 表紙への顧客名引き渡し
+18. 表紙への鑑定日時引き渡し
+19. 表紙へのブランド名引き渡し
+20. 顧客名入りPDFファイル名
 
 このテストはOpenAI APIを呼ばない。
 Playwrightも起動しない。
@@ -849,6 +853,7 @@ def configure_full_fake_pipeline(
     captured = {
         "generate_reading": None,
         "product": None,
+        "product_options": None,
     }
 
     def fake_generate_reading(
@@ -887,6 +892,9 @@ def configure_full_fake_pipeline(
         *,
         title,
         sections,
+        customer_name=None,
+        reading_datetime=None,
+        brand_name=None,
     ):
         product = FakeProduct(
             title=title,
@@ -900,6 +908,20 @@ def configure_full_fake_pipeline(
         captured[
             "product"
         ] = product
+
+        captured[
+            "product_options"
+        ] = {
+            "customer_name": (
+                customer_name
+            ),
+            "reading_datetime": (
+                reading_datetime
+            ),
+            "brand_name": (
+                brand_name
+            ),
+        }
 
         return product
 
@@ -2428,6 +2450,163 @@ def test_generate_customer_reading_v1_1_final_gate(
             "recalculates_astrology"
         ]
         is False
+    )
+
+
+
+# ============================================================
+# Cover / PDF filename regression
+# ============================================================
+
+
+def test_build_customer_pdf_filename_contains_customer_name(
+    script_module,
+):
+    """
+    PDFファイル名は、
+    顧客名入りの販売用仕様を維持する。
+    """
+
+    filename = (
+        script_module.build_customer_pdf_filename(
+            "田中浩二"
+        )
+    )
+
+    assert (
+        filename
+        == "四柱推命鑑定書_田中浩二様.pdf"
+    )
+
+
+def test_build_customer_pdf_filename_removes_windows_invalid_chars(
+    script_module,
+):
+    """
+    顧客名にWindows予約文字が含まれても、
+    安全なPDF名へ整形する。
+    """
+
+    filename = (
+        script_module.build_customer_pdf_filename(
+            '田中/浩二:*?'
+        )
+    )
+
+    assert (
+        filename
+        == "四柱推命鑑定書_田中浩二様.pdf"
+    )
+
+
+def test_generate_customer_reading_passes_cover_personalization(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    """
+    表紙用の顧客名・鑑定日時・ブランド名が、
+    build_reading_product()へ
+    必ず引き渡されることを固定する。
+    """
+
+    captured = configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    result = (
+        script_module.generate_customer_reading(
+            sample_intake
+        )
+    )
+
+    options = captured[
+        "product_options"
+    ]
+
+    assert options is not None
+
+    assert (
+        options[
+            "customer_name"
+        ]
+        == "山田太郎"
+    )
+
+    assert (
+        options[
+            "reading_datetime"
+        ]
+        is not None
+    )
+
+    assert (
+        options[
+            "brand_name"
+        ]
+        == "四柱推命 八雲"
+    )
+
+    assert (
+        result[
+            "pdf_path"
+        ].name
+        == "四柱推命鑑定書_山田太郎様.pdf"
+    )
+
+
+def test_generate_customer_reading_pdf_filename_changes_with_customer(
+    script_module,
+    sample_intake,
+    tmp_path,
+    monkeypatch,
+    fake_chart_result,
+    fake_reading_context,
+    fake_generation_result,
+):
+    """
+    固定名へ回帰しないことを確認する。
+
+    顧客名が変わればPDF名も変わる。
+    """
+
+    intake = deepcopy(
+        sample_intake
+    )
+
+    intake[
+        "name"
+    ] = "佐藤美咲"
+
+    configure_full_fake_pipeline(
+        script_module=script_module,
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        fake_chart_result=fake_chart_result,
+        fake_reading_context=fake_reading_context,
+        fake_generation_result=fake_generation_result,
+    )
+
+    result = (
+        script_module.generate_customer_reading(
+            intake
+        )
+    )
+
+    assert (
+        result[
+            "pdf_path"
+        ].name
+        == "四柱推命鑑定書_佐藤美咲様.pdf"
     )
 
 
