@@ -920,7 +920,7 @@ def test_decade_luck_is_after_eight_sections():
     )
 
     advice_position = html.rindex(
-        '<h2 id="section-advice">'
+        '<h2 id="section-8">'
     )
 
     decade_position = html.index(
