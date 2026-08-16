@@ -1,22 +1,24 @@
 """
-scripts/patch_reading_renderer_decade_luck_v1_1.py
+scripts/patch_reading_product_decade_luck_v1_1.py
 
-v1.1
-reading_renderer.py に
-「10年ごとの大運」一覧表示を追加するための
-一回限りの安全なパッチスクリプト。
+四柱推命鑑定書 v1.1
 
-追加内容
+engine/reading_product.py に
+大運AI鑑定を正式統合するための
+一回限りの安全なパッチ。
+
+変更内容
 --------
-1. _render_decade_luck() を追加
-2. 大運専用CSSを追加
-3. スマホ用CSSを追加
-4. 印刷用CSSを追加
-5. 完全HTMLへ大運を追加
-6. fragmentへ大運を追加
-7. 免責事項は最後のまま維持
-8. 元ファイルをバックアップ
-9. Python構文チェック
+1. dataclasses.field を追加
+2. ReadingProduct.decade_luck を追加
+3. to_dict() で大運AI鑑定を出力
+4. build_product_decade_luck() を追加
+5. build_reading_product() に decade_luck 引数を追加
+6. ReadingProductへ大運AI結果を格納
+7. __all__ を更新
+8. v1.0との後方互換を維持
+9. 元ファイルをバックアップ
+10. Python構文チェック
 """
 
 from __future__ import annotations
@@ -25,542 +27,595 @@ import ast
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+# ============================================================
+# Paths
+# ============================================================
+
+
+ROOT = Path(
+    __file__
+).resolve().parents[1]
+
 
 TARGET = (
     ROOT
     / "engine"
-    / "reading_renderer.py"
+    / "reading_product.py"
 )
+
 
 BACKUP = (
     ROOT
     / "engine"
-    / "reading_renderer.py.bak_v1_1_decade_luck"
+    / "reading_product.py.bak_v1_1_decade_luck"
 )
 
 
 # ============================================================
-# Renderer function
+# Patch fragments
 # ============================================================
 
-DECADE_LUCK_FUNCTION = r'''
 
-def _render_decade_luck(
-    product: ReadingProduct,
-) -> str:
+IMPORT_OLD = (
+    "from dataclasses import dataclass\n"
+)
+
+
+IMPORT_NEW = """from dataclasses import (
+    dataclass,
+    field,
+)
+"""
+
+
+# ------------------------------------------------------------
+# ReadingProduct field
+# ------------------------------------------------------------
+
+
+DATACLASS_ANCHOR = """    metadata: Dict[str, Any]
+    schema_version: str = (
+"""
+
+
+DATACLASS_REPLACEMENT = """    metadata: Dict[str, Any]
+
+    # --------------------------------------------------------
+    # v1.1
+    # 大運AI鑑定
+    #
+    # default_factory=dict にすることで、
+    # v1.0形式でReadingProductを直接生成している
+    # 既存コード・既存テストとの後方互換を維持する。
+    # --------------------------------------------------------
+
+    decade_luck: Dict[
+        str,
+        Any,
+    ] = field(
+        default_factory=dict
+    )
+
+    schema_version: str = (
+"""
+
+
+# ------------------------------------------------------------
+# ReadingProduct.to_dict()
+#
+# decade_luck が空ならキーそのものを出さない。
+# これによりv1.0のserialized contractを極力維持する。
+# ------------------------------------------------------------
+
+
+TO_DICT_ANCHOR = """            "metadata": deepcopy(
+                self.metadata
+            ),
+            "method": self.method,
+"""
+
+
+TO_DICT_REPLACEMENT = """            "metadata": deepcopy(
+                self.metadata
+            ),
+
+            **(
+                {
+                    "decade_luck": deepcopy(
+                        self.decade_luck
+                    )
+                }
+                if self.decade_luck
+                else {}
+            ),
+
+            "method": self.method,
+"""
+
+
+# ------------------------------------------------------------
+# build_product_decade_luck()
+# ------------------------------------------------------------
+
+
+BUILD_PRODUCT_DECADE_LUCK = r'''
+
+def build_product_decade_luck(
+    decade_luck: Optional[
+        Mapping[str, Any]
+    ] = None,
+) -> Dict[str, Any]:
     """
     v1.1
-    10年ごとの大運一覧を表示する。
 
-    占術計算は行わず、
-    ReadingProduct.chart_summary に保持された
-    luck_pillars をそのまま表示する。
+    大運AI鑑定をReadingProduct向けに
+    安全にコピーする。
+
+    この関数では、
+
+    - 大運を再計算しない
+    - 干支を変更しない
+    - 年齢を変更しない
+    - 通変星を変更しない
+    - 五行を変更しない
+    - AI文章を書き換えない
+
+    decade_luck=None または空dictは、
+    v1.0互換として空dictを返す。
     """
 
-    chart = _safe_mapping(
-        product.chart_summary
-    )
+    if decade_luck is None:
+        return {}
 
-    luck_pillars = _safe_mapping(
-        chart.get(
-            "luck_pillars"
+    if not isinstance(
+        decade_luck,
+        Mapping,
+    ):
+        raise TypeError(
+            "decade_luckは"
+            "MappingまたはNoneで"
+            "指定してください。"
+        )
+
+    data = deepcopy(
+        dict(
+            decade_luck
         )
     )
 
-    pillars = [
-        pillar
-        for pillar
-        in _safe_sequence(
-            luck_pillars.get(
-                "pillars"
+    if not data:
+        return {}
+
+    # --------------------------------------------------------
+    # overview
+    # --------------------------------------------------------
+
+    overview = data.get(
+        "overview"
+    )
+
+    if not isinstance(
+        overview,
+        str,
+    ):
+        raise ReadingProductValidationError(
+            "decade_luck.overviewは"
+            "文字列である必要があります。"
+        )
+
+    overview = (
+        overview.strip()
+    )
+
+    if not overview:
+        raise ReadingProductValidationError(
+            "decade_luck.overviewが"
+            "空です。"
+        )
+
+    # --------------------------------------------------------
+    # periods
+    # --------------------------------------------------------
+
+    periods = data.get(
+        "periods"
+    )
+
+    if not isinstance(
+        periods,
+        list,
+    ):
+        raise ReadingProductValidationError(
+            "decade_luck.periodsは"
+            "配列である必要があります。"
+        )
+
+    if not periods:
+        raise ReadingProductValidationError(
+            "decade_luck.periodsが"
+            "空です。"
+        )
+
+    normalized_periods: List[
+        Dict[str, Any]
+    ] = []
+
+    # --------------------------------------------------------
+    # AIではなくengine側が管理する事実
+    # --------------------------------------------------------
+
+    required_fact_fields = (
+        "index",
+        "ganzhi",
+        "start_age",
+        "end_age",
+    )
+
+    # --------------------------------------------------------
+    # AI鑑定文章
+    # --------------------------------------------------------
+
+    required_text_fields = (
+        "title",
+        "theme",
+        "career",
+        "wealth",
+        "relationships",
+        "caution",
+    )
+
+    for position, period in enumerate(
+        periods
+    ):
+        if not isinstance(
+            period,
+            Mapping,
+        ):
+            raise ReadingProductValidationError(
+                "decade_luck.periods"
+                f"[{position}]は"
+                "objectである必要があります。"
+            )
+
+        item = deepcopy(
+            dict(
+                period
             )
         )
-        if isinstance(
-            pillar,
-            Mapping,
+
+        # ----------------------------------------------------
+        # Protected facts existence
+        # ----------------------------------------------------
+
+        for field_name in (
+            required_fact_fields
+        ):
+            if (
+                field_name
+                not in item
+            ):
+                raise ReadingProductValidationError(
+                    "decade_luck.periods"
+                    f"[{position}]."
+                    f"{field_name}"
+                    "がありません。"
+                )
+
+        # ----------------------------------------------------
+        # index
+        # ----------------------------------------------------
+
+        index_value = item.get(
+            "index"
         )
-    ]
 
-    if not pillars:
-        return ""
+        if (
+            isinstance(
+                index_value,
+                bool,
+            )
+            or not isinstance(
+                index_value,
+                int,
+            )
+        ):
+            raise ReadingProductValidationError(
+                "decade_luck.periods"
+                f"[{position}].indexは"
+                "整数である必要があります。"
+            )
 
-    current_luck = _safe_mapping(
-        chart.get(
-            "current_luck"
-        )
-    )
+        # ----------------------------------------------------
+        # ganzhi
+        # ----------------------------------------------------
 
-    current_ganzhi = _text(
-        current_luck.get(
+        ganzhi = item.get(
             "ganzhi"
         )
-    )
 
-    direction = (
-        _text(
-            luck_pillars.get(
-                "direction_japanese"
+        if (
+            not isinstance(
+                ganzhi,
+                str,
             )
-        )
-        or _text(
-            luck_pillars.get(
-                "direction"
+            or not ganzhi.strip()
+        ):
+            raise ReadingProductValidationError(
+                "decade_luck.periods"
+                f"[{position}].ganzhiが"
+                "不正です。"
             )
-        )
-    )
 
-    start_age = _display_age_html(
-        luck_pillars.get(
+        # ----------------------------------------------------
+        # Ages
+        # ----------------------------------------------------
+
+        for age_field in (
+            "start_age",
+            "end_age",
+        ):
+            age_value = item.get(
+                age_field
+            )
+
+            if (
+                isinstance(
+                    age_value,
+                    bool,
+                )
+                or not isinstance(
+                    age_value,
+                    (int, float),
+                )
+            ):
+                raise ReadingProductValidationError(
+                    "decade_luck.periods"
+                    f"[{position}]."
+                    f"{age_field}は"
+                    "数値である必要があります。"
+                )
+
+        start_age = item.get(
             "start_age"
         )
+
+        end_age = item.get(
+            "end_age"
+        )
+
+        if (
+            start_age
+            >= end_age
+        ):
+            raise ReadingProductValidationError(
+                "decade_luck.periods"
+                f"[{position}]の"
+                "start_age / end_ageが"
+                "不正です。"
+            )
+
+        # ----------------------------------------------------
+        # Interpretation text
+        # ----------------------------------------------------
+
+        for field_name in (
+            required_text_fields
+        ):
+            value = item.get(
+                field_name
+            )
+
+            if (
+                not isinstance(
+                    value,
+                    str,
+                )
+                or not value.strip()
+            ):
+                raise ReadingProductValidationError(
+                    "decade_luck.periods"
+                    f"[{position}]."
+                    f"{field_name}が"
+                    "空または不正です。"
+                )
+
+        # ----------------------------------------------------
+        # Advice
+        # ----------------------------------------------------
+
+        advice = item.get(
+            "advice"
+        )
+
+        if not isinstance(
+            advice,
+            list,
+        ):
+            raise ReadingProductValidationError(
+                "decade_luck.periods"
+                f"[{position}].adviceは"
+                "配列である必要があります。"
+            )
+
+        if not (
+            2
+            <= len(
+                advice
+            )
+            <= 3
+        ):
+            raise ReadingProductValidationError(
+                "decade_luck.periods"
+                f"[{position}].adviceは"
+                "2〜3件必要です。"
+            )
+
+        for (
+            advice_position,
+            advice_item,
+        ) in enumerate(
+            advice
+        ):
+            if (
+                not isinstance(
+                    advice_item,
+                    str,
+                )
+                or not advice_item.strip()
+            ):
+                raise ReadingProductValidationError(
+                    "decade_luck.periods"
+                    f"[{position}].advice"
+                    f"[{advice_position}]が"
+                    "空または不正です。"
+                )
+
+        normalized_periods.append(
+            item
+        )
+
+    # --------------------------------------------------------
+    # index uniqueness
+    # --------------------------------------------------------
+
+    indexes = [
+        item[
+            "index"
+        ]
+        for item
+        in normalized_periods
+    ]
+
+    if (
+        len(
+            indexes
+        )
+        != len(
+            set(
+                indexes
+            )
+        )
+    ):
+        raise ReadingProductValidationError(
+            "decade_luck.periodsの"
+            "indexが重複しています。"
+        )
+
+    # --------------------------------------------------------
+    # index order
+    # --------------------------------------------------------
+
+    if (
+        indexes
+        != sorted(
+            indexes
+        )
+    ):
+        raise ReadingProductValidationError(
+            "decade_luck.periodsの"
+            "index順序が不正です。"
+        )
+
+    # --------------------------------------------------------
+    # Result
+    # --------------------------------------------------------
+
+    result = deepcopy(
+        data
     )
 
-    rows = []
+    result[
+        "overview"
+    ] = overview
 
-    for pillar in pillars:
-        ganzhi = _text(
-            pillar.get(
-                "ganzhi"
-            )
-        )
+    result[
+        "periods"
+    ] = normalized_periods
 
-        is_current = (
-            bool(
-                current_ganzhi
-            )
-            and ganzhi
-            == current_ganzhi
-        )
-
-        row_class = (
-            ' class="decade-luck-current"'
-            if is_current
-            else ""
-        )
-
-        current_badge = (
-            '<span class="decade-current-badge">'
-            "現在"
-            "</span>"
-            if is_current
-            else ""
-        )
-
-        start_age_value = (
-            _display_age_html(
-                pillar.get(
-                    "start_age"
-                )
-            )
-        )
-
-        end_age_value = (
-            _display_age_html(
-                pillar.get(
-                    "end_age"
-                )
-            )
-        )
-
-        age_range = (
-            f"{start_age_value}"
-            "〜"
-            f"{end_age_value}"
-        )
-
-        stem_element = _display_html(
-            pillar.get(
-                "stem_element"
-            )
-        )
-
-        branch_element = _display_html(
-            pillar.get(
-                "branch_element"
-            )
-        )
-
-        element_text = (
-            f"{stem_element}"
-            "・"
-            f"{branch_element}"
-        )
-
-        rows.append(
-            f"""
-            <tr{row_class}>
-                <td class="decade-luck-index">
-                    {_display_html(
-                        pillar.get(
-                            "index"
-                        )
-                    )}
-                </td>
-
-                <td class="decade-luck-age">
-                    {age_range}
-                </td>
-
-                <td class="decade-luck-ganzhi">
-                    {_display_html(
-                        ganzhi
-                    )}
-                    {current_badge}
-                </td>
-
-                <td>
-                    {_display_html(
-                        pillar.get(
-                            "stem_ten_god"
-                        )
-                    )}
-                </td>
-
-                <td>
-                    {element_text}
-                </td>
-            </tr>
-            """
-        )
-
-    return f"""
-<section
-    class="reading-card decade-luck-card"
-    aria-labelledby="decade-luck-heading"
->
-    <div
-        class="section-number decade-section-number"
-        aria-hidden="true"
-    >
-        09
-    </div>
-
-    <h2 id="decade-luck-heading">
-        10年ごとの大運
-    </h2>
-
-    <p class="decade-luck-intro">
-        大運は、人生を約10年単位で捉えた
-        長期的な運気の流れです。
-        年ごとの歳運よりも大きな時間軸から、
-        人生の変化やテーマを見ていきます。
-    </p>
-
-    <div class="decade-luck-meta">
-
-        <div>
-            <span class="decade-luck-meta-label">
-                大運開始
-            </span>
-
-            <strong>
-                {start_age}
-            </strong>
-        </div>
-
-        <div>
-            <span class="decade-luck-meta-label">
-                運行
-            </span>
-
-            <strong>
-                {_display_html(
-                    direction
-                )}
-            </strong>
-        </div>
-
-        <div>
-            <span class="decade-luck-meta-label">
-                大運数
-            </span>
-
-            <strong>
-                {_display_html(
-                    len(
-                        pillars
-                    )
-                )}
-            </strong>
-        </div>
-
-    </div>
-
-    <div class="decade-luck-table-wrap">
-
-        <table class="decade-luck-table">
-
-            <thead>
-                <tr>
-                    <th>第</th>
-                    <th>年齢</th>
-                    <th>大運</th>
-                    <th>通変星</th>
-                    <th>五行</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                {''.join(rows)}
-            </tbody>
-
-        </table>
-
-    </div>
-
-    <p class="decade-luck-note">
-        「現在」と表示された大運が、
-        現在進行している約10年間の
-        大きな流れです。
-    </p>
-
-</section>
-"""
+    return result
 '''
 
 
-# ============================================================
-# Main CSS
-# ============================================================
-
-DECADE_LUCK_CSS = r'''
-/* =========================================================
-   v1.1
-   10年ごとの大運
-   ========================================================= */
-
-.decade-luck-card {
-    position: relative;
-    padding-top: 44px;
-}
-
-.decade-section-number {
-    pointer-events: none;
-}
-
-.decade-luck-intro {
-    max-width: 760px;
-    margin: 0 0 26px;
-    color: var(--muted);
-    font-size: 0.95rem;
-    line-height: 1.9;
-}
-
-.decade-luck-meta {
-    display: grid;
-    grid-template-columns:
-        repeat(
-            3,
-            minmax(0, 1fr)
-        );
-    gap: 1px;
-    margin-bottom: 26px;
-    background: var(--line);
-    border: 1px solid var(--line);
-}
-
-.decade-luck-meta > div {
-    padding: 16px 18px;
-    background: #fcfaf6;
-}
-
-.decade-luck-meta-label {
-    display: block;
-    margin-bottom: 5px;
-    color: var(--muted);
-    font-size: 0.76rem;
-    letter-spacing: 0.08em;
-}
-
-.decade-luck-meta strong {
-    color: var(--deep);
-    font-size: 1rem;
-    font-weight: 600;
-}
-
-.decade-luck-table-wrap {
-    width: 100%;
-    overflow-x: auto;
-}
-
-.decade-luck-table {
-    width: 100%;
-    border-collapse: collapse;
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-}
-
-.decade-luck-table th {
-    padding: 11px 10px;
-    color: var(--muted);
-    background: #fcfaf6;
-    border-bottom: 1px solid var(--line);
-    text-align: left;
-    font-size: 0.78rem;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-}
-
-.decade-luck-table td {
-    padding: 13px 10px;
-    border-bottom: 1px solid var(--line);
-    vertical-align: middle;
-    font-size: 0.88rem;
-}
-
-.decade-luck-table tbody tr:last-child td {
-    border-bottom: 0;
-}
-
-.decade-luck-index {
-    width: 46px;
-    color: var(--muted);
-    text-align: center;
-}
-
-.decade-luck-age {
-    white-space: nowrap;
-}
-
-.decade-luck-ganzhi {
-    color: var(--deep);
-    font-size: 1.05rem !important;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.decade-luck-current td {
-    background: var(--accent-soft);
-}
-
-.decade-luck-current
-.decade-luck-ganzhi {
-    color: var(--accent);
-}
-
-.decade-current-badge {
-    display: inline-block;
-    margin-left: 8px;
-    padding: 2px 7px;
-    color: #ffffff;
-    background: var(--accent);
-    border-radius: 999px;
-    font-size: 0.67rem;
-    line-height: 1.5;
-    vertical-align: middle;
-    letter-spacing: 0.04em;
-}
-
-.decade-luck-note {
-    margin: 22px 0 0;
-    padding-top: 16px;
-    color: var(--muted);
-    border-top: 1px dotted var(--line);
-    font-size: 0.82rem;
-    line-height: 1.8;
-}
-
-'''
+BUILD_FUNCTION_ANCHOR = (
+    "\ndef build_reading_product(\n"
+)
 
 
-# ============================================================
-# Mobile CSS
-# ============================================================
-
-DECADE_LUCK_MOBILE_CSS = r'''
-    .decade-luck-meta {
-        grid-template-columns: 1fr;
-    }
-
-    .decade-luck-table {
-        min-width: 580px;
-    }
-
-'''
+# ------------------------------------------------------------
+# build_reading_product signature
+# ------------------------------------------------------------
 
 
-# ============================================================
-# Print CSS
-# ============================================================
-
-DECADE_LUCK_PRINT_CSS = r'''
-    /*
-     * v1.1
-     * 大運一覧だけは複数ページへの分割を許可する。
-     */
-    .decade-luck-card {
-        break-inside: auto;
-        page-break-inside: auto;
-    }
-
-    .decade-luck-meta {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    .decade-luck-table {
-        break-inside: auto;
-        page-break-inside: auto;
-    }
-
-    .decade-luck-table tr {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    .decade-luck-table thead {
-        display: table-header-group;
-    }
-
-    .decade-luck-table-wrap {
-        overflow: visible;
-    }
-
-'''
-
-
-# ============================================================
-# Anchors
-# ============================================================
-
-FUNCTION_ANCHOR = """
-def _render_overall_summary(
+SIGNATURE_ANCHOR = """    reading_datetime: Any = None,
+    brand_name: Optional[str] = None,
+) -> ReadingProduct:
 """
 
-CSS_ANCHOR = """
-.overall-card {
+
+SIGNATURE_REPLACEMENT = """    reading_datetime: Any = None,
+    brand_name: Optional[str] = None,
+    decade_luck: Optional[
+        Mapping[str, Any]
+    ] = None,
+) -> ReadingProduct:
 """
 
-MOBILE_ANCHOR = """
-    .info-grid,
-    .chart-summary-grid,
-    .luck-grid {
+
+# ------------------------------------------------------------
+# ReadingProduct construction
+# ------------------------------------------------------------
+
+
+RETURN_METADATA_ANCHOR = """        metadata=build_product_metadata(
+            reading_context,
+            created_at=(
+                reading_datetime
+            ),
+            brand_name=brand_name,
+        ),
+    )
 """
 
-PRINT_CARD_ANCHOR = """    .reading-card {
-        margin-bottom: 8mm;
-        padding: 8mm;
-        border-radius: 0;
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
+
+RETURN_METADATA_REPLACEMENT = """        metadata=build_product_metadata(
+            reading_context,
+            created_at=(
+                reading_datetime
+            ),
+            brand_name=brand_name,
+        ),
+
+        decade_luck=(
+            build_product_decade_luck(
+                decade_luck
+            )
+        ),
+    )
 """
 
-RENDER_ORDER_OLD = """{_render_sections(product)}
 
-{_render_disclaimer(product)}"""
+# ------------------------------------------------------------
+# __all__
+# ------------------------------------------------------------
 
-RENDER_ORDER_NEW = """{_render_sections(product)}
 
-{_render_decade_luck(product)}
+ALL_ANCHOR = (
+    '    "build_product_metadata",\n'
+    '    "build_reading_product",\n'
+)
 
-{_render_disclaimer(product)}"""
+
+ALL_REPLACEMENT = (
+    '    "build_product_metadata",\n'
+    '    "build_product_decade_luck",\n'
+    '    "build_reading_product",\n'
+)
 
 
 # ============================================================
 # Helpers
 # ============================================================
+
 
 def require_once(
     text: str,
@@ -573,17 +628,23 @@ def require_once(
 
     if count != 1:
         raise RuntimeError(
-            f"{name} の挿入位置が"
+            f"{name} が"
             f"{count}件見つかりました。"
             "想定は1件です。"
             "ファイルを変更せず終了します。"
         )
 
 
+# ============================================================
+# Main
+# ============================================================
+
+
 def main() -> None:
     if not TARGET.exists():
         raise FileNotFoundError(
-            f"対象ファイルがありません: {TARGET}"
+            "対象ファイルがありません: "
+            f"{TARGET}"
         )
 
     original = TARGET.read_text(
@@ -595,21 +656,22 @@ def main() -> None:
     # --------------------------------------------------------
 
     if (
-        "def _render_decade_luck("
+        "def build_product_decade_luck("
         in original
     ):
         raise RuntimeError(
-            "すでに _render_decade_luck() が"
-            "存在します。"
+            "build_product_decade_luck() は"
+            "すでに存在します。"
             "二重適用を防ぐため終了します。"
         )
 
     if (
-        ".decade-luck-card"
+        "decade_luck: Dict["
         in original
     ):
         raise RuntimeError(
-            "すでに大運用CSSが存在します。"
+            "ReadingProduct.decade_luck が"
+            "すでに存在する可能性があります。"
             "二重適用を防ぐため終了します。"
         )
 
@@ -619,42 +681,45 @@ def main() -> None:
 
     require_once(
         original,
-        FUNCTION_ANCHOR,
-        "FUNCTION_ANCHOR",
+        IMPORT_OLD,
+        "dataclasses import",
     )
 
     require_once(
         original,
-        CSS_ANCHOR,
-        "CSS_ANCHOR",
+        DATACLASS_ANCHOR,
+        "ReadingProduct field anchor",
     )
 
     require_once(
         original,
-        MOBILE_ANCHOR,
-        "MOBILE_ANCHOR",
+        TO_DICT_ANCHOR,
+        "ReadingProduct.to_dict anchor",
     )
 
     require_once(
         original,
-        PRINT_CARD_ANCHOR,
-        "PRINT_CARD_ANCHOR",
+        BUILD_FUNCTION_ANCHOR,
+        "build_reading_product anchor",
     )
 
-    render_order_count = (
-        original.count(
-            RENDER_ORDER_OLD
-        )
+    require_once(
+        original,
+        SIGNATURE_ANCHOR,
+        "build_reading_product signature",
     )
 
-    if render_order_count != 2:
-        raise RuntimeError(
-            "HTML描画順の対象が"
-            f"{render_order_count}件でした。"
-            "完全HTML＋fragmentの"
-            "2件を想定しています。"
-            "ファイルを変更せず終了します。"
-        )
+    require_once(
+        original,
+        RETURN_METADATA_ANCHOR,
+        "ReadingProduct return anchor",
+    )
+
+    require_once(
+        original,
+        ALL_ANCHOR,
+        "__all__ anchor",
+    )
 
     # --------------------------------------------------------
     # Backup
@@ -670,6 +735,7 @@ def main() -> None:
             "backup:",
             BACKUP,
         )
+
     else:
         print(
             "backup already exists:",
@@ -679,109 +745,141 @@ def main() -> None:
     patched = original
 
     # --------------------------------------------------------
-    # 1. Renderer function
+    # 1. dataclasses.field
     # --------------------------------------------------------
 
     patched = patched.replace(
-        FUNCTION_ANCHOR,
-        DECADE_LUCK_FUNCTION
-        + "\n"
-        + FUNCTION_ANCHOR,
+        IMPORT_OLD,
+        IMPORT_NEW,
         1,
     )
 
     # --------------------------------------------------------
-    # 2. Main CSS
+    # 2. ReadingProduct.decade_luck
     # --------------------------------------------------------
 
     patched = patched.replace(
-        CSS_ANCHOR,
-        "\n"
-        + DECADE_LUCK_CSS
-        + CSS_ANCHOR,
+        DATACLASS_ANCHOR,
+        DATACLASS_REPLACEMENT,
         1,
     )
 
     # --------------------------------------------------------
-    # 3. Mobile CSS
+    # 3. to_dict()
     # --------------------------------------------------------
 
     patched = patched.replace(
-        MOBILE_ANCHOR,
-        DECADE_LUCK_MOBILE_CSS
-        + MOBILE_ANCHOR,
+        TO_DICT_ANCHOR,
+        TO_DICT_REPLACEMENT,
         1,
     )
 
     # --------------------------------------------------------
-    # 4. Print CSS
-    #    通常 .reading-card の print rule より後に
-    #    decade override を置くことが重要。
+    # 4. build_product_decade_luck()
     # --------------------------------------------------------
 
     patched = patched.replace(
-        PRINT_CARD_ANCHOR,
-        PRINT_CARD_ANCHOR
-        + "\n"
-        + DECADE_LUCK_PRINT_CSS,
+        BUILD_FUNCTION_ANCHOR,
+        (
+            BUILD_PRODUCT_DECADE_LUCK
+            + "\n"
+            + BUILD_FUNCTION_ANCHOR
+        ),
         1,
     )
 
     # --------------------------------------------------------
-    # 5. HTML document + fragment
-    #
-    # 8セクション
-    # ↓
-    # 大運
-    # ↓
-    # 免責
-    #
-    # 免責は最後のまま。
+    # 5. build_reading_product signature
     # --------------------------------------------------------
 
     patched = patched.replace(
-        RENDER_ORDER_OLD,
-        RENDER_ORDER_NEW,
+        SIGNATURE_ANCHOR,
+        SIGNATURE_REPLACEMENT,
+        1,
     )
 
     # --------------------------------------------------------
-    # Validation
+    # 6. ReadingProduct construction
     # --------------------------------------------------------
+
+    patched = patched.replace(
+        RETURN_METADATA_ANCHOR,
+        RETURN_METADATA_REPLACEMENT,
+        1,
+    )
+
+    # --------------------------------------------------------
+    # 7. __all__
+    # --------------------------------------------------------
+
+    patched = patched.replace(
+        ALL_ANCHOR,
+        ALL_REPLACEMENT,
+        1,
+    )
+
+    # ========================================================
+    # Final structural validation
+    # ========================================================
 
     if (
         patched.count(
-            "{_render_decade_luck(product)}"
-        )
-        != 2
-    ):
-        raise RuntimeError(
-            "大運rendererの呼び出し数が"
-            "2件ではありません。"
-        )
-
-    if (
-        patched.count(
-            "def _render_decade_luck("
+            "def build_product_decade_luck("
         )
         != 1
     ):
         raise RuntimeError(
-            "_render_decade_luck() の"
+            "build_product_decade_luck() の"
             "定義数が不正です。"
         )
 
     if (
         patched.count(
-            ".decade-luck-card"
+            "decade_luck: Dict["
+        )
+        != 1
+    ):
+        raise RuntimeError(
+            "ReadingProduct.decade_luck の"
+            "定義数が不正です。"
+        )
+
+    if (
+        patched.count(
+            '"decade_luck": deepcopy('
+        )
+        != 1
+    ):
+        raise RuntimeError(
+            "to_dict() のdecade_luckが"
+            "正しく追加されていません。"
+        )
+
+    if (
+        patched.count(
+            "build_product_decade_luck("
         )
         < 2
     ):
         raise RuntimeError(
-            "大運CSSが正しく"
-            "追加されていません。"
+            "大運AIの商品統合が"
+            "正しく追加されていません。"
         )
 
+    if (
+        '"build_product_decade_luck",'
+        not in patched
+    ):
+        raise RuntimeError(
+            "__all__ に"
+            "build_product_decade_luckが"
+            "ありません。"
+        )
+
+    # --------------------------------------------------------
     # Python syntax validation
+    # --------------------------------------------------------
+
     ast.parse(
         patched
     )
@@ -795,34 +893,71 @@ def main() -> None:
         encoding="utf-8",
     )
 
+    # --------------------------------------------------------
+    # Completion
+    # --------------------------------------------------------
+
     print()
     print("=" * 72)
-    print("v1.1 大運一覧 renderer patch 完了")
+    print(
+        "v1.1 ReadingProduct "
+        "大運AI統合 patch 完了"
+    )
     print("=" * 72)
+
     print()
     print("target:")
     print(TARGET)
+
     print()
     print("追加:")
-    print("  ✓ _render_decade_luck()")
-    print("  ✓ 大運一覧CSS")
-    print("  ✓ モバイルCSS")
-    print("  ✓ A4印刷CSS")
-    print("  ✓ HTML document")
-    print("  ✓ HTML fragment")
-    print("  ✓ 現在大運ハイライト")
-    print("  ✓ 免責事項は最後のまま")
+    print(
+        "  ✓ dataclasses.field"
+    )
+    print(
+        "  ✓ ReadingProduct.decade_luck"
+    )
+    print(
+        "  ✓ to_dict() decade_luck"
+    )
+    print(
+        "  ✓ build_product_decade_luck()"
+    )
+    print(
+        "  ✓ build_reading_product("
+        "decade_luck=...)"
+    )
+    print(
+        "  ✓ ReadingProductへの"
+        "大運AI格納"
+    )
+    print(
+        "  ✓ __all__"
+    )
+
     print()
-    print("Python syntax: OK")
+    print("後方互換:")
+    print(
+        "  ✓ decade_luck未指定時は空dict"
+    )
+    print(
+        "  ✓ 空の場合to_dict()へ"
+        "decade_luckを出さない"
+    )
+
+    print()
+    print(
+        "Python syntax: OK"
+    )
+
     print()
     print("次に実行:")
+
     print(
         "python -m pytest "
-        "tests/test_reading_renderer.py "
-        "tests/test_reading_renderer_five_year_luck.py -q"
+        "tests/test_reading_product.py -q"
     )
 
 
 if __name__ == "__main__":
     main()
-  
