@@ -1863,8 +1863,23 @@ def _find_confused_useful_god_chunk(
     secondary: Sequence[str],
 ) -> str | None:
     """
-    主用神と補助用神を同格の「用神」と
+    主用神と補助用神を同格の「用神」として
     表現している文を返す。
+
+    五行の文字が一般語の一部として現れる場合は、
+    五行への言及として扱わない。
+
+    例:
+        「金銭」「金運」などに含まれる「金」は
+        五行の金とはみなさない。
+
+    一方で、
+
+        「用神は土と金です」
+        「金は用神です」
+
+    のように、補助用神を主用神と同格に
+    表現している場合は検出する。
     """
 
     all_elements = (
@@ -1879,25 +1894,121 @@ def _find_confused_useful_god_chunk(
         secondary
     )
 
+    # --------------------------------------------------------
+    # 五行の文字と衝突しやすい一般語
+    # --------------------------------------------------------
+
+    element_false_positive_terms = {
+        "木": (
+            "木曜日",
+            "木材",
+            "樹木",
+            "草木",
+        ),
+        "火": (
+            "火曜日",
+            "火災",
+            "火事",
+        ),
+        "土": (
+            "土曜日",
+            "土地",
+            "国土",
+            "土台",
+        ),
+        "金": (
+            "金曜日",
+            "金銭",
+            "金運",
+            "金額",
+            "資金",
+            "現金",
+            "貯金",
+            "預金",
+            "年金",
+            "税金",
+            "料金",
+            "賃金",
+            "借金",
+            "お金",
+        ),
+        "水": (
+            "水曜日",
+            "水分",
+            "水準",
+            "水面",
+        ),
+    }
+
+    def has_element_reference(
+        chunk: str,
+        element: str,
+    ) -> bool:
+        """
+        chunk内のelementが、
+        一般語の一部ではなく
+        五行として現れている可能性があるか判定する。
+        """
+
+        if element not in chunk:
+            return False
+
+        masked = chunk
+
+        for term in (
+            element_false_positive_terms.get(
+                element,
+                ()
+            )
+        ):
+            masked = masked.replace(
+                term,
+                ""
+            )
+
+        return element in masked
+
     for chunk in _useful_gods_sentence_chunks(
         text
     ):
+        # 「用神」という語自体がない文章は
+        # この品質チェックの対象外。
         if "用神" not in chunk:
             continue
 
-        mentioned_elements = {
-            element
-            for element in all_elements
-            if element in chunk
-        }
-
-        if not mentioned_elements:
-            continue
+        # ----------------------------------------------------
+        # 補助用神・副用神などと明示している場合は、
+        # 同格扱いではないので問題なし。
+        # ----------------------------------------------------
 
         if _chunk_has_explicit_secondary_role(
             chunk
         ):
             continue
+
+        # ----------------------------------------------------
+        # 1. 用神について述べている同一文中に
+        #    どの五行が登場するか確認する。
+        #
+        #    ただし、
+        #    「金銭」「金運」「資金」などの一般語に
+        #    含まれる文字は五行として数えない。
+        # ----------------------------------------------------
+
+        mentioned_elements = {
+            element
+            for element in all_elements
+            if has_element_reference(
+                chunk,
+                element,
+            )
+        }
+
+        # ----------------------------------------------------
+        # 主用神以外の五行が、
+        # 用神を説明する文の中に五行として
+        # 登場している場合を確認する。
+        # ----------------------------------------------------
 
         non_primary = (
             mentioned_elements
@@ -1911,6 +2022,15 @@ def _find_confused_useful_god_chunk(
                 & secondary_set
             ):
                 return chunk
+
+        # ----------------------------------------------------
+        # 2. より直接的な
+        #    「○が用神」
+        #    「用神は○」
+        #    などの表現を検出する。
+        #
+        #    primary自身についての記述は正常なので除外。
+        # ----------------------------------------------------
 
         for element in all_elements:
             if element == primary:
