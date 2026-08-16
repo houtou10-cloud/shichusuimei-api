@@ -1855,6 +1855,62 @@ def _chunk_has_explicit_secondary_role(
         )
     )
 
+def _chunk_has_explicit_secondary_role(
+    chunk: str,
+) -> bool:
+    """
+    同一文中で補助側の役割が明示されているか。
+    """
+
+    return any(
+        marker in chunk
+        for marker in (
+            "補助",
+            "補助用神",
+            "副用神",
+            "サポート",
+        )
+    )
+
+
+def _chunk_has_explicit_primary_role(
+    chunk: str,
+    *,
+    primary: str,
+) -> bool:
+    """
+    同一文中で主用神が明示されているか。
+
+    例:
+    - 主用神は土
+    - 主用神が土
+    - 主用神として土
+    - 主用神である土
+    - 土が主用神
+    - 土は主用神
+    - 土を主用神とする
+    """
+
+    if not primary:
+        return False
+
+    patterns = (
+        f"主用神は{primary}",
+        f"主用神が{primary}",
+        f"主用神として{primary}",
+        f"主用神である{primary}",
+        f"主用神の{primary}",
+        f"{primary}が主用神",
+        f"{primary}は主用神",
+        f"{primary}を主用神",
+        f"{primary}を主用神と",
+    )
+
+    return any(
+        pattern in chunk
+        for pattern in patterns
+    )
+
 
 def _find_confused_useful_god_chunk(
     text: str,
@@ -1866,20 +1922,18 @@ def _find_confused_useful_god_chunk(
     主用神と補助用神を同格の「用神」として
     表現している文を返す。
 
-    五行の文字が一般語の一部として現れる場合は、
-    五行への言及として扱わない。
-
-    例:
-        「金銭」「金運」などに含まれる「金」は
-        五行の金とはみなさない。
+    誤検出防止:
+    - 「金銭」「金運」などの一般語中の「金」は
+      五行の金として扱わない。
+    - 「水（大運）」「火（年運）」など、
+      他の占術情報として五行が同一文中に登場しても、
+      主用神が明示されている場合は、
+      それだけでは役割混同と判定しない。
 
     一方で、
-
-        「用神は土と金です」
-        「金は用神です」
-
-    のように、補助用神を主用神と同格に
-    表現している場合は検出する。
+    - 「金は用神」
+    - 「用神は金」
+    などの直接的な誤表現は引き続き検出する。
     """
 
     all_elements = (
@@ -1895,7 +1949,7 @@ def _find_confused_useful_god_chunk(
     )
 
     # --------------------------------------------------------
-    # 五行の文字と衝突しやすい一般語
+    # 五行文字と衝突しやすい一般語
     # --------------------------------------------------------
 
     element_false_positive_terms = {
@@ -1945,8 +1999,7 @@ def _find_confused_useful_god_chunk(
         element: str,
     ) -> bool:
         """
-        chunk内のelementが、
-        一般語の一部ではなく
+        chunk内のelementが一般語の一部ではなく、
         五行として現れている可能性があるか判定する。
         """
 
@@ -1971,14 +2024,13 @@ def _find_confused_useful_god_chunk(
     for chunk in _useful_gods_sentence_chunks(
         text
     ):
-        # 「用神」という語自体がない文章は
-        # この品質チェックの対象外。
+        # 用神について述べていない文は対象外。
         if "用神" not in chunk:
             continue
 
         # ----------------------------------------------------
-        # 補助用神・副用神などと明示している場合は、
-        # 同格扱いではないので問題なし。
+        # 補助用神・副用神などと明示されている場合、
+        # 主用神との役割差が表現されている。
         # ----------------------------------------------------
 
         if _chunk_has_explicit_secondary_role(
@@ -1987,12 +2039,8 @@ def _find_confused_useful_god_chunk(
             continue
 
         # ----------------------------------------------------
-        # 1. 用神について述べている同一文中に
-        #    どの五行が登場するか確認する。
-        #
-        #    ただし、
-        #    「金銭」「金運」「資金」などの一般語に
-        #    含まれる文字は五行として数えない。
+        # 一般語を除外したうえで、
+        # 同一文に登場する五行を抽出する。
         # ----------------------------------------------------
 
         mentioned_elements = {
@@ -2004,18 +2052,36 @@ def _find_confused_useful_god_chunk(
             )
         }
 
-        # ----------------------------------------------------
-        # 主用神以外の五行が、
-        # 用神を説明する文の中に五行として
-        # 登場している場合を確認する。
-        # ----------------------------------------------------
-
         non_primary = (
             mentioned_elements
             - {primary}
         )
 
-        if non_primary:
+        # ----------------------------------------------------
+        # 主用神が明示されているか。
+        #
+        # 例:
+        #
+        # 水（大運）と火（年運）の要素が
+        # せめぎ合うため、
+        # 主用神である土を丁寧に置く。
+        #
+        # この場合、水・火は用神ではなく
+        # 大運・年運の説明なので、
+        # broad checkではNGにしない。
+        # ----------------------------------------------------
+
+        explicit_primary_role = (
+            _chunk_has_explicit_primary_role(
+                chunk,
+                primary=primary,
+            )
+        )
+
+        if (
+            non_primary
+            and not explicit_primary_role
+        ):
             if (
                 not secondary_set
                 or non_primary
@@ -2024,12 +2090,11 @@ def _find_confused_useful_god_chunk(
                 return chunk
 
         # ----------------------------------------------------
-        # 2. より直接的な
-        #    「○が用神」
-        #    「用神は○」
-        #    などの表現を検出する。
+        # 直接的な役割混同は、
+        # 主用神が明示されていても検出する。
         #
-        #    primary自身についての記述は正常なので除外。
+        # 例:
+        # 「主用神は土ですが、金も用神です」
         # ----------------------------------------------------
 
         for element in all_elements:
