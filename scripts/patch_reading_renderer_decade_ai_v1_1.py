@@ -4,10 +4,10 @@ scripts/patch_reading_renderer_decade_ai_v1_1.py
 四柱推命鑑定書 v1.1
 
 engine/reading_renderer.py に
-「大運AI詳細鑑定」のHTML描画を追加する。
+大運AI詳細鑑定を追加する安全版パッチ。
 
-完成する描画順:
-
+描画順
+------
 通常8セクション
     ↓
 10年ごとの大運一覧
@@ -16,17 +16,16 @@ engine/reading_renderer.py に
     ↓
 免責事項
 
-設計原則
---------
+方針
+----
+- 既存CSSを変更しない
+- インラインstyleで表示する
 - 既存の大運一覧は変更しない
-- ReadingProduct.decade_luck を読むだけ
-- 占術計算は行わない
+- ReadingProduct.decade_luckを読むだけ
+- 占術再計算をしない
 - AI文章を書き換えない
-- decade_luck が無い旧productでも安全
-- periods が空でも安全
-- HTML document / fragment 両対応
-- モバイル対応
-- A4印刷対応
+- decade_luckが空なら何も表示しない
+- HTML document / fragment の両方へ追加
 """
 
 from __future__ import annotations
@@ -57,15 +56,12 @@ TARGET = (
 BACKUP = (
     ROOT
     / "engine"
-    / (
-        "reading_renderer.py"
-        ".bak_v1_1_decade_ai"
-    )
+    / "reading_renderer.py.bak_v1_1_decade_ai_v2"
 )
 
 
 # ============================================================
-# Renderer function
+# Renderer
 # ============================================================
 
 
@@ -78,60 +74,53 @@ RENDER_FUNCTION = r'''
 
 
 def _render_decade_luck_reading(
-    product: Mapping[
-        str,
-        Any,
-    ],
+    product: ReadingProduct,
 ) -> str:
     """
-    ReadingProduct.decade_luck を
-    顧客向けHTMLへ描画する。
+    ReadingProduct.decade_luck に格納された
+    大運AI鑑定を顧客向けHTMLへ描画する。
 
-    注意:
-    この関数では占術計算を行わない。
-    AI文章の再生成・要約・改変も行わない。
+    この関数では、
+
+    - 大運を再計算しない
+    - 干支を変更しない
+    - 年齢を変更しない
+    - AI文章を書き換えない
+
+    表示だけを担当する。
     """
 
-    if not isinstance(
-        product,
-        Mapping,
-    ):
+    product = _require_product(
+        product
+    )
+
+    decade_luck = _safe_mapping(
+        getattr(
+            product,
+            "decade_luck",
+            {},
+        )
+    )
+
+    if not decade_luck:
         return ""
 
-    decade_luck = product.get(
-        "decade_luck"
+    overview = _text(
+        decade_luck.get(
+            "overview"
+        )
     )
 
-    if not isinstance(
-        decade_luck,
-        Mapping,
-    ):
-        return ""
-
-    overview = decade_luck.get(
-        "overview"
+    raw_periods = _safe_sequence(
+        decade_luck.get(
+            "periods"
+        )
     )
-
-    if not isinstance(
-        overview,
-        str,
-    ):
-        overview = ""
-
-    overview = overview.strip()
-
-    raw_periods = decade_luck.get(
-        "periods"
-    )
-
-    if not isinstance(
-        raw_periods,
-        (list, tuple),
-    ):
-        raw_periods = []
 
     periods = [
-        period
+        _safe_mapping(
+            period
+        )
         for period
         in raw_periods
         if isinstance(
@@ -140,678 +129,480 @@ def _render_decade_luck_reading(
         )
     ]
 
-    # --------------------------------------------------------
-    # データが実質空ならセクション自体を出さない。
-    # --------------------------------------------------------
-
     if (
         not overview
         and not periods
     ):
         return ""
 
-    parts = []
-
-    parts.append(
-        '<section class="decade-reading-section">'
-    )
-
-    parts.append(
-        '<div class="section-heading">'
-        '<div class="section-number">10</div>'
-        '<div>'
-        '<h2>大運から見る人生の流れ</h2>'
-        '<p class="section-subtitle">'
-        '10年単位で変化する運勢のテーマ'
-        '</p>'
-        '</div>'
-        '</div>'
-    )
-
     # --------------------------------------------------------
     # Overview
     # --------------------------------------------------------
 
+    overview_html = ""
+
     if overview:
+        overview_html = f"""
+        <div
+            style="
+                margin: 20px 0 28px;
+                padding: 22px 24px;
+                border: 1px solid #ded7ca;
+                border-radius: 12px;
+                background: #faf8f4;
+            "
+        >
+            <h3
+                style="
+                    margin: 0 0 10px;
+                    font-size: 18px;
+                    line-height: 1.5;
+                "
+            >
+                これからの大きな流れ
+            </h3>
 
-        parts.append(
-            '<div class="decade-reading-overview">'
-        )
-
-        parts.append(
-            '<h3>これからの大きな流れ</h3>'
-        )
-
-        parts.append(
-            '<p>'
-            + _escape(
-                overview
-            )
-            + '</p>'
-        )
-
-        parts.append(
-            '</div>'
-        )
+            <div
+                style="
+                    line-height: 1.9;
+                "
+            >
+                {_paragraphs(overview)}
+            </div>
+        </div>
+        """
 
     # --------------------------------------------------------
-    # Periods
+    # Period cards
     # --------------------------------------------------------
 
-    if periods:
+    period_html_parts = []
 
-        parts.append(
-            '<div class="decade-reading-periods">'
+    for position, period in enumerate(
+        periods,
+        start=1,
+    ):
+        index = period.get(
+            "index"
         )
 
-        for position, period in enumerate(
-            periods
-        ):
-
-            index = period.get(
-                "index"
-            )
-
-            ganzhi = period.get(
+        ganzhi = _text(
+            period.get(
                 "ganzhi"
             )
+        )
 
-            start_age = period.get(
-                "start_age"
-            )
+        start_age = period.get(
+            "start_age"
+        )
 
-            end_age = period.get(
-                "end_age"
-            )
+        end_age = period.get(
+            "end_age"
+        )
 
-            title = period.get(
+        title = _text(
+            period.get(
                 "title"
             )
+        )
 
-            theme = period.get(
+        theme = _text(
+            period.get(
                 "theme"
             )
+        )
 
-            career = period.get(
+        career = _text(
+            period.get(
                 "career"
             )
+        )
 
-            wealth = period.get(
+        wealth = _text(
+            period.get(
                 "wealth"
             )
+        )
 
-            relationships = period.get(
+        relationships = _text(
+            period.get(
                 "relationships"
             )
+        )
 
-            caution = period.get(
+        caution = _text(
+            period.get(
                 "caution"
             )
+        )
 
-            advice = period.get(
-                "advice"
+        advice = [
+            _text(
+                item
+            )
+            for item
+            in _safe_sequence(
+                period.get(
+                    "advice"
+                )
+            )
+            if _text(
+                item
+            )
+        ]
+
+        # ----------------------------------------------------
+        # Age display
+        # ----------------------------------------------------
+
+        age_label = ""
+
+        if (
+            start_age is not None
+            and end_age is not None
+        ):
+            age_label = (
+                f"{_display(start_age)}歳〜"
+                f"{_display(end_age)}歳"
             )
 
-            # ------------------------------------------------
-            # Text normalization
-            # ------------------------------------------------
+        elif start_age is not None:
+            age_label = (
+                f"{_display(start_age)}歳〜"
+            )
 
-            def text_or_empty(
-                value: Any,
-            ) -> str:
+        # ----------------------------------------------------
+        # Meta
+        # ----------------------------------------------------
 
-                if value is None:
-                    return ""
+        meta_parts = []
 
-                return str(
-                    value
-                ).strip()
-
-            ganzhi_text = text_or_empty(
+        if ganzhi:
+            meta_parts.append(
                 ganzhi
             )
 
-            title_text = text_or_empty(
-                title
+        if age_label:
+            meta_parts.append(
+                age_label
             )
 
-            theme_text = text_or_empty(
-                theme
+        meta_html = ""
+
+        if meta_parts:
+            meta_html = f"""
+            <div
+                style="
+                    margin-bottom: 4px;
+                    font-size: 13px;
+                    line-height: 1.5;
+                    opacity: 0.72;
+                "
+            >
+                {_html(
+                    " / ".join(
+                        meta_parts
+                    )
+                )}
+            </div>
+            """
+
+        # ----------------------------------------------------
+        # Title
+        # ----------------------------------------------------
+
+        display_title = (
+            title
+            or (
+                f"大運 {index}"
+                if index is not None
+                else f"大運 {position}"
             )
-
-            career_text = text_or_empty(
-                career
-            )
-
-            wealth_text = text_or_empty(
-                wealth
-            )
-
-            relationships_text = (
-                text_or_empty(
-                    relationships
-                )
-            )
-
-            caution_text = text_or_empty(
-                caution
-            )
-
-            # ------------------------------------------------
-            # Age label
-            # ------------------------------------------------
-
-            age_parts = []
-
-            if start_age is not None:
-                age_parts.append(
-                    text_or_empty(
-                        start_age
-                    )
-                )
-
-            if end_age is not None:
-                age_parts.append(
-                    text_or_empty(
-                        end_age
-                    )
-                )
-
-            if len(
-                age_parts
-            ) == 2:
-
-                age_label = (
-                    age_parts[0]
-                    + "歳〜"
-                    + age_parts[1]
-                    + "歳"
-                )
-
-            elif len(
-                age_parts
-            ) == 1:
-
-                age_label = (
-                    age_parts[0]
-                    + "歳〜"
-                )
-
-            else:
-
-                age_label = ""
-
-            # ------------------------------------------------
-            # Header label
-            # ------------------------------------------------
-
-            period_meta = []
-
-            if ganzhi_text:
-                period_meta.append(
-                    ganzhi_text
-                )
-
-            if age_label:
-                period_meta.append(
-                    age_label
-                )
-
-            # ------------------------------------------------
-            # Card
-            # ------------------------------------------------
-
-            parts.append(
-                '<article class="decade-reading-card">'
-            )
-
-            parts.append(
-                '<div class="decade-reading-card-header">'
-            )
-
-            parts.append(
-                '<div class="decade-reading-order">'
-                + _escape(
-                    str(
-                        position + 1
-                    )
-                )
-                + '</div>'
-            )
-
-            parts.append(
-                '<div class="decade-reading-card-title">'
-            )
-
-            if period_meta:
-
-                parts.append(
-                    '<div class="decade-reading-meta">'
-                    + _escape(
-                        " / ".join(
-                            period_meta
-                        )
-                    )
-                    + '</div>'
-                )
-
-            if title_text:
-
-                parts.append(
-                    '<h3>'
-                    + _escape(
-                        title_text
-                    )
-                    + '</h3>'
-                )
-
-            else:
-
-                parts.append(
-                    '<h3>'
-                    '大運'
-                    + _escape(
-                        str(
-                            index
-                            if index
-                            is not None
-                            else position + 1
-                        )
-                    )
-                    + '</h3>'
-                )
-
-            parts.append(
-                '</div>'
-            )
-
-            parts.append(
-                '</div>'
-            )
-
-            # ------------------------------------------------
-            # Theme
-            # ------------------------------------------------
-
-            if theme_text:
-
-                parts.append(
-                    '<div class="decade-reading-theme">'
-                )
-
-                parts.append(
-                    '<div class="decade-reading-label">'
-                    'この10年のテーマ'
-                    '</div>'
-                )
-
-                parts.append(
-                    '<p>'
-                    + _escape(
-                        theme_text
-                    )
-                    + '</p>'
-                )
-
-                parts.append(
-                    '</div>'
-                )
-
-            # ------------------------------------------------
-            # Detail grid
-            # ------------------------------------------------
-
-            detail_items = (
-                (
-                    "仕事・社会的役割",
-                    career_text,
-                ),
-                (
-                    "金運・お金との向き合い方",
-                    wealth_text,
-                ),
-                (
-                    "人間関係",
-                    relationships_text,
-                ),
-                (
-                    "注意したいこと",
-                    caution_text,
-                ),
-            )
-
-            visible_detail_items = [
-                item
-                for item
-                in detail_items
-                if item[1]
-            ]
-
-            if visible_detail_items:
-
-                parts.append(
-                    '<div class="decade-reading-grid">'
-                )
-
-                for (
-                    label,
-                    body,
-                ) in visible_detail_items:
-
-                    parts.append(
-                        '<div class="decade-reading-detail">'
-                    )
-
-                    parts.append(
-                        '<h4>'
-                        + _escape(
-                            label
-                        )
-                        + '</h4>'
-                    )
-
-                    parts.append(
-                        '<p>'
-                        + _escape(
-                            body
-                        )
-                        + '</p>'
-                    )
-
-                    parts.append(
-                        '</div>'
-                    )
-
-                parts.append(
-                    '</div>'
-                )
-
-            # ------------------------------------------------
-            # Advice
-            # ------------------------------------------------
-
-            if isinstance(
-                advice,
-                (list, tuple),
-            ):
-
-                clean_advice = [
-                    text_or_empty(
-                        item
-                    )
-                    for item
-                    in advice
-                    if text_or_empty(
-                        item
-                    )
-                ]
-
-            else:
-
-                clean_advice = []
-
-            if clean_advice:
-
-                parts.append(
-                    '<div class="decade-reading-advice">'
-                )
-
-                parts.append(
-                    '<div class="decade-reading-label">'
-                    'この時期を活かすポイント'
-                    '</div>'
-                )
-
-                parts.append(
-                    '<ul>'
-                )
-
-                for item in clean_advice:
-
-                    parts.append(
-                        '<li>'
-                        + _escape(
-                            item
-                        )
-                        + '</li>'
-                    )
-
-                parts.append(
-                    '</ul>'
-                )
-
-                parts.append(
-                    '</div>'
-                )
-
-            parts.append(
-                '</article>'
-            )
-
-        parts.append(
-            '</div>'
         )
 
-    parts.append(
-        '</section>'
+        # ----------------------------------------------------
+        # Theme
+        # ----------------------------------------------------
+
+        theme_html = ""
+
+        if theme:
+            theme_html = f"""
+            <div
+                style="
+                    margin: 18px 0;
+                    padding: 17px 20px;
+                    border-left: 3px solid #b8aa92;
+                    background: #faf8f4;
+                    page-break-inside: avoid;
+                "
+            >
+                <div
+                    style="
+                        margin-bottom: 7px;
+                        font-size: 13px;
+                        font-weight: 700;
+                    "
+                >
+                    この10年のテーマ
+                </div>
+
+                <div
+                    style="
+                        line-height: 1.85;
+                    "
+                >
+                    {_paragraphs(theme)}
+                </div>
+            </div>
+            """
+
+        # ----------------------------------------------------
+        # Detail blocks
+        # ----------------------------------------------------
+
+        detail_definitions = (
+            (
+                "仕事・社会的役割",
+                career,
+            ),
+            (
+                "金運・お金との向き合い方",
+                wealth,
+            ),
+            (
+                "人間関係",
+                relationships,
+            ),
+            (
+                "注意したいこと",
+                caution,
+            ),
+        )
+
+        detail_html_parts = []
+
+        for (
+            label,
+            body,
+        ) in detail_definitions:
+            if not body:
+                continue
+
+            detail_html_parts.append(
+                f"""
+                <div
+                    style="
+                        margin: 12px 0;
+                        padding: 16px 18px;
+                        border: 1px solid #e5e0d7;
+                        border-radius: 10px;
+                        page-break-inside: avoid;
+                    "
+                >
+                    <h4
+                        style="
+                            margin: 0 0 8px;
+                            font-size: 14px;
+                            line-height: 1.5;
+                        "
+                    >
+                        {_html(label)}
+                    </h4>
+
+                    <div
+                        style="
+                            line-height: 1.8;
+                        "
+                    >
+                        {_paragraphs(body)}
+                    </div>
+                </div>
+                """
+            )
+
+        details_html = "".join(
+            detail_html_parts
+        )
+
+        # ----------------------------------------------------
+        # Advice
+        # ----------------------------------------------------
+
+        advice_html = ""
+
+        if advice:
+            advice_items = "".join(
+                f"""
+                <li
+                    style="
+                        margin: 6px 0;
+                        line-height: 1.75;
+                    "
+                >
+                    {_html(item)}
+                </li>
+                """
+                for item
+                in advice
+            )
+
+            advice_html = f"""
+            <div
+                style="
+                    margin-top: 18px;
+                    padding: 18px 20px;
+                    border-radius: 10px;
+                    background: #f7f5f0;
+                    page-break-inside: avoid;
+                "
+            >
+                <div
+                    style="
+                        font-size: 13px;
+                        font-weight: 700;
+                    "
+                >
+                    この時期を活かすポイント
+                </div>
+
+                <ul
+                    style="
+                        margin: 10px 0 0;
+                        padding-left: 1.4em;
+                    "
+                >
+                    {advice_items}
+                </ul>
+            </div>
+            """
+
+        # ----------------------------------------------------
+        # Card
+        # ----------------------------------------------------
+
+        period_html_parts.append(
+            f"""
+            <article
+                style="
+                    margin: 0 0 24px;
+                    padding: 24px;
+                    border: 1px solid #ddd7cc;
+                    border-radius: 14px;
+                    background: #ffffff;
+                    page-break-inside: avoid;
+                "
+            >
+                <div
+                    style="
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 14px;
+                        margin-bottom: 16px;
+                    "
+                >
+                    <div
+                        style="
+                            flex: 0 0 auto;
+                            width: 34px;
+                            height: 34px;
+                            border: 1px solid #b8aa92;
+                            border-radius: 50%;
+                            text-align: center;
+                            line-height: 34px;
+                            font-size: 14px;
+                            font-weight: 700;
+                        "
+                    >
+                        {_html(position)}
+                    </div>
+
+                    <div>
+                        {meta_html}
+
+                        <h3
+                            style="
+                                margin: 3px 0 0;
+                                font-size: 20px;
+                                line-height: 1.5;
+                            "
+                        >
+                            {_html(display_title)}
+                        </h3>
+                    </div>
+                </div>
+
+                {theme_html}
+
+                {details_html}
+
+                {advice_html}
+
+            </article>
+            """
+        )
+
+    periods_html = "".join(
+        period_html_parts
     )
 
-    return "\n".join(
-        parts
-    )
+    # --------------------------------------------------------
+    # Entire section
+    # --------------------------------------------------------
+
+    return f"""
+<section
+    class="reading-card decade-reading-card-section"
+    aria-labelledby="decade-reading-heading"
+    style="
+        margin-top: 42px;
+    "
+>
+    <h2
+        id="decade-reading-heading"
+    >
+        大運から見る人生の流れ
+    </h2>
+
+    <p
+        style="
+            margin: -4px 0 20px;
+            line-height: 1.8;
+            opacity: 0.76;
+        "
+    >
+        現在から先の10年単位の運勢を読み解きます。
+    </p>
+
+    {overview_html}
+
+    {periods_html}
+
+</section>
+"""
 '''
 
 
 # ============================================================
-# CSS
+# Anchors
 # ============================================================
 
 
-CSS_BLOCK = r'''
-
-/* ==========================================================
-   v1.1
-   大運AI詳細鑑定
-   ========================================================== */
-
-.decade-reading-section {
-    margin-top: 42px;
-}
-
-.decade-reading-overview {
-    margin: 22px 0 28px;
-    padding: 22px 24px;
-    border: 1px solid #ded7ca;
-    border-radius: 12px;
-    background: #faf8f4;
-}
-
-.decade-reading-overview h3 {
-    margin: 0 0 10px;
-    font-size: 18px;
-    line-height: 1.5;
-}
-
-.decade-reading-overview p {
-    margin: 0;
-    line-height: 1.9;
-}
-
-.decade-reading-periods {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.decade-reading-card {
-    border: 1px solid #ddd7cc;
-    border-radius: 14px;
-    padding: 24px;
-    background: #fff;
-    break-inside: avoid;
-    page-break-inside: avoid;
-}
-
-.decade-reading-card-header {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    margin-bottom: 18px;
-}
-
-.decade-reading-order {
-    flex: 0 0 auto;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #b8aa92;
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.decade-reading-card-title {
-    min-width: 0;
-}
-
-.decade-reading-card-title h3 {
-    margin: 3px 0 0;
-    font-size: 20px;
-    line-height: 1.5;
-}
-
-.decade-reading-meta {
-    font-size: 13px;
-    line-height: 1.5;
-    opacity: 0.72;
-}
-
-.decade-reading-theme {
-    margin-bottom: 18px;
-    padding: 18px 20px;
-    border-left: 3px solid #b8aa92;
-    background: #faf8f4;
-}
-
-.decade-reading-theme p {
-    margin: 7px 0 0;
-    line-height: 1.85;
-}
-
-.decade-reading-label {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-}
-
-.decade-reading-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-    margin-top: 16px;
-}
-
-.decade-reading-detail {
-    padding: 17px 18px;
-    border: 1px solid #e5e0d7;
-    border-radius: 10px;
-}
-
-.decade-reading-detail h4 {
-    margin: 0 0 8px;
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-.decade-reading-detail p {
-    margin: 0;
-    line-height: 1.8;
-}
-
-.decade-reading-advice {
-    margin-top: 18px;
-    padding: 18px 20px;
-    border-radius: 10px;
-    background: #f7f5f0;
-}
-
-.decade-reading-advice ul {
-    margin: 10px 0 0;
-    padding-left: 1.4em;
-}
-
-.decade-reading-advice li {
-    margin: 6px 0;
-    line-height: 1.75;
-}
+FUNCTION_ANCHOR = (
+    "def _render_disclaimer("
+)
 
 
-/* ----------------------------------------------------------
-   Mobile
-   ---------------------------------------------------------- */
+CALL_ANCHOR = """{_render_decade_luck(product)}
 
-@media (max-width: 720px) {
-
-    .decade-reading-section {
-        margin-top: 32px;
-    }
-
-    .decade-reading-overview {
-        padding: 18px;
-    }
-
-    .decade-reading-card {
-        padding: 18px;
-    }
-
-    .decade-reading-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .decade-reading-card-title h3 {
-        font-size: 18px;
-    }
-}
+{_render_disclaimer(product)}"""
 
 
-/* ----------------------------------------------------------
-   A4 / Print
-   ---------------------------------------------------------- */
+CALL_REPLACEMENT = """{_render_decade_luck(product)}
 
-@media print {
+{_render_decade_luck_reading(product)}
 
-    .decade-reading-section {
-        margin-top: 8mm;
-    }
-
-    .decade-reading-overview {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    .decade-reading-card {
-        break-inside: avoid;
-        page-break-inside: avoid;
-        margin-bottom: 5mm;
-    }
-
-    .decade-reading-grid {
-        gap: 3mm;
-    }
-
-    .decade-reading-detail {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    .decade-reading-advice {
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-}
-'''
+{_render_disclaimer(product)}"""
 
 
 # ============================================================
@@ -819,23 +610,11 @@ CSS_BLOCK = r'''
 # ============================================================
 
 
-def require(
-    condition: bool,
-    message: str,
-) -> None:
-
-    if not condition:
-        raise RuntimeError(
-            message
-        )
-
-
-def insert_before(
+def require_once(
     text: str,
     anchor: str,
-    addition: str,
     name: str,
-) -> str:
+) -> None:
 
     count = text.count(
         anchor
@@ -843,18 +622,11 @@ def insert_before(
 
     if count != 1:
         raise RuntimeError(
-            f"{name}: anchorが"
-            f"{count}件です。"
+            f"{name} が"
+            f"{count}件見つかりました。"
             "想定は1件です。"
+            "ファイルは変更しません。"
         )
-
-    return text.replace(
-        anchor,
-        addition
-        + "\n\n"
-        + anchor,
-        1,
-    )
 
 
 # ============================================================
@@ -868,13 +640,11 @@ def main() -> None:
     # Target
     # --------------------------------------------------------
 
-    require(
-        TARGET.exists(),
-        (
+    if not TARGET.exists():
+        raise FileNotFoundError(
             "対象ファイルがありません: "
             f"{TARGET}"
-        ),
-    )
+        )
 
     original = TARGET.read_text(
         encoding="utf-8"
@@ -895,26 +665,43 @@ def main() -> None:
         )
 
     # --------------------------------------------------------
-    # Existing renderer checks
+    # Existing v1.1 list renderer
     # --------------------------------------------------------
 
-    require(
+    if (
         "def _render_decade_luck("
-        in original,
-        (
-            "既存の _render_decade_luck() "
+        not in original
+    ):
+        raise RuntimeError(
+            "既存の"
+            "_render_decade_luck()"
             "が見つかりません。"
-        ),
+        )
+
+    # --------------------------------------------------------
+    # Anchors
+    # --------------------------------------------------------
+
+    require_once(
+        original,
+        FUNCTION_ANCHOR,
+        "_render_disclaimer definition",
     )
 
-    require(
-        "def _render_disclaimer("
-        in original,
-        (
-            "_render_disclaimer() "
-            "が見つかりません。"
-        ),
+    # HTML document + fragment の
+    # 2箇所を想定。
+    call_count = original.count(
+        CALL_ANCHOR
     )
+
+    if call_count != 2:
+        raise RuntimeError(
+            "大運一覧→免責事項の"
+            "描画箇所が"
+            f"{call_count}件でした。"
+            "想定は2件です。"
+            "ファイルは変更しません。"
+        )
 
     # --------------------------------------------------------
     # Backup
@@ -945,237 +732,65 @@ def main() -> None:
             BACKUP
         )
 
+    # ========================================================
+    # Apply in memory
+    # ========================================================
+
     patched = original
 
-    # ========================================================
-    # 1. Renderer function
-    #
-    # disclaimer関数の直前へ追加。
-    # ========================================================
+    # --------------------------------------------------------
+    # Function
+    # --------------------------------------------------------
 
-    disclaimer_function_anchor = (
-        "def _render_disclaimer("
-    )
-
-    patched = insert_before(
-        patched,
-        disclaimer_function_anchor,
-        RENDER_FUNCTION.strip(),
-        "renderer function",
-    )
-
-    # ========================================================
-    # 2. CSS
-    #
-    # </style> の直前へ追加。
-    #
-    # reading_renderer.py 内には
-    # CSS template中の </style> が
-    # 原則1つあることを期待する。
-    # ========================================================
-
-    style_anchor = "</style>"
-
-    style_count = patched.count(
-        style_anchor
-    )
-
-    if style_count < 1:
-        raise RuntimeError(
-            "</style> が見つかりません。"
-        )
-
-    # 最初のstyle終了位置へ追加する。
     patched = patched.replace(
-        style_anchor,
-        CSS_BLOCK.strip()
-        + "\n\n"
-        + style_anchor,
+        FUNCTION_ANCHOR,
+        (
+            RENDER_FUNCTION.strip()
+            + "\n\n\n"
+            + FUNCTION_ANCHOR
+        ),
         1,
     )
 
-    # ========================================================
-    # 3. HTML document
-    #
-    # _render_decade_luck(product)
-    # の直後、
-    # _render_disclaimer(product)
-    # の直前へ追加。
-    # ========================================================
-
-    document_candidates = (
-        """{_render_decade_luck(product)}
-{_render_disclaimer(product)}""",
-        """{_render_decade_luck(product)}
-
-{_render_disclaimer(product)}""",
-        """{_render_decade_luck(product)}
-    
-{_render_disclaimer(product)}""",
-    )
-
-    document_replaced = False
-
-    for anchor in document_candidates:
-
-        if anchor in patched:
-
-            replacement = (
-                anchor.replace(
-                    "{_render_disclaimer(product)}",
-                    "{_render_decade_luck_reading(product)}\n"
-                    "{_render_disclaimer(product)}",
-                )
-            )
-
-            patched = patched.replace(
-                anchor,
-                replacement,
-                1,
-            )
-
-            document_replaced = True
-
-            break
-
     # --------------------------------------------------------
-    # f-stringではなくjoin/list形式の場合へのfallback
+    # HTML document + fragment
     # --------------------------------------------------------
 
-    if not document_replaced:
-
-        anchor = (
-            "_render_decade_luck(product),"
-        )
-
-        count = patched.count(
-            anchor
-        )
-
-        if count >= 1:
-
-            patched = patched.replace(
-                anchor,
-                (
-                    "_render_decade_luck(product),\n"
-                    "        "
-                    "_render_decade_luck_reading(product),"
-                ),
-                1,
-            )
-
-            document_replaced = True
-
-    require(
-        document_replaced,
-        (
-            "HTML document側の"
-            "大運一覧→免責事項の接続位置を"
-            "特定できませんでした。"
-        ),
+    patched = patched.replace(
+        CALL_ANCHOR,
+        CALL_REPLACEMENT,
     )
 
     # ========================================================
-    # 4. HTML fragment
-    #
-    # documentとは別に同じ並びがある場合、
-    # もう一度追加する。
+    # Structural checks
     # ========================================================
 
-    fragment_replaced = False
-
-    for anchor in document_candidates:
-
-        if anchor in patched:
-
-            replacement = (
-                anchor.replace(
-                    "{_render_disclaimer(product)}",
-                    "{_render_decade_luck_reading(product)}\n"
-                    "{_render_disclaimer(product)}",
-                )
-            )
-
-            patched = patched.replace(
-                anchor,
-                replacement,
-                1,
-            )
-
-            fragment_replaced = True
-
-            break
-
-    if not fragment_replaced:
-
-        anchor = (
-            "_render_decade_luck(product),"
+    if (
+        patched.count(
+            "def _render_decade_luck_reading("
         )
-
-        if anchor in patched:
-
-            patched = patched.replace(
-                anchor,
-                (
-                    "_render_decade_luck(product),\n"
-                    "        "
-                    "_render_decade_luck_reading(product),"
-                ),
-                1,
-            )
-
-            fragment_replaced = True
-
-    # --------------------------------------------------------
-    # Rendererによってfragment実装が無い場合もある。
-    #
-    # ただし現在のv1.1ではdocument/fragmentの
-    # 両方がある前提なので、ここでは必須とする。
-    # --------------------------------------------------------
-
-    require(
-        fragment_replaced,
-        (
-            "HTML fragment側の"
-            "大運一覧→免責事項の接続位置を"
-            "特定できませんでした。"
-        ),
-    )
-
-    # ========================================================
-    # Structural validation
-    # ========================================================
-
-    require(
-        (
-            patched.count(
-                "def _render_decade_luck_reading("
-            )
-            == 1
-        ),
-        (
+        != 1
+    ):
+        raise RuntimeError(
             "_render_decade_luck_reading() "
             "の定義数が不正です。"
-        ),
-    )
+        )
 
-    render_call_count = (
+    call_count_after = (
         patched.count(
             "_render_decade_luck_reading(product)"
         )
     )
 
-    require(
-        render_call_count >= 2,
-        (
-            "大運AI詳細鑑定の描画呼び出しが"
-            "2箇所未満です。"
-            f" actual={render_call_count}"
-        ),
-    )
+    if call_count_after != 2:
+        raise RuntimeError(
+            "大運AI詳細描画の"
+            "呼び出し数が不正です。"
+            f" actual={call_count_after}"
+        )
 
     required_markers = (
-        'product.get(\n        "decade_luck"',
+        'getattr(\n            product,\n            "decade_luck"',
         "大運から見る人生の流れ",
         "これからの大きな流れ",
         "この10年のテーマ",
@@ -1184,84 +799,44 @@ def main() -> None:
         "人間関係",
         "注意したいこと",
         "この時期を活かすポイント",
-        ".decade-reading-section",
-        ".decade-reading-card",
-        ".decade-reading-grid",
-        "@media (max-width: 720px)",
-        "@media print",
+        "_paragraphs(overview)",
+        "_html(display_title)",
     )
 
     for marker in required_markers:
 
-        require(
-            marker in patched,
-            (
+        if marker not in patched:
+            raise RuntimeError(
                 "パッチ後の必須構造が"
-                "ありません: "
+                "不足しています: "
                 f"{marker}"
-            ),
-        )
+            )
 
-    # ========================================================
-    # Ordering validation
+    # --------------------------------------------------------
+    # Ordering check
     #
-    # 呼び出し位置について
-    # decade一覧 → decade AI → disclaimer
-    # が成立することを確認。
-    # ========================================================
+    # 実際のHTML生成部分だけを確認する。
+    # --------------------------------------------------------
 
-    first_decade_list_call = (
-        patched.find(
-            "_render_decade_luck(product)"
+    expected_sequence = """{_render_decade_luck(product)}
+
+{_render_decade_luck_reading(product)}
+
+{_render_disclaimer(product)}"""
+
+    sequence_count = (
+        patched.count(
+            expected_sequence
         )
     )
 
-    first_decade_ai_call = (
-        patched.find(
-            "_render_decade_luck_reading(product)"
+    if sequence_count != 2:
+        raise RuntimeError(
+            "描画順が不正です。"
+            "期待:"
+            "大運一覧 → 大運AI → 免責"
+            f" actual={sequence_count}"
         )
-    )
-
-    first_disclaimer_call = (
-        patched.find(
-            "_render_disclaimer(product)"
-        )
-    )
-
-    require(
-        first_decade_list_call
-        != -1,
-        "大運一覧呼び出しがありません。",
-    )
-
-    require(
-        first_decade_ai_call
-        != -1,
-        "大運AI呼び出しがありません。",
-    )
-
-    require(
-        first_disclaimer_call
-        != -1,
-        "免責事項呼び出しがありません。",
-    )
-
-    require(
-        (
-            first_decade_list_call
-            < first_decade_ai_call
-            < first_disclaimer_call
-        ),
-        (
-            "描画順が不正です。\n"
-            "期待:\n"
-            "大運一覧\n"
-            "↓\n"
-            "大運AI詳細\n"
-            "↓\n"
-            "免責事項"
-        ),
-    )
 
     # ========================================================
     # Syntax validation
@@ -1301,7 +876,8 @@ def main() -> None:
     )
 
     print(
-        "v1.1 大運AI詳細 renderer patch 完了"
+        "v1.1 大運AI詳細 "
+        "renderer patch 完了"
     )
 
     print(
@@ -1333,7 +909,15 @@ def main() -> None:
     )
 
     print(
-        "  ✓ 大運period cards"
+        "  ✓ 期間別タイトル"
+    )
+
+    print(
+        "  ✓ 干支"
+    )
+
+    print(
+        "  ✓ 年齢"
     )
 
     print(
@@ -1369,15 +953,7 @@ def main() -> None:
     )
 
     print(
-        "  ✓ モバイルCSS"
-    )
-
-    print(
-        "  ✓ A4印刷CSS"
-    )
-
-    print(
-        "  ✓ decade_luck無し旧product対応"
+        "  ✓ 旧product安全対応"
     )
 
     print()
@@ -1395,7 +971,7 @@ def main() -> None:
     )
 
     print(
-        "  10年ごとの大運一覧"
+        "  10年ごとの大運"
     )
 
     print(
