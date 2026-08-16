@@ -1,24 +1,21 @@
 """
-scripts/patch_reading_product_decade_luck_v1_1.py
+scripts/patch_generate_customer_reading_decade_luck_v1_1.py
 
 四柱推命鑑定書 v1.1
 
-engine/reading_product.py に
-大運AI鑑定を正式統合するための
-一回限りの安全なパッチ。
+scripts/generate_customer_reading.py へ
+大運AI鑑定を正式接続する一回限りのパッチ。
 
 変更内容
 --------
-1. dataclasses.field を追加
-2. ReadingProduct.decade_luck を追加
-3. to_dict() で大運AI鑑定を出力
-4. build_product_decade_luck() を追加
-5. build_reading_product() に decade_luck 引数を追加
-6. ReadingProductへ大運AI結果を格納
-7. __all__ を更新
-8. v1.0との後方互換を維持
-9. 元ファイルをバックアップ
-10. Python構文チェック
+1. reading_decade_luck import追加
+2. decade_luck_ai.json ファイル名定数追加
+3. 顧客ディレクトリ内の保存パス追加
+4. 最終品質ゲート後に大運AI鑑定を生成
+5. decade_luck_ai.json 保存
+6. ReadingProductへ decade_luck を渡す
+7. Python構文チェック
+8. 元ファイルをバックアップ
 """
 
 from __future__ import annotations
@@ -39,15 +36,15 @@ ROOT = Path(
 
 TARGET = (
     ROOT
-    / "engine"
-    / "reading_product.py"
+    / "scripts"
+    / "generate_customer_reading.py"
 )
 
 
 BACKUP = (
     ROOT
-    / "engine"
-    / "reading_product.py.bak_v1_1_decade_luck"
+    / "scripts"
+    / "generate_customer_reading.py.bak_decade_luck_v1_1"
 )
 
 
@@ -56,560 +53,225 @@ BACKUP = (
 # ============================================================
 
 
-IMPORT_OLD = (
-    "from dataclasses import dataclass\n"
-)
+# ------------------------------------------------------------
+# 1. Import
+# ------------------------------------------------------------
 
 
-IMPORT_NEW = """from dataclasses import (
-    dataclass,
-    field,
+IMPORT_ANCHOR = """from engine.reading_generator import (
+    OPENAI_API_KEY_ENV,
+    OPENAI_READING_MODEL_ENV,
+    ReadingGenerationResult,
+    generate_reading,
+    get_default_model,
+    has_openai_api_key,
 )
+
+"""
+
+
+IMPORT_REPLACEMENT = """from engine.reading_generator import (
+    OPENAI_API_KEY_ENV,
+    OPENAI_READING_MODEL_ENV,
+    ReadingGenerationResult,
+    generate_reading,
+    get_default_model,
+    has_openai_api_key,
+)
+
+from engine.reading_decade_luck import (
+    generate_decade_luck_reading,
+)
+
 """
 
 
 # ------------------------------------------------------------
-# ReadingProduct field
+# 2. Filename constant
 # ------------------------------------------------------------
 
 
-DATACLASS_ANCHOR = """    metadata: Dict[str, Any]
-    schema_version: str = (
+FILENAME_ANCHOR = """AI_READING_FILENAME = (
+    "ai_reading.json"
+)
+
+QUALITY_REPORT_FILENAME = (
 """
 
 
-DATACLASS_REPLACEMENT = """    metadata: Dict[str, Any]
+FILENAME_REPLACEMENT = """AI_READING_FILENAME = (
+    "ai_reading.json"
+)
 
-    # --------------------------------------------------------
-    # v1.1
-    # 大運AI鑑定
-    #
-    # default_factory=dict にすることで、
-    # v1.0形式でReadingProductを直接生成している
-    # 既存コード・既存テストとの後方互換を維持する。
-    # --------------------------------------------------------
+DECADE_LUCK_AI_FILENAME = (
+    "decade_luck_ai.json"
+)
 
-    decade_luck: Dict[
-        str,
-        Any,
-    ] = field(
-        default_factory=dict
+QUALITY_REPORT_FILENAME = (
+"""
+
+
+# ------------------------------------------------------------
+# 3. Output path
+# ------------------------------------------------------------
+
+
+PATH_ANCHOR = """    ai_reading_path = (
+        customer_dir
+        / AI_READING_FILENAME
     )
 
-    schema_version: str = (
+    quality_report_path = (
+"""
+
+
+PATH_REPLACEMENT = """    ai_reading_path = (
+        customer_dir
+        / AI_READING_FILENAME
+    )
+
+    decade_luck_ai_path = (
+        customer_dir
+        / DECADE_LUCK_AI_FILENAME
+    )
+
+    quality_report_path = (
 """
 
 
 # ------------------------------------------------------------
-# ReadingProduct.to_dict()
+# 4. Decade luck generation
 #
-# decade_luck が空ならキーそのものを出さない。
-# これによりv1.0のserialized contractを極力維持する。
+# 最終品質ゲート通過後、
+# ReadingProduct生成直前へ入れる。
 # ------------------------------------------------------------
 
 
-TO_DICT_ANCHOR = """            "metadata": deepcopy(
-                self.metadata
-            ),
-            "method": self.method,
+DECADE_LUCK_BLOCK_ANCHOR = """    # 以降は必ず最終採用版を使う。
+    generation_result = (
+        final_generation_result
+    )
+
+    # --------------------------------------------------------
+    # 5. ReadingProduct
 """
 
 
-TO_DICT_REPLACEMENT = """            "metadata": deepcopy(
-                self.metadata
+DECADE_LUCK_BLOCK_REPLACEMENT = """    # 以降は必ず最終採用版を使う。
+    generation_result = (
+        final_generation_result
+    )
+
+    # --------------------------------------------------------
+    # 4.8. 大運AI鑑定
+    # --------------------------------------------------------
+
+    print()
+    print(
+        "4.8. 大運AI鑑定生成"
+    )
+
+    decade_luck_result = (
+        generate_decade_luck_reading(
+            reading_context,
+            consultation_context=(
+                consultation_context
             ),
-
-            **(
-                {
-                    "decade_luck": deepcopy(
-                        self.decade_luck
-                    )
-                }
-                if self.decade_luck
-                else {}
+            model=model,
+            reasoning_effort=(
+                REASONING_EFFORT
             ),
+            store=STORE,
+        )
+    )
 
-            "method": self.method,
-"""
-
-
-# ------------------------------------------------------------
-# build_product_decade_luck()
-# ------------------------------------------------------------
-
-
-BUILD_PRODUCT_DECADE_LUCK = r'''
-
-def build_product_decade_luck(
-    decade_luck: Optional[
-        Mapping[str, Any]
-    ] = None,
-) -> Dict[str, Any]:
-    """
-    v1.1
-
-    大運AI鑑定をReadingProduct向けに
-    安全にコピーする。
-
-    この関数では、
-
-    - 大運を再計算しない
-    - 干支を変更しない
-    - 年齢を変更しない
-    - 通変星を変更しない
-    - 五行を変更しない
-    - AI文章を書き換えない
-
-    decade_luck=None または空dictは、
-    v1.0互換として空dictを返す。
-    """
-
-    if decade_luck is None:
-        return {}
-
-    if not isinstance(
-        decade_luck,
-        Mapping,
+    if (
+        decade_luck_result.status
+        != "completed"
     ):
-        raise TypeError(
-            "decade_luckは"
-            "MappingまたはNoneで"
-            "指定してください。"
+        raise RuntimeError(
+            "大運AI鑑定が"
+            "completedではありません: "
+            f"{decade_luck_result.status}"
         )
 
-    data = deepcopy(
-        dict(
-            decade_luck
-        )
+    decade_luck_data = (
+        decade_luck_result.to_dict()
     )
 
-    if not data:
-        return {}
-
-    # --------------------------------------------------------
-    # overview
-    # --------------------------------------------------------
-
-    overview = data.get(
-        "overview"
+    decade_luck_periods = (
+        decade_luck_data.get(
+            "periods",
+            [],
+        )
     )
 
     if not isinstance(
-        overview,
-        str,
-    ):
-        raise ReadingProductValidationError(
-            "decade_luck.overviewは"
-            "文字列である必要があります。"
-        )
-
-    overview = (
-        overview.strip()
-    )
-
-    if not overview:
-        raise ReadingProductValidationError(
-            "decade_luck.overviewが"
-            "空です。"
-        )
-
-    # --------------------------------------------------------
-    # periods
-    # --------------------------------------------------------
-
-    periods = data.get(
-        "periods"
-    )
-
-    if not isinstance(
-        periods,
+        decade_luck_periods,
         list,
     ):
-        raise ReadingProductValidationError(
-            "decade_luck.periodsは"
-            "配列である必要があります。"
+        raise RuntimeError(
+            "大運AI鑑定periodsが"
+            "配列ではありません。"
         )
 
-    if not periods:
-        raise ReadingProductValidationError(
-            "decade_luck.periodsが"
+    if not decade_luck_periods:
+        raise RuntimeError(
+            "大運AI鑑定periodsが"
             "空です。"
         )
 
-    normalized_periods: List[
-        Dict[str, Any]
-    ] = []
+    save_json(
+        decade_luck_ai_path,
+        decade_luck_data,
+    )
 
-    # --------------------------------------------------------
-    # AIではなくengine側が管理する事実
-    # --------------------------------------------------------
+    print(
+        "   OK"
+    )
 
-    required_fact_fields = (
-        "index",
-        "ganzhi",
-        "start_age",
-        "end_age",
+    print(
+        "   response_status: "
+        f"{decade_luck_result.response_status}"
+    )
+
+    print(
+        "   response_id: "
+        f"{decade_luck_result.response_id}"
+    )
+
+    print(
+        "   period_count: "
+        f"{len(decade_luck_periods)}"
     )
 
     # --------------------------------------------------------
-    # AI鑑定文章
-    # --------------------------------------------------------
-
-    required_text_fields = (
-        "title",
-        "theme",
-        "career",
-        "wealth",
-        "relationships",
-        "caution",
-    )
-
-    for position, period in enumerate(
-        periods
-    ):
-        if not isinstance(
-            period,
-            Mapping,
-        ):
-            raise ReadingProductValidationError(
-                "decade_luck.periods"
-                f"[{position}]は"
-                "objectである必要があります。"
-            )
-
-        item = deepcopy(
-            dict(
-                period
-            )
-        )
-
-        # ----------------------------------------------------
-        # Protected facts existence
-        # ----------------------------------------------------
-
-        for field_name in (
-            required_fact_fields
-        ):
-            if (
-                field_name
-                not in item
-            ):
-                raise ReadingProductValidationError(
-                    "decade_luck.periods"
-                    f"[{position}]."
-                    f"{field_name}"
-                    "がありません。"
-                )
-
-        # ----------------------------------------------------
-        # index
-        # ----------------------------------------------------
-
-        index_value = item.get(
-            "index"
-        )
-
-        if (
-            isinstance(
-                index_value,
-                bool,
-            )
-            or not isinstance(
-                index_value,
-                int,
-            )
-        ):
-            raise ReadingProductValidationError(
-                "decade_luck.periods"
-                f"[{position}].indexは"
-                "整数である必要があります。"
-            )
-
-        # ----------------------------------------------------
-        # ganzhi
-        # ----------------------------------------------------
-
-        ganzhi = item.get(
-            "ganzhi"
-        )
-
-        if (
-            not isinstance(
-                ganzhi,
-                str,
-            )
-            or not ganzhi.strip()
-        ):
-            raise ReadingProductValidationError(
-                "decade_luck.periods"
-                f"[{position}].ganzhiが"
-                "不正です。"
-            )
-
-        # ----------------------------------------------------
-        # Ages
-        # ----------------------------------------------------
-
-        for age_field in (
-            "start_age",
-            "end_age",
-        ):
-            age_value = item.get(
-                age_field
-            )
-
-            if (
-                isinstance(
-                    age_value,
-                    bool,
-                )
-                or not isinstance(
-                    age_value,
-                    (int, float),
-                )
-            ):
-                raise ReadingProductValidationError(
-                    "decade_luck.periods"
-                    f"[{position}]."
-                    f"{age_field}は"
-                    "数値である必要があります。"
-                )
-
-        start_age = item.get(
-            "start_age"
-        )
-
-        end_age = item.get(
-            "end_age"
-        )
-
-        if (
-            start_age
-            >= end_age
-        ):
-            raise ReadingProductValidationError(
-                "decade_luck.periods"
-                f"[{position}]の"
-                "start_age / end_ageが"
-                "不正です。"
-            )
-
-        # ----------------------------------------------------
-        # Interpretation text
-        # ----------------------------------------------------
-
-        for field_name in (
-            required_text_fields
-        ):
-            value = item.get(
-                field_name
-            )
-
-            if (
-                not isinstance(
-                    value,
-                    str,
-                )
-                or not value.strip()
-            ):
-                raise ReadingProductValidationError(
-                    "decade_luck.periods"
-                    f"[{position}]."
-                    f"{field_name}が"
-                    "空または不正です。"
-                )
-
-        # ----------------------------------------------------
-        # Advice
-        # ----------------------------------------------------
-
-        advice = item.get(
-            "advice"
-        )
-
-        if not isinstance(
-            advice,
-            list,
-        ):
-            raise ReadingProductValidationError(
-                "decade_luck.periods"
-                f"[{position}].adviceは"
-                "配列である必要があります。"
-            )
-
-        if not (
-            2
-            <= len(
-                advice
-            )
-            <= 3
-        ):
-            raise ReadingProductValidationError(
-                "decade_luck.periods"
-                f"[{position}].adviceは"
-                "2〜3件必要です。"
-            )
-
-        for (
-            advice_position,
-            advice_item,
-        ) in enumerate(
-            advice
-        ):
-            if (
-                not isinstance(
-                    advice_item,
-                    str,
-                )
-                or not advice_item.strip()
-            ):
-                raise ReadingProductValidationError(
-                    "decade_luck.periods"
-                    f"[{position}].advice"
-                    f"[{advice_position}]が"
-                    "空または不正です。"
-                )
-
-        normalized_periods.append(
-            item
-        )
-
-    # --------------------------------------------------------
-    # index uniqueness
-    # --------------------------------------------------------
-
-    indexes = [
-        item[
-            "index"
-        ]
-        for item
-        in normalized_periods
-    ]
-
-    if (
-        len(
-            indexes
-        )
-        != len(
-            set(
-                indexes
-            )
-        )
-    ):
-        raise ReadingProductValidationError(
-            "decade_luck.periodsの"
-            "indexが重複しています。"
-        )
-
-    # --------------------------------------------------------
-    # index order
-    # --------------------------------------------------------
-
-    if (
-        indexes
-        != sorted(
-            indexes
-        )
-    ):
-        raise ReadingProductValidationError(
-            "decade_luck.periodsの"
-            "index順序が不正です。"
-        )
-
-    # --------------------------------------------------------
-    # Result
-    # --------------------------------------------------------
-
-    result = deepcopy(
-        data
-    )
-
-    result[
-        "overview"
-    ] = overview
-
-    result[
-        "periods"
-    ] = normalized_periods
-
-    return result
-'''
-
-
-BUILD_FUNCTION_ANCHOR = (
-    "\ndef build_reading_product(\n"
-)
-
-
-# ------------------------------------------------------------
-# build_reading_product signature
-# ------------------------------------------------------------
-
-
-SIGNATURE_ANCHOR = """    reading_datetime: Any = None,
-    brand_name: Optional[str] = None,
-) -> ReadingProduct:
-"""
-
-
-SIGNATURE_REPLACEMENT = """    reading_datetime: Any = None,
-    brand_name: Optional[str] = None,
-    decade_luck: Optional[
-        Mapping[str, Any]
-    ] = None,
-) -> ReadingProduct:
+    # 5. ReadingProduct
 """
 
 
 # ------------------------------------------------------------
-# ReadingProduct construction
+# 5. build_reading_product()
 # ------------------------------------------------------------
 
 
-RETURN_METADATA_ANCHOR = """        metadata=build_product_metadata(
-            reading_context,
-            created_at=(
-                reading_datetime
+PRODUCT_CALL_ANCHOR = """            brand_name=(
+                BRAND_NAME
             ),
-            brand_name=brand_name,
-        ),
+        )
     )
 """
 
 
-RETURN_METADATA_REPLACEMENT = """        metadata=build_product_metadata(
-            reading_context,
-            created_at=(
-                reading_datetime
+PRODUCT_CALL_REPLACEMENT = """            brand_name=(
+                BRAND_NAME
             ),
-            brand_name=brand_name,
-        ),
-
-        decade_luck=(
-            build_product_decade_luck(
-                decade_luck
-            )
-        ),
+            decade_luck=(
+                decade_luck_data
+            ),
+        )
     )
 """
-
-
-# ------------------------------------------------------------
-# __all__
-# ------------------------------------------------------------
-
-
-ALL_ANCHOR = (
-    '    "build_product_metadata",\n'
-    '    "build_reading_product",\n'
-)
-
-
-ALL_REPLACEMENT = (
-    '    "build_product_metadata",\n'
-    '    "build_product_decade_luck",\n'
-    '    "build_reading_product",\n'
-)
 
 
 # ============================================================
@@ -656,23 +318,23 @@ def main() -> None:
     # --------------------------------------------------------
 
     if (
-        "def build_product_decade_luck("
+        "generate_decade_luck_reading"
         in original
     ):
         raise RuntimeError(
-            "build_product_decade_luck() は"
-            "すでに存在します。"
+            "generate_customer_reading.py は"
+            "すでに大運AI対応済みの"
+            "可能性があります。"
             "二重適用を防ぐため終了します。"
         )
 
     if (
-        "decade_luck: Dict["
+        "DECADE_LUCK_AI_FILENAME"
         in original
     ):
         raise RuntimeError(
-            "ReadingProduct.decade_luck が"
-            "すでに存在する可能性があります。"
-            "二重適用を防ぐため終了します。"
+            "DECADE_LUCK_AI_FILENAME が"
+            "すでに存在します。"
         )
 
     # --------------------------------------------------------
@@ -681,44 +343,32 @@ def main() -> None:
 
     require_once(
         original,
-        IMPORT_OLD,
-        "dataclasses import",
+        IMPORT_ANCHOR,
+        "reading_generator import",
     )
 
     require_once(
         original,
-        DATACLASS_ANCHOR,
-        "ReadingProduct field anchor",
+        FILENAME_ANCHOR,
+        "filename anchor",
     )
 
     require_once(
         original,
-        TO_DICT_ANCHOR,
-        "ReadingProduct.to_dict anchor",
+        PATH_ANCHOR,
+        "output path anchor",
     )
 
     require_once(
         original,
-        BUILD_FUNCTION_ANCHOR,
+        DECADE_LUCK_BLOCK_ANCHOR,
+        "final quality gate anchor",
+    )
+
+    require_once(
+        original,
+        PRODUCT_CALL_ANCHOR,
         "build_reading_product anchor",
-    )
-
-    require_once(
-        original,
-        SIGNATURE_ANCHOR,
-        "build_reading_product signature",
-    )
-
-    require_once(
-        original,
-        RETURN_METADATA_ANCHOR,
-        "ReadingProduct return anchor",
-    )
-
-    require_once(
-        original,
-        ALL_ANCHOR,
-        "__all__ anchor",
     )
 
     # --------------------------------------------------------
@@ -735,7 +385,6 @@ def main() -> None:
             "backup:",
             BACKUP,
         )
-
     else:
         print(
             "backup already exists:",
@@ -745,139 +394,112 @@ def main() -> None:
     patched = original
 
     # --------------------------------------------------------
-    # 1. dataclasses.field
+    # 1. import
     # --------------------------------------------------------
 
     patched = patched.replace(
-        IMPORT_OLD,
-        IMPORT_NEW,
+        IMPORT_ANCHOR,
+        IMPORT_REPLACEMENT,
         1,
     )
 
     # --------------------------------------------------------
-    # 2. ReadingProduct.decade_luck
+    # 2. filename
     # --------------------------------------------------------
 
     patched = patched.replace(
-        DATACLASS_ANCHOR,
-        DATACLASS_REPLACEMENT,
+        FILENAME_ANCHOR,
+        FILENAME_REPLACEMENT,
         1,
     )
 
     # --------------------------------------------------------
-    # 3. to_dict()
+    # 3. output path
     # --------------------------------------------------------
 
     patched = patched.replace(
-        TO_DICT_ANCHOR,
-        TO_DICT_REPLACEMENT,
+        PATH_ANCHOR,
+        PATH_REPLACEMENT,
         1,
     )
 
     # --------------------------------------------------------
-    # 4. build_product_decade_luck()
+    # 4. decade luck generation
     # --------------------------------------------------------
 
     patched = patched.replace(
-        BUILD_FUNCTION_ANCHOR,
-        (
-            BUILD_PRODUCT_DECADE_LUCK
-            + "\n"
-            + BUILD_FUNCTION_ANCHOR
-        ),
+        DECADE_LUCK_BLOCK_ANCHOR,
+        DECADE_LUCK_BLOCK_REPLACEMENT,
         1,
     )
 
     # --------------------------------------------------------
-    # 5. build_reading_product signature
+    # 5. ReadingProduct integration
     # --------------------------------------------------------
 
     patched = patched.replace(
-        SIGNATURE_ANCHOR,
-        SIGNATURE_REPLACEMENT,
-        1,
-    )
-
-    # --------------------------------------------------------
-    # 6. ReadingProduct construction
-    # --------------------------------------------------------
-
-    patched = patched.replace(
-        RETURN_METADATA_ANCHOR,
-        RETURN_METADATA_REPLACEMENT,
-        1,
-    )
-
-    # --------------------------------------------------------
-    # 7. __all__
-    # --------------------------------------------------------
-
-    patched = patched.replace(
-        ALL_ANCHOR,
-        ALL_REPLACEMENT,
+        PRODUCT_CALL_ANCHOR,
+        PRODUCT_CALL_REPLACEMENT,
         1,
     )
 
     # ========================================================
-    # Final structural validation
+    # Structural validation
     # ========================================================
 
     if (
         patched.count(
-            "def build_product_decade_luck("
+            "generate_decade_luck_reading("
         )
         != 1
     ):
         raise RuntimeError(
-            "build_product_decade_luck() の"
-            "定義数が不正です。"
+            "generate_decade_luck_reading() の"
+            "呼び出し数が不正です。"
         )
 
     if (
         patched.count(
-            "decade_luck: Dict["
+            "DECADE_LUCK_AI_FILENAME"
         )
-        != 1
+        != 2
     ):
         raise RuntimeError(
-            "ReadingProduct.decade_luck の"
-            "定義数が不正です。"
+            "DECADE_LUCK_AI_FILENAME の"
+            "出現数が不正です。"
         )
 
     if (
         patched.count(
-            '"decade_luck": deepcopy('
-        )
-        != 1
-    ):
-        raise RuntimeError(
-            "to_dict() のdecade_luckが"
-            "正しく追加されていません。"
-        )
-
-    if (
-        patched.count(
-            "build_product_decade_luck("
+            "decade_luck_ai_path"
         )
         < 2
     ):
         raise RuntimeError(
-            "大運AIの商品統合が"
+            "decade_luck_ai_path が"
             "正しく追加されていません。"
         )
 
     if (
-        '"build_product_decade_luck",'
+        "decade_luck=("
         not in patched
     ):
         raise RuntimeError(
-            "__all__ に"
-            "build_product_decade_luckが"
-            "ありません。"
+            "ReadingProductへの"
+            "decade_luck接続がありません。"
+        )
+
+    if (
+        '"4.8. 大運AI鑑定生成"'
+        not in patched
+    ):
+        raise RuntimeError(
+            "4.8 大運AI鑑定ブロックが"
+            "追加されていません。"
         )
 
     # --------------------------------------------------------
-    # Python syntax validation
+    # Syntax validation
     # --------------------------------------------------------
 
     ast.parse(
@@ -900,7 +522,7 @@ def main() -> None:
     print()
     print("=" * 72)
     print(
-        "v1.1 ReadingProduct "
+        "v1.1 customer pipeline "
         "大運AI統合 patch 完了"
     )
     print("=" * 72)
@@ -912,37 +534,22 @@ def main() -> None:
     print()
     print("追加:")
     print(
-        "  ✓ dataclasses.field"
+        "  ✓ generate_decade_luck_reading import"
     )
     print(
-        "  ✓ ReadingProduct.decade_luck"
+        "  ✓ DECADE_LUCK_AI_FILENAME"
     )
     print(
-        "  ✓ to_dict() decade_luck"
+        "  ✓ decade_luck_ai_path"
     )
     print(
-        "  ✓ build_product_decade_luck()"
+        "  ✓ 4.8 大運AI鑑定"
     )
     print(
-        "  ✓ build_reading_product("
-        "decade_luck=...)"
+        "  ✓ decade_luck_ai.json 保存"
     )
     print(
-        "  ✓ ReadingProductへの"
-        "大運AI格納"
-    )
-    print(
-        "  ✓ __all__"
-    )
-
-    print()
-    print("後方互換:")
-    print(
-        "  ✓ decade_luck未指定時は空dict"
-    )
-    print(
-        "  ✓ 空の場合to_dict()へ"
-        "decade_luckを出さない"
+        "  ✓ ReadingProduct decade_luck接続"
     )
 
     print()
@@ -955,7 +562,7 @@ def main() -> None:
 
     print(
         "python -m pytest "
-        "tests/test_reading_product.py -q"
+        "tests/test_generate_customer_reading.py -q"
     )
 
 
