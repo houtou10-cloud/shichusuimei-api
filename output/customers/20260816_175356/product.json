@@ -1,0 +1,818 @@
+{
+  "schema_version": "reading_product_v1",
+  "title": "四柱推命鑑定書",
+  "subject": {
+    "birth_date": "1976-02-14",
+    "birth_time": "10:20",
+    "birth_place": "福岡県",
+    "gender": "male",
+    "timezone": "Asia/Tokyo",
+    "name": "田中浩二"
+  },
+  "chart_summary": {
+    "pillars": {
+      "year": {
+        "position": "year",
+        "pillar": "丙辰",
+        "stem": "丙",
+        "branch": "辰",
+        "stem_ten_god": "比肩",
+        "twelve_stage": "冠帯",
+        "main_hidden_stem": "戊",
+        "main_hidden_stem_ten_god": "食神"
+      },
+      "month": {
+        "position": "month",
+        "pillar": "庚寅",
+        "stem": "庚",
+        "branch": "寅",
+        "stem_ten_god": "偏財",
+        "twelve_stage": "長生",
+        "main_hidden_stem": "甲",
+        "main_hidden_stem_ten_god": "偏印"
+      },
+      "day": {
+        "position": "day",
+        "pillar": "丙申",
+        "stem": "丙",
+        "branch": "申",
+        "stem_ten_god": null,
+        "twelve_stage": "病",
+        "main_hidden_stem": "庚",
+        "main_hidden_stem_ten_god": "偏財"
+      },
+      "hour": {
+        "position": "hour",
+        "pillar": "癸巳",
+        "stem": "癸",
+        "branch": "巳",
+        "stem_ten_god": "正官",
+        "twelve_stage": "建禄",
+        "main_hidden_stem": "丙",
+        "main_hidden_stem_ten_god": "比肩"
+      }
+    },
+    "pillar_sequence": [
+      "丙辰",
+      "庚寅",
+      "丙申",
+      "癸巳"
+    ],
+    "day_master": {
+      "stem": "丙",
+      "element": null,
+      "yin_yang": null,
+      "day_pillar": "丙申"
+    },
+    "five_elements": {
+      "weighted_scores": {
+        "木": 0.9,
+        "火": 2.9,
+        "土": 1.1,
+        "金": 1.7,
+        "水": 1.4
+      },
+      "strongest_element": "火",
+      "weakest_element": "木"
+    },
+    "strength": {
+      "technical_label": "strong",
+      "label": "身強",
+      "final_score": 69.2,
+      "confidence": "high"
+    },
+    "pattern": {
+      "primary_pattern": "偏印格",
+      "technical_pattern": "indirect_resource",
+      "overall_judgment": "provisional_possible",
+      "confidence": "medium"
+    },
+    "useful_gods": {
+      "primary_useful_element": "金",
+      "secondary_useful_elements": [
+        "水",
+        "土"
+      ],
+      "final_useful_elements": [
+        "金",
+        "水",
+        "土"
+      ],
+      "unfavorable_elements": [
+        "火",
+        "木"
+      ],
+      "confidence": "medium"
+    },
+    "current_luck": {
+      "ganzhi": "乙未",
+      "stem_ten_god": "印綬",
+      "start_age": 46.798171,
+      "end_age": 56.798171
+    },
+    "luck_pillars": {
+      "direction": "forward",
+      "direction_japanese": "順行",
+      "start_age": 6.798171,
+      "start_age_detail": {
+        "years": 6,
+        "months": 9,
+        "days": 17
+      },
+      "pillar_count": 10,
+      "pillars": [
+        {
+          "index": 1,
+          "ganzhi": "辛卯",
+          "stem": "辛",
+          "branch": "卯",
+          "stem_element": "金",
+          "branch_element": "木",
+          "stem_ten_god": "正財",
+          "start_age": 6.798171,
+          "end_age": 16.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": true,
+            "priority": 1,
+            "relationship": "primary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          }
+        },
+        {
+          "index": 2,
+          "ganzhi": "壬辰",
+          "stem": "壬",
+          "branch": "辰",
+          "stem_element": "水",
+          "branch_element": "土",
+          "stem_ten_god": "偏官",
+          "start_age": 16.798171,
+          "end_age": 26.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 2,
+            "relationship": "secondary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          }
+        },
+        {
+          "index": 3,
+          "ganzhi": "癸巳",
+          "stem": "癸",
+          "branch": "巳",
+          "stem_element": "水",
+          "branch_element": "火",
+          "stem_ten_god": "正官",
+          "start_age": 26.798171,
+          "end_age": 36.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 2,
+            "relationship": "secondary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          }
+        },
+        {
+          "index": 4,
+          "ganzhi": "甲午",
+          "stem": "甲",
+          "branch": "午",
+          "stem_element": "木",
+          "branch_element": "火",
+          "stem_ten_god": "偏印",
+          "start_age": 36.798171,
+          "end_age": 46.798171,
+          "stem_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          },
+          "branch_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          }
+        },
+        {
+          "index": 5,
+          "ganzhi": "乙未",
+          "stem": "乙",
+          "branch": "未",
+          "stem_element": "木",
+          "branch_element": "土",
+          "stem_ten_god": "印綬",
+          "start_age": 46.798171,
+          "end_age": 56.798171,
+          "stem_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          }
+        },
+        {
+          "index": 6,
+          "ganzhi": "丙申",
+          "stem": "丙",
+          "branch": "申",
+          "stem_element": "火",
+          "branch_element": "金",
+          "stem_ten_god": "比肩",
+          "start_age": 56.798171,
+          "end_age": 66.798171,
+          "stem_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": true,
+            "priority": 1,
+            "relationship": "primary_useful"
+          }
+        },
+        {
+          "index": 7,
+          "ganzhi": "丁酉",
+          "stem": "丁",
+          "branch": "酉",
+          "stem_element": "火",
+          "branch_element": "金",
+          "stem_ten_god": "劫財",
+          "start_age": 66.798171,
+          "end_age": 76.798171,
+          "stem_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": true,
+            "priority": 1,
+            "relationship": "primary_useful"
+          }
+        },
+        {
+          "index": 8,
+          "ganzhi": "戊戌",
+          "stem": "戊",
+          "branch": "戌",
+          "stem_element": "土",
+          "branch_element": "土",
+          "stem_ten_god": "食神",
+          "start_age": 76.798171,
+          "end_age": 86.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          }
+        },
+        {
+          "index": 9,
+          "ganzhi": "己亥",
+          "stem": "己",
+          "branch": "亥",
+          "stem_element": "土",
+          "branch_element": "水",
+          "stem_ten_god": "傷官",
+          "start_age": 86.798171,
+          "end_age": 96.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 2,
+            "relationship": "secondary_useful"
+          }
+        },
+        {
+          "index": 10,
+          "ganzhi": "庚子",
+          "stem": "庚",
+          "branch": "子",
+          "stem_element": "金",
+          "branch_element": "水",
+          "stem_ten_god": "偏財",
+          "start_age": 96.798171,
+          "end_age": 106.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": true,
+            "priority": 1,
+            "relationship": "primary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 2,
+            "relationship": "secondary_useful"
+          }
+        }
+      ]
+    },
+    "annual_luck": {
+      "year": 2026,
+      "ganzhi": "丙午",
+      "stem_ten_god": "比肩",
+      "twelve_stage": "帝旺"
+    }
+  },
+  "sections": [
+    {
+      "key": "core_personality",
+      "title": "本質・性格",
+      "summary": "丙日主・身強で、偏印格。自ら光を当てて物事を前に進める推進力と、独自の着想を求める探究心が核です。五行の偏りでは火が最も強く、木が相対的に弱め。発想と勢いが先行しやすい一方、合意形成や仕組み化を意識すると安定します。",
+      "detail": "日主が丙で身強のため、主体性・スピード感・判断の早さが持ち味です。偏印格が示すのは、既成路線だけでなく独自の切り口で価値を出す性質。新しい方法の試行や学び直しに心理的な抵抗が少なく、状況を読み替える力があります。五行では火が最強で木が弱めと出ており、ひらめきや熱量は豊かですが、準備や根回しが不足しやすい傾向が生まれやすい配置です。月柱に財の星、日支と年柱に金・土が潜み、現実的な成果やリソース管理の視点も備わっています。これらは熱量を実務手順・数値・合意へ落とし込むときに力を発揮します。注意点としては、自己基準が強い局面で周囲との歩調が乱れやすいこと。判断の根拠や期待役割を言語化し、途中でのレビュー機会を設けると、持ち前の推進力がチームに安心感として伝わります。",
+      "evidence": [
+        "日主が丙で身強と判定されているため、主体性と推進力を本質の強みとして読みます。",
+        "格局が偏印格と示されており、独自性・学び直し・新手法への関心が高まりやすい性質として解釈できます。",
+        "五行バランスでは火が最も強く木が弱めと出ているため、熱量は豊かだが準備・根回しが後手になりやすい傾向が示唆されます。",
+        "命式内に金（偏財）や土（食神）が見られ、実務や資源配分の現実感覚を併せ持つ配置です。"
+      ],
+      "advice": [
+        "判断の根拠と目的を簡潔に共有する習慣をつくる。",
+        "独自案は「小さく試す→検証→展開」に分解して伝える。",
+        "熱量が高まる場面ほど、合意形成と手順化の時間を先取りする。"
+      ]
+    },
+    {
+      "key": "career",
+      "title": "仕事・適職",
+      "summary": "独自の切り口で価値を作り、実務へ落とし込む役割に適性。用神は金・水が主で土が補助のため、数値化・ルール化・検証・体制整備が追い風。現在の大運は土に助けがあり、基盤づくりが進む時期。人間関係の悩みは「役割と判断基準の明確化」で軽減しやすい配置です。",
+      "detail": "ご相談は「今の会社に残るか」。命式は偏印格×身強で、企画・改善・新機軸の提示に強みがあります。一方で火・比肩が強い年は、自己判断が前に出やすく衝突も起きやすいので、環境選びと進め方の設計が鍵になります。用神は金・水が主で土が補助であるため、業務では次の性質を押さえると力が活きます。\n- 金: 基準・品質・ルール・数値で合意を取る役割（レビュー、品質管理、ガバナンスなどの性質）\n- 水: 情報整理・検証・フィードバックの循環（リサーチ、分析、リスク評価の性質）\n- 土: 体制・プロセス・スケジューリング（運用設計、定着化の性質）\n働き方は、裁量はありつつも「評価軸が明確」「レビューや振り返りの場が定例化」「役割が重複しにくい」環境と相性が良いでしょう。現在の大運は乙未で、枝（未＝土）が有利に働き、基盤整備・運用安定化に向く流れです。ここを土台に、職場に残る場合は『基準づくり』に主導的に関わる、転職・配置転換を視野に入れるなら『基準や改善を歓迎するチーム』を条件に比較するのが現実的です。",
+      "evidence": [
+        "格局が偏印格で、既成路線より改善・新機軸に適性が示されています。",
+        "用神は金・水が主で土が補助として一致しており、基準化・検証・体制整備が追い風となる方向です。",
+        "現在の大運『乙未』は枝の土が有利と評価され、基盤や運用面の強化に向く時期です。",
+        "今年の歳運は丙午で火が強く、自己主張・競争色が出やすい一方で、衝突リスクも併存します。"
+      ],
+      "advice": [
+        "残留案: 役割定義と意思決定フローを上司と合意し、評価指標（品質・期限・コストなど）を文書で固定する。",
+        "環境変更案: 面談では『基準の明確さ』『レビュー文化』『改善提案の受け皿』を必須条件として質問する。",
+        "当面の実務: 提案は目的・指標・検証方法をセットで提示し、小規模パイロットから合意形成を図る。",
+        "衝突時: 結論ではなく『判断基準』を先に共有し、個人対立を構造議論へ切り替える。"
+      ]
+    },
+    {
+      "key": "wealth",
+      "title": "金運",
+      "summary": "命式の性質は、独自性を成果に結びつければ収入面での伸びしろがあります。用神は金・水が主で土が補助のため、数値管理・リスク管理・体制化に寄せるほど安定。直近の運勢では2028〜2029年に金の追い風が強まり、収支の見通しを整えやすい時期が来ます。",
+      "detail": "偏印格×身強は収入源を独自の強みで作りやすい一方、勢いだけで動くと収支の波が大きくなりがちです。用神では金と水が主要、土は補助の位置づけのため、家計や事業の運用では「数値の見える化（金）」「情報の裏取り（水）」「手順とルール（土）」を優先すると安定度が上がります。現在の大運は土の助けがあり、固定費・契約・体制の見直しに好適。歳運では2028・2029年に金が強まり、条件交渉や成果の可視化がしやすい流れが示されています。いずれも傾向であり、重要な金銭判断は実データと専門情報を併用してください。",
+      "evidence": [
+        "用神は金・水が主で土が補助と示され、数値・検証・体制化が金運の安定に資する方向で一致しています。",
+        "大運『乙未』で枝の土が有利と評価され、固定的な基盤整備に向く時期です。",
+        "2028年『戊申』、2029年『己酉』はいずれも金が主要に働き、条件交渉や成果の見通しを整えやすい流れです。"
+      ],
+      "advice": [
+        "固定費・契約条件・保険等の基盤項目を見直し、更新時期をカレンダーで管理する。",
+        "収支はカテゴリー別に可視化し、判断はデータと第三者の知見を併用する。",
+        "成果連動の交渉や料金改定が可能な立場なら、2028〜2029年を一つの節目として準備する。"
+      ]
+    },
+    {
+      "key": "relationships",
+      "title": "恋愛・人間関係",
+      "summary": "主体性と独自性が強く、率直な物言いになりやすい配置。合意の手順を整えると関係が安定します。直近は火が強く、人間関係で熱量が上がりやすい時期のため、基準と役割の明確化が有効です。",
+      "detail": "丙日主・身強は自己決定で進む傾向があり、偏印格は独自の視点を大切にします。良い点は、責任を引き受けて前へ進めるところ。すれ違いは、結論を急ぎ過程の共有が不足する場面で起こりやすくなります。関係を整えるコツは、評価基準と目的の共有、合意形成の段階を分けること。仕事でも私的関係でも、『目的→条件→役割→期限→確認方法』の順で話すと、相手の安心感が高まります。今年後半は火の勢いが強く、言い過ぎ・受け取り違いが生じやすいので、文書や議事録で補助線を引くと安全です。",
+      "evidence": [
+        "日主が丙で身強のため、自己決定と推進力が強く出やすい性質があります。",
+        "偏印格により独自視点を重んじ、前例に縛られない傾向が示されています。",
+        "歳運が丙午で火が強まり、コミュニケーションの熱量が上がりやすい時期です。"
+      ],
+      "advice": [
+        "話し合いは『目的→条件→役割→期限→確認方法』の順に整理してから臨む。",
+        "重要な合意は口頭だけにせず、短い文書で残す。",
+        "相手の前提を確認する質問（解釈チェック）をひとつ入れる。"
+      ]
+    },
+    {
+      "key": "health",
+      "title": "健康傾向",
+      "summary": "占術上の傾向としては、勢いが出やすい時期ほど休息とペース配分を意識するのが無理のない運用です。医学的診断ではありませんが、生活全体のバランス点検が役立ちます。",
+      "detail": "五行では火が強く示され、前へ進む力が高まりやすい一方、オンとオフの切替が後回しになりやすい配置です。現在の大運は土が支えになり、生活の枠組みを整えるには向きます。健康について具体的な症状や因果を命式から断定することはせず、一般的な観点として、休息の確保、仕事と私生活の境界、過密スケジュールの緩和など、バランス調整を優先してください。気になる点がある場合は、適切な専門家の助言を併用しましょう。",
+      "evidence": [
+        "五行の評価で火が相対的に強い一方、現在の大運は枝の土が有利で、生活の枠組みを整えやすい流れが示されています。"
+      ],
+      "advice": [
+        "業務の山谷を見える化し、負荷が高い時期は意識的に余白を作る。",
+        "睡眠・食事・運動など基本的な生活リズムを整えることを優先する。",
+        "気になる不調がある場合は、占いではなく医療専門家の助言を受ける。"
+      ]
+    },
+    {
+      "key": "current_luck",
+      "title": "現在の運勢",
+      "summary": "今の大運は乙未で枝の土が助けとなり、基盤整備に追い風。ただし今年の歳運は丙午で火が強く、自己主張が前に出やすく人間関係での摩擦も生じやすい配置。両者が併存するため、手順化・基準化が鍵です。",
+      "detail": "大運『乙未』では、枝の土が有利と判定され、体制や運用の整備に向く流れです。一方で干の乙（木）はあなたの命式にとって過剰になりやすく、準備や情報が増えるほど意思決定が重くなる場面もあります。歳運『丙午』は火が強く、比肩の働きが前に出て、自己裁量・競争・主張が強まりやすい時期。統合的には、基盤整備の追い風がある一方で、主張が強すぎると衝突になりやすいという同時進行の傾向です。ここから年末までは、基準作り・合意の段取り・役割明確化を先に打つほど、追い風の恩恵を受けやすくなります。",
+      "evidence": [
+        "大運『乙未』で枝（未＝土）が有利と評価され、整備・定着の動きがしやすいと読めます。",
+        "歳運『丙午』は干支ともに火で、あなたにとって支えになりにくい評価が出ており、自己主張や競争色が強まる傾向として表れます。",
+        "統合運では、基盤面の追い風と主張過多の注意点が同時に存在する評価となっています。"
+      ],
+      "advice": [
+        "会議や案件の初動で『判断基準と決裁フロー』を合意し、議論を個人論から構造論へ。",
+        "交渉・異論対応は、先に“評価軸”を提示して摩擦を回避する。",
+        "基盤整備（手順書・チェックリスト・レビュー日程）を先に固め、年末までの山場を安定運用する。"
+      ]
+    },
+    {
+      "key": "future_flow",
+      "title": "これから5年間の運勢",
+      "summary": "今年残りは主張が強まりやすい一方、基盤整備は進めやすい時期。2027年は土が響き、安定化と体制強化がテーマ。2028〜2029年は金の追い風が強く、評価基準・成果の可視化・条件交渉が進みやすい展開。2030年も土・金が働き、実利や条件整備に向く年です。全体として、基盤→可視化→条件整備の順で階段を上がる流れ。",
+      "detail": "- 2026年の残り期間は、自己主張と基盤整備が同時に走ります。衝突を避けるには、合意形成の段取り設計が鍵。\n- 2027年は枝の土が大運と共鳴し、体制化・安定化・業務の定着が進みやすい年。ここで土台を厚く。\n- 2028〜2029年は金が強く現れ、評価基準や品質・成果指標が前面に出やすく、条件交渉や改善の定着に好機。独自性を“規格”へ落とすと成果になりやすい。\n- 2030年も土と金の働きが続き、運用の詰めや契約条件の整備に向きます。\n5年を通じて、大運は引き続き乙未で土の支えが続き、次の丙申（申＝金）へつながる助走期間。2027年に秩序を固め、2028〜2029年に可視化・交渉、2030年に運用と条件を締める、という段階設計が現実的です。",
+      "evidence": [
+        "5年プランの各年データでは、2026年が丙午で火が強く、基盤面の追い風と摩擦の注意が併存しています。",
+        "2027年『丁未』は枝の土が有利で、体制化に向く評価です。",
+        "2028年『戊申』・2029年『己酉』はいずれも金が主要に働き、評価基準や条件交渉の好機として読めます。",
+        "2030年『庚戌』は金と土が働き、実利や契約整備に向く年と解釈できます。"
+      ],
+      "advice": [
+        "今年残りは、基準・手順・役割の明文化で衝突を未然に防ぐ。",
+        "2027年は仕組み化と育成・引き継ぎで“自動運転”に寄せる。",
+        "2028〜2029年は成果の定義と指標設計を整え、条件交渉や評価制度の活用を図る。",
+        "2030年は契約・ポリシー・権限範囲の見直しでリスクを減らす。"
+      ],
+      "yearly": [
+        {
+          "year": 2026,
+          "title": "ここから年末まで",
+          "summary": "主張が前に出やすい時期。基盤づくりは進むため、合意形成の設計で摩擦を抑えると前進しやすい。",
+          "detail": "歳運は丙午で火が強く、比肩の働きが出やすい配置。自己裁量やスピードは上がる反面、対人摩擦の芽も。大運は乙未で枝の土が有利のため、手順書・レビュー・役割分担といった基盤整備は進みます。主張は“評価基準”とセットで提示し、年末の山場を安定運用へ。",
+          "advice": [
+            "重要案件は目的・KPI・決裁者・締切を先に文書化する。",
+            "反対意見には基準とデータで応じ、個人対立を避ける。",
+            "負荷が高い領域は小分けにし、レビューを途中で一度挟む。"
+          ]
+        },
+        {
+          "year": 2027,
+          "title": "土台を厚くする年",
+          "summary": "土の後押しが働き、体制の定着・安定運用を進めやすい。",
+          "detail": "丁未は枝の土が大運と響き、運用・育成・引き継ぎなど持続性のある仕組み化に追い風。干の丁は火で主張が強すぎると摩擦につながるため、基準とルールに寄せて進めると効果的。",
+          "advice": [
+            "業務の標準手順とチェックポイントを整備。",
+            "属人化を解消し、役割の重複を整理。",
+            "定例レビューで改善を小刻みに回す。"
+          ]
+        },
+        {
+          "year": 2028,
+          "title": "評価基準を前面に",
+          "summary": "金が強まり、品質・基準・成果の可視化が通りやすい好機。",
+          "detail": "戊申は金が主要に働き、数値化や品質基準、審査・監査的な視点が通りやすい年。土（戊）は補助用神としても働き、提案を規格・ルールへ落とすと評価に直結しやすい。",
+          "advice": [
+            "成果定義を明確にし、レビュー様式を標準化。",
+            "条件交渉は事前に根拠・比較表を準備する。",
+            "品質・安全・リスクの観点を先に押さえる。"
+          ]
+        },
+        {
+          "year": 2029,
+          "title": "条件交渉と可視化の深掘り",
+          "summary": "2028年の延長で金の追い風。成果の見える化をさらに進め、条件面を整えやすい。",
+          "detail": "己酉は金が引き続き強く、評価軸が明確な場で力を発揮。土（己）は補助用神として、運用の精緻化や改善提案の制度化を後押しします。",
+          "advice": [
+            "評価・報酬・役割に関する条件整理を進める。",
+            "稼働・コスト・品質のトレードオフを可視化して交渉する。",
+            "監査・点検・品質保証の仕組みを定着させる。"
+          ]
+        },
+        {
+          "year": 2030,
+          "title": "実利とリスク低減の詰め",
+          "summary": "金と土が働き、契約・ポリシー・権限設計の見直しに向く。",
+          "detail": "庚戌は主用神の金と補助用神の土が揃い、最終的な条件整備やリスク低減の仕上げに適した年。ここで運用と契約の齟齬を減らすと、次の大運（金の時期）への橋渡しになります。",
+          "advice": [
+            "契約や規程を棚卸しし、実態に合わせて更新。",
+            "権限・責任範囲を明確化し、承認フローを簡素化。",
+            "リスク評価基準を定義し、例外対応の窓口を一本化。"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "advice",
+      "title": "総合アドバイス",
+      "summary": "結論は一択ではありません。残留・環境変更のいずれも、主用神（金・水）と補助用神（土）を満たす設計を先に行うことが鍵です。今年残りは基準と手順を固め、2027年に体制化、2028〜2029年に可視化と条件整備で主導権を取りに行く流れが現実的です。",
+      "detail": "ご相談の核心は「今の会社に残るか」。命式は独自性と推進力が強く、用神は金・水が主で土が補助として示されています。したがって意思決定の軸は『基準の明確さ（金）』『レビュー文化（水）』『役割の重複の少なさ（土）』です。現職がこの3点を合意できるなら、今年残り〜2027年にかけて基盤整備を主導し、2028〜2029年の金の追い風で可視化と条件交渉へ進む戦略が取りやすいでしょう。もし3点が構造的に難しいなら、環境変更では選考段階から同じ軸で見極めるのが合理的です。将来を断定はしませんが、どちらの選択でも“基準→検証→定着”の順に動くと、命式と運勢の両面が噛み合います。",
+      "evidence": [
+        "用神は金・水が主で、土は補助。基準・検証・体制化が追い風となる方向が明示されています。",
+        "現在の大運は土が助けとなり、基盤づくりに適した時期であることが示されています。",
+        "2028〜2029年は金が強まる年運で、評価基準や条件交渉に適した流れが続きます。"
+      ],
+      "advice": [
+        "判断軸を3点に絞る（基準の明確さ／レビュー文化／役割の重複の少なさ）。",
+        "現職に残る場合は、年末までに『判断基準・決裁フロー・役割定義』を文書化して合意。",
+        "環境変更を検討する場合は、面談で上記3点を質問し、実例（最近の改善・レビュー運用）を確認。",
+        "2027年は仕組み化、2028〜2029年は成果の可視化と条件整理を段階計画に落とす。",
+        "重要な金銭・健康の判断は、必ず実データと専門家の知見を併用する。"
+      ]
+    }
+  ],
+  "summary": "ご自身の芯の強さと探究心がはっきり出る命式です。今は大運で土の助けが働き、基盤づくりや体制の整備が進みやすい一方、今年後半は火が強まって自己主張・競争色が出やすい時期。来年以降は土・金が順に力を持ち、実務面の安定や成果の可視化がしやすくなります。人間関係の悩みは「環境のルールや役割の明確化」で軽減できる余地が大きい流れです。",
+  "disclaimer": "本鑑定は四柱推命の計算済みデータに基づく解釈であり、医学的診断ではありません。投資助言や個別の金融判断を保証するものでもなく、将来の出来事を断定的に約束するものではありません。重要な意思決定（健康・仕事・金銭など）に際しては、必要に応じて専門家の意見や最新の現実情報・データも併用してください。",
+  "generation": {
+    "model": "gpt-5",
+    "response_id": "resp_02c7874c6007b154016a817ab4fa70819b9fc65c457a8457a3",
+    "response_status": "completed",
+    "usage": {
+      "input_tokens": 21610,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      },
+      "output_tokens": 6000,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 27610
+    },
+    "sections": [
+      "core_personality",
+      "career",
+      "wealth",
+      "relationships",
+      "health",
+      "current_luck",
+      "future_flow",
+      "advice"
+    ],
+    "method": "openai_responses_api_v1",
+    "status": "completed"
+  },
+  "metadata": {
+    "created_at": "2026-08-16T17:53:56+09:00",
+    "reading_context_schema": "reading_context_v1",
+    "reading_context_method": "reading_context_v1",
+    "reading_context_status": "ready_for_ai_reading",
+    "source_metadata": {
+      "strength": {
+        "method": "final_strength_judgment_v2",
+        "status": "provisional_final_strength_judgment_v2"
+      },
+      "pattern": {
+        "method": "pattern_judgment_v2",
+        "status": "provisional_pattern_judgment_v2"
+      },
+      "useful_gods": {
+        "method": "useful_gods_v3",
+        "status": "provisional_useful_gods_v3"
+      },
+      "luck_pillars": {
+        "method": "luck_pillars_v2",
+        "status": "provisional_luck_pillars_v2"
+      },
+      "current_luck": {
+        "method": "current_luck_v1",
+        "status": "current_luck_resolved"
+      },
+      "annual_luck": {
+        "method": "annual_luck_v1",
+        "status": "provisional_annual_luck_v1"
+      },
+      "integrated_luck": {
+        "method": "integrated_luck_v1",
+        "status": "provisional_integrated_luck_v1"
+      }
+    },
+    "product_version": "reading_product_v1",
+    "recalculates_astrology": false,
+    "rewrites_ai_reading": false,
+    "brand_name": "四柱推命 八雲"
+  },
+  "decade_luck": {
+    "overview": "現在は金の力が強く働く流れに入っており、客観性や整理整頓、対人の線引きがしやすい時期です。ここで職場の人間関係をシンプルに整えることが、今後10〜20年の安定に直結します。次の10年も同傾向が続き、過去の経験を選別し直すことで、負担の少ない働き方へ移行しやすくなります。その後は土の気が前面に出て、「自分の型」をもとに教える・残す・整備する役回りが増える見込み。晩年は言語化や記録、知の共有が鍵となり、心身のペース配分が重要です。いずれの期も、「関係性の過剰」を抑え、必要なつながりを精選することが、安定と充実の共通テーマになります。",
+    "periods": [
+      {
+        "index": 5,
+        "ganzhi": "乙未",
+        "stem": "乙",
+        "branch": "未",
+        "stem_element": "木",
+        "branch_element": "土",
+        "stem_ten_god": "印綬",
+        "start_age": 46.798171,
+        "end_age": 56.798171,
+        "stem_useful_relation": {
+          "is_useful": false,
+          "is_primary_useful": false,
+          "priority": null,
+          "relationship": "support_unfavorable"
+        },
+        "branch_useful_relation": {
+          "is_useful": true,
+          "is_primary_useful": false,
+          "priority": 3,
+          "relationship": "secondary_useful"
+        },
+        "title": "関係を絞り、軸を整える10年",
+        "theme": "周囲への過度な迎合を減らし、信頼できる少数との協働に磨きをかける時期。自分の時間と資源を守る境界線が鍵になります。情報の取捨選択やルール整備に長所が出やすく、迷いがちな場面でも「続けるもの／手放すもの」を明確にしやすい流れ。疲弊の原因となる関係は、礼節を保ちつつ距離を調整すると負担が軽くなります。",
+        "career": "役割を抱え込み過ぎず、担当領域を明確化するほど成果が安定します。専門性を再定義し、ドキュメント化・標準化を進めると、属人化から解放されやすい時期。上司・同僚との軋轢は、期待値を可視化するミーティング設定や合意形成のルール化で軽減できます。転職や部署異動を考えるなら、「少人数で意思決定が速い環境」「役割が明確な職場」との相性が比較的よい流れです。",
+        "wealth": "収入は大きく跳ねさせるより、安定度を高める管理が向きます。固定費の見直し、保険や積立の最適化、不要サブスクの整理など“守りの整頓”が効果的。副収入は、既存スキルの再編集（マニュアル化、テンプレ提供、講座化など）で無理なく広げる発想が合います。投資は短期での成果を狙うより、分散と時間分散を基調に、情報源を限定し過信を避ける姿勢が賢明です。",
+        "relationships": "人数を広げるより、質を上げる選択が功を奏します。連絡頻度や会議体を見直し、必要十分な関与に抑えることで消耗が減少。職場では役割に基づくやり取りを徹底し、私情と業務を切り分けると緊張が和らぎます。感情のぶつかりは、事実ベースの記録と合意メモで予防を。",
+        "caution": "理想の完璧さを周囲に求め過ぎると、摩擦や孤立感につながりやすい時期。助け合いより自力解決に傾き過ぎると、疲労が蓄積します。また、情報過多で決断が遅れる傾向にも注意。判断の締切を先に置き、基準で評価して進める癖を作ると、迷いが減ります。",
+        "advice": [
+          "担当・期限・成果物を1ページに可視化し、合意形成の齟齬を減らす",
+          "週1回“手放すリスト”を更新し、関係・タスクを定期的に整理する"
+        ]
+      },
+      {
+        "index": 6,
+        "ganzhi": "丙申",
+        "stem": "丙",
+        "branch": "申",
+        "stem_element": "火",
+        "branch_element": "金",
+        "stem_ten_god": "比肩",
+        "start_age": 56.798171,
+        "end_age": 66.798171,
+        "stem_useful_relation": {
+          "is_useful": false,
+          "is_primary_useful": false,
+          "priority": null,
+          "relationship": "support_unfavorable"
+        },
+        "branch_useful_relation": {
+          "is_useful": true,
+          "is_primary_useful": true,
+          "priority": 1,
+          "relationship": "primary_useful"
+        },
+        "title": "選別の確定と“最小で最大”の働き方",
+        "theme": "ここでの主題は、前期で整えた境界を実質運用へ落とし込むこと。得意領域の核をさらに尖らせ、周辺業務は委譲・外注・仕組み化で対応。意思決定の速さと、関係のシンプルさが成果と健康を守ります。少数精鋭のチームやプロジェクトで、役割の明確さが大きな武器に。",
+        "career": "キャリアの要点は“重ねてきた経験の抽出”。過去案件を横串で分析し、再現可能な型に落とし込むと、信頼が持続しやすい。異動・転職は、権限移譲と裁量のある環境と相性が良好。管理職であれば、会議短縮・文書文化・意思決定基準の導入など、構造面の改革が成果を押し上げます。個人としては、専門領域を核に、監修・品質管理へ守備範囲をシフトする動きが有効。",
+        "wealth": "大きな一発より、安定収入の最大化と支出の自動化が奏功。収入は“型の提供”でレバレッジがかけやすく、監修料・ライセンス・保守契約など継続性のある形が向きます。投資はルールの固定化（資産配分・再均衡の年次スケジュール）で感情の波を抑えると、ブレが減ります。",
+        "relationships": "人数を増やすと管理コストが跳ねやすい時期。役割と目的が曖昧なつながりは、丁寧に距離を調整して集中力を守るのが得策。頼れる少数と深く連携し、合意メモや議事録で認識差を最小化すると、衝突の芽を早期に摘めます。",
+        "caution": "勢いで引き受け過ぎると、後半に圧迫感が出やすい時。特に同調圧力に弱い場では、事前に“受託基準”を定めておくと安全です。また、自己流の正しさに固執し過ぎると学習が止まりがち。外部レビューを定期導入し、柔軟性を保ちましょう。",
+        "advice": [
+          "受託可否のチェックリスト（工数・価値・学び）を作成し運用する",
+          "過去案件をテンプレ化し、再利用率を四半期ごとに測定する"
+        ]
+      },
+      {
+        "index": 7,
+        "ganzhi": "丁酉",
+        "stem": "丁",
+        "branch": "酉",
+        "stem_element": "火",
+        "branch_element": "金",
+        "stem_ten_god": "劫財",
+        "start_age": 66.798171,
+        "end_age": 76.798171,
+        "stem_useful_relation": {
+          "is_useful": false,
+          "is_primary_useful": false,
+          "priority": null,
+          "relationship": "support_unfavorable"
+        },
+        "branch_useful_relation": {
+          "is_useful": true,
+          "is_primary_useful": true,
+          "priority": 1,
+          "relationship": "primary_useful"
+        },
+        "title": "自他の力を束ねる“編集者期”",
+        "theme": "人・情報・リソースを編集し、成果物に仕上げる役回りが増えます。自分で前面に出るより、配置・配分・品質監修で価値を出すイメージ。少数のキーパーソンと太いパイプを築き、相互に補完し合う体制づくりがテーマ。",
+        "career": "監修・レビュー・最終品質の保証など、上流の価値提供がしやすい時期。人材の適材適所とプロセス設計に力を割くと、全体の生産性が上がります。権限移譲と基準の徹底で、あなた不在でも回る仕組みへ。講義・社内研修・ナレッジ整備など、“渡す仕事”を増やすと好循環に。",
+        "wealth": "収入の柱は、多拠点化より“少数高品質”の深堀りで安定。品質基準とSLAを明確化し、単価を妥当に引き上げる交渉がしやすい流れ。資産運用は守備的スタンスを維持し、流動性確保と分散を重視。成果報酬や出来高契約は、評価基準を事前合意してリスクを管理。",
+        "relationships": "関係は“太く短く”が合言葉。求心力のある相手と相互補完の関係を築くと、摩擦が減り成果が伸びます。役割の重複や曖昧さが衝突の温床になるため、RACIや責任線引きを明示すると安心。",
+        "caution": "成果を出せるがゆえに、最後は自分が手を出してしまう“抱え込み癖”に注意。レビュー基準を言語化しても、任せきれないと消耗します。任せる範囲と検収プロセスを固定し、例外を増やさないルールが必要。",
+        "advice": [
+          "RACIと品質基準をテンプレ化し、全案件で共通運用する",
+          "“自分がやらないリスト”を作り、週次で遵守状況を確認する"
+        ]
+      },
+      {
+        "index": 8,
+        "ganzhi": "戊戌",
+        "stem": "戊",
+        "branch": "戌",
+        "stem_element": "土",
+        "branch_element": "土",
+        "stem_ten_god": "食神",
+        "start_age": 76.798171,
+        "end_age": 86.798171,
+        "stem_useful_relation": {
+          "is_useful": true,
+          "is_primary_useful": false,
+          "priority": 3,
+          "relationship": "secondary_useful"
+        },
+        "branch_useful_relation": {
+          "is_useful": true,
+          "is_primary_useful": false,
+          "priority": 3,
+          "relationship": "secondary_useful"
+        },
+        "title": "型を築き、遺す10年",
+        "theme": "土の力が強まり、積み上げと安定が主題に。知見の体系化、後進育成、資産や仕組みの“地固め”がはかどります。スピードより再現可能性を重視し、長く使える形に落とし込むほど効果的。",
+        "career": "教育・マニュアル・運用設計など、伝える力が評価されます。第一線のプレイヤーより、設計者・育成者としての価値が上がる時期。長期プロジェクトのガバナンスやリスク管理を担うと、組織に太い柱を残せます。働き方は、無理のない稼働と明確な休息サイクルを設けると息が長くなります。",
+        "wealth": "収入は安定重視で、定期収入の比率を高めやすい時。年金・積立・配当などの受取設計を見直し、出入りを簡素化。大きな勝負より、維持管理コストの低い資産を選ぶと安心です。住まい・医療・介護など将来費用の試算を早めに行い、備えを仕組み化すると負担感が軽くなります。",
+        "relationships": "世話役や相談役として頼られやすい反面、抱え込みに注意。ルールや手順で支える姿勢を保ち、感情労働になり過ぎないよう距離を上手に取ると、良好な関係を長く維持できます。",
+        "caution": "安定志向が過度になると、変化への対応が鈍りがち。特にIT・制度改定などの外部要因は避けず、計画的にアップデートを。体力配分と睡眠の質にも配慮し、無理な長時間作業を避ける設計が重要です。",
+        "advice": [
+          "将来費用のキャッシュフロー表を作成・年次更新する",
+          "業務手順を動画・文書で資産化し、誰でも回る仕組みを完成させる"
+        ]
+      },
+      {
+        "index": 9,
+        "ganzhi": "己亥",
+        "stem": "己",
+        "branch": "亥",
+        "stem_element": "土",
+        "branch_element": "水",
+        "stem_ten_god": "傷官",
+        "start_age": 86.798171,
+        "end_age": 96.798171,
+        "stem_useful_relation": {
+          "is_useful": true,
+          "is_primary_useful": false,
+          "priority": 3,
+          "relationship": "secondary_useful"
+        },
+        "branch_useful_relation": {
+          "is_useful": true,
+          "is_primary_useful": false,
+          "priority": 2,
+          "relationship": "secondary_useful"
+        },
+        "title": "言語化と伝承の完成期",
+        "theme": "知見の言語化・記録・発信が実を結ぶ時。書き残す、体系化する、少人数に深く伝える動きがはまりやすい。心身の波に合わせた働き方を設計し、無理なく続けることが成果の質を保ちます。",
+        "career": "監修・執筆・講義・顧問など、経験を“言葉”と“枠組み”にして届ける役回りが増加。無理な拡大より、テーマを絞り深く掘るほど評価が安定します。オンライン活用やアシスタント配置で、負担を平準化すると持続性が高まります。",
+        "wealth": "収入は多様化より、主力の知的財産を核にした継続収入の設計が向きます。ロイヤリティ、定期監修、会員制の小規模コミュニティなどは相性良好。運用は流動性と安全性を重視し、想定外支出への備えを厚めに。投機的判断は控えめにして、規律で守ると安定します。",
+        "relationships": "若い世代・次世代との交流が刺激になります。人数は多くなくて良いので、教え合い・学び合いの関係を育むと、自然に良縁が巡りやすい。無理な社交は減らし、深く長い関係を大切に。",
+        "caution": "情報発信や助言の機会が増える分、過度な責任感で背負い過ぎないこと。体調や気力の波に合わせ、受注量を調整する仕組みを整えておくと安心です。判断は一人で抱えず、専門家や家族と共有してリスクを分散。",
+        "advice": [
+          "主力テーマを3つ以内に絞り、発信・監修・顧問をその枠で統一する",
+          "健康・財務・法務の定期点検日を年間計画に組み込む"
+        ]
+      }
+    ],
+    "generation": {
+      "model": "gpt-5",
+      "response_id": "resp_09a4bd9ecd17f837016a817b0bbcd0819bbd7880f8bf0d18bd",
+      "response_status": "completed",
+      "usage": {
+        "input_tokens": 4077,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 3276,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 7353
+      }
+    },
+    "version": "reading_decade_luck_v1",
+    "method": "ai_decade_luck_interpretation_v1",
+    "status": "completed"
+  },
+  "method": "reading_product_v1",
+  "status": "ready"
+}

@@ -1,0 +1,2055 @@
+{
+  "schema_version": "reading_context_v1",
+  "subject": {
+    "birth_date": "1976-02-14",
+    "birth_time": "10:20",
+    "birth_place": "福岡県",
+    "gender": "male",
+    "timezone": "Asia/Tokyo"
+  },
+  "birth_time_status": {
+    "known": true,
+    "hour_pillar_available": true,
+    "calculation_scope": "four_pillars",
+    "interpretation_scope": "full_chart",
+    "five_elements_scope": "full_chart",
+    "root_scope": "full_chart",
+    "strength_scope": "full_chart",
+    "pattern_scope": "full_chart",
+    "useful_gods_scope": "full_chart",
+    "relationship_scope": "full_chart",
+    "luck_pillar_sequence_available": true,
+    "luck_start_timing_precision": "normal",
+    "current_luck_precision": "normal",
+    "internal_reference_time_used": false,
+    "internal_reference_time": null,
+    "is_provisional_due_to_unknown_birth_time": false,
+    "reading_rule": "通常の四柱として解釈できます。"
+  },
+  "natal_chart": {
+    "pillars": {
+      "year": {
+        "position": "year",
+        "pillar": "丙辰",
+        "stem": "丙",
+        "branch": "辰",
+        "stem_ten_god": "比肩",
+        "twelve_stage": "冠帯",
+        "hidden_stems": [
+          "戊",
+          "乙",
+          "癸"
+        ],
+        "main_hidden_stem": "戊",
+        "main_hidden_stem_ten_god": "食神"
+      },
+      "month": {
+        "position": "month",
+        "pillar": "庚寅",
+        "stem": "庚",
+        "branch": "寅",
+        "stem_ten_god": "偏財",
+        "twelve_stage": "長生",
+        "hidden_stems": [
+          "甲",
+          "丙",
+          "戊"
+        ],
+        "main_hidden_stem": "甲",
+        "main_hidden_stem_ten_god": "偏印"
+      },
+      "day": {
+        "position": "day",
+        "pillar": "丙申",
+        "stem": "丙",
+        "branch": "申",
+        "stem_ten_god": null,
+        "twelve_stage": "病",
+        "hidden_stems": [
+          "庚",
+          "壬",
+          "戊"
+        ],
+        "main_hidden_stem": "庚",
+        "main_hidden_stem_ten_god": "偏財"
+      },
+      "hour": {
+        "position": "hour",
+        "pillar": "癸巳",
+        "stem": "癸",
+        "branch": "巳",
+        "stem_ten_god": "正官",
+        "twelve_stage": "建禄",
+        "hidden_stems": [
+          "丙",
+          "戊",
+          "庚"
+        ],
+        "main_hidden_stem": "丙",
+        "main_hidden_stem_ten_god": "比肩"
+      }
+    },
+    "pillar_sequence": [
+      "丙辰",
+      "庚寅",
+      "丙申",
+      "癸巳"
+    ]
+  },
+  "day_master": {
+    "stem": "丙",
+    "element": null,
+    "yin_yang": null,
+    "day_pillar": "丙申"
+  },
+  "five_elements": {
+    "raw_scores": {},
+    "weighted_scores": {
+      "木": 0.9,
+      "火": 2.9,
+      "土": 1.1,
+      "金": 1.7,
+      "水": 1.4
+    },
+    "strongest_element": "火",
+    "weakest_element": "木",
+    "weighted_method": "weighted_hidden_stems_v1",
+    "weighted_status": "provisional_weights",
+    "scope": "full_chart",
+    "is_complete_chart_evaluation": true,
+    "provisional_due_to_unknown_birth_time": false
+  },
+  "strength": {
+    "technical_label": "strong",
+    "label": "身強",
+    "final_score": 69.2,
+    "confidence": "high",
+    "adjustment_total": 0.0,
+    "method": "final_strength_judgment_v2",
+    "status": "provisional_final_strength_judgment_v2",
+    "notes": [
+      "weighted_strength_judgmentのfinal_scoreを基礎値として使用します。",
+      "通根と月令は基礎値に既に反映されているため再加算しません。",
+      "地支関係は日主強弱への方向が明示された補正値だけを加算します。",
+      "branch_relation_strengthのtotal_score単独では日主強弱への方向を断定できないため自動加算しません。",
+      "干合化は完全成立を断定せず、判定確度と競合severityに応じた限定補正として扱います。",
+      "用神・忌神および格局判定はこのモジュールには含みません。"
+    ],
+    "scope": "full_chart",
+    "is_complete_chart_evaluation": true,
+    "provisional_due_to_unknown_birth_time": false
+  },
+  "pattern": {
+    "primary_pattern": "偏印格",
+    "technical_pattern": "indirect_resource",
+    "overall_judgment": "provisional_possible",
+    "confidence": "medium",
+    "establishment_score": 57.0,
+    "establishment_status": "possible",
+    "is_exposed": false,
+    "breaking_factors": [
+      {
+        "type": "main_hidden_stem_not_exposed",
+        "severity": "low",
+        "description": "月支主蔵干が天干へ透出していません。"
+      },
+      {
+        "type": "special_rule_indirect_resource_robs_food",
+        "severity": "low",
+        "description": "偏印と食神の併存を偏印奪食候補として検出します。力量・位置・救済条件は後続版で精密化します。",
+        "rule": "偏印奪食",
+        "technical_rule": "indirect_resource_robs_food",
+        "score_adjustment": -3.0
+      }
+    ],
+    "rescue_factors": [],
+    "method": "pattern_judgment_v2",
+    "status": "provisional_pattern_judgment_v2",
+    "scope": "full_chart",
+    "is_complete_chart_evaluation": true,
+    "provisional_due_to_unknown_birth_time": false
+  },
+  "useful_gods": {
+    "has_useful_candidate": true,
+    "primary_useful_element": "金",
+    "secondary_useful_elements": [
+      "水",
+      "土"
+    ],
+    "final_useful_elements": [
+      "金",
+      "水",
+      "土"
+    ],
+    "unfavorable_elements": [
+      "火",
+      "木"
+    ],
+    "strength_class": "strong",
+    "confidence": "medium",
+    "agreement_level": "double_agreement",
+    "triple_agreement_elements": [],
+    "double_agreement_elements": [
+      "金",
+      "水"
+    ],
+    "conflicted_elements": [],
+    "candidates": [
+      {
+        "element": "金",
+        "priority": 1,
+        "integrated_score": 5.5,
+        "source_count": 2,
+        "is_triple_agreement": false,
+        "is_double_agreement": true,
+        "is_conflicted": false
+      },
+      {
+        "element": "水",
+        "priority": 2,
+        "integrated_score": 5.5,
+        "source_count": 2,
+        "is_triple_agreement": false,
+        "is_double_agreement": true,
+        "is_conflicted": false
+      },
+      {
+        "element": "土",
+        "priority": 3,
+        "integrated_score": 3.0,
+        "source_count": 1,
+        "is_triple_agreement": false,
+        "is_double_agreement": false,
+        "is_conflicted": false
+      }
+    ],
+    "reasoning": [
+      "扶抑用神の第一候補は土です。",
+      "調候用神では強い第一候補を検出していません。",
+      "格局用神の第一候補は金です。",
+      "3系統のうち2系統が一致する五行として金・水を検出しました。",
+      "v3統合スコアでは金を第一候補とします。"
+    ],
+    "method": "useful_gods_v3",
+    "status": "provisional_useful_gods_v3",
+    "scope": "full_chart",
+    "is_complete_chart_evaluation": true,
+    "provisional_due_to_unknown_birth_time": false
+  },
+  "luck": {
+    "luck_pillars": {
+      "direction": "forward",
+      "direction_japanese": "順行",
+      "start_age": 6.798171,
+      "start_age_detail": {
+        "years": 6,
+        "months": 9,
+        "days": 17
+      },
+      "pillar_count": 10,
+      "pillars": [
+        {
+          "index": 1,
+          "ganzhi": "辛卯",
+          "stem": "辛",
+          "branch": "卯",
+          "stem_element": "金",
+          "branch_element": "木",
+          "stem_ten_god": "正財",
+          "start_age": 6.798171,
+          "end_age": 16.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": true,
+            "priority": 1,
+            "relationship": "primary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          }
+        },
+        {
+          "index": 2,
+          "ganzhi": "壬辰",
+          "stem": "壬",
+          "branch": "辰",
+          "stem_element": "水",
+          "branch_element": "土",
+          "stem_ten_god": "偏官",
+          "start_age": 16.798171,
+          "end_age": 26.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 2,
+            "relationship": "secondary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          }
+        },
+        {
+          "index": 3,
+          "ganzhi": "癸巳",
+          "stem": "癸",
+          "branch": "巳",
+          "stem_element": "水",
+          "branch_element": "火",
+          "stem_ten_god": "正官",
+          "start_age": 26.798171,
+          "end_age": 36.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 2,
+            "relationship": "secondary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          }
+        },
+        {
+          "index": 4,
+          "ganzhi": "甲午",
+          "stem": "甲",
+          "branch": "午",
+          "stem_element": "木",
+          "branch_element": "火",
+          "stem_ten_god": "偏印",
+          "start_age": 36.798171,
+          "end_age": 46.798171,
+          "stem_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          },
+          "branch_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          }
+        },
+        {
+          "index": 5,
+          "ganzhi": "乙未",
+          "stem": "乙",
+          "branch": "未",
+          "stem_element": "木",
+          "branch_element": "土",
+          "stem_ten_god": "印綬",
+          "start_age": 46.798171,
+          "end_age": 56.798171,
+          "stem_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          }
+        },
+        {
+          "index": 6,
+          "ganzhi": "丙申",
+          "stem": "丙",
+          "branch": "申",
+          "stem_element": "火",
+          "branch_element": "金",
+          "stem_ten_god": "比肩",
+          "start_age": 56.798171,
+          "end_age": 66.798171,
+          "stem_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": true,
+            "priority": 1,
+            "relationship": "primary_useful"
+          }
+        },
+        {
+          "index": 7,
+          "ganzhi": "丁酉",
+          "stem": "丁",
+          "branch": "酉",
+          "stem_element": "火",
+          "branch_element": "金",
+          "stem_ten_god": "劫財",
+          "start_age": 66.798171,
+          "end_age": 76.798171,
+          "stem_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": true,
+            "priority": 1,
+            "relationship": "primary_useful"
+          }
+        },
+        {
+          "index": 8,
+          "ganzhi": "戊戌",
+          "stem": "戊",
+          "branch": "戌",
+          "stem_element": "土",
+          "branch_element": "土",
+          "stem_ten_god": "食神",
+          "start_age": 76.798171,
+          "end_age": 86.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          }
+        },
+        {
+          "index": 9,
+          "ganzhi": "己亥",
+          "stem": "己",
+          "branch": "亥",
+          "stem_element": "土",
+          "branch_element": "水",
+          "stem_ten_god": "傷官",
+          "start_age": 86.798171,
+          "end_age": 96.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 2,
+            "relationship": "secondary_useful"
+          }
+        },
+        {
+          "index": 10,
+          "ganzhi": "庚子",
+          "stem": "庚",
+          "branch": "子",
+          "stem_element": "金",
+          "branch_element": "水",
+          "stem_ten_god": "偏財",
+          "start_age": 96.798171,
+          "end_age": 106.798171,
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": true,
+            "priority": 1,
+            "relationship": "primary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "priority": 2,
+            "relationship": "secondary_useful"
+          }
+        }
+      ],
+      "method": "luck_pillars_v2",
+      "status": "provisional_luck_pillars_v2",
+      "timing_precision": "normal",
+      "timing_is_estimated": false
+    },
+    "current_luck": {
+      "has_current_luck": true,
+      "phase": "in_luck_pillar",
+      "exact_age": 50.504296,
+      "calendar_age": 50,
+      "current_pillar": {
+        "index": 5,
+        "ganzhi": "乙未",
+        "stem": "乙",
+        "branch": "未",
+        "stem_element": "木",
+        "branch_element": "土",
+        "stem_ten_god": "印綬",
+        "start_age": 46.798171,
+        "end_age": 56.798171,
+        "stem_useful_relation": {
+          "is_useful": false,
+          "is_primary_useful": false,
+          "priority": null,
+          "relationship": "support_unfavorable"
+        },
+        "branch_useful_relation": {
+          "is_useful": true,
+          "is_primary_useful": false,
+          "priority": 3,
+          "relationship": "secondary_useful"
+        }
+      },
+      "previous_pillar": {
+        "index": 4,
+        "ganzhi": "甲午",
+        "stem": "甲",
+        "branch": "午",
+        "stem_element": "木",
+        "branch_element": "火",
+        "stem_ten_god": "偏印",
+        "start_age": 36.798171,
+        "end_age": 46.798171,
+        "stem_useful_relation": {
+          "is_useful": false,
+          "is_primary_useful": false,
+          "priority": null,
+          "relationship": "support_unfavorable"
+        },
+        "branch_useful_relation": {
+          "is_useful": false,
+          "is_primary_useful": false,
+          "priority": null,
+          "relationship": "support_unfavorable"
+        }
+      },
+      "next_pillar": {
+        "index": 6,
+        "ganzhi": "丙申",
+        "stem": "丙",
+        "branch": "申",
+        "stem_element": "火",
+        "branch_element": "金",
+        "stem_ten_god": "比肩",
+        "start_age": 56.798171,
+        "end_age": 66.798171,
+        "stem_useful_relation": {
+          "is_useful": false,
+          "is_primary_useful": false,
+          "priority": null,
+          "relationship": "support_unfavorable"
+        },
+        "branch_useful_relation": {
+          "is_useful": true,
+          "is_primary_useful": true,
+          "priority": 1,
+          "relationship": "primary_useful"
+        }
+      },
+      "progress": {
+        "start_age": 46.798171,
+        "end_age": 56.798171,
+        "duration_years": 10.0,
+        "elapsed_years": 3.706125,
+        "remaining_years": 6.293875,
+        "progress_ratio": 0.370612,
+        "progress_percent": 37.06
+      },
+      "years_until_next_luck": 6.293875,
+      "method": "current_luck_v1",
+      "status": "current_luck_resolved",
+      "timing_precision": "normal",
+      "timing_is_estimated": false
+    },
+    "annual_luck": {
+      "year": 2026,
+      "calendar_year": 2026,
+      "effective_year": 2026,
+      "ganzhi": "丙午",
+      "stem": "丙",
+      "branch": "午",
+      "stem_element": "火",
+      "branch_element": "火",
+      "stem_ten_god": "比肩",
+      "twelve_stage": "帝旺",
+      "stem_useful_relation": {
+        "is_useful": false,
+        "is_primary_useful": false,
+        "is_unfavorable": true,
+        "priority": null,
+        "relationship": "support_unfavorable"
+      },
+      "branch_useful_relation": {
+        "is_useful": false,
+        "is_primary_useful": false,
+        "is_unfavorable": true,
+        "priority": null,
+        "relationship": "support_unfavorable"
+      },
+      "current_luck_relation": {
+        "has_current_luck": true,
+        "current_luck_ganzhi": "乙未",
+        "current_luck_index": 5,
+        "current_luck_stem_element": "木",
+        "current_luck_branch_element": "土",
+        "stem_element_relation": "generates",
+        "branch_element_relation": "generated_by",
+        "status": "evaluated"
+      },
+      "year_boundary_applied": false,
+      "year_boundary_rule": "astronomical_lichun",
+      "reasoning": [
+        "2026年の歳運干支は丙午です。",
+        "歳運天干の日主に対する通変星は比肩です。",
+        "歳運地支の日主に対する十二運は帝旺です。",
+        "歳運天干五行の用神関係はsupport_unfavorableです。",
+        "歳運地支五行の用神関係はsupport_unfavorableです。"
+      ],
+      "method": "annual_luck_v1",
+      "status": "provisional_annual_luck_v1"
+    },
+    "integrated_luck": {
+      "current_luck_ganzhi": "乙未",
+      "annual_luck_ganzhi": "丙午",
+      "current_luck_elements": {
+        "stem": "木",
+        "branch": "土"
+      },
+      "annual_luck_elements": {
+        "stem": "火",
+        "branch": "火"
+      },
+      "element_interactions": {
+        "stem_relation": {
+          "source_element": "木",
+          "target_element": "火",
+          "relationship": "generates",
+          "score": 2.0
+        },
+        "branch_relation": {
+          "source_element": "土",
+          "target_element": "火",
+          "relationship": "generated_by",
+          "score": 1.0
+        },
+        "score": 3.0
+      },
+      "current_luck_useful": {
+        "stem_element": "木",
+        "branch_element": "土",
+        "stem_relation": {
+          "is_useful": false,
+          "is_primary_useful": false,
+          "is_unfavorable": true,
+          "priority": null,
+          "relationship": "support_unfavorable"
+        },
+        "branch_relation": {
+          "is_useful": true,
+          "is_primary_useful": false,
+          "is_unfavorable": false,
+          "priority": 3,
+          "relationship": "secondary_useful"
+        },
+        "stem_score": -2.0,
+        "branch_score": 2.0,
+        "score": 0.0
+      },
+      "annual_luck_useful": {
+        "stem_element": "火",
+        "branch_element": "火",
+        "stem_relation": {
+          "is_useful": false,
+          "is_primary_useful": false,
+          "is_unfavorable": true,
+          "priority": null,
+          "relationship": "support_unfavorable"
+        },
+        "branch_relation": {
+          "is_useful": false,
+          "is_primary_useful": false,
+          "is_unfavorable": true,
+          "priority": null,
+          "relationship": "support_unfavorable"
+        },
+        "stem_score": -2.0,
+        "branch_score": -2.0,
+        "score": -4.0
+      },
+      "agreement_level": "mixed",
+      "score": {
+        "element_interaction_score": 3.0,
+        "current_luck_useful_score": 0.0,
+        "annual_luck_useful_score": -4.0,
+        "total_score": -1.0
+      },
+      "overall_score": -1.0,
+      "overall_level": "mixed",
+      "confidence": {
+        "level": "high",
+        "ratio": 1.0,
+        "available_sources": 3,
+        "total_sources": 3
+      },
+      "annual_ten_god": "比肩",
+      "annual_twelve_stage": "帝旺",
+      "reasoning": [
+        "現在大運は乙未です。",
+        "対象歳運は丙午です。",
+        "大運天干と歳運天干の五行関係はgeneratesです。",
+        "大運地支と歳運地支の五行関係はgenerated_byです。",
+        "大運・歳運を用神面から比較した結果はmixedです。",
+        "歳運天干の通変星は比肩です。",
+        "歳運地支の十二運は帝旺です。",
+        "v1統合スコアは-1.0、統合レベルはmixedです。",
+        "この統合評価は五行・用神を中心とした暫定評価であり、干合・支合・冲・刑・害などはまだ最終スコアへ含めていません。"
+      ],
+      "method": "integrated_luck_v1",
+      "status": "provisional_integrated_luck_v1",
+      "timing_is_estimated": false
+    },
+    "five_year_luck": [
+      {
+        "year": 2026,
+        "target_datetime": "2026-08-16T17:53:56.667233",
+        "current_luck": {
+          "has_current_luck": true,
+          "phase": "in_luck_pillar",
+          "exact_age": 50.504296,
+          "calendar_age": 50,
+          "current_pillar": {
+            "index": 5,
+            "ganzhi": "乙未",
+            "stem": "乙",
+            "branch": "未",
+            "stem_element": "木",
+            "branch_element": "土",
+            "stem_ten_god": "印綬",
+            "start_age": 46.798171,
+            "end_age": 56.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            }
+          },
+          "previous_pillar": {
+            "index": 4,
+            "ganzhi": "甲午",
+            "stem": "甲",
+            "branch": "午",
+            "stem_element": "木",
+            "branch_element": "火",
+            "stem_ten_god": "偏印",
+            "start_age": 36.798171,
+            "end_age": 46.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            }
+          },
+          "next_pillar": {
+            "index": 6,
+            "ganzhi": "丙申",
+            "stem": "丙",
+            "branch": "申",
+            "stem_element": "火",
+            "branch_element": "金",
+            "stem_ten_god": "比肩",
+            "start_age": 56.798171,
+            "end_age": 66.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": true,
+              "is_primary_useful": true,
+              "priority": 1,
+              "relationship": "primary_useful"
+            }
+          },
+          "progress": {
+            "start_age": 46.798171,
+            "end_age": 56.798171,
+            "duration_years": 10.0,
+            "elapsed_years": 3.706125,
+            "remaining_years": 6.293875,
+            "progress_ratio": 0.370612,
+            "progress_percent": 37.06
+          },
+          "years_until_next_luck": 6.293875,
+          "method": "current_luck_v1",
+          "status": "current_luck_resolved",
+          "timing_precision": "normal",
+          "timing_is_estimated": false
+        },
+        "annual_luck": {
+          "year": 2026,
+          "calendar_year": 2026,
+          "effective_year": 2026,
+          "ganzhi": "丙午",
+          "stem": "丙",
+          "branch": "午",
+          "stem_element": "火",
+          "branch_element": "火",
+          "stem_ten_god": "比肩",
+          "twelve_stage": "帝旺",
+          "stem_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "is_unfavorable": true,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          },
+          "branch_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "is_unfavorable": true,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          },
+          "current_luck_relation": {
+            "has_current_luck": true,
+            "current_luck_ganzhi": "乙未",
+            "current_luck_index": 5,
+            "current_luck_stem_element": "木",
+            "current_luck_branch_element": "土",
+            "stem_element_relation": "generates",
+            "branch_element_relation": "generated_by",
+            "status": "evaluated"
+          },
+          "year_boundary_applied": false,
+          "year_boundary_rule": "astronomical_lichun",
+          "reasoning": [
+            "2026年の歳運干支は丙午です。",
+            "歳運天干の日主に対する通変星は比肩です。",
+            "歳運地支の日主に対する十二運は帝旺です。",
+            "歳運天干五行の用神関係はsupport_unfavorableです。",
+            "歳運地支五行の用神関係はsupport_unfavorableです。"
+          ],
+          "method": "annual_luck_v1",
+          "status": "provisional_annual_luck_v1"
+        },
+        "integrated_luck": {
+          "current_luck_ganzhi": "乙未",
+          "annual_luck_ganzhi": "丙午",
+          "current_luck_elements": {
+            "stem": "木",
+            "branch": "土"
+          },
+          "annual_luck_elements": {
+            "stem": "火",
+            "branch": "火"
+          },
+          "element_interactions": {
+            "stem_relation": {
+              "source_element": "木",
+              "target_element": "火",
+              "relationship": "generates",
+              "score": 2.0
+            },
+            "branch_relation": {
+              "source_element": "土",
+              "target_element": "火",
+              "relationship": "generated_by",
+              "score": 1.0
+            },
+            "score": 3.0
+          },
+          "current_luck_useful": {
+            "stem_element": "木",
+            "branch_element": "土",
+            "stem_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "is_unfavorable": true,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "is_unfavorable": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            },
+            "stem_score": -2.0,
+            "branch_score": 2.0,
+            "score": 0.0
+          },
+          "annual_luck_useful": {
+            "stem_element": "火",
+            "branch_element": "火",
+            "stem_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "is_unfavorable": true,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "is_unfavorable": true,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "stem_score": -2.0,
+            "branch_score": -2.0,
+            "score": -4.0
+          },
+          "agreement_level": "mixed",
+          "score": {
+            "element_interaction_score": 3.0,
+            "current_luck_useful_score": 0.0,
+            "annual_luck_useful_score": -4.0,
+            "total_score": -1.0
+          },
+          "overall_score": -1.0,
+          "overall_level": "mixed",
+          "confidence": {
+            "level": "high",
+            "ratio": 1.0,
+            "available_sources": 3,
+            "total_sources": 3
+          },
+          "annual_ten_god": "比肩",
+          "annual_twelve_stage": "帝旺",
+          "reasoning": [
+            "現在大運は乙未です。",
+            "対象歳運は丙午です。",
+            "大運天干と歳運天干の五行関係はgeneratesです。",
+            "大運地支と歳運地支の五行関係はgenerated_byです。",
+            "大運・歳運を用神面から比較した結果はmixedです。",
+            "歳運天干の通変星は比肩です。",
+            "歳運地支の十二運は帝旺です。",
+            "v1統合スコアは-1.0、統合レベルはmixedです。",
+            "この統合評価は五行・用神を中心とした暫定評価であり、干合・支合・冲・刑・害などはまだ最終スコアへ含めていません。"
+          ],
+          "method": "integrated_luck_v1",
+          "status": "provisional_integrated_luck_v1",
+          "timing_is_estimated": false
+        }
+      },
+      {
+        "year": 2027,
+        "target_datetime": "2027-07-01T12:00:00",
+        "current_luck": {
+          "has_current_luck": true,
+          "phase": "in_luck_pillar",
+          "exact_age": 51.377015,
+          "calendar_age": 51,
+          "current_pillar": {
+            "index": 5,
+            "ganzhi": "乙未",
+            "stem": "乙",
+            "branch": "未",
+            "stem_element": "木",
+            "branch_element": "土",
+            "stem_ten_god": "印綬",
+            "start_age": 46.798171,
+            "end_age": 56.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            }
+          },
+          "previous_pillar": {
+            "index": 4,
+            "ganzhi": "甲午",
+            "stem": "甲",
+            "branch": "午",
+            "stem_element": "木",
+            "branch_element": "火",
+            "stem_ten_god": "偏印",
+            "start_age": 36.798171,
+            "end_age": 46.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            }
+          },
+          "next_pillar": {
+            "index": 6,
+            "ganzhi": "丙申",
+            "stem": "丙",
+            "branch": "申",
+            "stem_element": "火",
+            "branch_element": "金",
+            "stem_ten_god": "比肩",
+            "start_age": 56.798171,
+            "end_age": 66.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": true,
+              "is_primary_useful": true,
+              "priority": 1,
+              "relationship": "primary_useful"
+            }
+          },
+          "progress": {
+            "start_age": 46.798171,
+            "end_age": 56.798171,
+            "duration_years": 10.0,
+            "elapsed_years": 4.578844,
+            "remaining_years": 5.421156,
+            "progress_ratio": 0.457884,
+            "progress_percent": 45.79
+          },
+          "years_until_next_luck": 5.421156,
+          "method": "current_luck_v1",
+          "status": "current_luck_resolved",
+          "timing_precision": "normal",
+          "timing_is_estimated": false
+        },
+        "annual_luck": {
+          "year": 2027,
+          "calendar_year": 2027,
+          "effective_year": 2027,
+          "ganzhi": "丁未",
+          "stem": "丁",
+          "branch": "未",
+          "stem_element": "火",
+          "branch_element": "土",
+          "stem_ten_god": "劫財",
+          "twelve_stage": "衰",
+          "stem_useful_relation": {
+            "is_useful": false,
+            "is_primary_useful": false,
+            "is_unfavorable": true,
+            "priority": null,
+            "relationship": "support_unfavorable"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "is_unfavorable": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          },
+          "current_luck_relation": {
+            "has_current_luck": true,
+            "current_luck_ganzhi": "乙未",
+            "current_luck_index": 5,
+            "current_luck_stem_element": "木",
+            "current_luck_branch_element": "土",
+            "stem_element_relation": "generates",
+            "branch_element_relation": "same",
+            "status": "evaluated"
+          },
+          "year_boundary_applied": false,
+          "year_boundary_rule": "astronomical_lichun",
+          "reasoning": [
+            "2027年の歳運干支は丁未です。",
+            "歳運天干の日主に対する通変星は劫財です。",
+            "歳運地支の日主に対する十二運は衰です。",
+            "歳運天干五行の用神関係はsupport_unfavorableです。",
+            "歳運地支五行の用神関係はsecondary_usefulです。"
+          ],
+          "method": "annual_luck_v1",
+          "status": "provisional_annual_luck_v1"
+        },
+        "integrated_luck": {
+          "current_luck_ganzhi": "乙未",
+          "annual_luck_ganzhi": "丁未",
+          "current_luck_elements": {
+            "stem": "木",
+            "branch": "土"
+          },
+          "annual_luck_elements": {
+            "stem": "火",
+            "branch": "土"
+          },
+          "element_interactions": {
+            "stem_relation": {
+              "source_element": "木",
+              "target_element": "火",
+              "relationship": "generates",
+              "score": 2.0
+            },
+            "branch_relation": {
+              "source_element": "土",
+              "target_element": "土",
+              "relationship": "same",
+              "score": 1.0
+            },
+            "score": 3.0
+          },
+          "current_luck_useful": {
+            "stem_element": "木",
+            "branch_element": "土",
+            "stem_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "is_unfavorable": true,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "is_unfavorable": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            },
+            "stem_score": -2.0,
+            "branch_score": 2.0,
+            "score": 0.0
+          },
+          "annual_luck_useful": {
+            "stem_element": "火",
+            "branch_element": "土",
+            "stem_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "is_unfavorable": true,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "is_unfavorable": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            },
+            "stem_score": -2.0,
+            "branch_score": 2.0,
+            "score": 0.0
+          },
+          "agreement_level": "mixed",
+          "score": {
+            "element_interaction_score": 3.0,
+            "current_luck_useful_score": 0.0,
+            "annual_luck_useful_score": 0.0,
+            "total_score": 3.0
+          },
+          "overall_score": 3.0,
+          "overall_level": "mixed",
+          "confidence": {
+            "level": "high",
+            "ratio": 1.0,
+            "available_sources": 3,
+            "total_sources": 3
+          },
+          "annual_ten_god": "劫財",
+          "annual_twelve_stage": "衰",
+          "reasoning": [
+            "現在大運は乙未です。",
+            "対象歳運は丁未です。",
+            "大運天干と歳運天干の五行関係はgeneratesです。",
+            "大運地支と歳運地支の五行関係はsameです。",
+            "大運・歳運を用神面から比較した結果はmixedです。",
+            "歳運天干の通変星は劫財です。",
+            "歳運地支の十二運は衰です。",
+            "v1統合スコアは3.0、統合レベルはmixedです。",
+            "この統合評価は五行・用神を中心とした暫定評価であり、干合・支合・冲・刑・害などはまだ最終スコアへ含めていません。"
+          ],
+          "method": "integrated_luck_v1",
+          "status": "provisional_integrated_luck_v1",
+          "timing_is_estimated": false
+        }
+      },
+      {
+        "year": 2028,
+        "target_datetime": "2028-07-01T12:00:00",
+        "current_luck": {
+          "has_current_luck": true,
+          "phase": "in_luck_pillar",
+          "exact_age": 52.379089,
+          "calendar_age": 52,
+          "current_pillar": {
+            "index": 5,
+            "ganzhi": "乙未",
+            "stem": "乙",
+            "branch": "未",
+            "stem_element": "木",
+            "branch_element": "土",
+            "stem_ten_god": "印綬",
+            "start_age": 46.798171,
+            "end_age": 56.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            }
+          },
+          "previous_pillar": {
+            "index": 4,
+            "ganzhi": "甲午",
+            "stem": "甲",
+            "branch": "午",
+            "stem_element": "木",
+            "branch_element": "火",
+            "stem_ten_god": "偏印",
+            "start_age": 36.798171,
+            "end_age": 46.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            }
+          },
+          "next_pillar": {
+            "index": 6,
+            "ganzhi": "丙申",
+            "stem": "丙",
+            "branch": "申",
+            "stem_element": "火",
+            "branch_element": "金",
+            "stem_ten_god": "比肩",
+            "start_age": 56.798171,
+            "end_age": 66.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": true,
+              "is_primary_useful": true,
+              "priority": 1,
+              "relationship": "primary_useful"
+            }
+          },
+          "progress": {
+            "start_age": 46.798171,
+            "end_age": 56.798171,
+            "duration_years": 10.0,
+            "elapsed_years": 5.580918,
+            "remaining_years": 4.419082,
+            "progress_ratio": 0.558092,
+            "progress_percent": 55.81
+          },
+          "years_until_next_luck": 4.419082,
+          "method": "current_luck_v1",
+          "status": "current_luck_resolved",
+          "timing_precision": "normal",
+          "timing_is_estimated": false
+        },
+        "annual_luck": {
+          "year": 2028,
+          "calendar_year": 2028,
+          "effective_year": 2028,
+          "ganzhi": "戊申",
+          "stem": "戊",
+          "branch": "申",
+          "stem_element": "土",
+          "branch_element": "金",
+          "stem_ten_god": "食神",
+          "twelve_stage": "病",
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "is_unfavorable": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": true,
+            "is_unfavorable": false,
+            "priority": 1,
+            "relationship": "primary_useful"
+          },
+          "current_luck_relation": {
+            "has_current_luck": true,
+            "current_luck_ganzhi": "乙未",
+            "current_luck_index": 5,
+            "current_luck_stem_element": "木",
+            "current_luck_branch_element": "土",
+            "stem_element_relation": "controls",
+            "branch_element_relation": "generates",
+            "status": "evaluated"
+          },
+          "year_boundary_applied": false,
+          "year_boundary_rule": "astronomical_lichun",
+          "reasoning": [
+            "2028年の歳運干支は戊申です。",
+            "歳運天干の日主に対する通変星は食神です。",
+            "歳運地支の日主に対する十二運は病です。",
+            "歳運天干五行の用神関係はsecondary_usefulです。",
+            "歳運地支五行の用神関係はprimary_usefulです。"
+          ],
+          "method": "annual_luck_v1",
+          "status": "provisional_annual_luck_v1"
+        },
+        "integrated_luck": {
+          "current_luck_ganzhi": "乙未",
+          "annual_luck_ganzhi": "戊申",
+          "current_luck_elements": {
+            "stem": "木",
+            "branch": "土"
+          },
+          "annual_luck_elements": {
+            "stem": "土",
+            "branch": "金"
+          },
+          "element_interactions": {
+            "stem_relation": {
+              "source_element": "木",
+              "target_element": "土",
+              "relationship": "controls",
+              "score": -1.0
+            },
+            "branch_relation": {
+              "source_element": "土",
+              "target_element": "金",
+              "relationship": "generates",
+              "score": 2.0
+            },
+            "score": 1.0
+          },
+          "current_luck_useful": {
+            "stem_element": "木",
+            "branch_element": "土",
+            "stem_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "is_unfavorable": true,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "is_unfavorable": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            },
+            "stem_score": -2.0,
+            "branch_score": 2.0,
+            "score": 0.0
+          },
+          "annual_luck_useful": {
+            "stem_element": "土",
+            "branch_element": "金",
+            "stem_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "is_unfavorable": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            },
+            "branch_relation": {
+              "is_useful": true,
+              "is_primary_useful": true,
+              "is_unfavorable": false,
+              "priority": 1,
+              "relationship": "primary_useful"
+            },
+            "stem_score": 2.0,
+            "branch_score": 3.0,
+            "score": 5.0
+          },
+          "agreement_level": "mixed",
+          "score": {
+            "element_interaction_score": 1.0,
+            "current_luck_useful_score": 0.0,
+            "annual_luck_useful_score": 5.0,
+            "total_score": 6.0
+          },
+          "overall_score": 6.0,
+          "overall_level": "supportive",
+          "confidence": {
+            "level": "high",
+            "ratio": 1.0,
+            "available_sources": 3,
+            "total_sources": 3
+          },
+          "annual_ten_god": "食神",
+          "annual_twelve_stage": "病",
+          "reasoning": [
+            "現在大運は乙未です。",
+            "対象歳運は戊申です。",
+            "大運天干と歳運天干の五行関係はcontrolsです。",
+            "大運地支と歳運地支の五行関係はgeneratesです。",
+            "大運・歳運を用神面から比較した結果はmixedです。",
+            "歳運天干の通変星は食神です。",
+            "歳運地支の十二運は病です。",
+            "v1統合スコアは6.0、統合レベルはsupportiveです。",
+            "この統合評価は五行・用神を中心とした暫定評価であり、干合・支合・冲・刑・害などはまだ最終スコアへ含めていません。"
+          ],
+          "method": "integrated_luck_v1",
+          "status": "provisional_integrated_luck_v1",
+          "timing_is_estimated": false
+        }
+      },
+      {
+        "year": 2029,
+        "target_datetime": "2029-07-01T12:00:00",
+        "current_luck": {
+          "has_current_luck": true,
+          "phase": "in_luck_pillar",
+          "exact_age": 53.378425,
+          "calendar_age": 53,
+          "current_pillar": {
+            "index": 5,
+            "ganzhi": "乙未",
+            "stem": "乙",
+            "branch": "未",
+            "stem_element": "木",
+            "branch_element": "土",
+            "stem_ten_god": "印綬",
+            "start_age": 46.798171,
+            "end_age": 56.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            }
+          },
+          "previous_pillar": {
+            "index": 4,
+            "ganzhi": "甲午",
+            "stem": "甲",
+            "branch": "午",
+            "stem_element": "木",
+            "branch_element": "火",
+            "stem_ten_god": "偏印",
+            "start_age": 36.798171,
+            "end_age": 46.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            }
+          },
+          "next_pillar": {
+            "index": 6,
+            "ganzhi": "丙申",
+            "stem": "丙",
+            "branch": "申",
+            "stem_element": "火",
+            "branch_element": "金",
+            "stem_ten_god": "比肩",
+            "start_age": 56.798171,
+            "end_age": 66.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": true,
+              "is_primary_useful": true,
+              "priority": 1,
+              "relationship": "primary_useful"
+            }
+          },
+          "progress": {
+            "start_age": 46.798171,
+            "end_age": 56.798171,
+            "duration_years": 10.0,
+            "elapsed_years": 6.580254,
+            "remaining_years": 3.419746,
+            "progress_ratio": 0.658025,
+            "progress_percent": 65.8
+          },
+          "years_until_next_luck": 3.419746,
+          "method": "current_luck_v1",
+          "status": "current_luck_resolved",
+          "timing_precision": "normal",
+          "timing_is_estimated": false
+        },
+        "annual_luck": {
+          "year": 2029,
+          "calendar_year": 2029,
+          "effective_year": 2029,
+          "ganzhi": "己酉",
+          "stem": "己",
+          "branch": "酉",
+          "stem_element": "土",
+          "branch_element": "金",
+          "stem_ten_god": "傷官",
+          "twelve_stage": "死",
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "is_unfavorable": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": true,
+            "is_unfavorable": false,
+            "priority": 1,
+            "relationship": "primary_useful"
+          },
+          "current_luck_relation": {
+            "has_current_luck": true,
+            "current_luck_ganzhi": "乙未",
+            "current_luck_index": 5,
+            "current_luck_stem_element": "木",
+            "current_luck_branch_element": "土",
+            "stem_element_relation": "controls",
+            "branch_element_relation": "generates",
+            "status": "evaluated"
+          },
+          "year_boundary_applied": false,
+          "year_boundary_rule": "astronomical_lichun",
+          "reasoning": [
+            "2029年の歳運干支は己酉です。",
+            "歳運天干の日主に対する通変星は傷官です。",
+            "歳運地支の日主に対する十二運は死です。",
+            "歳運天干五行の用神関係はsecondary_usefulです。",
+            "歳運地支五行の用神関係はprimary_usefulです。"
+          ],
+          "method": "annual_luck_v1",
+          "status": "provisional_annual_luck_v1"
+        },
+        "integrated_luck": {
+          "current_luck_ganzhi": "乙未",
+          "annual_luck_ganzhi": "己酉",
+          "current_luck_elements": {
+            "stem": "木",
+            "branch": "土"
+          },
+          "annual_luck_elements": {
+            "stem": "土",
+            "branch": "金"
+          },
+          "element_interactions": {
+            "stem_relation": {
+              "source_element": "木",
+              "target_element": "土",
+              "relationship": "controls",
+              "score": -1.0
+            },
+            "branch_relation": {
+              "source_element": "土",
+              "target_element": "金",
+              "relationship": "generates",
+              "score": 2.0
+            },
+            "score": 1.0
+          },
+          "current_luck_useful": {
+            "stem_element": "木",
+            "branch_element": "土",
+            "stem_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "is_unfavorable": true,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "is_unfavorable": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            },
+            "stem_score": -2.0,
+            "branch_score": 2.0,
+            "score": 0.0
+          },
+          "annual_luck_useful": {
+            "stem_element": "土",
+            "branch_element": "金",
+            "stem_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "is_unfavorable": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            },
+            "branch_relation": {
+              "is_useful": true,
+              "is_primary_useful": true,
+              "is_unfavorable": false,
+              "priority": 1,
+              "relationship": "primary_useful"
+            },
+            "stem_score": 2.0,
+            "branch_score": 3.0,
+            "score": 5.0
+          },
+          "agreement_level": "mixed",
+          "score": {
+            "element_interaction_score": 1.0,
+            "current_luck_useful_score": 0.0,
+            "annual_luck_useful_score": 5.0,
+            "total_score": 6.0
+          },
+          "overall_score": 6.0,
+          "overall_level": "supportive",
+          "confidence": {
+            "level": "high",
+            "ratio": 1.0,
+            "available_sources": 3,
+            "total_sources": 3
+          },
+          "annual_ten_god": "傷官",
+          "annual_twelve_stage": "死",
+          "reasoning": [
+            "現在大運は乙未です。",
+            "対象歳運は己酉です。",
+            "大運天干と歳運天干の五行関係はcontrolsです。",
+            "大運地支と歳運地支の五行関係はgeneratesです。",
+            "大運・歳運を用神面から比較した結果はmixedです。",
+            "歳運天干の通変星は傷官です。",
+            "歳運地支の十二運は死です。",
+            "v1統合スコアは6.0、統合レベルはsupportiveです。",
+            "この統合評価は五行・用神を中心とした暫定評価であり、干合・支合・冲・刑・害などはまだ最終スコアへ含めていません。"
+          ],
+          "method": "integrated_luck_v1",
+          "status": "provisional_integrated_luck_v1",
+          "timing_is_estimated": false
+        }
+      },
+      {
+        "year": 2030,
+        "target_datetime": "2030-07-01T12:00:00",
+        "current_luck": {
+          "has_current_luck": true,
+          "phase": "in_luck_pillar",
+          "exact_age": 54.377761,
+          "calendar_age": 54,
+          "current_pillar": {
+            "index": 5,
+            "ganzhi": "乙未",
+            "stem": "乙",
+            "branch": "未",
+            "stem_element": "木",
+            "branch_element": "土",
+            "stem_ten_god": "印綬",
+            "start_age": 46.798171,
+            "end_age": 56.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            }
+          },
+          "previous_pillar": {
+            "index": 4,
+            "ganzhi": "甲午",
+            "stem": "甲",
+            "branch": "午",
+            "stem_element": "木",
+            "branch_element": "火",
+            "stem_ten_god": "偏印",
+            "start_age": 36.798171,
+            "end_age": 46.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            }
+          },
+          "next_pillar": {
+            "index": 6,
+            "ganzhi": "丙申",
+            "stem": "丙",
+            "branch": "申",
+            "stem_element": "火",
+            "branch_element": "金",
+            "stem_ten_god": "比肩",
+            "start_age": 56.798171,
+            "end_age": 66.798171,
+            "stem_useful_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_useful_relation": {
+              "is_useful": true,
+              "is_primary_useful": true,
+              "priority": 1,
+              "relationship": "primary_useful"
+            }
+          },
+          "progress": {
+            "start_age": 46.798171,
+            "end_age": 56.798171,
+            "duration_years": 10.0,
+            "elapsed_years": 7.57959,
+            "remaining_years": 2.42041,
+            "progress_ratio": 0.757959,
+            "progress_percent": 75.8
+          },
+          "years_until_next_luck": 2.42041,
+          "method": "current_luck_v1",
+          "status": "current_luck_resolved",
+          "timing_precision": "normal",
+          "timing_is_estimated": false
+        },
+        "annual_luck": {
+          "year": 2030,
+          "calendar_year": 2030,
+          "effective_year": 2030,
+          "ganzhi": "庚戌",
+          "stem": "庚",
+          "branch": "戌",
+          "stem_element": "金",
+          "branch_element": "土",
+          "stem_ten_god": "偏財",
+          "twelve_stage": "墓",
+          "stem_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": true,
+            "is_unfavorable": false,
+            "priority": 1,
+            "relationship": "primary_useful"
+          },
+          "branch_useful_relation": {
+            "is_useful": true,
+            "is_primary_useful": false,
+            "is_unfavorable": false,
+            "priority": 3,
+            "relationship": "secondary_useful"
+          },
+          "current_luck_relation": {
+            "has_current_luck": true,
+            "current_luck_ganzhi": "乙未",
+            "current_luck_index": 5,
+            "current_luck_stem_element": "木",
+            "current_luck_branch_element": "土",
+            "stem_element_relation": "controlled_by",
+            "branch_element_relation": "same",
+            "status": "evaluated"
+          },
+          "year_boundary_applied": false,
+          "year_boundary_rule": "astronomical_lichun",
+          "reasoning": [
+            "2030年の歳運干支は庚戌です。",
+            "歳運天干の日主に対する通変星は偏財です。",
+            "歳運地支の日主に対する十二運は墓です。",
+            "歳運天干五行の用神関係はprimary_usefulです。",
+            "歳運地支五行の用神関係はsecondary_usefulです。"
+          ],
+          "method": "annual_luck_v1",
+          "status": "provisional_annual_luck_v1"
+        },
+        "integrated_luck": {
+          "current_luck_ganzhi": "乙未",
+          "annual_luck_ganzhi": "庚戌",
+          "current_luck_elements": {
+            "stem": "木",
+            "branch": "土"
+          },
+          "annual_luck_elements": {
+            "stem": "金",
+            "branch": "土"
+          },
+          "element_interactions": {
+            "stem_relation": {
+              "source_element": "木",
+              "target_element": "金",
+              "relationship": "controlled_by",
+              "score": -2.0
+            },
+            "branch_relation": {
+              "source_element": "土",
+              "target_element": "土",
+              "relationship": "same",
+              "score": 1.0
+            },
+            "score": -1.0
+          },
+          "current_luck_useful": {
+            "stem_element": "木",
+            "branch_element": "土",
+            "stem_relation": {
+              "is_useful": false,
+              "is_primary_useful": false,
+              "is_unfavorable": true,
+              "priority": null,
+              "relationship": "support_unfavorable"
+            },
+            "branch_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "is_unfavorable": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            },
+            "stem_score": -2.0,
+            "branch_score": 2.0,
+            "score": 0.0
+          },
+          "annual_luck_useful": {
+            "stem_element": "金",
+            "branch_element": "土",
+            "stem_relation": {
+              "is_useful": true,
+              "is_primary_useful": true,
+              "is_unfavorable": false,
+              "priority": 1,
+              "relationship": "primary_useful"
+            },
+            "branch_relation": {
+              "is_useful": true,
+              "is_primary_useful": false,
+              "is_unfavorable": false,
+              "priority": 3,
+              "relationship": "secondary_useful"
+            },
+            "stem_score": 3.0,
+            "branch_score": 2.0,
+            "score": 5.0
+          },
+          "agreement_level": "mixed",
+          "score": {
+            "element_interaction_score": -1.0,
+            "current_luck_useful_score": 0.0,
+            "annual_luck_useful_score": 5.0,
+            "total_score": 4.0
+          },
+          "overall_score": 4.0,
+          "overall_level": "supportive",
+          "confidence": {
+            "level": "high",
+            "ratio": 1.0,
+            "available_sources": 3,
+            "total_sources": 3
+          },
+          "annual_ten_god": "偏財",
+          "annual_twelve_stage": "墓",
+          "reasoning": [
+            "現在大運は乙未です。",
+            "対象歳運は庚戌です。",
+            "大運天干と歳運天干の五行関係はcontrolled_byです。",
+            "大運地支と歳運地支の五行関係はsameです。",
+            "大運・歳運を用神面から比較した結果はmixedです。",
+            "歳運天干の通変星は偏財です。",
+            "歳運地支の十二運は墓です。",
+            "v1統合スコアは4.0、統合レベルはsupportiveです。",
+            "この統合評価は五行・用神を中心とした暫定評価であり、干合・支合・冲・刑・害などはまだ最終スコアへ含めていません。"
+          ],
+          "method": "integrated_luck_v1",
+          "status": "provisional_integrated_luck_v1",
+          "timing_is_estimated": false
+        }
+      }
+    ]
+  },
+  "reading_sections": {
+    "core_personality": {
+      "focus": [
+        "day_master",
+        "strength",
+        "pattern",
+        "five_elements"
+      ],
+      "instruction": "性格・価値観・行動傾向を、日主・身強身弱・格局・五行バランスから読む。"
+    },
+    "career": {
+      "focus": [
+        "pattern",
+        "useful_gods",
+        "day_master",
+        "current_luck",
+        "annual_luck"
+      ],
+      "instruction": "仕事適性・働き方・現在の仕事運を、格局・用神・通変星・大運・歳運から読む。"
+    },
+    "wealth": {
+      "focus": [
+        "pattern",
+        "useful_gods",
+        "five_elements",
+        "current_luck",
+        "annual_luck",
+        "integrated_luck"
+      ],
+      "instruction": "金運・収入傾向・蓄財傾向を、命式構造と現在運を分けて読む。"
+    },
+    "relationships": {
+      "focus": [
+        "day_master",
+        "pattern",
+        "five_elements",
+        "current_luck",
+        "annual_luck"
+      ],
+      "instruction": "対人・恋愛傾向を命式の性質として読み、現在運による変化と区別して説明する。"
+    },
+    "health": {
+      "focus": [
+        "five_elements",
+        "strength",
+        "useful_gods",
+        "current_luck",
+        "annual_luck"
+      ],
+      "instruction": "健康は医学的診断を行わず、五行上の偏りや生活上の注意傾向として表現する。"
+    },
+    "current_luck": {
+      "focus": [
+        "current_luck",
+        "annual_luck",
+        "integrated_luck",
+        "useful_gods"
+      ],
+      "instruction": "現在の大運と歳運を分けて説明し、最後に統合運の意味を補足する。"
+    },
+    "future_flow": {
+      "focus": [
+        "luck_pillars",
+        "current_luck",
+        "annual_luck",
+        "integrated_luck",
+        "five_year_luck",
+        "useful_gods"
+      ],
+      "instruction": "現在年から5年間の歳運を年ごとに比較し、各年時点の大運との統合結果も踏まえて、追い風・注意点・転換点を説明する。現在年は鑑定日時点から年末までの流れとして扱い、翌年以降は各年のテーマとして説明する。最後に現在大運と次の大運を背景として、5年間を通じた長期的な方向性をまとめる。"
+    },
+    "advice": {
+      "focus": [
+        "useful_gods",
+        "strength",
+        "integrated_luck",
+        "pattern"
+      ],
+      "instruction": "断定的な未来予言ではなく、命式上活かしやすい方向と具体的な行動案を示す。"
+    }
+  },
+  "source_metadata": {
+    "strength": {
+      "method": "final_strength_judgment_v2",
+      "status": "provisional_final_strength_judgment_v2"
+    },
+    "pattern": {
+      "method": "pattern_judgment_v2",
+      "status": "provisional_pattern_judgment_v2"
+    },
+    "useful_gods": {
+      "method": "useful_gods_v3",
+      "status": "provisional_useful_gods_v3"
+    },
+    "luck_pillars": {
+      "method": "luck_pillars_v2",
+      "status": "provisional_luck_pillars_v2"
+    },
+    "current_luck": {
+      "method": "current_luck_v1",
+      "status": "current_luck_resolved"
+    },
+    "annual_luck": {
+      "method": "annual_luck_v1",
+      "status": "provisional_annual_luck_v1"
+    },
+    "integrated_luck": {
+      "method": "integrated_luck_v1",
+      "status": "provisional_integrated_luck_v1"
+    }
+  },
+  "validation": {
+    "valid": true,
+    "missing_top_level_keys": [],
+    "missing_pillars": [],
+    "hour_pillar_available": true,
+    "birth_time_known": true
+  },
+  "method": "reading_context_v1",
+  "status": "ready_for_ai_reading",
+  "notes": [
+    "このcontextは既存の計算結果をAI鑑定文生成向けに整形したものです。",
+    "reading_context.py 自体では四柱・身強身弱・格局・用神・運勢を再計算しません。",
+    "AI鑑定では計算結果と文章上の解釈を明確に分けて扱ってください。",
+    "健康に関する文章は医学的診断として表現しないでください。",
+    "将来については確定的な予言ではなく、傾向・可能性・行動提案として表現してください。",
+    "five_year_luck がある場合は、現在年を鑑定日時点から年末までの流れとして扱い、翌年以降は各年のテーマとして比較してください。",
+    "出生時刻が確認できているため四柱範囲で整形しています。"
+  ]
+}

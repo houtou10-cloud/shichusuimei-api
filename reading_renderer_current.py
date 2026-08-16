@@ -1960,13 +1960,13 @@ def _render_decade_luck_reading(
             and end_age is not None
         ):
             age_label = (
-                f"{_display_age(start_age)}〜"
-                f"{_display_age(end_age)}"
+                f"{_display(start_age)}歳〜"
+                f"{_display(end_age)}歳"
             )
 
         elif start_age is not None:
             age_label = (
-                f"{_display_age(start_age)}〜"
+                f"{_display(start_age)}歳〜"
             )
 
         # ----------------------------------------------------

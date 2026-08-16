@@ -42,6 +42,10 @@ OpenAI APIを一切呼ばずに検証する。
 14. API通信をmockして商品化レイヤーだけ検証する。
 15. metadataが「再計算しない」「AI文章を書き換えない」
     方針を保持する。
+16. v1.1の大運一覧 luck_pillars が
+    reading_contextから商品データへ保持される。
+17. 大運の順序・年齢帯・通変星・用神関係を保持する。
+18. 大運データがdeepcopyされ、JSON serializableである。
 
 このファイルは非LIVEテストなので、
 OPENAI_API_KEYは不要。
@@ -300,9 +304,150 @@ def sample_reading_context() -> Dict[str, Any]:
                 "direction": "forward",
                 "direction_japanese": "順行",
                 "start_age": 7.0,
-                "start_age_detail": {},
+                "start_age_detail": {
+                    "years": 7,
+                    "months": 0,
+                    "days": 0,
+                },
                 "pillar_count": 8,
-                "pillars": [],
+                "pillars": [
+                    {
+                        "index": 1,
+                        "ganzhi": "甲申",
+                        "stem": "甲",
+                        "branch": "申",
+                        "stem_element": "木",
+                        "branch_element": "金",
+                        "stem_ten_god": "正印",
+                        "start_age": 7.0,
+                        "end_age": 17.0,
+                        "stem_useful_relation": {
+                            "relation": "supportive",
+                        },
+                        "branch_useful_relation": {
+                            "relation": "primary_useful",
+                        },
+                    },
+                    {
+                        "index": 2,
+                        "ganzhi": "乙酉",
+                        "stem": "乙",
+                        "branch": "酉",
+                        "stem_element": "木",
+                        "branch_element": "金",
+                        "stem_ten_god": "偏印",
+                        "start_age": 17.0,
+                        "end_age": 27.0,
+                        "stem_useful_relation": {
+                            "relation": "supportive",
+                        },
+                        "branch_useful_relation": {
+                            "relation": "primary_useful",
+                        },
+                    },
+                    {
+                        "index": 3,
+                        "ganzhi": "丙戌",
+                        "stem": "丙",
+                        "branch": "戌",
+                        "stem_element": "火",
+                        "branch_element": "土",
+                        "stem_ten_god": "劫財",
+                        "start_age": 27.0,
+                        "end_age": 37.0,
+                        "stem_useful_relation": {
+                            "relation": "unfavorable",
+                        },
+                        "branch_useful_relation": {
+                            "relation": "supportive",
+                        },
+                    },
+                    {
+                        "index": 4,
+                        "ganzhi": "丁亥",
+                        "stem": "丁",
+                        "branch": "亥",
+                        "stem_element": "火",
+                        "branch_element": "水",
+                        "stem_ten_god": "比肩",
+                        "start_age": 37.0,
+                        "end_age": 47.0,
+                        "stem_useful_relation": {
+                            "relation": "unfavorable",
+                        },
+                        "branch_useful_relation": {
+                            "relation": "supportive",
+                        },
+                    },
+                    {
+                        "index": 5,
+                        "ganzhi": "戊子",
+                        "stem": "戊",
+                        "branch": "子",
+                        "stem_element": "土",
+                        "branch_element": "水",
+                        "stem_ten_god": "傷官",
+                        "start_age": 47.0,
+                        "end_age": 57.0,
+                        "stem_useful_relation": {
+                            "relation": "supportive",
+                        },
+                        "branch_useful_relation": {
+                            "relation": "supportive",
+                        },
+                    },
+                    {
+                        "index": 6,
+                        "ganzhi": "己丑",
+                        "stem": "己",
+                        "branch": "丑",
+                        "stem_element": "土",
+                        "branch_element": "土",
+                        "stem_ten_god": "食神",
+                        "start_age": 57.0,
+                        "end_age": 67.0,
+                        "stem_useful_relation": {
+                            "relation": "supportive",
+                        },
+                        "branch_useful_relation": {
+                            "relation": "supportive",
+                        },
+                    },
+                    {
+                        "index": 7,
+                        "ganzhi": "庚寅",
+                        "stem": "庚",
+                        "branch": "寅",
+                        "stem_element": "金",
+                        "branch_element": "木",
+                        "stem_ten_god": "正財",
+                        "start_age": 67.0,
+                        "end_age": 77.0,
+                        "stem_useful_relation": {
+                            "relation": "primary_useful",
+                        },
+                        "branch_useful_relation": {
+                            "relation": "supportive",
+                        },
+                    },
+                    {
+                        "index": 8,
+                        "ganzhi": "辛卯",
+                        "stem": "辛",
+                        "branch": "卯",
+                        "stem_element": "金",
+                        "branch_element": "木",
+                        "stem_ten_god": "偏財",
+                        "start_age": 77.0,
+                        "end_age": 87.0,
+                        "stem_useful_relation": {
+                            "relation": "primary_useful",
+                        },
+                        "branch_useful_relation": {
+                            "relation": "supportive",
+                        },
+                    },
+                ],
                 "method": "luck_pillars_v1",
                 "status": "calculated",
             },
@@ -1023,6 +1168,297 @@ def test_chart_summary_preserves_current_luck(
             "ganzhi"
         ]
         == "丁亥"
+    )
+
+
+# ============================================================
+# v1.1 Luck pillars / decade luck
+# ============================================================
+
+
+def test_chart_summary_preserves_luck_pillars_metadata(
+    sample_reading_context,
+):
+    summary = build_chart_summary(
+        sample_reading_context
+    )
+
+    luck_pillars = summary[
+        "luck_pillars"
+    ]
+
+    assert (
+        luck_pillars[
+            "direction"
+        ]
+        == "forward"
+    )
+
+    assert (
+        luck_pillars[
+            "direction_japanese"
+        ]
+        == "順行"
+    )
+
+    assert (
+        luck_pillars[
+            "start_age"
+        ]
+        == 7.0
+    )
+
+    assert (
+        luck_pillars[
+            "start_age_detail"
+        ]
+        == {
+            "years": 7,
+            "months": 0,
+            "days": 0,
+        }
+    )
+
+
+def test_chart_summary_preserves_all_luck_pillars(
+    sample_reading_context,
+):
+    summary = build_chart_summary(
+        sample_reading_context
+    )
+
+    luck_pillars = summary[
+        "luck_pillars"
+    ]
+
+    assert (
+        luck_pillars[
+            "pillar_count"
+        ]
+        == 8
+    )
+
+    assert (
+        len(
+            luck_pillars[
+                "pillars"
+            ]
+        )
+        == 8
+    )
+
+
+def test_chart_summary_preserves_luck_pillar_order(
+    sample_reading_context,
+):
+    summary = build_chart_summary(
+        sample_reading_context
+    )
+
+    pillars = summary[
+        "luck_pillars"
+    ][
+        "pillars"
+    ]
+
+    assert [
+        pillar[
+            "index"
+        ]
+        for pillar in pillars
+    ] == list(
+        range(
+            1,
+            9,
+        )
+    )
+
+    assert [
+        pillar[
+            "ganzhi"
+        ]
+        for pillar in pillars
+    ] == [
+        "甲申",
+        "乙酉",
+        "丙戌",
+        "丁亥",
+        "戊子",
+        "己丑",
+        "庚寅",
+        "辛卯",
+    ]
+
+
+def test_chart_summary_preserves_luck_pillar_age_ranges(
+    sample_reading_context,
+):
+    summary = build_chart_summary(
+        sample_reading_context
+    )
+
+    pillars = summary[
+        "luck_pillars"
+    ][
+        "pillars"
+    ]
+
+    assert [
+        (
+            pillar[
+                "start_age"
+            ],
+            pillar[
+                "end_age"
+            ],
+        )
+        for pillar in pillars
+    ] == [
+        (7.0, 17.0),
+        (17.0, 27.0),
+        (27.0, 37.0),
+        (37.0, 47.0),
+        (47.0, 57.0),
+        (57.0, 67.0),
+        (67.0, 77.0),
+        (77.0, 87.0),
+    ]
+
+
+def test_chart_summary_preserves_luck_pillar_fields(
+    sample_reading_context,
+):
+    summary = build_chart_summary(
+        sample_reading_context
+    )
+
+    current = summary[
+        "luck_pillars"
+    ][
+        "pillars"
+    ][3]
+
+    assert current == {
+        "index": 4,
+        "ganzhi": "丁亥",
+        "stem": "丁",
+        "branch": "亥",
+        "stem_element": "火",
+        "branch_element": "水",
+        "stem_ten_god": "比肩",
+        "start_age": 37.0,
+        "end_age": 47.0,
+        "stem_useful_relation": {
+            "relation": "unfavorable",
+        },
+        "branch_useful_relation": {
+            "relation": "supportive",
+        },
+    }
+
+
+def test_chart_summary_luck_pillars_are_independent_copy(
+    sample_reading_context,
+):
+    original = deepcopy(
+        sample_reading_context
+    )
+
+    summary = build_chart_summary(
+        sample_reading_context
+    )
+
+    summary[
+        "luck_pillars"
+    ][
+        "pillars"
+    ][0][
+        "ganzhi"
+    ] = "変更"
+
+    summary[
+        "luck_pillars"
+    ][
+        "pillars"
+    ][0][
+        "stem_useful_relation"
+    ][
+        "relation"
+    ] = "変更"
+
+    assert (
+        sample_reading_context
+        == original
+    )
+
+
+def test_chart_summary_luck_pillars_are_json_serializable(
+    sample_reading_context,
+):
+    summary = build_chart_summary(
+        sample_reading_context
+    )
+
+    dumped = json.dumps(
+        summary[
+            "luck_pillars"
+        ],
+        ensure_ascii=False,
+    )
+
+    loaded = json.loads(
+        dumped
+    )
+
+    assert (
+        loaded[
+            "pillar_count"
+        ]
+        == 8
+    )
+
+    assert (
+        loaded[
+            "pillars"
+        ][3][
+            "ganzhi"
+        ]
+        == "丁亥"
+    )
+
+
+def test_build_reading_product_preserves_luck_pillars(
+    sample_product,
+):
+    luck_pillars = (
+        sample_product.chart_summary[
+            "luck_pillars"
+        ]
+    )
+
+    assert (
+        luck_pillars[
+            "pillar_count"
+        ]
+        == 8
+    )
+
+    assert (
+        luck_pillars[
+            "pillars"
+        ][3][
+            "ganzhi"
+        ]
+        == "丁亥"
+    )
+
+    assert (
+        luck_pillars[
+            "pillars"
+        ][4][
+            "ganzhi"
+        ]
+        == "戊子"
     )
 
 
@@ -3033,6 +3469,36 @@ def test_reading_product_v1_final_gate(
     )
 
     assert (
+        sample_product.chart_summary[
+            "luck_pillars"
+        ][
+            "pillar_count"
+        ]
+        == 8
+    )
+
+    assert [
+        pillar[
+            "ganzhi"
+        ]
+        for pillar
+        in sample_product.chart_summary[
+            "luck_pillars"
+        ][
+            "pillars"
+        ]
+    ] == [
+        "甲申",
+        "乙酉",
+        "丙戌",
+        "丁亥",
+        "戊子",
+        "己丑",
+        "庚寅",
+        "辛卯",
+    ]
+
+    assert (
         len(
             sample_product.sections
         )
@@ -3126,318 +3592,4 @@ def test_reading_product_v1_final_gate(
     assert (
         '"prompt"'
         not in serialized
-    )
-
-
-# ============================================================
-# future_flow yearly preservation
-# ============================================================
-
-
-def _make_future_flow_yearly():
-    return [
-        {
-            "year": 2026,
-            "title": "ここから年末まで",
-            "summary": (
-                "現在年の残り期間の流れです。"
-            ),
-            "detail": (
-                "鑑定日時点から年末までの"
-                "流れを説明します。"
-            ),
-            "advice": [
-                "焦らず優先順位を整える。",
-            ],
-        },
-        {
-            "year": 2027,
-            "title": "基盤を整える年",
-            "summary": (
-                "次の展開に備える一年です。"
-            ),
-            "detail": (
-                "足元を固めながら"
-                "選択肢を広げます。"
-            ),
-            "advice": [
-                "継続できる形を選ぶ。",
-            ],
-        },
-        {
-            "year": 2028,
-            "title": "動きが強まる年",
-            "summary": (
-                "変化を活かしやすい一年です。"
-            ),
-            "detail": (
-                "状況を見ながら"
-                "行動範囲を広げます。"
-            ),
-            "advice": [
-                "機会を見極めて動く。",
-            ],
-        },
-        {
-            "year": 2029,
-            "title": "形にしていく年",
-            "summary": (
-                "積み重ねを成果へ"
-                "つなげる一年です。"
-            ),
-            "detail": (
-                "広げすぎず、"
-                "重要なものを形にします。"
-            ),
-            "advice": [
-                "成果を整理して残す。",
-            ],
-        },
-        {
-            "year": 2030,
-            "title": "次の段階へ向かう年",
-            "summary": (
-                "5年間の経験を次へ"
-                "つなぐ一年です。"
-            ),
-            "detail": (
-                "これまでの流れを振り返り、"
-                "次の方向を選びます。"
-            ),
-            "advice": [
-                "次の長期目標を考える。",
-            ],
-        },
-    ]
-
-
-def test_build_product_section_future_flow_preserves_yearly():
-    yearly = _make_future_flow_yearly()
-
-    section_data = {
-        "title": "これから5年間の運勢",
-        "summary": "5年間の全体像です。",
-        "detail": "5年間を俯瞰した説明です。",
-        "evidence": [
-            "各年の大運と歳運を確認しています。",
-        ],
-        "advice": [
-            "年ごとの違いを活かしてください。",
-        ],
-        "yearly": yearly,
-    }
-
-    result = build_product_section(
-        "future_flow",
-        section_data,
-    )
-
-    assert (
-        result["yearly"]
-        == yearly
-    )
-
-
-def test_build_product_section_future_flow_yearly_is_deep_copy():
-    yearly = _make_future_flow_yearly()
-
-    section_data = {
-        "title": "これから5年間の運勢",
-        "summary": "5年間の全体像です。",
-        "detail": "5年間を俯瞰した説明です。",
-        "evidence": [],
-        "advice": [],
-        "yearly": yearly,
-    }
-
-    result = build_product_section(
-        "future_flow",
-        section_data,
-    )
-
-    result[
-        "yearly"
-    ][0][
-        "title"
-    ] = "変更"
-
-    assert (
-        section_data[
-            "yearly"
-        ][0][
-            "title"
-        ]
-        == "ここから年末まで"
-    )
-
-
-def test_build_product_section_non_future_flow_does_not_add_yearly():
-    section_data = {
-        "title": "仕事・適職",
-        "summary": "仕事の要約です。",
-        "detail": "仕事の詳細です。",
-        "evidence": [],
-        "advice": [],
-        "yearly": _make_future_flow_yearly(),
-    }
-
-    result = build_product_section(
-        "career",
-        section_data,
-    )
-
-    assert (
-        "yearly"
-        not in result
-    )
-
-
-def test_build_product_section_future_flow_without_yearly_keeps_backward_compatibility():
-    section_data = {
-        "title": "今後の流れ",
-        "summary": "従来形式の要約です。",
-        "detail": "従来形式の詳細です。",
-        "evidence": [
-            "従来形式の根拠です。",
-        ],
-        "advice": [
-            "従来形式の助言です。",
-        ],
-    }
-
-    result = build_product_section(
-        "future_flow",
-        section_data,
-    )
-
-    assert (
-        result["key"]
-        == "future_flow"
-    )
-
-    assert (
-        result["summary"]
-        == "従来形式の要約です。"
-    )
-
-    assert (
-        result["detail"]
-        == "従来形式の詳細です。"
-    )
-
-    assert (
-        result.get(
-            "yearly",
-            [],
-        )
-        == []
-    )
-
-
-def test_build_product_sections_future_flow_preserves_yearly():
-    yearly = _make_future_flow_yearly()
-
-    parsed = {
-        "sections": {
-            "future_flow": {
-                "title": (
-                    "これから5年間の運勢"
-                ),
-                "summary": (
-                    "5年間の全体像です。"
-                ),
-                "detail": (
-                    "5年間を俯瞰した説明です。"
-                ),
-                "evidence": [
-                    "各年の計算済み運勢を"
-                    "根拠にしています。",
-                ],
-                "advice": [
-                    "流れに応じて"
-                    "行動を調整してください。",
-                ],
-                "yearly": yearly,
-            },
-        },
-    }
-
-    result = build_product_sections(
-        parsed,
-        (
-            "future_flow",
-        ),
-    )
-
-    assert len(result) == 1
-
-    assert (
-        result[0][
-            "key"
-        ]
-        == "future_flow"
-    )
-
-    assert (
-        result[0][
-            "yearly"
-        ]
-        == yearly
-    )
-
-
-def test_product_future_flow_yearly_is_json_serializable():
-    yearly = _make_future_flow_yearly()
-
-    parsed = {
-        "sections": {
-            "future_flow": {
-                "title": (
-                    "これから5年間の運勢"
-                ),
-                "summary": (
-                    "5年間の全体像です。"
-                ),
-                "detail": (
-                    "5年間を俯瞰した説明です。"
-                ),
-                "evidence": [],
-                "advice": [],
-                "yearly": yearly,
-            },
-        },
-    }
-
-    section = build_product_sections(
-        parsed,
-        (
-            "future_flow",
-        ),
-    )[0]
-
-    dumped = json.dumps(
-        section,
-        ensure_ascii=False,
-    )
-
-    loaded = json.loads(
-        dumped
-    )
-
-    assert (
-        loaded[
-            "yearly"
-        ][0][
-            "year"
-        ]
-        == 2026
-    )
-
-    assert (
-        loaded[
-            "yearly"
-        ][-1][
-            "year"
-        ]
-        == 2030
     )

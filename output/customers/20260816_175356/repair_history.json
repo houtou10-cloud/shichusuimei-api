@@ -1,0 +1,373 @@
+{
+  "enabled": true,
+  "max_attempts": 2,
+  "attempt_count": 1,
+  "repaired": true,
+  "initial_quality": {
+    "valid": true,
+    "issue_count": 15,
+    "error_count": 0,
+    "warning_count": 15,
+    "issues": [
+      {
+        "code": "formulaic_phrase_overuse",
+        "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, relationships, health, advice",
+        "matched": "示されています",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.career.summary",
+        "value": "独自の切り口で価値を作り、実務へ落とし込む役割に適性。用神は金・水・土で、数値化・ルール化・検証・体制整備が追い風。現在の大運は土に助けがあり、基盤づくりが進む時期。人間関係の悩みは「役割と判断基準の明確化」で軽減しやすい配置です。",
+        "matched": "用神は金・水・土で、数値化・ルール化・検証・体制整備が追い風。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.career.detail",
+        "value": "ご相談は「今の会社に残るか」。命式は偏印格×身強で、企画・改善・新機軸の提示に強みがあります。一方で火・比肩が強い年は、自己判断が前に出やすく衝突も起きやすいので、環境選びと進め方の設計が鍵になります。用神が金・水・土であるため、業務では次の性質を押さえると力が活きます。\n- 金: 基準・品質・ルール・数値で合意を取る役割（レビュー、品質管理、ガバナンスなどの性質）\n- 水: 情報整理・検証・フィードバックの循環（リサーチ、分析、リスク評価の性質）\n- 土: 体制・プロセス・スケジューリング（運用設計、定着化の性質）\n働き方は、裁量はありつつも「評価軸が明確」「レビューや振り返りの場が定例化」「役割が重複しにくい」環境と相性が良いでしょう。現在の大運は乙未で、枝（未＝土）が有利に働き、基盤整備・運用安定化に向く流れです。ここを土台に、職場に残る場合は『基準づくり』に主導的に関わる、転職・配置転換を視野に入れるなら『基準や改善を歓迎するチーム』を条件に比較するのが現実的です。",
+        "matched": "用神が金・水・土であるため、業務では次の性質を押さえると力が活きます。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.career.evidence[1]",
+        "value": "用神が金・水・土で一致しており、基準化・検証・体制整備が追い風となる方向です。",
+        "matched": "用神が金・水・土で一致しており、基準化・検証・体制整備が追い風となる方向です。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.wealth.summary",
+        "value": "命式の性質は、独自性を成果に結びつければ収入面での伸びしろがあります。用神が金・水・土のため、数値管理・リスク管理・体制化に寄せるほど安定。直近の運勢では2028〜2029年に金の追い風が強まり、収支の見通しを整えやすい時期が来ます。",
+        "matched": "用神が金・水・土のため、数値管理・リスク管理・体制化に寄せるほど安定。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.wealth.detail",
+        "value": "偏印格×身強は収入源を独自の強みで作りやすい一方、勢いだけで動くと収支の波が大きくなりがちです。用神に金・水・土が並ぶため、家計や事業の運用では「数値の見える化（金）」「情報の裏取り（水）」「手順とルール（土）」を優先すると安定度が上がります。現在の大運は土の助けがあり、固定費・契約・体制の見直しに好適。歳運では2028・2029年に金が強まり、条件交渉や成果の可視化がしやすい流れが示されています。いずれも傾向であり、重要な金銭判断は実データと専門情報を併用してください。",
+        "matched": "用神に金・水・土が並ぶため、家計や事業の運用では「数値の見える化（金）」「情報の裏取り（水）」「手順とルール（土）」を優先すると安定度が上がります。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.wealth.evidence[0]",
+        "value": "用神が金・水・土と示され、数値・検証・体制化が金運の安定に資する方向で一致しています。",
+        "matched": "用神が金・水・土と示され、数値・検証・体制化が金運の安定に資する方向で一致しています。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.future_flow.yearly[2].detail",
+        "value": "戊申は金が主要に働き、数値化や品質基準、審査・監査的な視点が通りやすい年。土（戊）も用神で、提案を規格・ルールへ落とすと評価に直結しやすい。",
+        "matched": "土（戊）も用神で、提案を規格・ルールへ落とすと評価に直結しやすい。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.future_flow.yearly[3].detail",
+        "value": "己酉は金が引き続き強く、評価軸が明確な場で力を発揮。土（己）も用神で、運用の精緻化や改善提案の制度化が進みます。",
+        "matched": "土（己）も用神で、運用の精緻化や改善提案の制度化が進みます。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.future_flow.yearly[4].detail",
+        "value": "庚戌は用神の金と土が揃い、最終的な条件整備やリスク低減の仕上げに適した年。ここで運用と契約の齟齬を減らすと、次の大運（金の時期）への橋渡しになります。",
+        "matched": "庚戌は用神の金と土が揃い、最終的な条件整備やリスク低減の仕上げに適した年。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.advice.summary",
+        "value": "結論は一択ではありません。残留・環境変更のいずれも、用神（金・水・土）を満たす設計を先に行うことが鍵です。今年残りは基準と手順を固め、2027年に体制化、2028〜2029年に可視化と条件整備で主導権を取りに行く流れが現実的です。",
+        "matched": "残留・環境変更のいずれも、用神（金・水・土）を満たす設計を先に行うことが鍵です。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.advice.detail",
+        "value": "ご相談の核心は「今の会社に残るか」。命式は独自性と推進力が強く、用神が金・水・土で明確に示されています。したがって意思決定の軸は『基準の明確さ』『レビュー文化』『役割の重複の少なさ』です。現職がこの3点を合意できるなら、今年残り〜2027年にかけて基盤整備を主導し、2028〜2029年の金の追い風で可視化と条件交渉へ進む戦略が取りやすいでしょう。もし3点が構造的に難しいなら、環境変更では選考段階から同じ軸で見極めるのが合理的です。将来を断定はしませんが、どちらの選択でも“基準→検証→定着”の順に動くと、命式と運勢の両面が噛み合います。",
+        "matched": "命式は独自性と推進力が強く、用神が金・水・土で明確に示されています。",
+        "severity": "warning"
+      },
+      {
+        "code": "useful_gods_role_confusion",
+        "message": "主用神と補助用神が同格の用神として表現されています。",
+        "path": "sections.advice.evidence[0]",
+        "value": "用神が金・水・土で一致し、基準・検証・体制化が追い風となる方向が明示されています。",
+        "matched": "用神が金・水・土で一致し、基準・検証・体制化が追い風となる方向が明示されています。",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, current_luck, future_flow",
+        "matched": "土→安定",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, health, current_luck, future_flow, advice",
+        "matched": "土→運用",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "repair": {
+        "version": "reading_repair_v1",
+        "method": "openai_quality_issue_targeted_repair_v1",
+        "status": "completed",
+        "changed": true,
+        "issue_count": 15,
+        "error_count": 0,
+        "warning_count": 15,
+        "repaired_issue_codes": [
+          "formulaic_phrase_overuse",
+          "useful_gods_role_confusion",
+          "fixed_element_translation_overuse"
+        ],
+        "response_id": "resp_09b38cde676e948d016a817af2953c819bba51179c9f916cf7",
+        "response_status": "completed",
+        "usage": {
+          "input_tokens": 5781,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "output_tokens": 3231,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 9012
+        },
+        "model": "gpt-5"
+      },
+      "quality_before": {
+        "valid": true,
+        "issue_count": 15,
+        "error_count": 0,
+        "warning_count": 15,
+        "issues": [
+          {
+            "code": "formulaic_phrase_overuse",
+            "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+            "path": "sections",
+            "value": "career, wealth, relationships, health, advice",
+            "matched": "示されています",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.career.summary",
+            "value": "独自の切り口で価値を作り、実務へ落とし込む役割に適性。用神は金・水・土で、数値化・ルール化・検証・体制整備が追い風。現在の大運は土に助けがあり、基盤づくりが進む時期。人間関係の悩みは「役割と判断基準の明確化」で軽減しやすい配置です。",
+            "matched": "用神は金・水・土で、数値化・ルール化・検証・体制整備が追い風。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.career.detail",
+            "value": "ご相談は「今の会社に残るか」。命式は偏印格×身強で、企画・改善・新機軸の提示に強みがあります。一方で火・比肩が強い年は、自己判断が前に出やすく衝突も起きやすいので、環境選びと進め方の設計が鍵になります。用神が金・水・土であるため、業務では次の性質を押さえると力が活きます。\n- 金: 基準・品質・ルール・数値で合意を取る役割（レビュー、品質管理、ガバナンスなどの性質）\n- 水: 情報整理・検証・フィードバックの循環（リサーチ、分析、リスク評価の性質）\n- 土: 体制・プロセス・スケジューリング（運用設計、定着化の性質）\n働き方は、裁量はありつつも「評価軸が明確」「レビューや振り返りの場が定例化」「役割が重複しにくい」環境と相性が良いでしょう。現在の大運は乙未で、枝（未＝土）が有利に働き、基盤整備・運用安定化に向く流れです。ここを土台に、職場に残る場合は『基準づくり』に主導的に関わる、転職・配置転換を視野に入れるなら『基準や改善を歓迎するチーム』を条件に比較するのが現実的です。",
+            "matched": "用神が金・水・土であるため、業務では次の性質を押さえると力が活きます。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.career.evidence[1]",
+            "value": "用神が金・水・土で一致しており、基準化・検証・体制整備が追い風となる方向です。",
+            "matched": "用神が金・水・土で一致しており、基準化・検証・体制整備が追い風となる方向です。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.wealth.summary",
+            "value": "命式の性質は、独自性を成果に結びつければ収入面での伸びしろがあります。用神が金・水・土のため、数値管理・リスク管理・体制化に寄せるほど安定。直近の運勢では2028〜2029年に金の追い風が強まり、収支の見通しを整えやすい時期が来ます。",
+            "matched": "用神が金・水・土のため、数値管理・リスク管理・体制化に寄せるほど安定。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.wealth.detail",
+            "value": "偏印格×身強は収入源を独自の強みで作りやすい一方、勢いだけで動くと収支の波が大きくなりがちです。用神に金・水・土が並ぶため、家計や事業の運用では「数値の見える化（金）」「情報の裏取り（水）」「手順とルール（土）」を優先すると安定度が上がります。現在の大運は土の助けがあり、固定費・契約・体制の見直しに好適。歳運では2028・2029年に金が強まり、条件交渉や成果の可視化がしやすい流れが示されています。いずれも傾向であり、重要な金銭判断は実データと専門情報を併用してください。",
+            "matched": "用神に金・水・土が並ぶため、家計や事業の運用では「数値の見える化（金）」「情報の裏取り（水）」「手順とルール（土）」を優先すると安定度が上がります。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.wealth.evidence[0]",
+            "value": "用神が金・水・土と示され、数値・検証・体制化が金運の安定に資する方向で一致しています。",
+            "matched": "用神が金・水・土と示され、数値・検証・体制化が金運の安定に資する方向で一致しています。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.future_flow.yearly[2].detail",
+            "value": "戊申は金が主要に働き、数値化や品質基準、審査・監査的な視点が通りやすい年。土（戊）も用神で、提案を規格・ルールへ落とすと評価に直結しやすい。",
+            "matched": "土（戊）も用神で、提案を規格・ルールへ落とすと評価に直結しやすい。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.future_flow.yearly[3].detail",
+            "value": "己酉は金が引き続き強く、評価軸が明確な場で力を発揮。土（己）も用神で、運用の精緻化や改善提案の制度化が進みます。",
+            "matched": "土（己）も用神で、運用の精緻化や改善提案の制度化が進みます。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.future_flow.yearly[4].detail",
+            "value": "庚戌は用神の金と土が揃い、最終的な条件整備やリスク低減の仕上げに適した年。ここで運用と契約の齟齬を減らすと、次の大運（金の時期）への橋渡しになります。",
+            "matched": "庚戌は用神の金と土が揃い、最終的な条件整備やリスク低減の仕上げに適した年。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.advice.summary",
+            "value": "結論は一択ではありません。残留・環境変更のいずれも、用神（金・水・土）を満たす設計を先に行うことが鍵です。今年残りは基準と手順を固め、2027年に体制化、2028〜2029年に可視化と条件整備で主導権を取りに行く流れが現実的です。",
+            "matched": "残留・環境変更のいずれも、用神（金・水・土）を満たす設計を先に行うことが鍵です。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.advice.detail",
+            "value": "ご相談の核心は「今の会社に残るか」。命式は独自性と推進力が強く、用神が金・水・土で明確に示されています。したがって意思決定の軸は『基準の明確さ』『レビュー文化』『役割の重複の少なさ』です。現職がこの3点を合意できるなら、今年残り〜2027年にかけて基盤整備を主導し、2028〜2029年の金の追い風で可視化と条件交渉へ進む戦略が取りやすいでしょう。もし3点が構造的に難しいなら、環境変更では選考段階から同じ軸で見極めるのが合理的です。将来を断定はしませんが、どちらの選択でも“基準→検証→定着”の順に動くと、命式と運勢の両面が噛み合います。",
+            "matched": "命式は独自性と推進力が強く、用神が金・水・土で明確に示されています。",
+            "severity": "warning"
+          },
+          {
+            "code": "useful_gods_role_confusion",
+            "message": "主用神と補助用神が同格の用神として表現されています。",
+            "path": "sections.advice.evidence[0]",
+            "value": "用神が金・水・土で一致し、基準・検証・体制化が追い風となる方向が明示されています。",
+            "matched": "用神が金・水・土で一致し、基準・検証・体制化が追い風となる方向が明示されています。",
+            "severity": "warning"
+          },
+          {
+            "code": "fixed_element_translation_overuse",
+            "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+            "path": "sections",
+            "value": "core_personality, career, wealth, current_luck, future_flow",
+            "matched": "土→安定",
+            "severity": "warning"
+          },
+          {
+            "code": "fixed_element_translation_overuse",
+            "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+            "path": "sections",
+            "value": "career, wealth, health, current_luck, future_flow, advice",
+            "matched": "土→運用",
+            "severity": "warning"
+          }
+        ],
+        "version": "reading_quality_v1",
+        "method": "customer_facing_quality_gate_v1",
+        "status": "ready_for_customer_facing_validation"
+      },
+      "quality_after": {
+        "valid": true,
+        "issue_count": 3,
+        "error_count": 0,
+        "warning_count": 3,
+        "issues": [
+          {
+            "code": "formulaic_phrase_overuse",
+            "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+            "path": "sections",
+            "value": "career, wealth, relationships, health, advice",
+            "matched": "示されています",
+            "severity": "warning"
+          },
+          {
+            "code": "fixed_element_translation_overuse",
+            "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+            "path": "sections",
+            "value": "core_personality, career, wealth, current_luck, future_flow",
+            "matched": "土→安定",
+            "severity": "warning"
+          },
+          {
+            "code": "fixed_element_translation_overuse",
+            "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+            "path": "sections",
+            "value": "career, wealth, health, current_luck, future_flow, advice",
+            "matched": "土→運用",
+            "severity": "warning"
+          }
+        ],
+        "version": "reading_quality_v1",
+        "method": "customer_facing_quality_gate_v1",
+        "status": "ready_for_customer_facing_validation"
+      }
+    }
+  ],
+  "final_quality": {
+    "valid": true,
+    "issue_count": 3,
+    "error_count": 0,
+    "warning_count": 3,
+    "issues": [
+      {
+        "code": "formulaic_phrase_overuse",
+        "message": "同じ説明の定型表現が多数のセクションで繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, relationships, health, advice",
+        "matched": "示されています",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "core_personality, career, wealth, current_luck, future_flow",
+        "matched": "土→安定",
+        "severity": "warning"
+      },
+      {
+        "code": "fixed_element_translation_overuse",
+        "message": "同じ五行が同じ現代語へ固定的に変換され、多数章で繰り返されています。",
+        "path": "sections",
+        "value": "career, wealth, health, current_luck, future_flow, advice",
+        "matched": "土→運用",
+        "severity": "warning"
+      }
+    ],
+    "version": "reading_quality_v1",
+    "method": "customer_facing_quality_gate_v1",
+    "status": "ready_for_customer_facing_validation"
+  },
+  "final_valid": true
+}
