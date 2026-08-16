@@ -1082,7 +1082,7 @@ def test_reading_renderer_decade_luck_v1_1_final_gate():
 
     assert (
         html.rindex(
-            '<h2 id="section-advice">'
+            '<h2 id="section-8">'
         )
         < html.index(
             'id="decade-luck-heading"'
