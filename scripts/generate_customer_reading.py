@@ -200,12 +200,13 @@ REPAIR_STORE = False
 # valid=True のwarningでも、
 # 占術上の事実整合性に関わるものは
 # Auto-Repair対象とする。
-AUTO_REPAIR_WARNING_CODES = frozenset(
-    {
-        "useful_gods_role_confusion",
-    }
-)
-
+# valid=True のwarningは、
+# quality_reportへ記録するが、
+# v1.1ではPDF生成停止条件にはしない。
+#
+# 占術上の事実整合性に関する高度な
+# warning判定・自動修復はv1.2で扱う。
+AUTO_REPAIR_WARNING_CODES = frozenset()
 PRODUCT_TITLE = "四柱推命鑑定書"
 
 DOCUMENT_TITLE = "四柱推命鑑定書"
