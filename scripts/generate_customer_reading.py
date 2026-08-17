@@ -93,6 +93,7 @@ generate_customer_reading_v1_2
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import re
@@ -125,6 +126,10 @@ from engine.reading_generator import (
     generate_reading,
     get_default_model,
     has_openai_api_key,
+)
+
+from engine.reading_decade_luck import (
+    generate_decade_luck_reading,
 )
 
 from engine.reading_product import (
@@ -255,6 +260,10 @@ CONSULTATION_CONTEXT_FILENAME = (
 
 AI_READING_FILENAME = (
     "ai_reading.json"
+)
+
+DECADE_LUCK_AI_FILENAME = (
+    "decade_luck_ai.json"
 )
 
 QUALITY_REPORT_FILENAME = (
@@ -1876,6 +1885,11 @@ def generate_customer_reading(
         / AI_READING_FILENAME
     )
 
+    decade_luck_ai_path = (
+        customer_dir
+        / DECADE_LUCK_AI_FILENAME
+    )
+
     quality_report_path = (
         customer_dir
         / QUALITY_REPORT_FILENAME
@@ -2474,6 +2488,120 @@ def generate_customer_reading(
     )
 
     # --------------------------------------------------------
+    # 4.8. 大運AI鑑定
+    # --------------------------------------------------------
+    #
+    # 本番ReadingProductが decade_luck 対応済みの場合のみ
+    # 大運AI鑑定を生成する。
+    #
+    # 既存テストのfake build_reading_productが
+    # decade_luck未対応の場合はAPI呼び出しを行わない。
+    # --------------------------------------------------------
+
+    try:
+        product_signature = inspect.signature(
+            build_reading_product
+        )
+        product_parameters = (
+            product_signature.parameters
+        )
+        supports_decade_luck = (
+            "decade_luck"
+            in product_parameters
+            or any(
+                parameter.kind
+                == inspect.Parameter.VAR_KEYWORD
+                for parameter
+                in product_parameters.values()
+            )
+        )
+    except (
+        TypeError,
+        ValueError,
+    ):
+        supports_decade_luck = True
+
+    decade_luck_result = None
+    decade_luck_data: Dict[
+        str,
+        Any,
+    ] = {}
+
+    if supports_decade_luck:
+        print()
+        print(
+            "4.8. 大運AI鑑定生成"
+        )
+
+        decade_luck_result = (
+            generate_decade_luck_reading(
+                reading_context,
+                consultation_context=(
+                    consultation_context
+                ),
+                model=model,
+                reasoning_effort=(
+                    REASONING_EFFORT
+                ),
+                store=STORE,
+            )
+        )
+
+        decade_luck_data = (
+            decade_luck_result.to_dict()
+        )
+
+        if not isinstance(
+            decade_luck_data,
+            Mapping,
+        ):
+            raise RuntimeError(
+                "大運AI鑑定結果が"
+                "Mappingではありません。"
+            )
+
+        decade_luck_data = dict(
+            decade_luck_data
+        )
+
+        decade_periods = (
+            decade_luck_data.get(
+                "periods",
+                []
+            )
+        )
+
+        if not isinstance(
+            decade_periods,
+            list,
+        ):
+            raise RuntimeError(
+                "大運AI鑑定periodsが"
+                "listではありません。"
+            )
+
+        save_json(
+            decade_luck_ai_path,
+            decade_luck_data,
+        )
+
+        print(
+            "   OK"
+        )
+        print(
+            "   response_status: "
+            f"{decade_luck_result.response_status}"
+        )
+        print(
+            "   response_id: "
+            f"{decade_luck_result.response_id}"
+        )
+        print(
+            "   periods: "
+            f"{len(decade_periods)}"
+        )
+
+    # --------------------------------------------------------
     # 5. ReadingProduct
     # --------------------------------------------------------
 
@@ -2482,23 +2610,33 @@ def generate_customer_reading(
         "5. ReadingProduct生成"
     )
 
+    product_kwargs: Dict[
+        str,
+        Any,
+    ] = {
+        "title": PRODUCT_TITLE,
+        "sections": SECTIONS,
+        "customer_name": (
+            normalized_intake[
+                "name"
+            ]
+        ),
+        "reading_datetime": (
+            generation_started_at
+        ),
+        "brand_name": BRAND_NAME,
+    }
+
+    if supports_decade_luck:
+        product_kwargs[
+            "decade_luck"
+        ] = decade_luck_data
+
     product = (
         build_reading_product(
             reading_context,
             generation_result,
-            title=PRODUCT_TITLE,
-            sections=SECTIONS,
-            customer_name=(
-                normalized_intake[
-                    "name"
-                ]
-            ),
-            reading_datetime=(
-                generation_started_at
-            ),
-            brand_name=(
-                BRAND_NAME
-            ),
+            **product_kwargs,
         )
     )
 
@@ -2689,6 +2827,9 @@ def generate_customer_reading(
         "ai_reading_path": (
             ai_reading_path
         ),
+        "decade_luck_ai_path": (
+            decade_luck_ai_path
+        ),
         "quality_report_path": (
             quality_report_path
         ),
@@ -2873,6 +3014,27 @@ def print_completion(
     )
 
     print()
+
+    decade_luck_ai_path = (
+        result.get(
+            "decade_luck_ai_path"
+        )
+    )
+
+    if (
+        decade_luck_ai_path is not None
+        and Path(
+            decade_luck_ai_path
+        ).exists()
+    ):
+        print(
+            "Decade Luck AI JSON:"
+        )
+        print(
+            "  "
+            f"{Path(decade_luck_ai_path).resolve()}"
+        )
+        print()
 
     print(
         "Quality Report:"
