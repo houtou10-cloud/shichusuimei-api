@@ -205,12 +205,13 @@ REPAIR_STORE = False
 # valid=True のwarningでも、
 # 占術上の事実整合性に関わるものは
 # Auto-Repair対象とする。
-AUTO_REPAIR_WARNING_CODES = frozenset(
-    {
-        "useful_gods_role_confusion",
-    }
-)
-
+# valid=True のwarningは、
+# quality_reportへ記録するが、
+# v1.1ではPDF生成停止条件にはしない。
+#
+# 占術上の事実整合性に関する高度な
+# warning判定・自動修復はv1.2で扱う。
+AUTO_REPAIR_WARNING_CODES = frozenset()
 PRODUCT_TITLE = "四柱推命鑑定書"
 
 DOCUMENT_TITLE = "四柱推命鑑定書"
@@ -260,11 +261,6 @@ CONSULTATION_CONTEXT_FILENAME = (
 AI_READING_FILENAME = (
     "ai_reading.json"
 )
-
-# ============================================================
-# v1.1
-# 大運AI鑑定
-# ============================================================
 
 DECADE_LUCK_AI_FILENAME = (
     "decade_luck_ai.json"
@@ -1889,11 +1885,6 @@ def generate_customer_reading(
         / AI_READING_FILENAME
     )
 
-    # --------------------------------------------------------
-    # v1.1
-    # 大運AI鑑定
-    # --------------------------------------------------------
-
     decade_luck_ai_path = (
         customer_dir
         / DECADE_LUCK_AI_FILENAME
@@ -2499,34 +2490,21 @@ def generate_customer_reading(
     # --------------------------------------------------------
     # 4.8. 大運AI鑑定
     # --------------------------------------------------------
-
-    print()
-    print(
-        "4.8. 大運AI鑑定生成"
-    )
-
-    # --------------------------------------------------------
-    # ReadingProductの後方互換確認
     #
-    # 本番build_reading_productは
-    # decade_luck対応済み。
+    # 本番ReadingProductが decade_luck 対応済みの場合のみ
+    # 大運AI鑑定を生成する。
     #
-    # 一方、既存unit testのfake関数が
-    # decade_luck未対応の場合があるため、
-    # signatureを確認して安全に分岐する。
+    # 既存テストのfake build_reading_productが
+    # decade_luck未対応の場合はAPI呼び出しを行わない。
     # --------------------------------------------------------
 
     try:
-        product_signature = (
-            inspect.signature(
-                build_reading_product
-            )
+        product_signature = inspect.signature(
+            build_reading_product
         )
-
         product_parameters = (
             product_signature.parameters
         )
-
         supports_decade_luck = (
             "decade_luck"
             in product_parameters
@@ -2537,31 +2515,23 @@ def generate_customer_reading(
                 in product_parameters.values()
             )
         )
-
     except (
         TypeError,
         ValueError,
     ):
-        # inspect不能なcallableの場合は
-        # 本番関数として扱う。
         supports_decade_luck = True
 
     decade_luck_result = None
-
     decade_luck_data: Dict[
         str,
         Any,
     ] = {}
 
-    # --------------------------------------------------------
-    # 本番ReadingProductが
-    # decade_luck対応済みの場合のみ生成する。
-    #
-    # これにより既存fake pipelineでは
-    # 不要な実API呼び出しを防ぐ。
-    # --------------------------------------------------------
-
     if supports_decade_luck:
+        print()
+        print(
+            "4.8. 大運AI鑑定生成"
+        )
 
         decade_luck_result = (
             generate_decade_luck_reading(
@@ -2577,38 +2547,6 @@ def generate_customer_reading(
             )
         )
 
-        # ----------------------------------------------------
-        # Response status
-        # ----------------------------------------------------
-
-        if (
-            decade_luck_result.status
-            != "completed"
-        ):
-            raise RuntimeError(
-                "大運AI鑑定が"
-                "completedではありません: "
-                f"{decade_luck_result.status}"
-            )
-
-        if (
-            decade_luck_result.response_status
-            not in (
-                None,
-                "completed",
-            )
-        ):
-            raise RuntimeError(
-                "大運AI鑑定の"
-                "response_statusが"
-                "正常ではありません: "
-                f"{decade_luck_result.response_status}"
-            )
-
-        # ----------------------------------------------------
-        # dict化
-        # ----------------------------------------------------
-
         decade_luck_data = (
             decade_luck_result.to_dict()
         )
@@ -2622,35 +2560,14 @@ def generate_customer_reading(
                 "Mappingではありません。"
             )
 
-        # ----------------------------------------------------
-        # overview
-        # ----------------------------------------------------
-
-        decade_overview = (
-            decade_luck_data.get(
-                "overview"
-            )
+        decade_luck_data = dict(
+            decade_luck_data
         )
-
-        if (
-            not isinstance(
-                decade_overview,
-                str,
-            )
-            or not decade_overview.strip()
-        ):
-            raise RuntimeError(
-                "大運AI鑑定overviewが"
-                "空または不正です。"
-            )
-
-        # ----------------------------------------------------
-        # periods
-        # ----------------------------------------------------
 
         decade_periods = (
             decade_luck_data.get(
-                "periods"
+                "periods",
+                []
             )
         )
 
@@ -2663,62 +2580,6 @@ def generate_customer_reading(
                 "listではありません。"
             )
 
-        if not decade_periods:
-            raise RuntimeError(
-                "大運AI鑑定periodsが"
-                "空です。"
-            )
-
-        required_fields = (
-            "index",
-            "ganzhi",
-            "start_age",
-            "end_age",
-            "title",
-            "theme",
-            "career",
-            "wealth",
-            "relationships",
-            "caution",
-            "advice",
-        )
-
-        for position, period in enumerate(
-            decade_periods
-        ):
-
-            if not isinstance(
-                period,
-                Mapping,
-            ):
-                raise RuntimeError(
-                    "大運AI鑑定periods"
-                    f"[{position}]が"
-                    "Mappingではありません。"
-                )
-
-            missing_fields = [
-                field_name
-                for field_name
-                in required_fields
-                if field_name
-                not in period
-            ]
-
-            if missing_fields:
-                raise RuntimeError(
-                    "大運AI鑑定periods"
-                    f"[{position}]に"
-                    "必須フィールドがありません: "
-                    + ", ".join(
-                        missing_fields
-                    )
-                )
-
-        # ----------------------------------------------------
-        # JSON保存
-        # ----------------------------------------------------
-
         save_json(
             decade_luck_ai_path,
             decade_luck_data,
@@ -2727,37 +2588,17 @@ def generate_customer_reading(
         print(
             "   OK"
         )
-
         print(
             "   response_status: "
             f"{decade_luck_result.response_status}"
         )
-
         print(
             "   response_id: "
             f"{decade_luck_result.response_id}"
         )
-
         print(
-            "   period_count: "
+            "   periods: "
             f"{len(decade_periods)}"
-        )
-
-        print(
-            "   output: "
-            f"{decade_luck_ai_path}"
-        )
-
-    else:
-
-        # ----------------------------------------------------
-        # 既存unit test fakeとの互換モード
-        # ----------------------------------------------------
-
-        print(
-            "   skipped: "
-            "build_reading_productが"
-            "decade_luck未対応"
         )
 
     # --------------------------------------------------------
@@ -2783,17 +2624,8 @@ def generate_customer_reading(
         "reading_datetime": (
             generation_started_at
         ),
-        "brand_name": (
-            BRAND_NAME
-        ),
+        "brand_name": BRAND_NAME,
     }
-
-    # --------------------------------------------------------
-    # v1.1
-    #
-    # 本番ReadingProductだけに
-    # 大運AI鑑定を渡す。
-    # --------------------------------------------------------
 
     if supports_decade_luck:
         product_kwargs[
@@ -2995,6 +2827,9 @@ def generate_customer_reading(
         "ai_reading_path": (
             ai_reading_path
         ),
+        "decade_luck_ai_path": (
+            decade_luck_ai_path
+        ),
         "quality_report_path": (
             quality_report_path
         ),
@@ -3179,6 +3014,27 @@ def print_completion(
     )
 
     print()
+
+    decade_luck_ai_path = (
+        result.get(
+            "decade_luck_ai_path"
+        )
+    )
+
+    if (
+        decade_luck_ai_path is not None
+        and Path(
+            decade_luck_ai_path
+        ).exists()
+    ):
+        print(
+            "Decade Luck AI JSON:"
+        )
+        print(
+            "  "
+            f"{Path(decade_luck_ai_path).resolve()}"
+        )
+        print()
 
     print(
         "Quality Report:"

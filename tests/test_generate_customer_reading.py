@@ -3165,11 +3165,29 @@ def test_generate_customer_reading_auto_repair_exhaustion_raises(
     )
 
 # ============================================================
-# Targeted warning Auto-Repair
+# Warning handling
+# ============================================================
+#
+# v1.1 policy
+# -----------
+#
+# valid=False:
+#     Auto-Repair対象。
+#
+# valid=True + warning:
+#     quality_reportへ記録する。
+#     Auto-Repairは行わない。
+#     ReadingProduct / PDF生成を継続する。
+#
+# useful_gods_role_confusion についても、
+# v1.1では通常warningとして扱う。
+#
+# より厳密な用神役割整合性チェック・
+# 自動修復はv1.2で扱う。
 # ============================================================
 
 
-def test_should_auto_repair_valid_report_with_useful_gods_warning(
+def test_should_not_auto_repair_valid_report_with_useful_gods_warning(
     script_module,
 ):
     from engine.reading_quality import (
@@ -3181,33 +3199,50 @@ def test_should_auto_repair_valid_report_with_useful_gods_warning(
         valid=True,
         issues=(
             QualityIssue(
-                code="useful_gods_role_confusion",
-                path="sections.wealth.detail",
+                code=(
+                    "useful_gods_role_confusion"
+                ),
+                path=(
+                    "sections.wealth.detail"
+                ),
                 message=(
                     "主用神と補助用神が"
                     "同格の用神として"
                     "表現されています。"
                 ),
-                value="用神は金・水・土です。",
-                matched="用神は金・水・土です。",
+                value=(
+                    "用神は金・水・土です。"
+                ),
+                matched=(
+                    "用神は金・水・土です。"
+                ),
             ),
         ),
     )
+
+    # --------------------------------------------------------
+    # v1.1:
+    # valid=Trueのwarningだけでは
+    # Auto-Repairしない。
+    # --------------------------------------------------------
 
     assert (
         script_module.should_auto_repair(
             report
         )
-        is True
+        is False
     )
+
+    # --------------------------------------------------------
+    # Auto-Repair必須warningは
+    # v1.1では設定しない。
+    # --------------------------------------------------------
 
     assert (
         script_module.get_auto_repair_issue_codes(
             report
         )
-        == (
-            "useful_gods_role_confusion",
-        )
+        == ()
     )
 
 
@@ -3223,14 +3258,20 @@ def test_should_not_auto_repair_style_warning_only(
         valid=True,
         issues=(
             QualityIssue(
-                code="sentence_ending_overuse",
+                code=(
+                    "sentence_ending_overuse"
+                ),
                 path="sections",
                 message=(
                     "同じ説明語尾が"
                     "多数章で続いています。"
                 ),
-                value="career, wealth",
-                matched="でしょう",
+                value=(
+                    "career, wealth"
+                ),
+                matched=(
+                    "でしょう"
+                ),
             ),
         ),
     )
@@ -3250,7 +3291,7 @@ def test_should_not_auto_repair_style_warning_only(
     )
 
 
-def test_generate_customer_reading_repairs_targeted_warning_even_when_valid(
+def test_generate_customer_reading_does_not_repair_warning_when_valid(
     script_module,
     sample_intake,
     tmp_path,
@@ -3259,57 +3300,54 @@ def test_generate_customer_reading_repairs_targeted_warning_even_when_valid(
     fake_reading_context,
     fake_generation_result,
 ):
-    from copy import deepcopy
-
     from engine.reading_quality import (
         QualityIssue,
         ReadingQualityReport,
     )
-    from engine.reading_repair import (
-        ReadingRepairResult,
-    )
 
     configure_full_fake_pipeline(
-        script_module=script_module,
-        tmp_path=tmp_path,
-        monkeypatch=monkeypatch,
-        fake_chart_result=fake_chart_result,
-        fake_reading_context=fake_reading_context,
-        fake_generation_result=fake_generation_result,
+        script_module=(
+            script_module
+        ),
+        tmp_path=(
+            tmp_path
+        ),
+        monkeypatch=(
+            monkeypatch
+        ),
+        fake_chart_result=(
+            fake_chart_result
+        ),
+        fake_reading_context=(
+            fake_reading_context
+        ),
+        fake_generation_result=(
+            fake_generation_result
+        ),
     )
 
-    targeted_warning = (
+    warning_report = (
         ReadingQualityReport(
             valid=True,
             issues=(
                 QualityIssue(
-                    code="useful_gods_role_confusion",
-                    path="sections.wealth.detail",
+                    code=(
+                        "useful_gods_role_confusion"
+                    ),
+                    path=(
+                        "sections.wealth.detail"
+                    ),
                     message=(
                         "主用神と補助用神が"
                         "同格の用神として"
                         "表現されています。"
                     ),
-                    value="用神は火・土です。",
-                    matched="用神は火・土です。",
-                ),
-            ),
-        )
-    )
-
-    style_warning_only = (
-        ReadingQualityReport(
-            valid=True,
-            issues=(
-                QualityIssue(
-                    code="sentence_ending_overuse",
-                    path="sections",
-                    message=(
-                        "同じ説明語尾が"
-                        "多数章で続いています。"
+                    value=(
+                        "用神は火・土です。"
                     ),
-                    value="career, wealth",
-                    matched="でしょう",
+                    matched=(
+                        "用神は火・土です。"
+                    ),
                 ),
             ),
         )
@@ -3325,62 +3363,22 @@ def test_generate_customer_reading_repairs_targeted_warning_even_when_valid(
         consultation_context=None,
     ):
         nonlocal quality_count
+
         quality_count += 1
 
-        if quality_count == 1:
-            return targeted_warning
-
-        return style_warning_only
+        return warning_report
 
     def fake_repair(
-        ai_reading,
-        quality_report,
-        *,
-        reading_context,
-        consultation_context=None,
-        client=None,
-        api_key=None,
-        model=None,
-        sections=None,
-        max_output_tokens=None,
-        reasoning_effort=None,
-        store=None,
+        *args,
+        **kwargs,
     ):
         nonlocal repair_count
+
         repair_count += 1
 
-        repaired = deepcopy(
-            ai_reading
-        )
-
-        repaired[
-            "sections"
-        ][
-            "wealth"
-        ][
-            "detail"
-        ] = (
-            "用神は火です。"
-            "土は補助として活かします。"
-        )
-
-        return ReadingRepairResult(
-            original=deepcopy(
-                ai_reading
-            ),
-            repaired=repaired,
-            issue_count=1,
-            error_count=0,
-            warning_count=1,
-            repaired_issue_codes=(
-                "useful_gods_role_confusion",
-            ),
-            response_id=(
-                "resp_repair_targeted_warning"
-            ),
-            response_status="completed",
-            model=model or "gpt-5",
-            usage={},
+        raise AssertionError(
+            "valid=Trueのwarningでは"
+            "Auto-Repairを呼んではいけません。"
         )
 
     monkeypatch.setattr(
@@ -3401,8 +3399,24 @@ def test_generate_customer_reading_repairs_targeted_warning_even_when_valid(
         )
     )
 
-    assert quality_count == 2
-    assert repair_count == 1
+    # --------------------------------------------------------
+    # 品質判定は初回の1回のみ。
+    #
+    # Repairが走らないため、
+    # Repair後の再品質判定も発生しない。
+    # --------------------------------------------------------
+
+    assert quality_count == 1
+
+    # --------------------------------------------------------
+    # warningのみなのでRepairしない。
+    # --------------------------------------------------------
+
+    assert repair_count == 0
+
+    # --------------------------------------------------------
+    # Repair history
+    # --------------------------------------------------------
 
     assert (
         result[
@@ -3410,7 +3424,7 @@ def test_generate_customer_reading_repairs_targeted_warning_even_when_valid(
         ][
             "attempt_count"
         ]
-        == 1
+        == 0
     )
 
     assert (
@@ -3419,11 +3433,18 @@ def test_generate_customer_reading_repairs_targeted_warning_even_when_valid(
         ][
             "repaired"
         ]
-        is True
+        is False
     )
 
+    # --------------------------------------------------------
+    # warningは消さず、
+    # 最終quality_reportへ残す。
+    # --------------------------------------------------------
+
     final_codes = {
-        issue["code"]
+        issue[
+            "code"
+        ]
         for issue
         in result[
             "quality_report"
@@ -3434,16 +3455,24 @@ def test_generate_customer_reading_repairs_targeted_warning_even_when_valid(
 
     assert (
         "useful_gods_role_confusion"
-        not in final_codes
-    )
-
-    assert (
-        "sentence_ending_overuse"
         in final_codes
     )
 
+    # --------------------------------------------------------
+    # warningだけなのでvalid=True。
+    # --------------------------------------------------------
 
-def test_generate_customer_reading_targeted_warning_exhaustion_raises(
+    assert (
+        result[
+            "quality_report"
+        ][
+            "valid"
+        ]
+        is True
+    )
+
+
+def test_generate_customer_reading_warning_does_not_block_completion(
     script_module,
     sample_intake,
     tmp_path,
@@ -3452,40 +3481,58 @@ def test_generate_customer_reading_targeted_warning_exhaustion_raises(
     fake_reading_context,
     fake_generation_result,
 ):
-    from copy import deepcopy
-
     from engine.reading_quality import (
         QualityIssue,
-        ReadingQualityError,
         ReadingQualityReport,
-    )
-    from engine.reading_repair import (
-        ReadingRepairResult,
     )
 
     configure_full_fake_pipeline(
-        script_module=script_module,
-        tmp_path=tmp_path,
-        monkeypatch=monkeypatch,
-        fake_chart_result=fake_chart_result,
-        fake_reading_context=fake_reading_context,
-        fake_generation_result=fake_generation_result,
+        script_module=(
+            script_module
+        ),
+        tmp_path=(
+            tmp_path
+        ),
+        monkeypatch=(
+            monkeypatch
+        ),
+        fake_chart_result=(
+            fake_chart_result
+        ),
+        fake_reading_context=(
+            fake_reading_context
+        ),
+        fake_generation_result=(
+            fake_generation_result
+        ),
     )
 
-    targeted_warning = (
+    warning_report = (
         ReadingQualityReport(
             valid=True,
             issues=(
                 QualityIssue(
-                    code="useful_gods_role_confusion",
-                    path="sections.wealth.detail",
+                    code=(
+                        "useful_gods_role_confusion"
+                    ),
+                    path=(
+                        "sections.current_luck.detail"
+                    ),
                     message=(
                         "主用神と補助用神が"
                         "同格の用神として"
                         "表現されています。"
                     ),
-                    value="用神は火・土です。",
-                    matched="用神は火・土です。",
+                    value=(
+                        "水と火の影響を見ながら、"
+                        "主用神である土を"
+                        "活かします。"
+                    ),
+                    matched=(
+                        "水と火の影響を見ながら、"
+                        "主用神である土を"
+                        "活かします。"
+                    ),
                 ),
             ),
         )
@@ -3494,59 +3541,35 @@ def test_generate_customer_reading_targeted_warning_exhaustion_raises(
     quality_count = 0
     repair_count = 0
 
-    def always_targeted_warning(
+    def always_warning(
         ai_reading,
         *,
         reading_context,
         consultation_context=None,
     ):
         nonlocal quality_count
+
         quality_count += 1
-        return targeted_warning
+
+        return warning_report
 
     def fake_repair(
-        ai_reading,
-        quality_report,
-        *,
-        reading_context,
-        consultation_context=None,
-        client=None,
-        api_key=None,
-        model=None,
-        sections=None,
-        max_output_tokens=None,
-        reasoning_effort=None,
-        store=None,
+        *args,
+        **kwargs,
     ):
         nonlocal repair_count
+
         repair_count += 1
 
-        return ReadingRepairResult(
-            original=deepcopy(
-                ai_reading
-            ),
-            repaired=deepcopy(
-                ai_reading
-            ),
-            issue_count=1,
-            error_count=0,
-            warning_count=1,
-            repaired_issue_codes=(
-                "useful_gods_role_confusion",
-            ),
-            response_id=(
-                "resp_repair_targeted_"
-                f"{repair_count:03d}"
-            ),
-            response_status="completed",
-            model=model or "gpt-5",
-            usage={},
+        raise AssertionError(
+            "valid=Trueのwarningでは"
+            "Auto-Repairを呼んではいけません。"
         )
 
     monkeypatch.setattr(
         script_module,
         "validate_customer_facing_reading",
-        always_targeted_warning,
+        always_warning,
     )
 
     monkeypatch.setattr(
@@ -3555,23 +3578,97 @@ def test_generate_customer_reading_targeted_warning_exhaustion_raises(
         fake_repair,
     )
 
-    with pytest.raises(
-        ReadingQualityError
-    ):
+    # --------------------------------------------------------
+    # ReadingQualityErrorを出さず、
+    # 顧客生成パイプラインが最後まで
+    # 完了することを確認する。
+    # --------------------------------------------------------
+
+    result = (
         script_module.generate_customer_reading(
             sample_intake
         )
+    )
+
+    assert quality_count == 1
+
+    assert repair_count == 0
+
+    # --------------------------------------------------------
+    # Repairなし。
+    # --------------------------------------------------------
 
     assert (
-        repair_count
-        == script_module.MAX_REPAIR_ATTEMPTS
+        result[
+            "repair_history"
+        ][
+            "attempt_count"
+        ]
+        == 0
     )
 
     assert (
-        quality_count
-        == (
-            1
-            + script_module.MAX_REPAIR_ATTEMPTS
-        )
+        result[
+            "repair_history"
+        ][
+            "repaired"
+        ]
+        is False
     )
 
+    # --------------------------------------------------------
+    # warningがあっても
+    # 最終品質判定はvalid=True。
+    # --------------------------------------------------------
+
+    assert (
+        result[
+            "quality_report"
+        ][
+            "valid"
+        ]
+        is True
+    )
+
+    # --------------------------------------------------------
+    # warningそのものは品質情報として残る。
+    # --------------------------------------------------------
+
+    final_codes = {
+        issue[
+            "code"
+        ]
+        for issue
+        in result[
+            "quality_report"
+        ][
+            "issues"
+        ]
+    }
+
+    assert (
+        "useful_gods_role_confusion"
+        in final_codes
+    )
+
+    # --------------------------------------------------------
+    # Product / PDFまで生成されたことも確認する。
+    # --------------------------------------------------------
+
+    assert (
+        result[
+            "product_path"
+        ].exists()
+    )
+
+    assert (
+        result[
+            "pdf_path"
+        ].exists()
+    )
+
+    assert (
+        result[
+            "summary_path"
+        ].exists()
+    )
