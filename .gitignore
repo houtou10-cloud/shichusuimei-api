@@ -1,3 +1,6 @@
 __pycache__/
 .venv/
 *.pyc
+output/customers/
+scripts/*.bak_*
+generate_customer_reading_current.txt
