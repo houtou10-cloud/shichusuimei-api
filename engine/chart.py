@@ -1,7 +1,8 @@
-from datetime import date, datetime
+﻿from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 
+from engine.version import get_engine_metadata
 from engine.annual_luck import (
     calculate_annual_luck_for_datetime,
 )
@@ -946,6 +947,8 @@ def calculate_chart(
         "weighted_strength_judgment": (
             weighted_strength_judgment
         ),
+
+        "engine_metadata": get_engine_metadata(),
 
         "calculation_rules": (
             pillars["calculation_rules"]
