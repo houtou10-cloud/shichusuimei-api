@@ -1,4 +1,4 @@
-@'
+$code = @'
 """
 Yakumo Engine version metadata.
 
@@ -25,4 +25,6 @@ def get_engine_metadata() -> dict[str, Any]:
         "rule_version": RULE_VERSION,
         "status": ENGINE_STATUS,
     }
-'@ | Set-Content engine\version.py -Encoding UTF8
+'@
+
+Set-Content -Path engine\version.py -Value $code -Encoding UTF8
