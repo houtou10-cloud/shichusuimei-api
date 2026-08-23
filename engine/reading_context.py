@@ -1,4 +1,4 @@
-"""
+﻿"""
 engine/reading_context.py
 
 AI鑑定文生成用コンテキスト整形モジュール。
@@ -1606,6 +1606,11 @@ def build_source_metadata(
     )
 
     return {
+        "engine": deepcopy(
+            chart_result.get(
+                "engine_metadata"
+            )
+        ),
         "strength": _extract_method_metadata(
             chart_result.get(
                 "final_strength_judgment"

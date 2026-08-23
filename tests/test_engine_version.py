@@ -49,3 +49,58 @@ def test_calculate_chart_exposes_engine_metadata():
         "rule_version": "1.2",
         "status": "development",
     }
+
+
+def test_reading_context_preserves_engine_metadata():
+    from datetime import datetime
+    from types import SimpleNamespace
+
+    from engine.chart import calculate_chart
+    from engine.reading_context import build_reading_context
+
+    request = SimpleNamespace(
+        birth_date="1985-07-17",
+        birth_time="21:50",
+        birth_place="石川県",
+        gender="female",
+    )
+
+    chart_result = calculate_chart(
+        request,
+        target_datetime=datetime(2026, 8, 10, 15, 36),
+    )
+
+    context = build_reading_context(chart_result)
+
+    assert context["source_metadata"]["engine"] == {
+        "engine_name": "Yakumo Engine",
+        "engine_version": "1.2",
+        "rule_version": "1.2",
+        "status": "development",
+    }
+
+
+def test_reading_context_accepts_legacy_chart_without_engine_metadata():
+    from datetime import datetime
+    from types import SimpleNamespace
+
+    from engine.chart import calculate_chart
+    from engine.reading_context import build_reading_context
+
+    request = SimpleNamespace(
+        birth_date="1985-07-17",
+        birth_time="21:50",
+        birth_place="石川県",
+        gender="female",
+    )
+
+    chart_result = calculate_chart(
+        request,
+        target_datetime=datetime(2026, 8, 10, 15, 36),
+    )
+
+    chart_result.pop("engine_metadata")
+
+    context = build_reading_context(chart_result)
+
+    assert context["source_metadata"]["engine"] is None
