@@ -67,3 +67,83 @@ def test_build_confidence():
 def test_build_confidence_rejects_out_of_range_ratio(ratio):
     with pytest.raises(ValueError):
         build_confidence("high", ratio)
+
+
+def test_uncertainty_categories_vocabulary():
+    from engine.judgment_schema import VALID_UNCERTAINTY_CATEGORIES
+
+    assert VALID_UNCERTAINTY_CATEGORIES == {
+        "input_uncertainty",
+        "boundary_uncertainty",
+        "calculation_uncertainty",
+        "rule_uncertainty",
+        "timing_uncertainty",
+        "unsupported_condition",
+    }
+
+
+def test_build_uncertainty():
+    from engine.judgment_schema import build_uncertainty
+
+    result = build_uncertainty(
+        code="birth_time_unknown",
+        category="input_uncertainty",
+        scope=["hour_pillar", "strength"],
+        message="出生時刻が不明です。",
+    )
+
+    assert result == {
+        "code": "birth_time_unknown",
+        "category": "input_uncertainty",
+        "status": "uncertain",
+        "severity": "warning",
+        "scope": ["hour_pillar", "strength"],
+        "message": "出生時刻が不明です。",
+    }
+
+
+def test_build_uncertainty_rejects_invalid_category():
+    from engine.judgment_schema import build_uncertainty
+
+    with pytest.raises(ValueError):
+        build_uncertainty(
+            code="test",
+            category="mystery",
+        )
+
+
+def test_build_uncertainty_rejects_invalid_status():
+    from engine.judgment_schema import build_uncertainty
+
+    with pytest.raises(ValueError):
+        build_uncertainty(
+            code="test",
+            category="rule_uncertainty",
+            status="finished",
+        )
+
+
+def test_build_uncertainty_rejects_invalid_severity():
+    from engine.judgment_schema import build_uncertainty
+
+    with pytest.raises(ValueError):
+        build_uncertainty(
+            code="test",
+            category="rule_uncertainty",
+            severity="critical",
+        )
+
+
+def test_build_uncertainty_copies_scope():
+    from engine.judgment_schema import build_uncertainty
+
+    scope = ["pattern"]
+    result = build_uncertainty(
+        code="test",
+        category="rule_uncertainty",
+        scope=scope,
+    )
+
+    scope.append("useful_gods")
+
+    assert result["scope"] == ["pattern"]

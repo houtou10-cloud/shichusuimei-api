@@ -67,3 +67,40 @@ def build_confidence(
         "level": level,
         "ratio": ratio,
     }
+
+
+VALID_UNCERTAINTY_CATEGORIES = {
+    "input_uncertainty",
+    "boundary_uncertainty",
+    "calculation_uncertainty",
+    "rule_uncertainty",
+    "timing_uncertainty",
+    "unsupported_condition",
+}
+
+
+def build_uncertainty(
+    *,
+    code: str,
+    category: str,
+    status: str = "uncertain",
+    severity: str = "warning",
+    scope: list[str] | None = None,
+    message: str | None = None,
+) -> dict[str, Any]:
+    if category not in VALID_UNCERTAINTY_CATEGORIES:
+        raise ValueError(
+            f"invalid uncertainty category: {category}"
+        )
+
+    validate_judgment_status(status)
+    validate_severity(severity)
+
+    return {
+        "code": code,
+        "category": category,
+        "status": status,
+        "severity": severity,
+        "scope": list(scope or []),
+        "message": message,
+    }
