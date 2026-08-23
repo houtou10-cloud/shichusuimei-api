@@ -2023,6 +2023,12 @@ def build_reading_context(
         "reading_sections": (
             reading_sections
         ),
+        "uncertainty": deepcopy(
+            chart_result.get(
+                "uncertainty",
+                [],
+            )
+        ),
         "source_metadata": (
             build_source_metadata(
                 chart_result

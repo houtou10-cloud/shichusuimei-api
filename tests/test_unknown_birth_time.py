@@ -1,4 +1,4 @@
-"""
+﻿"""
 tests/test_unknown_birth_time.py
 
 出生時刻不明モードの回帰テスト。
@@ -1211,3 +1211,38 @@ def test_chart_known_birth_time_has_no_uncertainty(
     known_chart_result,
 ):
     assert known_chart_result["uncertainty"] == []
+
+
+def test_reading_context_preserves_structured_uncertainty(
+    unknown_reading_context,
+):
+    uncertainty = unknown_reading_context["uncertainty"]
+
+    assert len(uncertainty) == 1
+    assert uncertainty[0]["code"] == "birth_time_unknown"
+    assert uncertainty[0]["category"] == "input_uncertainty"
+    assert uncertainty[0]["status"] == "uncertain"
+    assert uncertainty[0]["severity"] == "warning"
+
+
+def test_known_reading_context_has_no_uncertainty(
+    known_reading_context,
+):
+    assert known_reading_context["uncertainty"] == []
+
+
+def test_legacy_chart_without_uncertainty_builds_context(
+    known_chart_result,
+):
+    from copy import deepcopy
+
+    from engine.reading_context import build_reading_context
+
+    chart = deepcopy(known_chart_result)
+    chart.pop("uncertainty", None)
+
+    context = build_reading_context(chart)
+
+    assert context["uncertainty"] == []
+
+
