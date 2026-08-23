@@ -1179,3 +1179,35 @@ def test_unknown_birth_time_v1_final_gate(
         ]
         == "request_ready"
     )
+
+
+def test_chart_unknown_birth_time_has_structured_uncertainty(
+    unknown_chart_result,
+):
+    assert unknown_chart_result["uncertainty"] == [
+        {
+            "code": "birth_time_unknown",
+            "category": "input_uncertainty",
+            "status": "uncertain",
+            "severity": "warning",
+            "scope": [
+                "hour_pillar",
+                "five_elements",
+                "root_strength",
+                "strength",
+                "pattern",
+                "useful_gods",
+                "luck_timing",
+            ],
+            "message": (
+                "出生時間が不明なため、一部の判定は"
+                "既知の三柱範囲または推定値です。"
+            ),
+        }
+    ]
+
+
+def test_chart_known_birth_time_has_no_uncertainty(
+    known_chart_result,
+):
+    assert known_chart_result["uncertainty"] == []

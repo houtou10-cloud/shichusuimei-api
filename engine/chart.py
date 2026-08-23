@@ -2,6 +2,7 @@
 from zoneinfo import ZoneInfo
 
 
+from engine.judgment_schema import build_uncertainty
 from engine.version import get_engine_metadata
 from engine.annual_luck import (
     calculate_annual_luck_for_datetime,
@@ -273,9 +274,32 @@ def calculate_chart(
     )
 
     warnings: list[str] = []
+    uncertainty: list[dict] = []
 
     if birth_time is None:
         calculation_time_text = "12:00"
+
+        uncertainty.append(
+            build_uncertainty(
+                code="birth_time_unknown",
+                category="input_uncertainty",
+                status="uncertain",
+                severity="warning",
+                scope=[
+                    "hour_pillar",
+                    "five_elements",
+                    "root_strength",
+                    "strength",
+                    "pattern",
+                    "useful_gods",
+                    "luck_timing",
+                ],
+                message=(
+                    "出生時間が不明なため、一部の判定は"
+                    "既知の三柱範囲または推定値です。"
+                ),
+            )
+        )
 
         warnings.append(
             "出生時間が不明なため、時柱は計算していません。"
@@ -957,6 +981,8 @@ def calculate_chart(
         "calculation_status": (
             pillars["calculation_status"]
         ),
+
+        "uncertainty": uncertainty,
 
         "warnings": warnings,
     }
