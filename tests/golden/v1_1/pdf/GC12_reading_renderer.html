@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+<meta
+    name="robots"
+    content="noindex,nofollow"
+>
+<title>四柱推命 AI鑑定書</title>
+<style>
+
+:root {
+    --page-bg: #f6f2e9;
+    --paper: #ffffff;
+    --ink: #28251f;
+    --muted: #746e63;
+    --line: #ded6c8;
+    --accent: #8a6a34;
+    --accent-soft: #f4ede0;
+    --deep: #3c3428;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--page-bg);
+    color: var(--ink);
+    font-family:
+        "Noto Serif JP",
+        "Yu Mincho",
+        "Hiragino Mincho ProN",
+        "Hiragino Mincho Pro",
+        "YuMincho",
+        serif;
+    line-height: 1.9;
+    -webkit-font-smoothing: antialiased;
+}
+
+.reading-document {
+    width: min(100%, 960px);
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+}
+
+.cover {
+    min-height: 440px;
+    padding: 72px 48px;
+    background: var(--deep);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    border-radius: 4px;
+    margin-bottom: 32px;
+}
+
+.cover-kicker {
+    margin: 0 0 20px;
+    font-size: 0.82rem;
+    letter-spacing: 0.28em;
+    opacity: 0.75;
+}
+
+.cover h1 {
+    margin: 0;
+    font-size: clamp(
+        2rem,
+        6vw,
+        3.8rem
+    );
+    line-height: 1.35;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+}
+
+.cover-line {
+    width: 64px;
+    height: 1px;
+    margin: 28px auto;
+    background: rgba(
+        255,
+        255,
+        255,
+        0.6
+    );
+}
+
+.cover-subtitle {
+    margin: 0;
+    font-size: 0.95rem;
+    letter-spacing: 0.16em;
+    opacity: 0.8;
+}
+
+.cover-customer {
+    margin: 2px 0 0;
+    font-size: 1.45rem;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+}
+
+.cover-reading-date {
+    margin: 18px 0 0;
+    font-size: 0.88rem;
+    letter-spacing: 0.1em;
+    opacity: 0.82;
+}
+
+.cover-brand {
+    margin: 34px 0 0;
+    font-size: 0.92rem;
+    letter-spacing: 0.18em;
+    opacity: 0.9;
+}
+
+.reading-card {
+    position: relative;
+    margin: 0 0 28px;
+    padding: 36px 40px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+}
+
+.reading-card > h2 {
+    margin: 0 0 28px;
+    color: var(--deep);
+    font-size: 1.55rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 18px 20px;
+    background: var(--paper);
+}
+
+.info-label {
+    color: var(--muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+}
+
+.info-value {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.pillar-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(
+            4,
+            minmax(0, 1fr)
+        );
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.pillar-card {
+    padding: 20px 14px;
+    border: 1px solid var(--line);
+    text-align: center;
+}
+
+.pillar-title {
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+}
+
+.pillar-ganzhi {
+    margin: 8px 0 16px;
+    color: var(--deep);
+    font-size: 1.8rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+}
+
+.pillar-details {
+    margin: 0;
+    text-align: left;
+}
+
+.pillar-details > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 0;
+    border-top: 1px dotted var(--line);
+    font-size: 0.76rem;
+}
+
+.pillar-details dt {
+    color: var(--muted);
+}
+
+.pillar-details dd {
+    margin: 0;
+    text-align: right;
+}
+
+.chart-summary-grid,
+.luck-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.sub-card {
+    padding: 24px;
+    background: #fcfaf6;
+    border: 1px solid var(--line);
+}
+
+.sub-card h3 {
+    margin: 0 0 16px;
+    color: var(--muted);
+    font-size: 0.88rem;
+    letter-spacing: 0.08em;
+}
+
+.major-value {
+    margin-bottom: 18px;
+    color: var(--accent);
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.major-value.small {
+    font-size: 1.45rem;
+}
+
+.summary-list {
+    margin: 0;
+}
+
+.summary-list > div {
+    display: grid;
+    grid-template-columns:
+        100px 1fr;
+    gap: 12px;
+    padding: 7px 0;
+    border-top: 1px solid var(--line);
+}
+
+.summary-list dt {
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.summary-list dd {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.customer-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.7;
+}
+
+.internal-technical {
+    display: none !important;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+}
+
+.data-table th {
+    width: 30%;
+    text-align: left;
+    font-weight: 500;
+}
+
+.data-table td {
+    text-align: right;
+}
+
+.mini-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 28px;
+    margin-top: 18px;
+    font-size: 0.88rem;
+}
+
+
+/* =========================================================
+   v1.1
+   10年ごとの大運
+   ========================================================= */
+
+.decade-luck-card {
+    position: relative;
+    padding-top: 44px;
+}
+
+.decade-section-number {
+    pointer-events: none;
+}
+
+.decade-luck-intro {
+    max-width: 760px;
+    margin: 0 0 26px;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.9;
+}
+
+.decade-luck-meta {
+    display: grid;
+    grid-template-columns:
+        repeat(
+            3,
+            minmax(0, 1fr)
+        );
+    gap: 1px;
+    margin-bottom: 26px;
+    background: var(--line);
+    border: 1px solid var(--line);
+}
+
+.decade-luck-meta > div {
+    padding: 16px 18px;
+    background: #fcfaf6;
+}
+
+.decade-luck-meta-label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--muted);
+    font-size: 0.76rem;
+    letter-spacing: 0.08em;
+}
+
+.decade-luck-meta strong {
+    color: var(--deep);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.decade-luck-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.decade-luck-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+}
+
+.decade-luck-table th {
+    padding: 11px 10px;
+    color: var(--muted);
+    background: #fcfaf6;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+.decade-luck-table td {
+    padding: 13px 10px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+    font-size: 0.88rem;
+}
+
+.decade-luck-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.decade-luck-index {
+    width: 46px;
+    color: var(--muted);
+    text-align: center;
+}
+
+.decade-luck-age {
+    white-space: nowrap;
+}
+
+.decade-luck-ganzhi {
+    color: var(--deep);
+    font-size: 1.05rem !important;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.decade-luck-current td {
+    background: var(--accent-soft);
+}
+
+.decade-luck-current
+.decade-luck-ganzhi {
+    color: var(--accent);
+}
+
+.decade-current-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 7px;
+    color: #ffffff;
+    background: var(--accent);
+    border-radius: 999px;
+    font-size: 0.67rem;
+    line-height: 1.5;
+    vertical-align: middle;
+    letter-spacing: 0.04em;
+}
+
+.decade-luck-note {
+    margin: 22px 0 0;
+    padding-top: 16px;
+    color: var(--muted);
+    border-top: 1px dotted var(--line);
+    font-size: 0.82rem;
+    line-height: 1.8;
+}
+
+
+.overall-card {
+    border-top: 4px solid var(--accent);
+}
+
+.overall-text {
+    font-size: 1.04rem;
+}
+
+.reading-paragraph {
+    margin: 0 0 1em;
+}
+
+.reading-paragraph:last-child {
+    margin-bottom: 0;
+}
+
+.reading-section {
+    padding-top: 44px;
+}
+
+.section-number {
+    position: absolute;
+    top: 20px;
+    right: 28px;
+    color: var(--accent-soft);
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+    font-size: 3.5rem;
+    line-height: 1;
+    font-weight: 700;
+}
+
+.section-lead {
+    position: relative;
+    z-index: 1;
+    margin: 0 0 24px;
+    padding: 20px 24px;
+    background: var(--accent-soft);
+    font-size: 1.02rem;
+    font-weight: 500;
+}
+
+.section-detail {
+    margin-bottom: 28px;
+}
+
+.yearly-flow {
+    margin: 30px 0 8px;
+    display: grid;
+    gap: 18px;
+}
+
+.yearly-flow-item {
+    padding: 22px 24px;
+    background: #fcfaf6;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+}
+
+.yearly-flow-header {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-bottom: 14px;
+}
+
+.yearly-flow-year {
+    color: var(--accent);
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.yearly-flow-year::after {
+    content: "年";
+}
+
+.yearly-flow-title {
+    color: var(--deep);
+    font-size: 1.02rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.yearly-flow-summary {
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.yearly-flow-detail {
+    margin-bottom: 14px;
+}
+
+.yearly-flow-advice {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dotted var(--line);
+}
+
+.yearly-flow-advice h4 {
+    margin: 0 0 8px;
+    color: var(--accent);
+    font-size: 0.86rem;
+    letter-spacing: 0.06em;
+}
+
+.yearly-flow-advice-list {
+    margin: 0;
+    padding-left: 1.4em;
+}
+
+.yearly-flow-advice-list li {
+    margin: 6px 0;
+}
+
+.section-block {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+}
+
+.section-block h3 {
+    margin: 0 0 14px;
+    color: var(--accent);
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+}
+
+.evidence-list,
+.advice-list {
+    margin: 0;
+    padding-left: 1.4em;
+}
+
+.evidence-list li,
+.advice-list li {
+    margin: 8px 0;
+}
+
+.disclaimer {
+    margin-top: 40px;
+    padding: 24px 28px;
+    color: var(--muted);
+    background: rgba(
+        255,
+        255,
+        255,
+        0.55
+    );
+    border: 1px solid var(--line);
+    font-size: 0.8rem;
+}
+
+.disclaimer h2 {
+    margin: 0 0 12px;
+    color: var(--deep);
+    font-size: 0.95rem;
+}
+
+.document-footer {
+    padding: 30px 0 0;
+    color: var(--muted);
+    text-align: center;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+}
+
+@media (
+    max-width: 720px
+) {
+    .reading-document {
+        padding:
+            20px
+            12px
+            48px;
+    }
+
+    .cover {
+        min-height: 360px;
+        padding: 48px 24px;
+    }
+
+    .reading-card {
+        padding: 28px 20px;
+    }
+
+    .yearly-flow-item {
+        padding: 18px 16px;
+    }
+
+    .yearly-flow-header {
+        gap: 6px 10px;
+    }
+
+    .decade-luck-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .decade-luck-table {
+        min-width: 580px;
+    }
+
+
+    .info-grid,
+    .chart-summary-grid,
+    .luck-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pillar-grid {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+}
+
+@media (
+    max-width: 440px
+) {
+    .pillar-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@page {
+    size: A4;
+    margin: 16mm 14mm 18mm;
+}
+
+@media print {
+
+    :root {
+        --page-bg: #ffffff;
+    }
+
+    html {
+        font-size: 10.5pt;
+    }
+
+    body {
+        background: #ffffff;
+    }
+
+    .reading-document {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .cover {
+        min-height: 250mm;
+        margin: 0;
+        padding: 60mm 15mm;
+        border-radius: 0;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .reading-card {
+        margin-bottom: 8mm;
+        padding: 8mm;
+        border-radius: 0;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+
+    /*
+     * v1.1
+     * 大運一覧だけは複数ページへの分割を許可する。
+     */
+    .decade-luck-card {
+        break-inside: auto;
+        page-break-inside: auto;
+    }
+
+    .decade-luck-meta {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .decade-luck-table {
+        break-inside: auto;
+        page-break-inside: auto;
+    }
+
+    .decade-luck-table tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .decade-luck-table thead {
+        display: table-header-group;
+    }
+
+    .decade-luck-table-wrap {
+        overflow: visible;
+    }
+
+
+    .reading-section {
+        break-inside: auto;
+        page-break-inside: auto;
+    }
+
+    .yearly-flow-item {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .section-lead,
+    .section-block,
+    .sub-card,
+    .pillar-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .subject-card,
+    .chart-card,
+    .overall-card {
+        break-inside: auto;
+        page-break-inside: auto;
+    }
+
+    .disclaimer {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    a {
+        color: inherit;
+        text-decoration: none;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<main class="reading-document">
+
+<header class="cover">
+
+    <p class="cover-kicker">
+        SHICHUSUIMEI READING
+    </p>
+
+    <h1>
+        四柱推命 AI鑑定書
+    </h1>
+
+    <div class="cover-line"></div>
+
+    
+    <p class="cover-subtitle">
+        1985-07-17
+    </p>
+        
+
+</header>
+
+
+<section
+    class="reading-card subject-card"
+    aria-labelledby="subject-heading"
+>
+    <h2 id="subject-heading">
+        基本情報
+    </h2>
+
+    <div class="info-grid">
+        <div class="info-item">
+            <span class="info-label">
+                生年月日
+            </span>
+            <span class="info-value">
+                1985-07-17
+            </span>
+        </div>
+
+        <div class="info-item">
+            <span class="info-label">
+                出生時刻
+            </span>
+            <span class="info-value">
+                21:50
+            </span>
+        </div>
+
+        <div class="info-item">
+            <span class="info-label">
+                出生地
+            </span>
+            <span class="info-value">
+                石川県
+            </span>
+        </div>
+
+        <div class="info-item">
+            <span class="info-label">
+                性別
+            </span>
+            <span class="info-value">
+                女性
+            </span>
+        </div>
+
+        
+        <div class="info-item">
+            <span class="info-label">
+                タイムゾーン
+            </span>
+            <span class="info-value">
+                Asia/Tokyo
+            </span>
+        </div>
+        
+    </div>
+</section>
+
+
+
+<section
+    class="reading-card chart-card"
+    aria-labelledby="chart-heading"
+>
+    <h2 id="chart-heading">
+        命式
+    </h2>
+
+    <div class="pillar-grid">
+            <div class="pillar-card">
+                <div class="pillar-title">
+                    年柱
+                </div>
+
+                <div class="pillar-ganzhi">
+                    乙丑
+                </div>
+
+                <dl class="pillar-details">
+                    <div>
+                        <dt>天干</dt>
+                        <dd>
+                            乙
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>地支</dt>
+                        <dd>
+                            丑
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>通変星</dt>
+                        <dd>
+                            偏印
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>十二運</dt>
+                        <dd>
+                            墓
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>蔵干</dt>
+                        <dd>
+                            己
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>蔵干通変星</dt>
+                        <dd>
+                            食神
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+            
+
+            <div class="pillar-card">
+                <div class="pillar-title">
+                    月柱
+                </div>
+
+                <div class="pillar-ganzhi">
+                    癸未
+                </div>
+
+                <dl class="pillar-details">
+                    <div>
+                        <dt>天干</dt>
+                        <dd>
+                            癸
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>地支</dt>
+                        <dd>
+                            未
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>通変星</dt>
+                        <dd>
+                            偏官
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>十二運</dt>
+                        <dd>
+                            冠帯
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>蔵干</dt>
+                        <dd>
+                            己
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>蔵干通変星</dt>
+                        <dd>
+                            食神
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+            
+
+            <div class="pillar-card">
+                <div class="pillar-title">
+                    日柱
+                </div>
+
+                <div class="pillar-ganzhi">
+                    丁巳
+                </div>
+
+                <dl class="pillar-details">
+                    <div>
+                        <dt>天干</dt>
+                        <dd>
+                            丁
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>地支</dt>
+                        <dd>
+                            巳
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>通変星</dt>
+                        <dd>
+                            日主
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>十二運</dt>
+                        <dd>
+                            帝旺
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>蔵干</dt>
+                        <dd>
+                            丙
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>蔵干通変星</dt>
+                        <dd>
+                            劫財
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+            
+
+            <div class="pillar-card">
+                <div class="pillar-title">
+                    時柱
+                </div>
+
+                <div class="pillar-ganzhi">
+                    辛亥
+                </div>
+
+                <dl class="pillar-details">
+                    <div>
+                        <dt>天干</dt>
+                        <dd>
+                            辛
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>地支</dt>
+                        <dd>
+                            亥
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>通変星</dt>
+                        <dd>
+                            偏財
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>十二運</dt>
+                        <dd>
+                            胎
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>蔵干</dt>
+                        <dd>
+                            壬
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>蔵干通変星</dt>
+                        <dd>
+                            正官
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+            </div>
+
+    <div class="chart-summary-grid">
+
+        <div class="sub-card">
+            <h3>日主</h3>
+
+            <div class="major-value">
+                丁
+            </div>
+
+            <dl class="summary-list">
+                <div>
+                    <dt>五行</dt>
+                    <dd>
+                        火
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>陰陽</dt>
+                    <dd>
+                        陰
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>日柱</dt>
+                    <dd>
+                        丁巳
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="sub-card">
+            <h3>身強・身弱</h3>
+
+            <div class="major-value">
+                中和
+            </div>
+
+            <dl class="summary-list">
+                <div>
+                    <dt>スコア</dt>
+                    <dd>
+                        50.0
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="sub-card">
+            <h3>格局</h3>
+
+            <div class="major-value small">
+                食神格
+            </div>
+
+            <p class="customer-note">
+                命式全体から見た中心的な格局です。
+            </p>
+        </div>
+
+        <div class="sub-card">
+            <h3>用神</h3>
+
+            <div class="major-value">
+                金
+            </div>
+
+            <dl class="summary-list">
+                <div>
+                    <dt>補助</dt>
+                    <dd>
+                        水・木・土
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>忌神傾向</dt>
+                    <dd>
+                        火
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+    </div>
+
+    
+    <span
+        class="internal-technical"
+        aria-hidden="true"
+    >
+        balanced
+        食神格
+        成立
+    </span>
+    
+
+    
+<div class="sub-card">
+    <h3>五行バランス</h3>
+
+    <table class="data-table">
+        <tbody>
+            
+            <tr>
+                <th scope="row">
+                    木
+                </th>
+                <td>
+                    18.0
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row">
+                    火
+                </th>
+                <td>
+                    23.0
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row">
+                    土
+                </th>
+                <td>
+                    20.0
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row">
+                    金
+                </th>
+                <td>
+                    14.0
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row">
+                    水
+                </th>
+                <td>
+                    25.0
+                </td>
+            </tr>
+            
+        </tbody>
+    </table>
+
+    <div class="mini-summary">
+        <span>
+            <strong>最も強い五行：</strong>
+            水
+        </span>
+
+        <span>
+            <strong>最も弱い五行：</strong>
+            金
+        </span>
+    </div>
+</div>
+
+
+    <div class="luck-grid">
+
+        <div class="sub-card">
+            <h3>現在の大運</h3>
+
+            <div class="major-value">
+                丁亥
+            </div>
+
+            <dl class="summary-list">
+                <div>
+                    <dt>通変星</dt>
+                    <dd>
+                        比肩
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>開始年齢</dt>
+                    <dd>
+                        約37歳
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>終了年齢</dt>
+                    <dd>
+                        約47歳
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="sub-card">
+            <h3>歳運</h3>
+
+            <div class="major-value">
+                丙午
+            </div>
+
+            <dl class="summary-list">
+                <div>
+                    <dt>年</dt>
+                    <dd>
+                        2026
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>通変星</dt>
+                    <dd>
+                        劫財
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>十二運</dt>
+                    <dd>
+                        建禄
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<section
+    class="reading-card overall-card"
+    aria-labelledby="overall-heading"
+>
+    <h2 id="overall-heading">
+        総合鑑定
+    </h2>
+
+    <div class="overall-text">
+        <p class="reading-paragraph">丁を中心に、食神格の表現力を活かしていく命です。</p>
+    </div>
+</section>
+
+
+
+<section
+    class="reading-card reading-section"
+    aria-labelledby="section-1"
+>
+    <div class="section-number">
+        01
+    </div>
+
+    <h2 id="section-1">
+        本質・性格
+    </h2>
+
+    
+        <div class="section-lead">
+            <p class="reading-paragraph">本質・性格の要約1</p>
+        </div>
+        
+
+    
+        <div class="section-detail">
+            <p class="reading-paragraph">本質・性格の詳細本文1。計算済みデータを基にした鑑定です。</p>
+        </div>
+        
+
+    
+
+    
+        <div class="section-block evidence-block">
+            <h3>鑑定の根拠</h3>
+            <ul class="evidence-list">
+<li>本質・性格の根拠A</li>
+<li>本質・性格の根拠B</li>
+</ul>
+        </div>
+        
+
+    
+        <div class="section-block advice-block">
+            <h3>アドバイス</h3>
+            <ul class="advice-list">
+<li>本質・性格の助言A</li>
+<li>本質・性格の助言B</li>
+</ul>
+        </div>
+        
+</section>
+
+
+<section
+    class="reading-card reading-section"
+    aria-labelledby="section-2"
+>
+    <div class="section-number">
+        02
+    </div>
+
+    <h2 id="section-2">
+        仕事・適職
+    </h2>
+
+    
+        <div class="section-lead">
+            <p class="reading-paragraph">仕事・適職の要約2</p>
+        </div>
+        
+
+    
+        <div class="section-detail">
+            <p class="reading-paragraph">仕事・適職の詳細本文2。計算済みデータを基にした鑑定です。</p>
+        </div>
+        
+
+    
+
+    
+        <div class="section-block evidence-block">
+            <h3>鑑定の根拠</h3>
+            <ul class="evidence-list">
+<li>仕事・適職の根拠A</li>
+<li>仕事・適職の根拠B</li>
+</ul>
+        </div>
+        
+
+    
+        <div class="section-block advice-block">
+            <h3>アドバイス</h3>
+            <ul class="advice-list">
+<li>仕事・適職の助言A</li>
+<li>仕事・適職の助言B</li>
+</ul>
+        </div>
+        
+</section>
+
+
+<section
+    class="reading-card reading-section"
+    aria-labelledby="section-3"
+>
+    <div class="section-number">
+        03
+    </div>
+
+    <h2 id="section-3">
+        金運
+    </h2>
+
+    
+        <div class="section-lead">
+            <p class="reading-paragraph">金運の要約3</p>
+        </div>
+        
+
+    
+        <div class="section-detail">
+            <p class="reading-paragraph">金運の詳細本文3。計算済みデータを基にした鑑定です。</p>
+        </div>
+        
+
+    
+
+    
+        <div class="section-block evidence-block">
+            <h3>鑑定の根拠</h3>
+            <ul class="evidence-list">
+<li>金運の根拠A</li>
+<li>金運の根拠B</li>
+</ul>
+        </div>
+        
+
+    
+        <div class="section-block advice-block">
+            <h3>アドバイス</h3>
+            <ul class="advice-list">
+<li>金運の助言A</li>
+<li>金運の助言B</li>
+</ul>
+        </div>
+        
+</section>
+
+
+<section
+    class="reading-card reading-section"
+    aria-labelledby="section-4"
+>
+    <div class="section-number">
+        04
+    </div>
+
+    <h2 id="section-4">
+        恋愛・人間関係
+    </h2>
+
+    
+        <div class="section-lead">
+            <p class="reading-paragraph">恋愛・人間関係の要約4</p>
+        </div>
+        
+
+    
+        <div class="section-detail">
+            <p class="reading-paragraph">恋愛・人間関係の詳細本文4。計算済みデータを基にした鑑定です。</p>
+        </div>
+        
+
+    
+
+    
+        <div class="section-block evidence-block">
+            <h3>鑑定の根拠</h3>
+            <ul class="evidence-list">
+<li>恋愛・人間関係の根拠A</li>
+<li>恋愛・人間関係の根拠B</li>
+</ul>
+        </div>
+        
+
+    
+        <div class="section-block advice-block">
+            <h3>アドバイス</h3>
+            <ul class="advice-list">
+<li>恋愛・人間関係の助言A</li>
+<li>恋愛・人間関係の助言B</li>
+</ul>
+        </div>
+        
+</section>
+
+
+<section
+    class="reading-card reading-section"
+    aria-labelledby="section-5"
+>
+    <div class="section-number">
+        05
+    </div>
+
+    <h2 id="section-5">
+        健康傾向
+    </h2>
+
+    
+        <div class="section-lead">
+            <p class="reading-paragraph">健康傾向の要約5</p>
+        </div>
+        
+
+    
+        <div class="section-detail">
+            <p class="reading-paragraph">健康傾向の詳細本文5。計算済みデータを基にした鑑定です。</p>
+        </div>
+        
+
+    
+
+    
+        <div class="section-block evidence-block">
+            <h3>鑑定の根拠</h3>
+            <ul class="evidence-list">
+<li>健康傾向の根拠A</li>
+<li>健康傾向の根拠B</li>
+</ul>
+        </div>
+        
+
+    
+        <div class="section-block advice-block">
+            <h3>アドバイス</h3>
+            <ul class="advice-list">
+<li>健康傾向の助言A</li>
+<li>健康傾向の助言B</li>
+</ul>
+        </div>
+        
+</section>
+
+
+<section
+    class="reading-card reading-section"
+    aria-labelledby="section-6"
+>
+    <div class="section-number">
+        06
+    </div>
+
+    <h2 id="section-6">
+        現在の運勢
+    </h2>
+
+    
+        <div class="section-lead">
+            <p class="reading-paragraph">現在の運勢の要約6</p>
+        </div>
+        
+
+    
+        <div class="section-detail">
+            <p class="reading-paragraph">現在の運勢の詳細本文6。計算済みデータを基にした鑑定です。</p>
+        </div>
+        
+
+    
+
+    
+        <div class="section-block evidence-block">
+            <h3>鑑定の根拠</h3>
+            <ul class="evidence-list">
+<li>現在の運勢の根拠A</li>
+<li>現在の運勢の根拠B</li>
+</ul>
+        </div>
+        
+
+    
+        <div class="section-block advice-block">
+            <h3>アドバイス</h3>
+            <ul class="advice-list">
+<li>現在の運勢の助言A</li>
+<li>現在の運勢の助言B</li>
+</ul>
+        </div>
+        
+</section>
+
+
+<section
+    class="reading-card reading-section"
+    aria-labelledby="section-7"
+>
+    <div class="section-number">
+        07
+    </div>
+
+    <h2 id="section-7">
+        今後の流れ
+    </h2>
+
+    
+        <div class="section-lead">
+            <p class="reading-paragraph">今後の流れの要約7</p>
+        </div>
+        
+
+    
+        <div class="section-detail">
+            <p class="reading-paragraph">今後の流れの詳細本文7。計算済みデータを基にした鑑定です。</p>
+        </div>
+        
+
+    
+
+    
+        <div class="section-block evidence-block">
+            <h3>鑑定の根拠</h3>
+            <ul class="evidence-list">
+<li>今後の流れの根拠A</li>
+<li>今後の流れの根拠B</li>
+</ul>
+        </div>
+        
+
+    
+        <div class="section-block advice-block">
+            <h3>アドバイス</h3>
+            <ul class="advice-list">
+<li>今後の流れの助言A</li>
+<li>今後の流れの助言B</li>
+</ul>
+        </div>
+        
+</section>
+
+
+<section
+    class="reading-card reading-section"
+    aria-labelledby="section-8"
+>
+    <div class="section-number">
+        08
+    </div>
+
+    <h2 id="section-8">
+        開運アドバイス
+    </h2>
+
+    
+        <div class="section-lead">
+            <p class="reading-paragraph">開運アドバイスの要約8</p>
+        </div>
+        
+
+    
+        <div class="section-detail">
+            <p class="reading-paragraph">開運アドバイスの詳細本文8。計算済みデータを基にした鑑定です。</p>
+        </div>
+        
+
+    
+
+    
+        <div class="section-block evidence-block">
+            <h3>鑑定の根拠</h3>
+            <ul class="evidence-list">
+<li>開運アドバイスの根拠A</li>
+<li>開運アドバイスの根拠B</li>
+</ul>
+        </div>
+        
+
+    
+        <div class="section-block advice-block">
+            <h3>アドバイス</h3>
+            <ul class="advice-list">
+<li>開運アドバイスの助言A</li>
+<li>開運アドバイスの助言B</li>
+</ul>
+        </div>
+        
+</section>
+
+
+
+
+
+
+
+<section
+    class="disclaimer"
+    aria-labelledby="disclaimer-heading"
+>
+    <h2 id="disclaimer-heading">
+        免責・注意事項
+    </h2>
+
+    <p class="reading-paragraph">本鑑定は傾向を示すもので、将来を確定的に断定するものではありません。医学・医療上の判断は専門家へご相談ください。</p>
+</section>
+
+
+<footer class="document-footer">
+    四柱推命鑑定
+</footer>
+
+</main>
+
+</body>
+</html>

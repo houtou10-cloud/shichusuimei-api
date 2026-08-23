@@ -1,0 +1,86 @@
+{
+  "baseline": "Yakumo Engine v1.1",
+  "file_count": 16,
+  "files": [
+    {
+      "path": "ai_contract/GC12_ai_contract.json",
+      "size": 5163,
+      "sha256": "9dd157aeb6e575c9f162dd2fe5a0ea6887450e91bffd4e0b8712233cd40d381a"
+    },
+    {
+      "path": "charts/GC01_1985_ishikawa_female_verified.json",
+      "size": 1159614,
+      "sha256": "e1febd79ba2f922b3f05eae94ece8031d58d7b736cfa34c3a8bc6777b2a27fbd"
+    },
+    {
+      "path": "charts/GC02_1984_hokkaido_female_early_hour.json",
+      "size": 1248098,
+      "sha256": "7491a1fa6115a0d1820f7aa64dc199d6f06a043c2745ca6b4fe4ffe0a7f50e69"
+    },
+    {
+      "path": "charts/GC03_1984_fukuoka_male_afternoon.json",
+      "size": 1101300,
+      "sha256": "dbdd1189f2061b5eb2dcbb736a9ab8df8aa5023e1a4acfa51e23f298f62c3267"
+    },
+    {
+      "path": "charts/GC04_1984_tokyo_male_noon_v2.json",
+      "size": 1090690,
+      "sha256": "22ae8a7476543615c105f146361a328f6b58d48eb74057a6b667b9ff74997507"
+    },
+    {
+      "path": "charts/GC05_root_month_baseline.json",
+      "size": 3524,
+      "sha256": "4449d5054445380a297ff3a3033da1aff8e2b56da25eff8a3b443224e9848253"
+    },
+    {
+      "path": "charts/GC06_relations_baseline.json",
+      "size": 6505,
+      "sha256": "16a787c72d88387e0aca5c2a020e6c058f7a61281e3fb3db7532def41b625233"
+    },
+    {
+      "path": "charts/GC07_pattern_baseline.json",
+      "size": 144810,
+      "sha256": "820ab46ef7af3bd9eda8b79453a1afa08f42435f50c9c2ec98b8bb58708173fd"
+    },
+    {
+      "path": "charts/GC08_useful_gods_v3_baseline.json",
+      "size": 940573,
+      "sha256": "4bb30f10475412bc2afd9b12119f3199829457fc6370f4b3f06d8f31d48616d3"
+    },
+    {
+      "path": "charts/GC09_luck_baseline.json",
+      "size": 107224,
+      "sha256": "eb3abde65612e0975d0ef358ab55adf2db1588d00bd20e7bc6509e7aa0177fe9"
+    },
+    {
+      "path": "charts/GC10_unknown_birth_time_three_pillars.json",
+      "size": 1021066,
+      "sha256": "c022f9e20dc19f8553c829b39090064e4a2a06d10cf7e4a9bb4d4b200ce147d1"
+    },
+    {
+      "path": "charts/GC11_boundary_baseline.json",
+      "size": 1464,
+      "sha256": "8e2593ede99f0fee1b4aaacdae075436a244cd9e0987a881a5018858ffadc2fe"
+    },
+    {
+      "path": "pdf/GC12_reading.pdf",
+      "size": 807726,
+      "sha256": "6c4722e2198eef92e4bea9a55a1184ee39207063d11063ffb54ce33c58f7ca4e"
+    },
+    {
+      "path": "pdf/GC12_reading_renderer.html",
+      "size": 36558,
+      "sha256": "b606abbe78fb6968001cf613c533017694605136077f88d2ae6cd5515fb5d850"
+    },
+    {
+      "path": "reading_context/GC12_reading_context.json",
+      "size": 12002,
+      "sha256": "4480661d2cce6640b37bb54c1d030f52d429b39b9a271fb28292ad00d9b5bf64"
+    },
+    {
+      "path": "reading_product/GC12_reading_product.json",
+      "size": 13271,
+      "sha256": "59e49c415cc62e7b10be9a25ac2c29242b563aeeaf727e448c49a78d01e09a34"
+    }
+  ]
+}

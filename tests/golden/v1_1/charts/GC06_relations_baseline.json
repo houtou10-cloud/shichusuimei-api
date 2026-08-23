@@ -1,0 +1,186 @@
+{
+  "case_id": "GC01_1985_ishikawa_female_verified",
+  "stem_combinations": {
+    "has_combination": false,
+    "combination_count": 0,
+    "combinations": [],
+    "method": "stem_combination_v1",
+    "status": "detected_stem_combinations",
+    "notes": [
+      "命式内の天干同士から天干五合を検出しています。",
+      "甲己は土、乙庚は金、丙辛は水、丁壬は木、戊癸は火の候補として扱います。",
+      "現在は干合の存在のみを判定しています。",
+      "月令・季節・通根などを考慮した化の成立判定は未実装です。",
+      "干合による五行・身強身弱への補正はまだ行っていません。"
+    ]
+  },
+  "stem_combination_conflicts": {
+    "has_stem_combination": false,
+    "combination_count": 0,
+    "has_conflict": false,
+    "conflict_count": 0,
+    "position_conflict_count": 0,
+    "duplicate_combination_count": 0,
+    "position_conflicts": [],
+    "duplicate_combinations": [],
+    "overall_status": "not_applicable",
+    "method": "stem_combination_conflict_v1",
+    "status": "detected_stem_combination_conflicts",
+    "notes": [
+      "同一の柱位置が複数の干合候補へ参加している状態を検出しています。",
+      "同じ干合名称が複数回現れる状態も重複候補として検出しています。",
+      "現在は競合状態の検出のみで、争合・妬合の最終的な成立判定は行っていません。",
+      "競合を理由に干合や化を自動的に不成立にはしていません。",
+      "後段の干合化総合判定で減点・制限要因として利用する予定です。"
+    ]
+  },
+  "branch_clashes": {
+    "has_clash": true,
+    "clash_count": 2,
+    "clashes": [
+      {
+        "position_a": "year",
+        "branch_a": "丑",
+        "position_b": "month",
+        "branch_b": "未",
+        "relation": "冲"
+      },
+      {
+        "position_a": "day",
+        "branch_a": "巳",
+        "position_b": "hour",
+        "branch_b": "亥",
+        "relation": "冲"
+      }
+    ],
+    "method": "branch_clash_v1",
+    "status": "detected_branch_clashes",
+    "notes": [
+      "命式内の地支同士から六冲を検出しています。",
+      "現在は六冲の有無のみを判定しています。",
+      "冲による五行・通根への影響度は未反映です。"
+    ]
+  },
+  "branch_combinations": {
+    "has_combination": false,
+    "combination_count": 0,
+    "combinations": [],
+    "method": "branch_combination_v1",
+    "status": "detected_branch_combinations",
+    "notes": [
+      "命式内の地支同士から六合を検出しています。",
+      "現在は六合の有無のみを判定しています。",
+      "六合による五行・通根への影響度は未反映です。"
+    ]
+  },
+  "branch_trines": {
+    "has_trine": false,
+    "trine_count": 0,
+    "trines": [],
+    "method": "branch_trine_v1",
+    "status": "detected_branch_trines",
+    "notes": [
+      "命式内の3つの地支から三合を検出しています。",
+      "申子辰は水局として判定します。",
+      "亥卯未は木局として判定します。",
+      "寅午戌は火局として判定します。",
+      "巳酉丑は金局として判定します。",
+      "現在は完全な三合のみを判定しています。",
+      "半会・拱合はまだ判定していません。",
+      "三合による五行強弱への補正は未反映です。"
+    ]
+  },
+  "branch_punishments": {
+    "has_punishment": false,
+    "punishment_count": 0,
+    "punishments": [],
+    "method": "branch_punishment_v1",
+    "status": "detected_branch_punishments",
+    "notes": [
+      "寅巳申・丑戌未は3支すべて揃った場合のみ三刑として判定します。",
+      "子卯は相刑として判定します。",
+      "辰・午・酉・亥は同じ地支が2つ以上ある場合に自刑として判定します。",
+      "三刑の部分成立については未判定です。",
+      "刑による五行・通根・身強身弱への補正は未反映です。"
+    ]
+  },
+  "branch_harms": {
+    "has_harm": false,
+    "harm_count": 0,
+    "harms": [],
+    "method": "branch_harm_v1",
+    "status": "detected_branch_harms",
+    "notes": [
+      "命式内の地支同士から六害を検出しています。",
+      "現在は六害の有無のみを判定しています。",
+      "害による五行・通根・身強身弱への補正は未反映です。"
+    ]
+  },
+  "branch_breaks": {
+    "has_break": false,
+    "break_count": 0,
+    "breaks": [],
+    "method": "branch_break_v1",
+    "status": "detected_branch_breaks",
+    "notes": [
+      "命式内の地支同士から六破を検出しています。",
+      "現在は六破の有無のみを判定しています。",
+      "破による五行・通根・身強身弱への補正は未反映です。"
+    ]
+  },
+  "branch_relation_strength": {
+    "total_relation_count": 2,
+    "positive_score": 0.0,
+    "negative_score": 4.0,
+    "total_score": -4.0,
+    "balance": "negative",
+    "details": {
+      "clash": {
+        "count": 2,
+        "weight": -2.0,
+        "score": -4.0
+      },
+      "combination": {
+        "count": 0,
+        "weight": 1.5,
+        "score": 0.0
+      },
+      "trine": {
+        "count": 0,
+        "weight": 2.5,
+        "score": 0.0
+      },
+      "punishment": {
+        "count": 0,
+        "weight": -1.5,
+        "score": -0.0
+      },
+      "harm": {
+        "count": 0,
+        "weight": -1.0,
+        "score": -0.0
+      },
+      "break": {
+        "count": 0,
+        "weight": -0.5,
+        "score": -0.0
+      }
+    },
+    "weights": {
+      "clash": -2.0,
+      "combination": 1.5,
+      "trine": 2.5,
+      "punishment": -1.5,
+      "harm": -1.0,
+      "break": -0.5
+    },
+    "method": "branch_relation_strength_v1",
+    "status": "provisional_branch_relation_strength",
+    "notes": [
+      "六冲・六合・三合・刑・六害・六破を暫定重みで統合しています。",
+      "現在のスコアは地支関係の強度を表す暫定値です。",
+      "日主への扶助・剋泄耗の方向はまだ評価していません。",
+      "身強・身弱の最終判定にはまだ直接反映していません。"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "golden_id": "GC11",
+  "description": "v1.1 boundary calculation baseline",
+  "lichun_2026": {
+    "boundary": "2026-02-04 05:02:07.770996",
+    "before": {
+      "datetime": "2026-02-04 05:02:06.770996",
+      "month_pillar": "己丑",
+      "month_branch": "丑"
+    },
+    "exact": {
+      "datetime": "2026-02-04 05:02:07.770996",
+      "month_pillar": "庚寅",
+      "month_branch": "寅"
+    },
+    "after": {
+      "datetime": "2026-02-04 05:02:08.770996",
+      "month_pillar": "庚寅",
+      "month_branch": "寅"
+    }
+  },
+  "xiaohan_2026": {
+    "boundary": "2026-01-05 17:23:09.440919",
+    "before": {
+      "month_pillar": "戊子",
+      "month_branch": "子"
+    },
+    "exact": {
+      "month_pillar": "己丑",
+      "month_branch": "丑"
+    },
+    "after": {
+      "month_pillar": "己丑",
+      "month_branch": "丑"
+    }
+  },
+  "day_midnight": {
+    "before": "1984-07-21 23:59:59",
+    "after": "1984-07-22 00:00:00",
+    "before_day_pillar": "丙辰",
+    "after_day_pillar": "丁巳"
+  },
+  "hour_boundaries": {
+    "22:59": {
+      "branch": "亥",
+      "pillar": "己亥"
+    },
+    "23:00": {
+      "branch": "子",
+      "pillar": "戊子"
+    },
+    "00:00": {
+      "branch": "子",
+      "pillar": "庚子"
+    },
+    "00:59": {
+      "branch": "子",
+      "pillar": "庚子"
+    },
+    "01:00": {
+      "branch": "丑",
+      "pillar": "辛丑"
+    }
+  }
+}
