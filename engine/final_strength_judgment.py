@@ -1,4 +1,4 @@
-"""
+﻿"""
 身強身弱の最終統合判定モジュール v2。
 
 重要な設計変更:
@@ -25,6 +25,8 @@ weighted_root_strength と integrated_month_strength は
 したがって total_score は自動加算しない。
 """
 
+
+from engine.judgment_schema import build_uncertainty
 
 MIN_SCORE = 0.0
 MAX_SCORE = 100.0
@@ -562,6 +564,21 @@ def evaluate_final_strength_judgment(
         stem_transformation_judgment,
     )
 
+
+    uncertainty = [
+        build_uncertainty(
+            code="season_transition_adjustment_not_applied",
+            category="rule_uncertainty",
+            status="provisional",
+            severity="info",
+            scope=["strength"],
+            message=(
+                "土用期間および節入り後日数による"
+                "季節強弱の細分補正は未適用です。"
+            ),
+        )
+    ]
+
     return {
         "base_score": base_score,
         "root_adjustment": (
@@ -686,13 +703,11 @@ def evaluate_final_strength_judgment(
                 "strength_judgment"
             ),
         },
+        "uncertainty": uncertainty,
         "method": (
             "final_strength_judgment_v2"
         ),
-        "status": (
-            "provisional_final_strength_"
-            "judgment_v2"
-        ),
+        "status": "provisional",
         "notes": [
             (
                 "weighted_strength_judgmentの"

@@ -1,4 +1,4 @@
-"""
+﻿"""
 tests/test_final_real_charts.py
 
 四柱推命エンジン v1.0 完成前の最終E2E回帰テスト。
@@ -251,7 +251,7 @@ def test_final_real_chart_strength_metadata(
     )
     assert (
         judgment["status"]
-        == "provisional_final_strength_judgment_v2"
+        == "provisional"
     )
 
 

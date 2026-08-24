@@ -1,4 +1,4 @@
-"""
+﻿"""
 tests/test_final_strength_judgment.py
 
 身強身弱の最終統合判定モジュール v2 の回帰テスト。
@@ -1286,8 +1286,7 @@ def test_final_evaluation_metadata():
     assert result[
         "status"
     ] == (
-        "provisional_final_strength_"
-        "judgment_v2"
+        "provisional"
     )
 
     assert isinstance(
@@ -1510,3 +1509,30 @@ def test_inputs_are_not_mutated():
         transformation
         == transformation_before
     )
+
+
+
+def test_final_strength_has_structured_uncertainty():
+    result = evaluate_final_strength_judgment(
+        {
+            "final_score": 50.0,
+        }
+    )
+
+    assert result["status"] == "provisional"
+
+    assert result["uncertainty"] == [
+        {
+            "code": (
+                "season_transition_adjustment_not_applied"
+            ),
+            "category": "rule_uncertainty",
+            "status": "provisional",
+            "severity": "info",
+            "scope": ["strength"],
+            "message": (
+                "土用期間および節入り後日数による"
+                "季節強弱の細分補正は未適用です。"
+            ),
+        }
+    ]

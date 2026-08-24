@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+﻿from types import SimpleNamespace
 
 from engine.chart import calculate_chart
 
@@ -1766,7 +1766,7 @@ def test_chart_contains_final_strength_judgment():
 
     assert (
         judgment["status"]
-        == "provisional_final_strength_judgment_v2"
+        == "provisional"
     )
 
     assert isinstance(

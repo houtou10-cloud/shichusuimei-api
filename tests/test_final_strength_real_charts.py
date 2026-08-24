@@ -1,4 +1,4 @@
-"""
+﻿"""
 実命式を使った final_strength_judgment v2 の回帰テスト。
 
 目的:
@@ -239,8 +239,7 @@ def test_real_chart_final_strength_metadata(
     assert (
         judgment["status"]
         == (
-            "provisional_final_strength_"
-            "judgment_v2"
+            "provisional"
         )
     )
 
