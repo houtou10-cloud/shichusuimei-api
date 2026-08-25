@@ -533,6 +533,10 @@ def calculate_chart(
             integrated_month_strength,
             branch_relation_strength,
             stem_transformation_judgment,
+            birth_time_unknown=(
+                birth_time_status["calculation_scope"]
+                == "three_pillars"
+            ),
         )
     )
 

@@ -34,6 +34,7 @@ from engine.final_strength_judgment import (
     STRENGTH_THRESHOLDS,
     TRANSFORMATION_ADJUSTMENTS,
     VALID_CONFLICT_SEVERITIES,
+    apply_birth_time_confidence_policy,
     calculate_branch_adjustment,
     calculate_confidence,
     calculate_month_adjustment,
@@ -1393,6 +1394,80 @@ def test_final_evaluation_confidence_high():
     assert result[
         "confidence"
     ] == "high"
+
+
+@pytest.mark.parametrize(
+    "confidence,birth_time_unknown,expected",
+    [
+        ("high", False, "high"),
+        ("high", True, "medium"),
+        ("medium", True, "medium"),
+        ("low", True, "low"),
+    ],
+)
+def test_birth_time_confidence_policy(
+    confidence,
+    birth_time_unknown,
+    expected,
+):
+    assert apply_birth_time_confidence_policy(
+        confidence,
+        birth_time_unknown=birth_time_unknown,
+    ) == expected
+
+
+def test_three_pillar_reduction_adds_structured_uncertainty():
+    result = evaluate_final_strength_judgment(
+        weighted_strength_judgment={
+            "final_score": 50.0,
+        },
+        weighted_root_strength={},
+        integrated_month_strength={},
+        branch_relations={},
+        stem_transformation_judgment={
+            "judgments": [],
+        },
+        birth_time_unknown=True,
+    )
+
+    expected = {
+        "code": (
+            "birth_time_unknown_strength_"
+            "confidence_reduced"
+        ),
+        "category": "input_uncertainty",
+        "status": "uncertain",
+        "severity": "warning",
+        "scope": ["strength"],
+        "message": (
+            "出生時間が不明なため、身強身弱判定の"
+            "confidence上限をmediumとして扱います。"
+        ),
+    }
+
+    assert result["confidence"] == "medium"
+    assert result["uncertainty"].count(expected) == 1
+
+
+def test_four_pillar_does_not_add_confidence_uncertainty():
+    result = evaluate_final_strength_judgment(
+        weighted_strength_judgment={
+            "final_score": 50.0,
+        },
+        weighted_root_strength={},
+        integrated_month_strength={},
+        branch_relations={},
+        stem_transformation_judgment={
+            "judgments": [],
+        },
+    )
+
+    assert result["confidence"] == "high"
+    assert all(
+        item["code"]
+        != "birth_time_unknown_strength_confidence_reduced"
+        for item in result["uncertainty"]
+    )
 
 
 # =========================================================

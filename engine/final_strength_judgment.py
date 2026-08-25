@@ -487,12 +487,25 @@ def calculate_confidence(
     return "low"
 
 
+def apply_birth_time_confidence_policy(
+    confidence: str,
+    *,
+    birth_time_unknown: bool = False,
+) -> str:
+    """三柱モードではconfidenceの上限をmediumにする。"""
+    if birth_time_unknown and confidence == "high":
+        return "medium"
+
+    return confidence
+
+
 def evaluate_final_strength_judgment(
     weighted_strength_judgment: dict,
     weighted_root_strength: dict | None = None,
     integrated_month_strength: dict | None = None,
     branch_relations: dict | None = None,
     stem_transformation_judgment: dict | None = None,
+    birth_time_unknown: bool = False,
 ) -> dict:
     """
     身強身弱の最終統合判定 v2。
@@ -557,11 +570,16 @@ def evaluate_final_strength_judgment(
         final_score
     )
 
-    confidence = calculate_confidence(
+    calculated_confidence = calculate_confidence(
         weighted_root_strength,
         integrated_month_strength,
         branch_relations,
         stem_transformation_judgment,
+    )
+
+    confidence = apply_birth_time_confidence_policy(
+        calculated_confidence,
+        birth_time_unknown=birth_time_unknown,
     )
 
 
@@ -578,6 +596,33 @@ def evaluate_final_strength_judgment(
             ),
         )
     ]
+
+    confidence_uncertainty_code = (
+        "birth_time_unknown_strength_"
+        "confidence_reduced"
+    )
+
+    if (
+        confidence != calculated_confidence
+        and not any(
+            item.get("code")
+            == confidence_uncertainty_code
+            for item in uncertainty
+        )
+    ):
+        uncertainty.append(
+            build_uncertainty(
+                code=confidence_uncertainty_code,
+                category="input_uncertainty",
+                status="uncertain",
+                severity="warning",
+                scope=["strength"],
+                message=(
+                    "出生時間が不明なため、身強身弱判定の"
+                    "confidence上限をmediumとして扱います。"
+                ),
+            )
+        )
 
     return {
         "base_score": base_score,

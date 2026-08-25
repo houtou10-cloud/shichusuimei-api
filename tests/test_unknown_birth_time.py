@@ -342,6 +342,45 @@ def test_unknown_birth_time_status_is_three_pillars(
     )
 
 
+def test_unknown_birth_time_caps_strength_confidence(
+    unknown_chart_result,
+    known_chart_result,
+):
+    unknown_strength = unknown_chart_result[
+        "final_strength_judgment"
+    ]
+    known_strength = known_chart_result[
+        "final_strength_judgment"
+    ]
+
+    assert known_strength["confidence"] == "high"
+    assert unknown_strength["confidence"] == "medium"
+
+    code = (
+        "birth_time_unknown_strength_"
+        "confidence_reduced"
+    )
+    matching = [
+        item
+        for item in unknown_strength["uncertainty"]
+        if item["code"] == code
+    ]
+    assert len(matching) == 1
+
+
+def test_known_birth_time_has_no_strength_confidence_uncertainty(
+    known_chart_result,
+):
+    uncertainty = known_chart_result[
+        "final_strength_judgment"
+    ]["uncertainty"]
+
+    assert all(
+        item["code"]
+        != "birth_time_unknown_strength_confidence_reduced"
+        for item in uncertainty
+    )
+
 @pytest.mark.parametrize(
     "key",
     (

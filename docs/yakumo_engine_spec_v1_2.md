@@ -427,6 +427,25 @@ AIは通変星を再計算しない。
 -   三柱モードの confidence 低下ルール
 -   v1.1 差分の説明
 
+#### 三柱モードの confidence policy
+
+-   出生時刻が既知の `four_pillars` では、既存の confidence 算出結果を変更しない。
+-   出生時刻不明の `three_pillars` では、`final_strength_judgment` の confidence 上限を `medium` とする。
+-   変換は `high -> medium`、`medium -> medium`、`low -> low` とする。
+-   このルールは四柱推命理論上の追加ルールではなく、出生時刻不明という input uncertainty に対する confidence policy とする。
+-   `three_pillars` によって confidence が実際に低下した場合だけ、次の structured uncertainty を重複なく追加する。
+
+``` json
+{
+  "code": "birth_time_unknown_strength_confidence_reduced",
+  "category": "input_uncertainty",
+  "status": "uncertain",
+  "severity": "warning",
+  "scope": ["strength"],
+  "message": "出生時間が不明なため、身強身弱判定のconfidence上限をmediumとして扱います。"
+}
+```
+
 ------------------------------------------------------------------------
 
 ## 14. 干支関係 V2
