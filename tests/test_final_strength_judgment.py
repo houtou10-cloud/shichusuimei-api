@@ -1478,12 +1478,16 @@ def test_four_pillar_does_not_add_confidence_uncertainty():
 @pytest.mark.parametrize(
     "score,technical",
     [
+        (70.01, "very_strong"),
         (70.0, "very_strong"),
         (69.99, "strong"),
+        (58.01, "strong"),
         (58.0, "strong"),
         (57.99, "balanced"),
+        (43.01, "balanced"),
         (43.0, "balanced"),
         (42.99, "weak"),
+        (30.01, "weak"),
         (30.0, "weak"),
         (29.99, "very_weak"),
     ],
