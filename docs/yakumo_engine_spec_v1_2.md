@@ -427,6 +427,29 @@ AIは通変星を再計算しない。
 -   三柱モードの confidence 低下ルール
 -   v1.1 差分の説明
 
+#### 極端命式 fixture 承認 policy
+
+-   `extreme chart` は、`calculation_scope == "four_pillars"` かつ `final_strength_judgment.technical_label` が `very_strong` または `very_weak` となる実命式とする。
+-   分類には既存境界のみを使用し、`very_strong` は `final_score >= 70.0`、`very_weak` は `final_score < 30.0` とする。新しい閾値は追加しない。
+-   「極端命式テスト」の完成には、承認済み strong-side fixture 1件以上と承認済み weak-side fixture 1件以上の両方を必要とし、片側だけでは完成扱いにしない。
+-   0/100 clamp test は数値安全性の unit test、extreme chart test は承認済み four-pillar 実命式の regression test として分離する。`final_score == 0` または `final_score == 100` は extreme chart の必須条件としない。
+
+extreme chart fixture の正式採用には、次の3条件をすべて必要とする。これらは fixture 承認プロセス上の概念であり、production API の status または schema には追加しない。
+
+1.  `calendar_verified`: birth data と四柱が、Yakumo Engine とは独立した暦資料で確認済みである。
+2.  `strength_verified`: Yakumo Engine v1.2 の採用済みルールによる upstream components、raw score、final score、technical label、label が、現行 Yakumo Engine とは独立した経路で確認済みである。
+3.  `golden_regression`: `calendar_verified` および `strength_verified` で承認された期待値を Golden として保存し、regression test で固定済みである。
+
+expected final score は、四柱推命上の普遍的な唯一解ではなく、Yakumo Engine v1.2 の採用済みルールに対する独立検証済み期待値として扱う。
+
+現行 Yakumo Engine へ候補を入力し、extreme label が出たことを根拠に、その出力を expected 値として保存し、同じエンジンの regression test が通ることで正しいと判断する手順は、strength verification として認めない。Golden regression は再現性と変更検出を保証するが、独立した strength verification を保証しない。
+
+承認記録には最低限、fixture ID、birth data、location、timezone、gender、four pillars、calculation scope、calendar verification source、calendar reviewer/date、strength verification method、strength reviewer/date、expected raw score、expected final score、expected technical label、expected label、method/version、known uncertainty を保持する。既存 metadata で表現できる項目は既存形式を再利用し、production API schema には追加しない。
+
+extreme chart の判定および承認は、confidence、status、uncertainty、three-pillar confidence policy、`season_transition_adjustment_not_applied` から独立させる。極端命式テストが完成しても、それだけを理由に `final_strength_judgment.status` を `provisional` から `resolved` へ変更しない。
+
+本 policy 追加時点では「極端命式テスト」は未完了とする。GC03 は `calendar_verified` および `golden_regression` が確認済みだが、`strength_verified` は未確認であり、正式な strong-side extreme fixture として承認済み扱いにしない。weak-side は承認済み fixture が存在しない。新しい命式の作成・探索および新しい status/schema 語彙の追加は行わない。
+
 #### 三柱モードの confidence policy
 
 -   出生時刻が既知の `four_pillars` では、既存の confidence 算出結果を変更しない。
