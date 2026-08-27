@@ -469,6 +469,237 @@ extreme chart の判定および承認は、confidence、status、uncertainty、
 }
 ```
 
+### 13.4 Strength Calculation Rules
+
+#### 13.4.1 Scope and compatibility policy
+
+-   本節は、`final_strength_judgment_v2` へ至る身強身弱計算を再現するための Yakumo Engine v1.2 compatibility rules を定義する。
+-   本節の rule、table、weight、formula は、現行 production behavior の再現性、独立検証可能性および後方互換性のために versioned rule として固定するものであり、普遍的な四柱推命理論上の唯一解を主張しない。
+-   本節は production code、API schema、score、label、confidence、status、uncertainty および three-pillar confidence policy を変更しない。
+-   本節の strength calculation rules は、confidence、status、uncertainty、three-pillar confidence policy および `season_transition_adjustment_not_applied` から独立させる。
+-   将来、本節の値または計算式を変更する場合は v1.2 の silent change とせず、別 version または明示的な rule change として記録する。
+
+#### 13.4.2 Supporting and draining classification
+
+日主の五行を基準に、weighted element score を次の2群へ分類する。
+
+-   supporting: 日主と同じ五行、および日主を生じる五行
+-   draining: 日主が生じる五行、日主が剋す五行、および日主を剋す五行
+
+``` text
+supporting_score = supporting五行のweighted score合計
+draining_score = draining五行のweighted score合計
+total = supporting_score + draining_score
+supporting_ratio = supporting_score / total * 100
+draining_ratio = draining_score / total * 100
+```
+
+`total == 0` の場合、`supporting_ratio` と `draining_ratio` は `0.0` とする。
+
+#### 13.4.3 Weighted element contribution
+
+-   各天干の寄与を `1.0` とする。
+-   各地支は、蔵干全体の weight 合計を `1.0` として寄与させる。
+-   蔵干は既存データの並び順を主気・中気・余気の順として扱い、蔵干数に応じて次の weight を使用する。
+
+  蔵干数   weights
+  -------- -----------------
+  1        `1.0`
+  2        `0.7 / 0.3`
+  3        `0.6 / 0.3 / 0.1`
+
+各天干および各蔵干の五行へ寄与値を加算し、五行ごとの weighted score を求める。
+
+#### 13.4.4 Weighted roots
+
+-   地支蔵干のうち、日主と同一五行の蔵干だけを weighted root として採用する。
+-   v1.1 文書には root を「日主と同一または支持関係」とする概括的説明があるが、v1.2 compatibility rule では現行 production behavior との互換性を優先し、日主と同一五行の蔵干だけを採用する。
+-   `weighted_root_strength_v1` では次の position weight を使用する。
+
+  position   weight
+  ---------- ------
+  year       `0.8`
+  month      `1.5`
+  day        `1.3`
+  hour       `1.0`
+
+``` text
+root_score = position_weight * hidden_stem_weight
+total_root_score = 各root_scoreの合計
+weighted_root_bonus = total_root_score * 10
+```
+
+この position weight は `weighted_root_strength_v1` 専用であり、`transformation_root` または `transformation_exposure` に存在する同名の `POSITION_WEIGHTS` へ適用せず、それらと統合しない。
+
+#### 13.4.5 Seasonal strength
+
+月支と日主五行から、次の table で旺・相・休・囚・死を決定する。
+
+  month branch    旺   相   休   囚   死
+  --------------- ---- ---- ---- ---- ----
+  寅・卯           木   火   水   金   土
+  辰・未・戌・丑   土   金   火   木   水
+  巳・午           火   土   木   水   金
+  申・酉           金   水   土   火   木
+  亥・子           水   木   金   土   火
+
+seasonal score は次の値とする。
+
+  state   score
+  ------- -------
+  旺      `12.0`
+  相      `8.0`
+  休      `2.0`
+  囚      `-6.0`
+  死      `-10.0`
+
+#### 13.4.6 Weighted month integration
+
+月支蔵干を 13.4.2 と同じ supporting / draining 分類で集計する。
+
+``` text
+month_total = month_supporting_score + month_draining_score
+month_supporting_ratio = month_supporting_score / month_total * 100
+month_draining_ratio = month_draining_score / month_total * 100
+```
+
+`month_total == 0` の場合、両 ratio は `0.0` とする。
+
+``` text
+hidden_stem_balance =
+    (month_supporting_ratio - month_draining_ratio) / 100
+hidden_stem_adjustment = hidden_stem_balance * 4
+integrated_month_score = seasonal_score + hidden_stem_adjustment
+```
+
+ratio の定義により、`hidden_stem_adjustment` の範囲は `-4.0` から `4.0` となる。production ではこの値に別の明示 clamp を適用しない。
+
+#### 13.4.7 Weighted base score
+
+``` text
+weighted_base_score =
+    supporting_ratio
+    + weighted_root_bonus
+    + integrated_month_score
+```
+
+`weighted_strength_judgment.final_score` は、上式を `0.0` から `100.0` へ clamp した weighted base score とする。
+
+この layer は既存の `weighted_provisional_strength_v3` による base score 生成経路を固定するものである。旧 provisional strength layer の表示 label と、`final_strength_judgment_v2` の final label を混同しない。final V2 の分類には13.3で固定した final thresholdだけを使用する。
+
+#### 13.4.8 Final adjustments
+
+`final_strength_judgment_v2` は、clamp済みの `weighted_strength_judgment.final_score` を base score として使用する。
+
+地支関係については、日主強弱への方向が明示された補正だけを使用し、地支関係全体の強度を示す `total_score` は自動加算しない。directional adjustment は次の優先順で最初に見つかった数値を使用する。
+
+1.  `strength_adjustment`
+2.  `day_master_adjustment`
+3.  `adjustment`
+
+directional adjustment は `-6.0` から `6.0` へ clamp する。対象となる数値がない場合は `0.0` とする。
+
+干合化候補の base adjustment は次の値とする。
+
+  judgment             adjustment
+  -------------------- ----------
+  `strong_candidate`   `3.0`
+  `possible`           `1.5`
+  `weak`               `0.5`
+  `unsupported`        `0.0`
+  未知の値             `0.0`
+
+conflict severity multiplier は次の値とする。
+
+  severity   multiplier
+  ---------- ----------
+  `none`     `1.00`
+  `low`      `0.80`
+  `medium`   `0.50`
+  `high`     `0.25`
+
+``` text
+candidate_adjustment = base_adjustment * conflict_multiplier
+transformation_adjustment = 全candidate_adjustmentの合計
+```
+
+production は `transformation_adjustment` を `-5.0` から `5.0` へ clamp する。現行の base adjustment はすべて非負であるため、通常の実効範囲は `0.0` から `5.0` となる。
+
+``` text
+adjustment_total = branch_adjustment + transformation_adjustment
+raw_final_score = final_v2_base_score + adjustment_total
+final_score = clamp(raw_final_score, 0.0, 100.0)
+```
+
+#### 13.4.9 Double-count prevention
+
+-   `weighted_base_score` には supporting ratio、weighted root bonus および integrated month score が含まれる。
+-   final V2 では通根と月令を再加算せず、`root_adjustment = 0.0`、`month_adjustment = 0.0` とする。
+-   final V2 で追加できるのは、13.4.8の明示的な branch adjustment と限定的な transformation adjustmentだけとする。
+
+#### 13.4.10 Rounding and clamp
+
+本節では、言語非依存の `round2` を次のように定義する。
+
+``` text
+round2(x):
+    xを最も近い0.01単位の値へ丸める。
+    隣接する2つの0.01単位値から正確に等距離の場合は、
+    小数第2位を整数として見た値が偶数となる側を選ぶ。
+```
+
+production と同じ境界結果を再現する場合、計算値は IEEE 754 binary64 として扱ったうえで `round2` を適用する。各計算 layer では次の順序で丸める。
+
+1.  Weighted five elements
+    -   各五行の全柱合計を `round2` する。
+    -   丸め済み五行値の合計を `round2` する。
+    -   各 percentage を `round2` する。
+2.  Weighted supporting / draining
+    -   supporting score と draining score をそれぞれ `round2` する。
+    -   両者の合計を `round2` する。
+    -   supporting ratio と draining ratio をそれぞれ `round2` する。
+3.  Weighted month command
+    -   month supporting score と month draining score をそれぞれ `round2` する。
+    -   両者の合計を `round2` する。
+    -   month supporting ratio と month draining ratio をそれぞれ `round2` する。
+4.  Weighted roots
+    -   各 `position_weight * hidden_stem_weight` を `round2` する。
+    -   丸め済み root score の合計を `round2` する。
+5.  Integrated month
+    -   `hidden_stem_balance` を `round2` する。
+    -   `hidden_stem_balance * 4` を `round2` する。
+    -   `seasonal_score + hidden_stem_adjustment` を `round2` する。
+6.  Weighted base
+    -   `total_root_score * 10` を `round2` する。
+    -   supporting ratio、丸め済み weighted root bonus、丸め済み integrated month score を加算する。
+    -   `0.0` から `100.0` へ clamp した後に `round2` する。
+7.  Branch adjustment
+    -   directional adjustment を `-6.0` から `6.0` へ clamp した後に `round2` する。
+8.  Transformation adjustment
+    -   各 base adjustment と multiplier の積を加算する。
+    -   合計を `-5.0` から `5.0` へ clamp した後に `round2` する。
+9.  Final V2
+    -   入力 base score を `0.0` から `100.0` へ clamp した後に `round2` する。
+    -   branch adjustment と transformation adjustment の合計を `round2` し、`adjustment_total` とする。
+    -   base score と `adjustment_total` の合計を `round2` し、`raw_final_score` とする。
+    -   `raw_final_score` を `0.0` から `100.0` へ clamp した後に `round2` し、`final_score` とする。
+    -   final labelの分類前にも同じ clamp と `round2` を適用する。
+
+#### 13.4.11 Final labels
+
+final label は、13.3で固定した既存の final threshold と technical label / label mapping を使用する。本節では別の threshold または mapping を定義しない。旧 provisional strength layer の threshold および表示 label は final V2 の分類に使用しない。
+
+#### 13.4.12 Limitations
+
+-   hidden-stem weight には流派差があるが、v1.2では compatibility rule として13.4.3の値を固定する。
+-   土用期間による補正は未反映とする。
+-   節入り後日数による補正は未反映とする。
+-   branch relationの総合scoreは日主への扶助・剋洩耗方向を直接表さず、directional adjustmentが明示されない場合は final scoreへ加算しない。
+-   transformation judgment は provisional な判定を含む。
+-   root eligibility および `weighted_root_strength_v1` の position weight は、普遍的理論ではなく v1.2 compatibility rule とする。
+-   本節のlimitationsは、confidence、status、uncertainty または three-pillar confidence policy を変更する根拠としない。
+-   本節のruleを将来変更する場合は silent change とせず、別 version または明示的な rule changeとして管理する。
+
 ------------------------------------------------------------------------
 
 ## 14. 干支関係 V2
