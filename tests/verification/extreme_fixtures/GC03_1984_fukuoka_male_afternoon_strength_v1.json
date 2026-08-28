@@ -1,0 +1,155 @@
+{
+  "schema": "yakumo_extreme_fixture_approval_v1",
+  "fixture": {
+    "fixture_id": "1984_fukuoka_male_afternoon_v2",
+    "fixture_role": "strong_side",
+    "birth_date": "1984-07-22",
+    "birth_time": "13:40",
+    "location": "福岡県",
+    "timezone": "Asia/Tokyo",
+    "gender": "male",
+    "four_pillars": {
+      "year": "甲子",
+      "month": "辛未",
+      "day": "丁巳",
+      "hour": "丁未"
+    },
+    "day_master": "丁",
+    "calculation_scope": "four_pillars"
+  },
+  "verification_levels": {
+    "calendar_verified": {
+      "confirmed": true,
+      "method": "externally_verified_four_pillars_v2",
+      "source": null,
+      "source_reference": "tests/test_verified_charts_v2.py",
+      "reviewer": null,
+      "reviewed_at": null,
+      "source_note": "1984-07-22は甲子年・辛未月・丁巳日。丁日13-15時は丁未。",
+      "note": "既存repository metadataでexternal verificationは確認済みだが、正式なsource名、reviewer、review dateは記録されていない。"
+    },
+    "strength_verified": {
+      "confirmed": true,
+      "reviewer": {
+        "role": "strength-domain-reviewer",
+        "name": "human-approved"
+      },
+      "reviewed_at": "2026-08-28T21:20:46+09:00",
+      "method": "yakumo_v1_2_strength_rules_independent_worksheet_v1",
+      "rule_source": {
+        "path": "docs/yakumo_engine_spec_v1_2.md",
+        "section": "13.4 Strength Calculation Rules",
+        "git_commit": "fab7d17a47c9ddbe050bfbdc9dffd765370b8f42"
+      },
+      "independent_calculation_completed_before_comparison": true
+    },
+    "golden_regression": {
+      "confirmed": true,
+      "golden_file": "tests/golden/v1_1/charts/GC03_1984_fukuoka_male_afternoon.json",
+      "manifest": "tests/golden/v1_1/manifest.json",
+      "sha256": "dbdd1189f2061b5eb2dcbb736a9ab8df8aa5023e1a4acfa51e23f298f62c3267"
+    }
+  },
+  "independent_calculation": {
+    "weighted_five_elements": {
+      "木": 1.2,
+      "火": 3.2,
+      "土": 1.5,
+      "金": 1.1,
+      "水": 1.0,
+      "total": 8.0
+    },
+    "supporting_draining": {
+      "supporting_elements": [
+        "火",
+        "木"
+      ],
+      "draining_elements": [
+        "土",
+        "金",
+        "水"
+      ],
+      "supporting_score": 4.4,
+      "draining_score": 3.6,
+      "supporting_ratio": 55.0,
+      "draining_ratio": 45.0
+    },
+    "weighted_roots": {
+      "roots": [
+        {
+          "position": "month",
+          "branch": "未",
+          "hidden_stem": "丁",
+          "position_weight": 1.5,
+          "hidden_stem_weight": 0.3,
+          "score": 0.45
+        },
+        {
+          "position": "day",
+          "branch": "巳",
+          "hidden_stem": "丙",
+          "position_weight": 1.3,
+          "hidden_stem_weight": 0.6,
+          "score": 0.78
+        },
+        {
+          "position": "hour",
+          "branch": "未",
+          "hidden_stem": "丁",
+          "position_weight": 1.0,
+          "hidden_stem_weight": 0.3,
+          "score": 0.3
+        }
+      ],
+      "total_root_score": 1.53,
+      "weighted_root_bonus": 15.3
+    },
+    "seasonal_strength": {
+      "month_branch": "未",
+      "day_master_element": "火",
+      "state": "休",
+      "score": 2.0
+    },
+    "weighted_month_integration": {
+      "supporting_score": 0.4,
+      "draining_score": 0.6,
+      "supporting_ratio": 40.0,
+      "draining_ratio": 60.0,
+      "hidden_stem_balance": -0.2,
+      "hidden_stem_adjustment": -0.8,
+      "integrated_month_score": 1.2
+    },
+    "final_adjustments": {
+      "branch_adjustment": 0.0,
+      "branch_reason": "no_explicit_directional_adjustment",
+      "transformation_adjustment": 0.0,
+      "transformation_reason": "no_stem_combination_candidate"
+    },
+    "scores": {
+      "weighted_base_score": 71.5,
+      "adjustment_total": 0.0,
+      "raw_final_score": 71.5,
+      "final_score": 71.5
+    },
+    "classification": {
+      "technical_label": "very_strong",
+      "label": "極身強"
+    }
+  },
+  "comparison": {
+    "performed_after_independent_calculation": true,
+    "engine_match": true,
+    "golden_match": true,
+    "compared_at": null,
+    "note": "独立計算後にEngineおよびGoldenとの一致を確認済み。比較日時の正式記録はない。"
+  },
+  "method_version": "yakumo_v1_2_strength_rules_independent_worksheet_v1",
+  "known_uncertainty": [
+    "hidden_stem_weights_are_v1_2_compatibility_rules",
+    "season_transition_adjustment_not_applied",
+    "days_since_season_entry_not_applied",
+    "branch_directional_evaluation_limited",
+    "transformation_judgment_contains_provisional_rules"
+  ],
+  "approval_note": "この承認はYakumo Engine v1.2 compatibility rulesとの整合性を確認するものであり、四柱推命上の普遍的な唯一解を主張しない。"
+}
