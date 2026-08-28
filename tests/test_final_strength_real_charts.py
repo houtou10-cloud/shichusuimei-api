@@ -15,11 +15,21 @@
 身強身弱の精度検証用データセットへ拡張する。
 """
 
+import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from engine.chart import calculate_chart
+
+
+GC03_STRENGTH_APPROVAL_PATH = (
+    Path(__file__).parent
+    / "verification"
+    / "extreme_fixtures"
+    / "GC03_1984_fukuoka_male_afternoon_strength_v1.json"
+)
 
 
 def make_request(
@@ -117,6 +127,109 @@ def calculate_real_chart(case):
 
     return calculate_chart(
         request
+    )
+
+
+def test_gc03_approved_strong_side_extreme_chart_regression():
+    with GC03_STRENGTH_APPROVAL_PATH.open(
+        encoding="utf-8",
+    ) as approval_file:
+        approval = json.load(
+            approval_file
+        )
+
+    fixture = approval["fixture"]
+    verification = approval[
+        "verification_levels"
+    ]
+    expected = approval[
+        "independent_calculation"
+    ]
+
+    assert (
+        fixture["fixture_id"]
+        == "1984_fukuoka_male_afternoon_v2"
+    )
+    assert (
+        fixture["calculation_scope"]
+        == "four_pillars"
+    )
+    assert (
+        verification["strength_verified"][
+            "confirmed"
+        ]
+        is True
+    )
+    assert (
+        verification["golden_regression"][
+            "confirmed"
+        ]
+        is True
+    )
+
+    expected_scores = expected["scores"]
+    expected_classification = expected[
+        "classification"
+    ]
+
+    assert (
+        expected_scores["final_score"]
+        == 71.5
+    )
+    assert (
+        expected_classification[
+            "technical_label"
+        ]
+        == "very_strong"
+    )
+    assert (
+        expected_classification["label"]
+        == "極身強"
+    )
+
+    result = calculate_chart(
+        make_request(
+            birth_date=fixture[
+                "birth_date"
+            ],
+            birth_time=fixture[
+                "birth_time"
+            ],
+            birth_place=fixture[
+                "location"
+            ],
+            gender=fixture["gender"],
+        )
+    )
+
+    assert (
+        result["birth_time_status"][
+            "calculation_scope"
+        ]
+        == fixture["calculation_scope"]
+    )
+
+    judgment = result[
+        "final_strength_judgment"
+    ]
+
+    assert (
+        judgment["final_score"]
+        == expected_scores[
+            "final_score"
+        ]
+    )
+    assert (
+        judgment["technical_label"]
+        == expected_classification[
+            "technical_label"
+        ]
+    )
+    assert (
+        judgment["label"]
+        == expected_classification[
+            "label"
+        ]
     )
 
 
