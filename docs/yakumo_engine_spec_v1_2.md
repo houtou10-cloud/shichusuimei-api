@@ -448,7 +448,11 @@ expected final score は、四柱推命上の普遍的な唯一解ではなく�
 
 extreme chart の判定および承認は、confidence、status、uncertainty、three-pillar confidence policy、`season_transition_adjustment_not_applied` から独立させる。極端命式テストが完成しても、それだけを理由に `final_strength_judgment.status` を `provisional` から `resolved` へ変更しない。
 
-本 policy 追加時点では「極端命式テスト」は未完了とする。GC03 は `calendar_verified` および `golden_regression` が確認済みだが、`strength_verified` は未確認であり、正式な strong-side extreme fixture として承認済み扱いにしない。weak-side は承認済み fixture が存在しない。新しい命式の作成・探索および新しい status/schema 語彙の追加は行わない。
+現在の実装・承認状態は次のとおりとする。
+
+-   strong-side: GC03（fixture ID: `1984_fukuoka_male_afternoon_v2`）は、`calculation_scope == "four_pillars"`、`final_score == 71.5`、`technical_label == "very_strong"`、`label == "極身強"` の承認済み fixture である。`calendar_verified`、`strength_verified`、`golden_regression` はすべて confirmed であり、承認済み strong-side regression test は実装済みかつ passing とする。strength approval record は `tests/verification/extreme_fixtures/GC03_1984_fukuoka_male_afternoon_strength_v1.json`（commit `4f9ed1712a582796a0dc4dc1c42a3cdde66725f4`）、regression test は commit `fe5c49497d30e89efb062dbf85d292cbb7585322` で固定する。この承認は Yakumo Engine v1.2 compatibility rules に対する独立検証・承認であり、普遍的な四柱推命上の真理を証明するものではない。
+-   weak-side: 承認済み fixture は未発見・未承認であり、calendar verification、strength verification、approval record および regression test は未完了とする。
+-   overall: strong-side は approved / regression-fixed、weak-side は pending であるため、「極端命式テスト」の完成条件は未達であり、13.3 全体も complete としない。新しい命式の作成・探索および新しい status/schema 語彙の追加は行わない。
 
 #### 三柱モードの confidence policy
 
