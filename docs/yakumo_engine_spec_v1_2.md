@@ -473,6 +473,39 @@ extreme chart の判定および承認は、confidence、status、uncertainty、
 }
 ```
 
+#### v1.1との差分
+
+v1.1 tag（`c743f464ffa7afa2c1061a61f0d5479959a66f8f`）の時点で、`weighted_provisional_strength_v3` の `final_score` を base score とする `final_strength_judgment_v2` は既に production に存在していた。v1.2 は新しい身強身弱理論へ置き換えるものではなく、次の既存 production behavior を維持する。
+
+-   weighted five elements を supporting / draining に分類し、weighted roots、seasonal strength および weighted month integration を含む `weighted_provisional_strength_v3` の `final_score` を base score とする。
+-   root と month は base score に含まれているため、final layer では再加算しない。
+-   branch relation の `total_score` は日主強弱への方向を直接示す値として扱わず、方向が明示された adjustment だけを final score に適用する。
+-   transformation adjustment は既存の限定補正として扱い、adjustment total、raw final score、rounding、0–100 clamp および final label classification の計算順序を維持する。
+
+13.4 に定める weighted five elements、supporting / draining、weighted roots、seasonal strength、weighted month integration、branch adjustment、transformation adjustment、double-count prevention、rounding、clamp および final label thresholds の rule、table、weight、formula は、原則として v1.1 production behavior を変更せず、Yakumo Engine v1.2 の versioned compatibility rules として正式化したものである。
+
+v1.1 仕様書は root を「日主と同一または支持関係」と概括的に記載していたが、v1.1 production 実装の weighted root eligibility は、day master と同一 element の hidden stem だけを採用していた。v1.2 はこの root behavior を変更せず、実装済みの限定された互換条件を 13.4 に明文化する。
+
+final label thresholds は v1.1 から変更しない。
+
+-   `very_strong`: `final_score >= 70.0`
+-   `strong`: `58.0 <= final_score < 70.0`
+-   `balanced`: `43.0 <= final_score < 58.0`
+-   `weak`: `30.0 <= final_score < 43.0`
+-   `very_weak`: `final_score < 30.0`
+
+neutral / balanced zone は `43.0 <= final_score < 58.0` とする。
+
+v1.2 で実際に追加または変更した strength behavior および metadata は次のとおりとする。
+
+-   出生時刻不明の three-pillar mode では、final strength confidence の上限を `medium` とする。出生時刻が既知の four-pillar mode では、v1.1 からの既存 confidence 算出結果を変更しない。
+-   適用していない季節細分補正、および three-pillar policy によって confidence が実際に低下した場合の input uncertainty を structured uncertainty として返す。
+-   status を `provisional_final_strength_judgment_v2` から共通語彙 `provisional` へ正規化する。判定は引き続き provisional であり、本差分の明文化だけを理由に `resolved` へ変更しない。
+
+v1.2 では、全 final label 境界の `-epsilon / boundary / +epsilon` test と approved extreme fixture regression を追加する。これらは score calculation、weight または threshold の変更ではなく、境界挙動および承認済み実命式からの逸脱を検出する test coverage improvement である。
+
+v1.1 Golden baseline は参照値として維持し、Golden のみを fixture の承認根拠とする circular validation は行わない。v1.2 で意図的に変更した status、confidence および structured uncertainty 等の metadata difference と、既存 score / label の compatibility は分離して扱う。
+
 ### 13.4 Strength Calculation Rules
 
 #### 13.4.1 Scope and compatibility policy
