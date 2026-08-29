@@ -1,0 +1,97 @@
+{
+  "schema": "yakumo_strength_golden_v1",
+  "golden_version": "v1_2",
+  "fixture": {
+    "fixture_id": "1963_brooklyn_male_afternoon_v2",
+    "fixture_role": "weak_side",
+    "calculation_scope": "four_pillars",
+    "approved_pillars": {
+      "year": "癸卯",
+      "month": "甲寅",
+      "day": "辛卯",
+      "hour": "乙未"
+    },
+    "day_master": "辛"
+  },
+  "expected_strength": {
+    "weighted_five_elements": {
+      "木": 4.7,
+      "火": 0.6,
+      "土": 0.7,
+      "金": 1.0,
+      "水": 1.0,
+      "total": 8.0
+    },
+    "supporting_draining": {
+      "supporting_elements": [
+        "金",
+        "土"
+      ],
+      "draining_elements": [
+        "水",
+        "木",
+        "火"
+      ],
+      "supporting_score": 1.7,
+      "draining_score": 6.3,
+      "supporting_ratio": 21.25,
+      "draining_ratio": 78.75
+    },
+    "weighted_roots": {
+      "roots": [],
+      "total_root_score": 0.0,
+      "weighted_root_bonus": 0.0
+    },
+    "seasonal_strength": {
+      "month_branch": "寅",
+      "day_master_element": "金",
+      "state": "囚",
+      "score": -6.0
+    },
+    "weighted_month_integration": {
+      "supporting_ratio": 10.0,
+      "draining_ratio": 90.0,
+      "hidden_stem_balance": -0.8,
+      "hidden_stem_adjustment": -3.2,
+      "integrated_month_score": -9.2
+    },
+    "final_adjustments": {
+      "branch_adjustment": 0.0,
+      "branch_reason": "no_explicit_day_master_adjustment",
+      "transformation_adjustment": 0.0,
+      "transformation_reason": "no_stem_combination_candidate"
+    },
+    "scores": {
+      "weighted_base_score": 12.05,
+      "adjustment_total": 0.0,
+      "raw_final_score": 12.05,
+      "final_score": 12.05
+    },
+    "classification": {
+      "technical_label": "very_weak",
+      "label": "極身弱"
+    },
+    "method_version": "yakumo_v1_2_strength_rules_independent_worksheet_v1"
+  },
+  "production_contract": {
+    "final_strength_judgment": {
+      "method": "final_strength_judgment_v2",
+      "status": "provisional"
+    }
+  },
+  "source_reference": {
+    "approval_record": "tests/verification/extreme_fixtures/Michael_Jordan_1963_brooklyn_male_afternoon_strength_v1.json",
+    "approval_schema": "yakumo_extreme_fixture_approval_v1",
+    "approval_section": "independent_calculation",
+    "calendar_scope": "recorded civil standard time; EST / UTC-5; true-solar-time correction not applied"
+  },
+  "known_uncertainties": [
+    "calendar_verification_metadata_pending",
+    "true_solar_time_adjustment_not_applied",
+    "hidden_stem_weights_are_v1_2_compatibility_rules",
+    "season_transition_adjustment_not_applied",
+    "days_since_season_entry_not_applied",
+    "branch_directional_evaluation_limited",
+    "transformation_judgment_contains_provisional_rules"
+  ]
+}

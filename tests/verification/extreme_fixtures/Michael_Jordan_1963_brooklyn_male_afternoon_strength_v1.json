@@ -47,11 +47,11 @@
       "independent_calculation_completed_before_comparison": true
     },
     "golden_regression": {
-      "confirmed": false,
-      "golden_file": null,
-      "manifest": null,
-      "sha256": null,
-      "note": "Golden作成、manifest登録およびregression test固定は未実施。"
+      "confirmed": true,
+      "golden_file": "tests/golden/v1_2/strength/GC13_Michael_Jordan_1963_brooklyn_male_afternoon_strength.json",
+      "manifest": "tests/golden/v1_2/manifest.json",
+      "sha256": "f5ccdadc41235a618a9124d767a5c872e26381869725b75b0ad615b6db4daa64",
+      "note": "Human-approved independent expectedをv1.2 strength-only Goldenとして保存し、manifest integrityおよびproduction regressionを確認済み。"
     }
   },
   "independent_calculation": {
@@ -114,11 +114,11 @@
     }
   },
   "comparison": {
-    "performed_after_independent_calculation": false,
-    "engine_match": null,
-    "golden_match": null,
+    "performed_after_independent_calculation": true,
+    "engine_match": true,
+    "golden_match": true,
     "compared_at": null,
-    "note": "Yakumo EngineおよびGoldenとの比較は未実施。"
+    "note": "approved regression commit e369a9f2bb7c2c1ee73c80a9e7e1179e7eb70c34によりEngine一致を再現可能に固定済み。最初のone-time comparisonの正確な実行日時は記録されていないためcompared_atはnullとする。Golden matchはv1.2 strength-only Golden regressionで確認済み。"
   },
   "method_version": "yakumo_v1_2_strength_rules_independent_worksheet_v1",
   "known_uncertainty": [

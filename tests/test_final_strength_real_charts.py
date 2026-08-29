@@ -15,6 +15,7 @@
 身強身弱の精度検証用データセットへ拡張する。
 """
 
+import hashlib
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -40,6 +41,29 @@ MICHAEL_JORDAN_STRENGTH_APPROVAL_PATH = (
     / "verification"
     / "extreme_fixtures"
     / "Michael_Jordan_1963_brooklyn_male_afternoon_strength_v1.json"
+)
+
+V1_2_GOLDEN_ROOT = (
+    Path(__file__).parent
+    / "golden"
+    / "v1_2"
+)
+
+MICHAEL_JORDAN_STRENGTH_GOLDEN_PATH = (
+    V1_2_GOLDEN_ROOT
+    / "strength"
+    / "GC13_Michael_Jordan_1963_brooklyn_male_afternoon_strength.json"
+)
+
+V1_2_GOLDEN_MANIFEST_PATH = (
+    V1_2_GOLDEN_ROOT
+    / "manifest.json"
+)
+
+V1_2_STRENGTH_MANIFEST_PATH = (
+    V1_2_GOLDEN_ROOT
+    / "strength"
+    / "manifest.json"
 )
 
 
@@ -252,7 +276,17 @@ def test_michael_jordan_approved_weak_side_extreme_chart_regression():
 
     fixture = approval["fixture"]
     verification = approval["verification_levels"]
-    expected = approval["independent_calculation"]
+    approval_expected = dict(
+        approval["independent_calculation"]
+    )
+    approval_expected["method_version"] = approval[
+        "method_version"
+    ]
+
+    with MICHAEL_JORDAN_STRENGTH_GOLDEN_PATH.open(
+        encoding="utf-8",
+    ) as golden_file:
+        golden = json.load(golden_file)
 
     assert fixture["fixture_id"] == "1963_brooklyn_male_afternoon_v2"
     assert fixture["fixture_role"] == "weak_side"
@@ -265,7 +299,23 @@ def test_michael_jordan_approved_weak_side_extreme_chart_regression():
         ]
         is True
     )
-    assert verification["golden_regression"]["confirmed"] is False
+    assert verification["golden_regression"]["confirmed"] is True
+
+    assert golden["schema"] == "yakumo_strength_golden_v1"
+    assert golden["golden_version"] == "v1_2"
+    assert golden["fixture"] == {
+        "fixture_id": fixture["fixture_id"],
+        "fixture_role": fixture["fixture_role"],
+        "calculation_scope": fixture["calculation_scope"],
+        "approved_pillars": fixture["four_pillars"],
+        "day_master": fixture["day_master"],
+    }
+    assert golden["expected_strength"] == approval_expected
+    assert golden["known_uncertainties"] == approval[
+        "known_uncertainty"
+    ]
+
+    expected = golden["expected_strength"]
 
     approved_pillars = fixture["four_pillars"]
     day_stem = fixture["day_master"]
@@ -368,8 +418,74 @@ def test_michael_jordan_approved_weak_side_extreme_chart_regression():
         == expected_classification["technical_label"]
     )
     assert judgment["label"] == expected_classification["label"]
-    assert judgment["method"] == "final_strength_judgment_v2"
-    assert judgment["status"] == "provisional"
+    production_contract = golden["production_contract"][
+        "final_strength_judgment"
+    ]
+    assert judgment["method"] == production_contract["method"]
+    assert judgment["status"] == production_contract["status"]
+
+
+def test_michael_jordan_strength_golden_manifest_integrity():
+    with MICHAEL_JORDAN_STRENGTH_APPROVAL_PATH.open(
+        encoding="utf-8",
+    ) as approval_file:
+        approval = json.load(approval_file)
+
+    with V1_2_GOLDEN_MANIFEST_PATH.open(
+        encoding="utf-8",
+    ) as root_manifest_file:
+        root_manifest = json.load(root_manifest_file)
+
+    with V1_2_STRENGTH_MANIFEST_PATH.open(
+        encoding="utf-8",
+    ) as strength_manifest_file:
+        strength_manifest = json.load(strength_manifest_file)
+
+    assert root_manifest["file_count"] == len(root_manifest["files"])
+    assert strength_manifest["file_count"] == len(
+        strength_manifest["files"]
+    )
+
+    golden_name = MICHAEL_JORDAN_STRENGTH_GOLDEN_PATH.name
+    root_path = f"strength/{golden_name}"
+    root_entries = [
+        entry
+        for entry in root_manifest["files"]
+        if entry["path"] == root_path
+    ]
+    strength_entries = [
+        entry
+        for entry in strength_manifest["files"]
+        if entry["name"] == golden_name
+    ]
+
+    assert len(root_entries) == 1
+    assert len(strength_entries) == 1
+
+    root_entry = root_entries[0]
+    strength_entry = strength_entries[0]
+    assert root_entry["path"] == f"strength/{strength_entry['name']}"
+
+    golden_bytes = MICHAEL_JORDAN_STRENGTH_GOLDEN_PATH.read_bytes()
+    golden_sha256 = hashlib.sha256(golden_bytes).hexdigest()
+    assert root_entry["size"] == len(golden_bytes)
+    assert strength_entry["size"] == len(golden_bytes)
+    assert root_entry["sha256"] == golden_sha256
+    assert strength_entry["sha256"] == golden_sha256
+    assert root_entry["sha256"] == strength_entry["sha256"]
+
+    golden_verification = approval["verification_levels"][
+        "golden_regression"
+    ]
+    assert golden_verification["confirmed"] is True
+    assert golden_verification["golden_file"] == (
+        "tests/golden/v1_2/strength/"
+        "GC13_Michael_Jordan_1963_brooklyn_male_afternoon_strength.json"
+    )
+    assert golden_verification["manifest"] == (
+        "tests/golden/v1_2/manifest.json"
+    )
+    assert golden_verification["sha256"] == golden_sha256
 
 
 # =========================================================
