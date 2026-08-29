@@ -946,7 +946,11 @@ final label は、13.3で固定した既存の final threshold と technical lab
 
 AIへ「生データ」ではなく「鑑定可能な構造」を渡す。
 
-### 20.2 推奨トップレベル
+Reading Context v2 は既存の計算結果をAI向けにprojectionするschemaであり、占術計算を行わない。値の正本は既存のchart resultとし、Reading Context builderは四柱、五行、身強身弱、格局、用神、運勢その他の占術判断を再計算してはならない。
+
+### 20.2 Normative top-level contract
+
+以下のtop-level fieldはすべてREQUIREDとし、省略してはならない。
 
 ``` json
 {
@@ -954,6 +958,7 @@ AIへ「生データ」ではなく「鑑定可能な構造」を渡す。
   "engine_version": "1.2",
   "subject": {},
   "chart": {},
+  "birth_time_status": {},
   "day_master": {},
   "five_elements": {},
   "month_command": {},
@@ -968,29 +973,386 @@ AIへ「生データ」ではなく「鑑定可能な構造」を渡す。
   "interpretation_hints": [],
   "warnings": [],
   "uncertainty": [],
-  "source_metadata": {}
+  "source_metadata": {},
+  "evidence": [],
+  "validation": {},
+  "method": "reading_context_v2",
+  "version": "reading_context_v2",
+  "status": "ready_for_ai_reading",
+  "notes": []
 }
 ```
 
-### 20.3 source_metadata
+field typeは次のとおりとする。
+
+| field | type |
+|---|---|
+| `schema_version` | string |
+| `engine_version` | string \| null |
+| `subject` | object |
+| `chart` | object |
+| `birth_time_status` | object |
+| `day_master` | object \| null |
+| `five_elements` | object \| null |
+| `month_command` | object \| null |
+| `roots` | object \| null |
+| `strength` | object \| null |
+| `relations` | object \| null |
+| `pattern` | object \| null |
+| `useful_gods` | object \| null |
+| `luck` | object |
+| `consultation` | object \| null |
+| `facts` | array of object |
+| `interpretation_hints` | array of object |
+| `warnings` | array |
+| `uncertainty` | array of object |
+| `source_metadata` | object |
+| `evidence` | array of object |
+| `validation` | object |
+| `method` | string |
+| `version` | string |
+| `status` | string |
+| `notes` | array of string |
+
+値を取得する既存sourceが存在しないREQUIRED objectまたはscalarは`null`とする。正当に結果が0件であるcollectionは`[]`とする。source不在を空objectや`"unknown"`で表現してはならない。REQUIRED fieldの省略も認めない。
+
+`schema_version`、`method`、`version`、`status`は次の値に固定する。
+
+``` text
+schema_version = reading_context_v2
+method         = reading_context_v2
+version        = reading_context_v2
+status         = ready_for_ai_reading
+```
+
+`version`を`"2"`または`"2.0"`へ変換してはならない。
+
+### 20.3 subject / chart / birth time
+
+`subject`は次のfieldをREQUIREDとして保持する。各値は既存inputからprojectionし、sourceが存在しない場合は`null`とする。
+
+``` text
+birth_date:  string | null
+birth_time:  string | null
+birth_place: string | null
+gender:      string | null
+timezone:    string | null
+```
+
+v1の`natal_chart`は変更しない。v2では同じ値を`chart`へprojectionする。
+
+``` json
+{
+  "chart": {
+    "pillars": {
+      "year": {},
+      "month": {},
+      "day": {},
+      "hour": {}
+    },
+    "pillar_sequence": []
+  }
+}
+```
+
+利用可能な各pillar objectは次のfieldをREQUIREDとして保持する。
+
+``` text
+position:                     string
+pillar:                       string | null
+stem:                         string | null
+branch:                       string | null
+stem_ten_god:                 string | null
+twelve_stage:                 string | null
+hidden_stems:                 array
+main_hidden_stem:             string | null
+main_hidden_stem_ten_god:     string | null
+```
+
+四柱モードでは`chart.pillars.hour`をobjectとし、`pillar_sequence`は年・月・日・時の4要素を保持する。三柱モードでは時柱を推測せず、次の形をMUSTとする。
+
+``` json
+{
+  "chart": {
+    "pillars": {
+      "year": {},
+      "month": {},
+      "day": {},
+      "hour": null
+    },
+    "pillar_sequence": ["...", "...", "...", null]
+  }
+}
+```
+
+`birth_time_status`は既存の出生時刻既知・未知、`calculation_scope`、interpretation scope、luck timing precision、provisional flagをprojectionする。三柱モードでは既存confidence、warning、uncertaintyを変更してはならない。hour-dependent sourceが存在しない場合は`null`とし、fieldを省略してはならない。
+
+### 20.4 month command / roots / relations
+
+これらは既存chart resultからdeep-copy projectionし、Reading Context builder内で再計算してはならない。
+
+`month_command`が利用可能な場合は次のcomponentをすべてREQUIREDとする。各componentは対応sourceのobjectまたは`null`とする。
+
+``` json
+{
+  "month_command": {
+    "basic": {},
+    "weighted": {},
+    "seasonal": {},
+    "integrated": {}
+  }
+}
+```
+
+| component | source path |
+|---|---|
+| `basic` | `month_command` |
+| `weighted` | `weighted_month_command` |
+| `seasonal` | `seasonal_strength` |
+| `integrated` | `integrated_month_strength` |
+
+`roots`が利用可能な場合は次のcomponentをすべてREQUIREDとする。
+
+``` json
+{
+  "roots": {
+    "basic": {},
+    "weighted": {}
+  }
+}
+```
+
+| component | source path |
+|---|---|
+| `basic` | `root_strength` |
+| `weighted` | `weighted_root_strength` |
+
+`relations`が利用可能な場合は次のcomponentをすべてREQUIREDとする。
+
+``` json
+{
+  "relations": {
+    "clashes": {},
+    "combinations": {},
+    "trines": {},
+    "punishments": {},
+    "harms": {},
+    "breaks": {},
+    "strength": {}
+  }
+}
+```
+
+| component | source path |
+|---|---|
+| `clashes` | `branch_clashes` |
+| `combinations` | `branch_combinations` |
+| `trines` | `branch_trines` |
+| `punishments` | `branch_punishments` |
+| `harms` | `branch_harms` |
+| `breaks` | `branch_breaks` |
+| `strength` | `branch_relation_strength` |
+
+地支関係の`total_score`を日主強弱へのdirectional adjustmentとして再解釈してはならない。
+
+### 20.5 facts
+
+`facts`はflat registryとし、各entryは次のfieldをREQUIREDとする。
+
+``` json
+{
+  "code": "strength.final_score",
+  "category": "strength",
+  "value": 50.0,
+  "context_path": "strength.final_score",
+  "source_path": "final_strength_judgment.final_score",
+  "confidence": null
+}
+```
+
+``` text
+code:         string
+category:     string
+value:        any JSON value
+context_path: string
+source_path:  string
+confidence:   string | null
+```
+
+初回schema freezeで許可するfact codeは次のallowlistに限定する。
+
+``` text
+chart.pillar_sequence
+day_master.stem
+day_master.element
+five_elements.weighted_scores
+strength.final_score
+strength.technical_label
+strength.label
+strength.confidence
+pattern.primary_pattern
+useful_gods.primary_useful_element
+```
+
+factは既存chart/contextから確実にprojectionできる値だけを保持する。`value`は`context_path`が指す値と一致しなければならない。sourceにconfidenceがなければ`null`とする。narrative、新しい解釈、新しい占術判断、sourceに存在しない値をfactとして生成してはならない。allowlist外のfact codeを追加する場合はschema changeとしてreview、test、Golden差分を記録する。
+
+allowlistは許可範囲であり、全codeの出力を要求するものではない。対応source valueが存在しないfact entryは生成せず、`facts` arrayから省略する。
+
+### 20.6 interpretation_hints / consultation
+
+v1の`reading_sections`は変更しない。v2では同じ情報を`interpretation_hints`へprojectionし、`reading_sections`をv2 top-levelへ重複保持しない。
+
+各hintは次のfieldをREQUIREDとする。
+
+``` json
+{
+  "section": "career",
+  "focus": ["day_master", "strength"],
+  "instruction": "..."
+}
+```
+
+``` text
+section:     string
+focus:       array of string
+instruction: string
+```
+
+既存`reading_sections`に存在しないfocusまたはinstructionを生成してはならない。
+
+`consultation`はREQUIREDかつnullableとする。相談内容がない場合は`null`とし、空objectまたはfield省略で表現してはならない。相談内容がある場合は既存`consultation_context`をprojectionする。Reading Context v2は相談内容なしでも生成可能でなければならない。
+
+### 20.7 warnings / uncertainty
+
+`warnings`はREQUIRED arrayとし、既存chart resultの`warnings`を順序・値・型を変更せずdeep copyする。新しいwarningの生成、文言変更、structured objectへの推測変換を行ってはならない。warningがなければ`[]`とする。
+
+`uncertainty`はREQUIRED array of objectとし、既存chart resultのstructured uncertaintyを順序・値・型を変更せずdeep copyする。`code`、`category`、`status`、`severity`、`scope`、`message`を追加、削除、変更してはならない。uncertaintyがなければ`[]`とする。
+
+warningとuncertaintyを相互変換してはならない。Reading Context builderはdeduplicationやnormalizationによってsource情報を変更してはならない。
+
+### 20.8 source_metadata
 
 主要判定ごとに、
 
 ``` json
 {
+  "source_path": "...",
   "method": "...",
-  "version": "...",
+  "version": null,
   "status": "..."
 }
 ```
 
-を保持する。
+を保持する。各entryの`source_path`、`method`、`version`、`status`はREQUIREDであり、値のtypeはstringまたは`null`とする。sourceに独立したversion fieldが存在しない場合は`version: null`とし、method名のsuffixからversionを推測してはならない。fieldの省略や`"unknown"`による代用も認めない。
 
-### 20.4 禁止
+`source_metadata`は次のentryをREQUIREDとする。
+
+``` text
+engine
+five_elements
+month_command
+roots
+strength
+relations
+pattern
+useful_gods
+luck_pillars
+current_luck
+annual_luck
+integrated_luck
+```
+
+source pathは次を使用する。
+
+| entry | source path |
+|---|---|
+| `engine` | `engine_metadata` |
+| `five_elements` | `weighted_five_elements` |
+| `roots` | `weighted_root_strength` |
+| `strength` | `final_strength_judgment` |
+| `relations` | `branch_relation_strength` |
+| `pattern` | `pattern_judgment` |
+| `useful_gods` | `useful_gods` |
+| `luck_pillars` | `luck_pillars` |
+| `current_luck` | `current_luck` |
+| `annual_luck` | `annual_luck` |
+| `integrated_luck` | `integrated_luck` |
+
+`month_command`全体には単一の既存method/statusが存在しないため、aggregate entryの`source_path`、`method`、`version`、`status`は`null`とし、`basic`、`weighted`、`seasonal`、`integrated`のcomponent metadataを保持する。aggregate methodを新しく作ってはならない。
+
+### 20.9 evidence
+
+`evidence`はREQUIRED arrayとし、full evidence treeではなく、既存evidenceへのsummary/referenceだけを保持する。
+
+``` json
+{
+  "category": "strength",
+  "available": true,
+  "source_path": "final_strength_judgment.evidence",
+  "summary": {
+    "method": "final_strength_judgment_v2",
+    "status": "provisional"
+  }
+}
+```
+
+各entryは`category`、`available`、`source_path`、`summary`をREQUIREDとする。`category`はstring、`available`はboolean、`source_path`はstringまたは`null`、`summary`はobjectまたは`null`とする。
+
+sourceに存在しないevidence、summary、interpretation、judgmentを生成してはならない。Reading Context builderはevidenceを再解釈してはならない。evidenceが存在しない場合は`available: false`、`source_path: null`または確認済みsource path、`summary: null`として表現する。
+
+### 20.10 validation contract
+
+`validate_reading_context_v2()`はschemaとprojection整合性だけを検証し、占術的な正しさを再計算してはならない。`validation`は次のfieldをREQUIREDとする。
+
+``` json
+{
+  "valid": true,
+  "errors": [],
+  "missing_required_fields": [],
+  "unknown_fields": []
+}
+```
+
+validatorは最低限、次を検証する。
+
+-   `schema_version`、`method`、`version`、`status`の固定値。
+-   REQUIRED top-level fieldの存在とfield type。
+-   未定義top-level fieldおよびstrict core schema外fieldが存在しないこと。
+-   `chart.pillars`と`pillar_sequence`の構造的整合。
+-   四柱・三柱モードのhour規則。
+-   `consultation`がobjectまたは`null`であること。
+-   `warnings`と`uncertainty`のtype。
+-   `source_metadata`のREQUIRED entryと共通field。
+-   fact codeがallowlist内で重複していないこと。
+-   factの`context_path`が解決でき、`value`と一致すること。
+-   evidence entryのtypeとsource reference構造。
+
+strict core schemaはv2のtop-level、wrapper、facts、interpretation hints、source metadata、evidence、validationに適用する。既存production resultをdeep copyするmonth command、roots、relationsの各component内部は、それぞれのsource schemaを維持し、Reading Context validatorが独自にfieldを追加または削除してはならない。
+
+validatorは四柱、五行、score、label、格局、用神、運勢を再計算してはならない。confidence、warning、uncertainty、statusを変更してはならない。
+
+### 20.11 backward compatibility
+
+Reading Context v2はopt-in builderとして追加する。既存の`reading_context_v1` producer、schema、method、status、field名をin-placeで変更してはならない。
+
+次をv2導入だけを理由に変更してはならない。
+
+-   `tests/golden/v1_1/**`
+-   `reading_api_v1`
+-   `reading_product_v1`
+-   v1の`natal_chart`および`reading_sections`
+
+v2 builderは既存chart resultおよびv1 contextからのprojectionだけを行う。v1 consumerをv2へ一括切替してはならず、consumerごとに明示的なmigrationと互換testを必要とする。
+
+### 20.12 禁止
 
 -   AI用 prompt 内で命式を再計算させない。
 -   schema にない値を AI が「確定値」として追加しない。
 -   provisional を resolved のように見せない。
+-   v2 builder内で占術計算を再実行しない。
+-   sourceに存在しないfact、evidence、summary、interpretation、judgmentを生成しない。
+-   v2導入を理由に占術rule、score、label、confidence、warning、uncertaintyを変更しない。
+-   `final_strength_judgment.status`を`provisional`から`resolved`へ変更しない。
 
 ------------------------------------------------------------------------
 
