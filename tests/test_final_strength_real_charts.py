@@ -21,7 +21,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from engine.chart import calculate_chart
+from engine.chart import (
+    _calculate_strength_from_pillars,
+    calculate_chart,
+)
+from engine.pillars import build_pillar_data
 
 
 GC03_STRENGTH_APPROVAL_PATH = (
@@ -29,6 +33,13 @@ GC03_STRENGTH_APPROVAL_PATH = (
     / "verification"
     / "extreme_fixtures"
     / "GC03_1984_fukuoka_male_afternoon_strength_v1.json"
+)
+
+MICHAEL_JORDAN_STRENGTH_APPROVAL_PATH = (
+    Path(__file__).parent
+    / "verification"
+    / "extreme_fixtures"
+    / "Michael_Jordan_1963_brooklyn_male_afternoon_strength_v1.json"
 )
 
 
@@ -231,6 +242,134 @@ def test_gc03_approved_strong_side_extreme_chart_regression():
             "label"
         ]
     )
+
+
+def test_michael_jordan_approved_weak_side_extreme_chart_regression():
+    with MICHAEL_JORDAN_STRENGTH_APPROVAL_PATH.open(
+        encoding="utf-8",
+    ) as approval_file:
+        approval = json.load(approval_file)
+
+    fixture = approval["fixture"]
+    verification = approval["verification_levels"]
+    expected = approval["independent_calculation"]
+
+    assert fixture["fixture_id"] == "1963_brooklyn_male_afternoon_v2"
+    assert fixture["fixture_role"] == "weak_side"
+    assert fixture["calculation_scope"] == "four_pillars"
+    assert verification["calendar_verified"]["confirmed"] is True
+    assert verification["strength_verified"]["confirmed"] is True
+    assert (
+        verification["strength_verified"][
+            "independent_calculation_completed_before_comparison"
+        ]
+        is True
+    )
+    assert verification["golden_regression"]["confirmed"] is False
+
+    approved_pillars = fixture["four_pillars"]
+    day_stem = fixture["day_master"]
+    pillars = {
+        "year": build_pillar_data(approved_pillars["year"], day_stem),
+        "month": build_pillar_data(approved_pillars["month"], day_stem),
+        "day": build_pillar_data(
+            approved_pillars["day"],
+            day_stem,
+            is_day_pillar=True,
+        ),
+        "hour": build_pillar_data(approved_pillars["hour"], day_stem),
+        "day_master": {"stem": day_stem},
+        "warnings": [],
+    }
+
+    actual = _calculate_strength_from_pillars(
+        pillars,
+        birth_time_unknown=False,
+        warnings=[],
+    )
+
+    expected_elements = expected["weighted_five_elements"]
+    actual_elements = actual["weighted_five_elements"]
+    assert actual_elements["scores"] == {
+        element: score
+        for element, score in expected_elements.items()
+        if element != "total"
+    }
+    assert actual_elements["total"] == expected_elements["total"]
+
+    expected_balance = expected["supporting_draining"]
+    actual_balance = actual["weighted_day_master_balance"]
+    for key in (
+        "supporting_score",
+        "draining_score",
+        "supporting_ratio",
+        "draining_ratio",
+    ):
+        assert actual_balance[key] == expected_balance[key]
+
+    expected_roots = expected["weighted_roots"]
+    actual_roots = actual["weighted_root_strength"]
+    assert (
+        actual_roots["total_root_score"]
+        == expected_roots["total_root_score"]
+    )
+    assert (
+        actual["weighted_strength_judgment"]["adjustments"][
+            "weighted_root_bonus"
+        ]
+        == expected_roots["weighted_root_bonus"]
+    )
+
+    expected_seasonal = expected["seasonal_strength"]
+    actual_seasonal = actual["seasonal_strength"]
+    assert actual_seasonal["state"] == expected_seasonal["state"]
+    assert actual_seasonal["score"] == expected_seasonal["score"]
+
+    expected_month = expected["weighted_month_integration"]
+    actual_month = actual["weighted_month_command"]
+    for key in ("supporting_ratio", "draining_ratio"):
+        assert actual_month[key] == expected_month[key]
+
+    actual_integrated = actual["integrated_month_strength"]
+    assert (
+        actual_integrated["hidden_stem_balance"]
+        == expected_month["hidden_stem_balance"]
+    )
+    assert (
+        actual_integrated["hidden_stem_adjustment"]
+        == expected_month["hidden_stem_adjustment"]
+    )
+    assert (
+        actual_integrated["integrated_score"]
+        == expected_month["integrated_month_score"]
+    )
+
+    expected_adjustments = expected["final_adjustments"]
+    expected_scores = expected["scores"]
+    expected_classification = expected["classification"]
+    actual_weighted = actual["weighted_strength_judgment"]
+    judgment = actual["final_strength_judgment"]
+
+    assert actual_weighted["final_score"] == expected_scores["weighted_base_score"]
+    assert judgment["base_score"] == expected_scores["weighted_base_score"]
+    assert (
+        judgment["branch_adjustment"]
+        == expected_adjustments["branch_adjustment"]
+    )
+    assert (
+        judgment["transformation_adjustment"]
+        == expected_adjustments["transformation_adjustment"]
+    )
+    assert judgment["adjustment_total"] == expected_scores["adjustment_total"]
+    assert judgment["raw_final_score"] == expected_scores["raw_final_score"]
+    assert judgment["final_score"] == expected_scores["final_score"]
+    assert (
+        judgment["technical_label"]
+        == expected_classification["technical_label"]
+    )
+    assert judgment["label"] == expected_classification["label"]
+    assert judgment["method"] == "final_strength_judgment_v2"
+    assert judgment["status"] == "provisional"
 
 
 # =========================================================
