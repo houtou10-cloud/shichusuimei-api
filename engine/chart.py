@@ -228,6 +228,161 @@ def build_birth_time_status(
     }
 
 
+def _calculate_strength_from_pillars(
+    pillars: dict,
+    *,
+    birth_time_unknown: bool,
+    warnings: list[str],
+) -> dict:
+    """Calculate the shared post-calendar strength interpretation."""
+    chart_data = {
+        "year": pillars["year"],
+        "month": pillars["month"],
+        "day": pillars["day"],
+        "hour": pillars["hour"],
+    }
+
+    stem_combinations = find_stem_combinations(chart_data)
+    stem_combination_conflicts = evaluate_stem_combination_conflicts(
+        stem_combinations,
+        chart_data,
+    )
+    stem_combination_conflict_types = (
+        evaluate_stem_combination_conflict_types(
+            stem_combination_conflicts
+        )
+    )
+    stem_transformations = evaluate_stem_transformations(
+        stem_combinations,
+        chart_data,
+    )
+    transformation_roots = evaluate_transformation_roots(
+        stem_transformations,
+        chart_data,
+    )
+    transformation_exposures = evaluate_transformation_exposures(
+        stem_transformations,
+        chart_data,
+    )
+    stem_transformation_judgment = (
+        evaluate_stem_transformation_judgment(
+            stem_transformations,
+            transformation_roots,
+            transformation_exposures,
+            stem_combination_conflicts,
+            stem_combination_conflict_types,
+        )
+    )
+
+    five_elements = calculate_five_elements(chart_data)
+    weighted_five_elements = calculate_weighted_five_elements(
+        chart_data
+    )
+    day_stem = pillars["day_master"]["stem"]
+    day_master_balance = classify_five_elements_for_day_master(
+        day_stem,
+        five_elements,
+    )
+    weighted_day_master_balance = (
+        classify_weighted_elements_for_day_master(
+            day_stem,
+            weighted_five_elements,
+        )
+    )
+    root_strength = find_roots(day_stem, chart_data)
+    weighted_root_strength = calculate_weighted_roots(
+        day_stem,
+        chart_data,
+    )
+
+    branch_clashes = find_branch_clashes(chart_data)
+    branch_combinations = find_branch_combinations(chart_data)
+    branch_trines = find_branch_trines(chart_data)
+    branch_punishments = find_branch_punishments(chart_data)
+    branch_harms = find_branch_harms(chart_data)
+    branch_breaks = find_branch_breaks(chart_data)
+    branch_relation_strength = calculate_branch_relation_strength(
+        branch_clashes,
+        branch_combinations,
+        branch_trines,
+        branch_punishments,
+        branch_harms,
+        branch_breaks,
+    )
+
+    month_command = classify_month_relationship(
+        day_stem,
+        pillars["month"]["branch"],
+    )
+    weighted_month_command = calculate_weighted_month_command(
+        day_stem,
+        pillars["month"],
+    )
+    seasonal_strength = evaluate_seasonal_strength(
+        day_stem,
+        pillars["month"]["branch"],
+    )
+    integrated_month_strength = calculate_integrated_month_strength(
+        seasonal_strength,
+        weighted_month_command,
+    )
+    strength_judgment = calculate_provisional_strength(
+        day_master_balance,
+        root_strength,
+        month_command,
+    )
+    weighted_strength_judgment = (
+        calculate_weighted_provisional_strength(
+            weighted_day_master_balance,
+            weighted_root_strength,
+            month_command,
+            integrated_month_strength,
+        )
+    )
+
+    warnings.extend(pillars.get("warnings", []))
+
+    final_strength_judgment = evaluate_final_strength_judgment(
+        weighted_strength_judgment,
+        weighted_root_strength,
+        integrated_month_strength,
+        branch_relation_strength,
+        stem_transformation_judgment,
+        birth_time_unknown=birth_time_unknown,
+    )
+
+    return {
+        "chart_data": chart_data,
+        "stem_combinations": stem_combinations,
+        "stem_combination_conflicts": stem_combination_conflicts,
+        "stem_combination_conflict_types": stem_combination_conflict_types,
+        "stem_transformations": stem_transformations,
+        "transformation_roots": transformation_roots,
+        "transformation_exposures": transformation_exposures,
+        "stem_transformation_judgment": stem_transformation_judgment,
+        "five_elements": five_elements,
+        "weighted_five_elements": weighted_five_elements,
+        "day_master_balance": day_master_balance,
+        "weighted_day_master_balance": weighted_day_master_balance,
+        "root_strength": root_strength,
+        "weighted_root_strength": weighted_root_strength,
+        "branch_clashes": branch_clashes,
+        "branch_combinations": branch_combinations,
+        "branch_trines": branch_trines,
+        "branch_punishments": branch_punishments,
+        "branch_harms": branch_harms,
+        "branch_breaks": branch_breaks,
+        "branch_relation_strength": branch_relation_strength,
+        "month_command": month_command,
+        "weighted_month_command": weighted_month_command,
+        "seasonal_strength": seasonal_strength,
+        "integrated_month_strength": integrated_month_strength,
+        "strength_judgment": strength_judgment,
+        "weighted_strength_judgment": weighted_strength_judgment,
+        "final_strength_judgment": final_strength_judgment,
+    }
+
+
 def calculate_chart(
     req,
     target_datetime: datetime | None = None,
@@ -334,211 +489,43 @@ def calculate_chart(
     if birth_time is None:
         pillars["hour"] = None
 
-    chart_data = {
-        "year": pillars["year"],
-        "month": pillars["month"],
-        "day": pillars["day"],
-        "hour": pillars["hour"],
-    }
-
-    stem_combinations = (
-        find_stem_combinations(
-            chart_data
-        )
+    strength_context = _calculate_strength_from_pillars(
+        pillars,
+        birth_time_unknown=(
+            birth_time_status["calculation_scope"]
+            == "three_pillars"
+        ),
+        warnings=warnings,
     )
 
-    stem_combination_conflicts = (
-        evaluate_stem_combination_conflicts(
-            stem_combinations,
-            chart_data,
-        )
-    )
-
-    stem_combination_conflict_types = (
-        evaluate_stem_combination_conflict_types(
-            stem_combination_conflicts
-        )
-    )
-
-    stem_transformations = (
-        evaluate_stem_transformations(
-            stem_combinations,
-            chart_data,
-        )
-    )
-
-    transformation_roots = (
-        evaluate_transformation_roots(
-            stem_transformations,
-            chart_data,
-        )
-    )
-
-    transformation_exposures = (
-        evaluate_transformation_exposures(
-            stem_transformations,
-            chart_data,
-        )
-    )
-
-    stem_transformation_judgment = (
-        evaluate_stem_transformation_judgment(
-            stem_transformations,
-            transformation_roots,
-            transformation_exposures,
-            stem_combination_conflicts,
-            stem_combination_conflict_types,
-        )
-    )
-
-    five_elements = calculate_five_elements(
-        chart_data
-    )
-
-    weighted_five_elements = (
-        calculate_weighted_five_elements(
-            chart_data
-        )
-    )
-
-    day_master_balance = (
-        classify_five_elements_for_day_master(
-            pillars["day_master"]["stem"],
-            five_elements,
-        )
-    )
-
-    weighted_day_master_balance = (
-        classify_weighted_elements_for_day_master(
-            pillars["day_master"]["stem"],
-            weighted_five_elements,
-        )
-    )
-
-    root_strength = find_roots(
-        pillars["day_master"]["stem"],
-        chart_data,
-    )
-
-    weighted_root_strength = (
-        calculate_weighted_roots(
-            pillars["day_master"]["stem"],
-            chart_data,
-        )
-    )
-
-    branch_clashes = (
-        find_branch_clashes(
-            chart_data
-        )
-    )
-
-    branch_combinations = (
-        find_branch_combinations(
-            chart_data
-        )
-    )
-
-    branch_trines = (
-        find_branch_trines(
-            chart_data
-        )
-    )
-
-    branch_punishments = (
-        find_branch_punishments(
-            chart_data
-        )
-    )
-
-    branch_harms = (
-        find_branch_harms(
-            chart_data
-        )
-    )
-
-    branch_breaks = (
-        find_branch_breaks(
-            chart_data
-        )
-    )
-
-    branch_relation_strength = (
-        calculate_branch_relation_strength(
-            branch_clashes,
-            branch_combinations,
-            branch_trines,
-            branch_punishments,
-            branch_harms,
-            branch_breaks,
-        )
-    )
-
-    month_command = (
-        classify_month_relationship(
-            pillars["day_master"]["stem"],
-            pillars["month"]["branch"],
-        )
-    )
-
-    weighted_month_command = (
-        calculate_weighted_month_command(
-            pillars["day_master"]["stem"],
-            pillars["month"],
-        )
-    )
-
-    seasonal_strength = (
-        evaluate_seasonal_strength(
-            pillars["day_master"]["stem"],
-            pillars["month"]["branch"],
-        )
-    )
-
-    integrated_month_strength = (
-        calculate_integrated_month_strength(
-            seasonal_strength,
-            weighted_month_command,
-        )
-    )
-
-    strength_judgment = (
-        calculate_provisional_strength(
-            day_master_balance,
-            root_strength,
-            month_command,
-        )
-    )
-
-    weighted_strength_judgment = (
-        calculate_weighted_provisional_strength(
-            weighted_day_master_balance,
-            weighted_root_strength,
-            month_command,
-            integrated_month_strength,
-        )
-    )
-
-    warnings.extend(
-        pillars.get(
-            "warnings",
-            [],
-        )
-    )
-
-    final_strength_judgment = (
-        evaluate_final_strength_judgment(
-            weighted_strength_judgment,
-            weighted_root_strength,
-            integrated_month_strength,
-            branch_relation_strength,
-            stem_transformation_judgment,
-            birth_time_unknown=(
-                birth_time_status["calculation_scope"]
-                == "three_pillars"
-            ),
-        )
-    )
+    chart_data = strength_context["chart_data"]
+    stem_combinations = strength_context["stem_combinations"]
+    stem_combination_conflicts = strength_context["stem_combination_conflicts"]
+    stem_combination_conflict_types = strength_context["stem_combination_conflict_types"]
+    stem_transformations = strength_context["stem_transformations"]
+    transformation_roots = strength_context["transformation_roots"]
+    transformation_exposures = strength_context["transformation_exposures"]
+    stem_transformation_judgment = strength_context["stem_transformation_judgment"]
+    five_elements = strength_context["five_elements"]
+    weighted_five_elements = strength_context["weighted_five_elements"]
+    day_master_balance = strength_context["day_master_balance"]
+    weighted_day_master_balance = strength_context["weighted_day_master_balance"]
+    root_strength = strength_context["root_strength"]
+    weighted_root_strength = strength_context["weighted_root_strength"]
+    branch_clashes = strength_context["branch_clashes"]
+    branch_combinations = strength_context["branch_combinations"]
+    branch_trines = strength_context["branch_trines"]
+    branch_punishments = strength_context["branch_punishments"]
+    branch_harms = strength_context["branch_harms"]
+    branch_breaks = strength_context["branch_breaks"]
+    branch_relation_strength = strength_context["branch_relation_strength"]
+    month_command = strength_context["month_command"]
+    weighted_month_command = strength_context["weighted_month_command"]
+    seasonal_strength = strength_context["seasonal_strength"]
+    integrated_month_strength = strength_context["integrated_month_strength"]
+    strength_judgment = strength_context["strength_judgment"]
+    weighted_strength_judgment = strength_context["weighted_strength_judgment"]
+    final_strength_judgment = strength_context["final_strength_judgment"]
 
     pattern_candidates = (
         evaluate_pattern_candidates(

@@ -1,6 +1,10 @@
 ﻿from types import SimpleNamespace
 
-from engine.chart import calculate_chart
+from engine.chart import (
+    _calculate_strength_from_pillars,
+    calculate_chart,
+)
+from engine.pillars import build_pillar_data
 
 
 def make_request(
@@ -27,6 +31,42 @@ def make_verified_request():
         birth_place="石川県",
         gender="female",
     )
+
+
+def test_direct_pillars_strength_context_matches_calculate_chart():
+    request = make_request(
+        birth_date="1984-07-22",
+        birth_time="13:40",
+        birth_place="福岡県",
+        gender="male",
+    )
+    chart_result = calculate_chart(request)
+    day_stem = "丁"
+    pillars = {
+        "year": build_pillar_data("甲子", day_stem),
+        "month": build_pillar_data("辛未", day_stem),
+        "day": build_pillar_data(
+            "丁巳",
+            day_stem,
+            is_day_pillar=True,
+        ),
+        "hour": build_pillar_data("丁未", day_stem),
+        "day_master": {"stem": day_stem},
+        "warnings": [],
+    }
+    direct_warnings: list[str] = []
+
+    direct_result = _calculate_strength_from_pillars(
+        pillars,
+        birth_time_unknown=False,
+        warnings=direct_warnings,
+    )
+
+    assert direct_result["chart_data"] == chart_result["chart"]
+    for key, value in direct_result.items():
+        if key != "chart_data":
+            assert value == chart_result[key]
+    assert direct_warnings == []
 
 
 def test_chart_1984_early_hour():
