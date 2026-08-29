@@ -1,0 +1,132 @@
+{
+  "schema": "yakumo_extreme_fixture_approval_v1",
+  "fixture": {
+    "fixture_id": "1963_brooklyn_male_afternoon_v2",
+    "fixture_role": "weak_side",
+    "birth_date": "1963-02-17",
+    "birth_time": "13:40",
+    "location": "Brooklyn, New York, USA",
+    "timezone": "EST / UTC-5",
+    "gender": "male",
+    "four_pillars": {
+      "year": "癸卯",
+      "month": "甲寅",
+      "day": "辛卯",
+      "hour": "乙未"
+    },
+    "day_master": "辛",
+    "calculation_scope": "four_pillars"
+  },
+  "verification_levels": {
+    "calendar_verified": {
+      "confirmed": false,
+      "method": null,
+      "source": null,
+      "source_reference": null,
+      "reviewer": null,
+      "reviewed_at": null,
+      "source_note": "Astro-Databankではbirth certificate / birth recordに基づくRodden Rating AAとして出生情報が記録され、複数の外部BaZi資料で四柱が一致すると報告されている。",
+      "note": "正式なcalendar source reference、calendar reviewerおよびreview dateがrepository metadataとして固定されていないため、calendar_verifiedは未確認とする。"
+    },
+    "strength_verified": {
+      "confirmed": true,
+      "reviewer": {
+        "role": "strength-domain-reviewer",
+        "name": "human-approved"
+      },
+      "reviewed_at": "2026-08-29T15:32:31+09:00",
+      "method": "yakumo_v1_2_strength_rules_independent_worksheet_v1",
+      "rule_source": {
+        "path": "docs/yakumo_engine_spec_v1_2.md",
+        "section": "13.4 Strength Calculation Rules",
+        "git_commit": "fab7d17a47c9ddbe050bfbdc9dffd765370b8f42"
+      },
+      "independent_calculation_completed_before_comparison": true
+    },
+    "golden_regression": {
+      "confirmed": false,
+      "golden_file": null,
+      "manifest": null,
+      "sha256": null,
+      "note": "Golden作成、manifest登録およびregression test固定は未実施。"
+    }
+  },
+  "independent_calculation": {
+    "weighted_five_elements": {
+      "木": 4.7,
+      "火": 0.6,
+      "土": 0.7,
+      "金": 1.0,
+      "水": 1.0,
+      "total": 8.0
+    },
+    "supporting_draining": {
+      "supporting_elements": [
+        "金",
+        "土"
+      ],
+      "draining_elements": [
+        "水",
+        "木",
+        "火"
+      ],
+      "supporting_score": 1.7,
+      "draining_score": 6.3,
+      "supporting_ratio": 21.25,
+      "draining_ratio": 78.75
+    },
+    "weighted_roots": {
+      "roots": [],
+      "total_root_score": 0.0,
+      "weighted_root_bonus": 0.0
+    },
+    "seasonal_strength": {
+      "month_branch": "寅",
+      "day_master_element": "金",
+      "state": "囚",
+      "score": -6.0
+    },
+    "weighted_month_integration": {
+      "supporting_ratio": 10.0,
+      "draining_ratio": 90.0,
+      "hidden_stem_balance": -0.8,
+      "hidden_stem_adjustment": -3.2,
+      "integrated_month_score": -9.2
+    },
+    "final_adjustments": {
+      "branch_adjustment": 0.0,
+      "branch_reason": "no_explicit_day_master_adjustment",
+      "transformation_adjustment": 0.0,
+      "transformation_reason": "no_stem_combination_candidate"
+    },
+    "scores": {
+      "weighted_base_score": 12.05,
+      "adjustment_total": 0.0,
+      "raw_final_score": 12.05,
+      "final_score": 12.05
+    },
+    "classification": {
+      "technical_label": "very_weak",
+      "label": "極身弱"
+    }
+  },
+  "comparison": {
+    "performed_after_independent_calculation": false,
+    "engine_match": null,
+    "golden_match": null,
+    "compared_at": null,
+    "note": "Yakumo EngineおよびGoldenとの比較は未実施。"
+  },
+  "method_version": "yakumo_v1_2_strength_rules_independent_worksheet_v1",
+  "known_uncertainty": [
+    "calendar_verification_metadata_pending",
+    "true_solar_time_adjustment_not_applied",
+    "hidden_stem_weights_are_v1_2_compatibility_rules",
+    "season_transition_adjustment_not_applied",
+    "days_since_season_entry_not_applied",
+    "branch_directional_evaluation_limited",
+    "transformation_judgment_contains_provisional_rules"
+  ],
+  "approval_statement": "Michael Jordanケースの独立strength worksheet、final_score 12.05、very_weak / 極身弱をstrength-domain-reviewerが正式承認。",
+  "approval_note": "この承認はYakumo Engine v1.2 compatibility rulesとの整合性を確認するものであり、四柱推命上の普遍的な唯一解を主張しない。calendar verificationおよびgolden regressionの完了を意味しない。"
+}
