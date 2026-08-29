@@ -19,14 +19,17 @@
   },
   "verification_levels": {
     "calendar_verified": {
-      "confirmed": false,
-      "method": null,
-      "source": null,
-      "source_reference": null,
-      "reviewer": null,
-      "reviewed_at": null,
-      "source_note": "Astro-Databankではbirth certificate / birth recordに基づくRodden Rating AAとして出生情報が記録され、複数の外部BaZi資料で四柱が一致すると報告されている。",
-      "note": "正式なcalendar source reference、calendar reviewerおよびreview dateがrepository metadataとして固定されていないため、calendar_verifiedは未確認とする。"
+      "confirmed": true,
+      "method": "externally_verified_four_pillars_v2",
+      "source": "Cantian AI; Astro-Databank / Astrodienst",
+      "source_reference": "tests/verification/evidence/extreme_fixtures/Michael_Jordan_1963_brooklyn_Cantian_20260829.png (sha256: 4A4D422468261E1F54B39E86021666A98B45995039B8D988FCD1B3C31596AA3E); https://www.cantian.ai/cases/detail/zh_cn/michael_jordan.html; https://www.astro.com/astro-databank/Jordan%2C_Michael",
+      "reviewer": {
+        "role": "calendar-domain-reviewer",
+        "name": "human-approved"
+      },
+      "reviewed_at": "2026-08-29T16:55:35+09:00",
+      "source_note": "Astro-Databank / AstrodienstのBC/BR in hand・Rodden Rating AAによる出生情報（1963-02-17 13:40、Brooklyn, New York, USA、EST / UTC-5、male）と、repository evidence artifactに固定したCantian AIの四柱（癸卯 / 甲寅 / 辛卯 / 乙未）を独立確認した。確認scopeはrecorded civil standard time、EST / UTC-5、true-solar-time correctionなしに限定する。",
+      "note": "Human Browser Screenshotでは13:40 / 乙未を確認した一方、過去のCodex直接取得では同一Cantian URLから18:00 / 丁酉が表示された。dynamic content、regional difference、cache、page variant、editing/history等の可能性はあるが原因は未確定であり、この表示差を既知のuncertaintyとして保持する。fixtureはAstro-Databank / Astrodienstで確認されたrecorded birth time 13:40を採用し、乙未を全流派・全補正方式に共通する普遍的な唯一解とは扱わない。"
     },
     "strength_verified": {
       "confirmed": true,
