@@ -1,7 +1,12 @@
 {
   "baseline": "Yakumo Engine v1.2",
-  "file_count": 1,
+  "file_count": 2,
   "files": [
+    {
+      "path": "reading_context/GC03_1984_fukuoka_male_afternoon_reading_context_v2.json",
+      "size": 90794,
+      "sha256": "43ac944b53923fb9bf04ea320472dbdfec65962b7f1f20ed74f35613e1d7c4bd"
+    },
     {
       "path": "strength/GC13_Michael_Jordan_1963_brooklyn_male_afternoon_strength.json",
       "size": 2768,
