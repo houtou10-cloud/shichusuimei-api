@@ -191,6 +191,139 @@ v1.2 の主要判定は、可能な限り次の共通形式へ寄せる。
 -   AIに渡す前に、エンジン側で判定根拠を構造化する。
 -   method 名だけでなく rule version を追跡可能にする。
 
+### 4.2 Common Judgment Metadata Contract
+
+`common_judgment_metadata_v1`を、既存component outputを置換しないopt-in companion metadata contractとして定義する。本contractはReading Context v2の26-field schemaには追加しない。
+
+adapterが返すcontract envelopeは`schema_version`と`components`をREQUIREDとする。
+
+``` json
+{
+  "schema_version": "common_judgment_metadata_v1",
+  "components": {
+    "strength": {
+      "source_path": "final_strength_judgment",
+      "method": "final_strength_judgment_v2",
+      "version": null,
+      "status": "provisional",
+      "component_status": null,
+      "evidence": {},
+      "warnings": [],
+      "uncertainty": []
+    }
+  }
+}
+```
+
+`schema_version`は固定文字列`common_judgment_metadata_v1`、`components`はregistered component名をkey、component recordをvalueとするobjectとする。各registered component recordは次のfieldをすべてREQUIREDとして持ち、fieldを省略してはならない。
+
+| field | type | null | normative semantics |
+|---|---|---|---|
+| `source_path` | string \| null | source不存在時のみ可 | raw chart result上のprovenance path。present sourceではnon-null stringとし、Golden verification pathとして扱ってはならない |
+| `method` | string \| null | source不存在時等に可 | registered calculation sourceが存在する場合はnon-null stringとし、raw sourceからexact projectionする。algorithm/rule identifierでありversion sourceではない |
+| `version` | string \| null | 可 | component ownerが明示的に提供した独立versionだけを使用する |
+| `status` | `resolved` \| `provisional` \| `uncertain` \| `unsupported` \| null | 可 | Judgment certainty専用namespace |
+| `component_status` | string \| null | 可 | detection result、processing result、phase、lifecycle、その他component固有状態のraw value |
+| `evidence` | object \| array \| null | 可 | raw sourceに存在するcalculation evidenceだけをexact deep copyする |
+| `warnings` | array of string | 不可 | sourceのuser-visible non-structured noticeをexact projectionする |
+| `uncertainty` | array of structured uncertainty object | 不可 | sourceのstructured uncertaintyをexact projectionする |
+
+empty collectionは`[]`、missing nullable metadataは`null`とする。field omissionおよび`"unknown"`による代用は禁止する。
+
+`method`は少なくとも、`weighted_five_elements`、month commandの`basic` / `weighted` / `seasonal` / `integrated`各component、`weighted_root_strength`、`final_strength_judgment`、`branch_relation_strength`、`pattern_judgment`、`useful_gods`、`luck_pillars`、`current_luck`、`annual_luck`、`integrated_luck`について、source objectが存在する場合にnon-null REQUIREDとする。
+
+初期source registryは次のとおりとする。`month_command.*`は`components.month_command.components`配下のnested componentを表す。adapterはこのregistryにないsourceを推測または自動追加してはならない。
+
+| component key | raw chart-result source path |
+|---|---|
+| `five_elements` | `weighted_five_elements` |
+| `month_command.basic` | `month_command` |
+| `month_command.weighted` | `weighted_month_command` |
+| `month_command.seasonal` | `seasonal_strength` |
+| `month_command.integrated` | `integrated_month_strength` |
+| `roots` | `weighted_root_strength` |
+| `strength` | `final_strength_judgment` |
+| `relations` | `branch_relation_strength` |
+| `pattern` | `pattern_judgment` |
+| `useful_gods` | `useful_gods` |
+| `luck_pillars` | `luck_pillars` |
+| `current_luck` | `current_luck` |
+| `annual_luck` | `annual_luck` |
+| `integrated_luck` | `integrated_luck` |
+
+source component自体が存在しない場合もregistered component keyと全REQUIRED fieldは保持し、`source_path`、`method`、`version`、`status`、`component_status`、`evidence`は`null`、`warnings`と`uncertainty`は`[]`とする。calculationではないengine lifecycle metadataでは`method: null`を許す。
+
+単一の既存methodを持たないmonth command aggregateはgroup containerとし、8つのREQUIRED metadata fieldに加えて`components` objectを持つ。aggregateの`source_path`、`method`、`version`、`status`、`component_status`、`evidence`は`null`、`warnings`と`uncertainty`は`[]`とし、`basic`、`weighted`、`seasonal`、`integrated`の4 component recordを個別に保持する。
+
+### 4.3 Status Namespace
+
+canonical Judgment statusは次の4語だけとする。
+
+``` text
+resolved
+provisional
+uncertain
+unsupported
+```
+
+-   `resolved`: 採用済みruleと現在のvalidation scope内で確定している。
+-   `provisional`: calculationは成立しているが、ruleまたはvalidation上の保留が残る。
+-   `uncertain`: input、boundary、calculation condition等により確信できない。
+-   `unsupported`: 現行ruleでは評価対象外または判定不能である。
+
+`status: null`はcanonical Judgment statusがsourceに存在しないことを意味する。`null`を`unsupported`の代用にしてはならない。
+
+processing result、detection result、phase、lifecycle state、component固有状態は`component_status`へ分離し、canonical Judgment certaintyとして解釈してはならない。
+
+legacy raw statusは次の手順だけで移行する。
+
+1.  raw statusがcanonical 4語と完全一致する場合は、`status = raw status`、`component_status = null`とする。
+2.  human-reviewed explicit mapping registryに存在する場合は、`status = mapped canonical value`、`component_status = raw status`とする。
+3.  その他は、`status = null`、`component_status = raw status`とする。
+
+substring、prefix、suffix、regexによるstatus推測は禁止する。
+
+初期explicit mapping registryは次のとおりとする。
+
+| raw status | canonical status |
+|---|---|
+| `provisional_weights` | `provisional` |
+| `provisional_month_command` | `provisional` |
+| `provisional_weighted_month_command` | `provisional` |
+| `provisional_seasonal_strength` | `provisional` |
+| `provisional_integrated_month_strength` | `provisional` |
+| `provisional_weighted_roots` | `provisional` |
+| `provisional_branch_relation_strength` | `provisional` |
+| `provisional_pattern_judgment_v2` | `provisional` |
+| `provisional_useful_gods_v3` | `provisional` |
+| `provisional_luck_pillars_v2` | `provisional` |
+| `provisional_annual_luck_v1` | `provisional` |
+| `provisional_integrated_luck_v1` | `provisional` |
+
+`current_luck_resolved`はcurrent-luckのcomponent-specific stateであり、canonical `resolved`へmappingしてはならない。
+
+### 4.4 Evidence Semantics
+
+evidenceは次の3種類を分離する。
+
+1.  Calculation evidence: score、判定、候補、採否等の既存計算根拠。Common Judgment recordの`evidence`へ入れてよいのはこれだけとする。
+2.  Provenance: `source_path`、`method`、`version`、raw component status等。calculation evidenceへ混入してはならない。
+3.  Golden / Human Verification Evidence: approval record、Golden wrapper、manifest、SHA-256、commit history。runtime Common Judgmentへ入れてはならない。
+
+Goldenの存在をastrology calculation evidenceとして扱ってはならない。sourceにcalculation evidenceが存在しない場合は`evidence: null`とし、新しいevidence、summary、interpretationまたはjudgmentを生成してはならない。
+
+### 4.5 Warnings / Uncertainty / Notes
+
+-   `warnings`はuser-visible non-structured noticeとする。sourceにない場合は`[]`とし、`notes`から生成、normalization、deduplicationをしてはならない。
+-   `uncertainty`はstructured uncertaintyとする。sourceにない場合は`[]`とし、warningとの相互変換または推測生成をしてはならない。
+-   `notes`はdeveloper explanation、scope、supplemental informationとし、warningへ昇格してはならない。
+
+structured uncertaintyは既存の`code`、`category`、`status`、`severity`、`scope`、`message`を維持し、categoryおよびseverity vocabularyは`engine/judgment_schema.py`をsource of truthとする。
+
+### 4.6 No-Astrology-Change Rule
+
+Common Judgment Metadata adapterはmetadata projectionだけを行う。四柱、score、label、confidenceの再計算または変更、production statusの変更、warning / uncertaintyの生成、evidenceの再解釈をしてはならない。Astrology Logic Impactは`NONE`とする。
+
 ------------------------------------------------------------------------
 
 ## 5. 入力仕様
@@ -1344,6 +1477,8 @@ Reading Context v2はopt-in builderとして追加する。既存の`reading_con
 
 v2 builderは既存chart resultおよびv1 contextからのprojectionだけを行う。v1 consumerをv2へ一括切替してはならず、consumerごとに明示的なmigrationと互換testを必要とする。
 
+`common_judgment_metadata_v1`はReading Context v2の26-field context外に置くopt-in companion contractとする。導入によって`source_metadata`のraw projection、missing versionの`null`、method suffixからのversion推測禁止、top-level warnings / uncertaintyのexact projection、承認済み5 categoryのevidenceを変更してはならない。将来のAI Reading v2は`reading_context_v2`と`common_judgment_metadata_v1`を別contractとして受け取ることができる設計とする。
+
 ### 20.12 禁止
 
 -   AI用 prompt 内で命式を再計算させない。
@@ -1603,6 +1738,64 @@ Quality Report
 -   PDF template version
 
 結果差分が出るルール変更では、必ず Change ID を発行する。
+
+### 28.1 Version Source Policy
+
+各versionの役割とsource of truthを次のとおり分離する。
+
+| version | role | source of truth |
+|---|---|---|
+| `ENGINE_VERSION` | engine release compatibility version | `engine/version.py` |
+| `RULE_VERSION` | engine-wide aggregate rule baseline | `engine/version.py` |
+| component version | component独自rule/schema version | component owner moduleのexplicit constantおよびraw output |
+| method | algorithm identifier。versionではない | component owner module |
+| schema version | payload contract version | schema owner |
+| API version | external transport contract | API owner |
+| Golden version | regression artifact namespace | Golden wrapperおよびmanifest |
+
+component sourceに独立したversionが存在しない場合は`version: null`とする。method suffixからのversion parsing、および`ENGINE_VERSION`または`RULE_VERSION`によるcomponent versionの代用は禁止する。
+
+### 28.2 Common Judgment Metadata Migration
+
+Common Judgment MetadataのmigrationはOption D Hybridを採用する。Big Bang migrationは禁止する。
+
+#### Phase 1 --- v1.2
+
+Option Bのopt-in metadata adapterだけを追加する。
+
+-   adapter
+-   strict validator
+-   explicit source registry
+-   explicit legacy-status mapping registry
+-   existing raw component output変更なし
+-   consumer変更なし
+-   Golden変更なし
+
+AI Reading v2へ進む前に、Common Judgment Metadata spec freeze、opt-in adapter、strict validator、source registry、explicit legacy-status mapping、`current_luck_resolved`をcanonical `resolved`へmappingしないtest、missing version=`null` test、suffix inference禁止test、evidence semantics test、warnings / uncertainty exact-copy testを完了する。
+
+#### Phase 2 --- AI Reading v2
+
+AI Reading v2は`reading_context_v2`とCommon Judgment Metadataを別contractとしてconsumeする。既存v1 consumerを一括切替してはならない。
+
+#### Phase 3 --- v1.3+
+
+必要に応じてversioned judgment outputへcomponent単位で段階移行する。
+
+次はv1.3以降へdeferできる。
+
+-   existing component outputへのversion追加
+-   raw status rename
+-   全componentへの空warnings / uncertainty追加
+-   evidence shape統一
+-   branch relation全面共通化
+-   versioned component Golden
+-   v1 output migration
+
+API v2公開はAI Reading v2の外部公開工程まで分離できる。
+
+### 28.3 v1.1 Compatibility
+
+Common Judgment Metadata導入を理由に、`tests/golden/v1_1/**`、`reading_context_v1`、`reading_api_v1`、`reading_product_v1`またはexisting v1 API contractを変更してはならない。initial adapterはraw sourceを変更しない。
 
 ------------------------------------------------------------------------
 
