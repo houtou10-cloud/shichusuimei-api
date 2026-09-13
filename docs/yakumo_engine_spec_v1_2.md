@@ -1514,33 +1514,565 @@ v2 builderは既存chart resultおよびv1 contextからのprojectionだけを�
 
 ## 22. AI鑑定 V2
 
-### 22.1 8セクション基本構成
+### 22.1 Contract identity
 
--   `core_personality`
--   `career`
--   `wealth`
--   `relationships`
--   `health`
--   `current_luck`
--   `future_flow`
--   `advice`
-
-### 22.2 各セクション
+AI Reading v2 は、既存エンジン出力を検証・grounding・文章化するための
+opt-in contract とする。
 
 ``` json
 {
-  "title": "...",
-  "facts": [],
-  "summary": "...",
-  "detail": "...",
-  "evidence": [],
-  "interpretation": [],
-  "advice": [],
+  "schema_version": "ai_reading_v2",
+  "version": "ai_reading_v2"
+}
+```
+
+-   `schema_version` は `ai_reading_v2` に固定する。
+-   `version` は `ai_reading_v2` に固定する。`2` や `2.0` へ変換しない。
+-   AI Reading v2 は v1 AI Reading とは別 contract とし、v1 の module、schema、
+    Golden、consumer を置換しない。
+-   AI Reading v2 の導入によって占術計算 rule を変更してはならない。
+
+### 22.2 Input contract
+
+AI Reading v2 は次の二つの独立した validated contract を REQUIRED input とする。
+
+1.  `reading_context_v2`
+2.  `common_judgment_metadata_v1`
+
+概念上の request builder boundary は次のとおりとする。
+
+``` python
+build_ai_reading_request_v2(
+    reading_context,
+    judgment_metadata,
+    *,
+    sections=None,
+    language="ja",
+    tone="professional_warm",
+)
+```
+
+-   二つの input を flatten、merge、または一つの raw object へ変換してはならない。
+-   prompt construction 前に、それぞれの owner validator を通さなければならない。
+-   builder は input を deep-copy して扱い、元 object を変更してはならない。
+-   consultation の唯一の source of truth は
+    `reading_context["consultation"]` とする。別の consultation argument を禁止する。
+-   `reading_context_v2.source_metadata` と Common Judgment Metadata を merge してはならない。
+-   v1.2ではpartial section generationをsupportしない。`sections` parameterは将来拡張用に
+    reservedとし、`None`だけを許可する。`sections=None`は22.4のexact eight sectionsすべてを
+    生成することを意味し、successful final wrapperのsection cardinalityを変更してはならない。
+-   v1.2 AI Reading v2でsupportする`language`は`"ja"`だけとする。その他の値はinvalidとし、
+    localizationは将来versionへdeferする。`tone`はmodel-authored textの表現だけに影響し、
+    trusted fixed fieldまたは22.5のdisclaimer constantを変更してはならない。
+
+### 22.3 Responsibility boundary
+
+-   `reading_context_v2.facts` は、AI が占術上の factual claim として参照可能な
+    value/code の allowlist とする。
+-   `reading_context_v2.interpretation_hints` は topic / focus guidance であり、
+    factual truth source ではない。
+-   `common_judgment_metadata_v1` は component ごとの certainty、warnings、
+    uncertainty の source とする。新しい占術 value の source としてはならない。
+-   Reading Context top-level `warnings` / `uncertainty` は global input limitation とする。
+-   `consultation` は文章の emphasis と practical context にだけ使用し、
+    astrology calculation input としてはならない。
+-   `source_metadata` は provenance 専用とし、certainty source としてはならない。
+
+### 22.4 Exact eight sections
+
+AI Reading v2 の section ID は次の8件だけとし、記載順も固定する。
+
+| order | section ID | trusted fixed title |
+|---:|---|---|
+| 1 | `core_personality` | `本質・性格` |
+| 2 | `career` | `仕事・適職` |
+| 3 | `wealth` | `金運` |
+| 4 | `relationships` | `恋愛・人間関係` |
+| 5 | `health` | `健康傾向` |
+| 6 | `current_luck` | `現在の運勢` |
+| 7 | `future_flow` | `今後の流れ` |
+| 8 | `advice` | `総合アドバイス` |
+
+title mappingは既存v1の`SECTION_TITLES_JA`をsource of truthとしてfreezeしたものである。
+trusted codeがIDとtitleをattachし、modelは生成・変更してはならない。
+
+AI Reading v2のtraceability unitは、1 sentenceではなく次の
+`grounded_text_block`とする。各blockはexactly次の5 fieldをREQUIREDとして持つ。
+
+``` json
+{
+  "text": "...",
+  "source_fact_codes": [],
+  "source_components": [],
+  "warnings": [],
   "uncertainty": []
 }
 ```
 
-### 22.3 文章生成原則
+-   `text`はstringとする。
+-   `source_fact_codes`はtrusted dynamic enum内のfact codeだけを持つarray of stringとする。
+-   `source_components`は§4のregistered Common Judgment componentだけを持つarray of stringとする。
+-   `warnings`は22.10のtop-level warning catalogにresolveするwarning IDだけを持つarray of stringとする。
+-   `uncertainty`は22.10のtop-level uncertainty catalogにresolveするuncertainty IDだけを持つ
+    array of stringとする。
+-   astrology claimを含むblockでは、`source_fact_codes`と`source_components`の両方を
+    emptyにしてはならない。
+-   pure practical adviceであり、engine calculationまたはastrology claimとして表現しない
+    blockに限り、両source arrayをemptyにできる。
+-   v1.2はblock単位のtraceabilityを要求し、sentence分割によるperfect semantic verificationは
+    要求しない。
+
+`future_flow`以外の7 sectionは、次のfieldだけをすべてREQUIREDとして持つ。
+
+``` json
+{
+  "section_id": "core_personality",
+  "title": "本質・性格",
+  "facts": ["day_master"],
+  "summary": {
+    "text": "...",
+    "source_fact_codes": ["day_master"],
+    "source_components": ["five_elements"],
+    "warnings": [],
+    "uncertainty": []
+  },
+  "detail": {
+    "text": "...",
+    "source_fact_codes": ["day_master"],
+    "source_components": ["five_elements"],
+    "warnings": [],
+    "uncertainty": []
+  },
+  "evidence": [
+    {
+      "text": "...",
+      "source_fact_codes": ["day_master"],
+      "source_components": ["five_elements"],
+      "warnings": [],
+      "uncertainty": []
+    }
+  ],
+  "interpretation": [
+    {
+      "text": "...",
+      "source_fact_codes": ["day_master"],
+      "source_components": ["five_elements"],
+      "warnings": [],
+      "uncertainty": []
+    }
+  ],
+  "advice": [
+    {
+      "text": "...",
+      "source_fact_codes": ["day_master"],
+      "source_components": [],
+      "warnings": [],
+      "uncertainty": []
+    }
+  ],
+  "warnings": [],
+  "uncertainty": []
+}
+```
+
+-   `section_id` は上記8 IDのいずれかとし、重複・不足・追加を禁止する。
+-   `title` は上記mappingに完全一致しなければならない。
+-   `facts` は AI-authored sentence ではなく、input に存在する fact code の配列とする。
+-   top-level `summary`、section `summary` / `detail`、`evidence` / `interpretation`の各entry、
+    `advice`の各entryは`grounded_text_block`とする。
+-   `warnings` と `uncertainty` は、22.10 の trusted top-level catalog 内で
+    resolve可能なID stringだけを保持する。
+-   section-level singular `judgment_status` は追加しない。一つの section が異なる
+    canonical status の複数 component を参照できるためである。
+-   `future_flow`だけは22.12の`yearly`を追加REQUIRED fieldとして持つ。他の7 sectionに
+    `yearly`を置くことを禁止する。
+
+Section-level `facts`のownershipは次に固定する。
+
+1.  trusted prompt builderが`reading_context_v2.facts[].code`からallowed fact-code dynamic
+    enumを構築する。
+2.  modelは各sectionの`facts`をそのenumからSELECTできる。
+3.  modelは新しいfact codeをINVENTしてはならない。
+4.  trusted validatorはsection `facts`の全codeがinputに存在することを確認・resolveする。
+5.  trusted final wrapperはvalidated fact codesだけを保持する。
+6.  trusted codeはmodelが選択しなかったfactを意味推測によって追加・補完してはならない。
+7.  section `facts`はsection-level index / overviewであり、individual `grounded_text_block`の
+    `source_fact_codes`を代替しない。
+8.  block内のclaim groundingは、そのblock自身の`source_fact_codes` / `source_components`で
+    検証する。fact codeがsection `facts`に存在するだけではblockのgrounding成立とみなさない。
+
+### 22.5 Output contract
+
+successful AI Reading v2 wrapper は次の top-level field をすべて REQUIRED とする。
+field omissionを禁止する。
+
+``` json
+{
+  "schema_version": "ai_reading_v2",
+  "engine_version": "1.2",
+  "summary": {
+    "text": "",
+    "source_fact_codes": [],
+    "source_components": [],
+    "warnings": [],
+    "uncertainty": []
+  },
+  "sections": [
+    {
+      "section_id": "core_personality",
+      "title": "本質・性格",
+      "facts": [],
+      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "evidence": [],
+      "interpretation": [],
+      "advice": [],
+      "warnings": [],
+      "uncertainty": []
+    },
+    {
+      "section_id": "career",
+      "title": "仕事・適職",
+      "facts": [],
+      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "evidence": [],
+      "interpretation": [],
+      "advice": [],
+      "warnings": [],
+      "uncertainty": []
+    },
+    {
+      "section_id": "wealth",
+      "title": "金運",
+      "facts": [],
+      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "evidence": [],
+      "interpretation": [],
+      "advice": [],
+      "warnings": [],
+      "uncertainty": []
+    },
+    {
+      "section_id": "relationships",
+      "title": "恋愛・人間関係",
+      "facts": [],
+      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "evidence": [],
+      "interpretation": [],
+      "advice": [],
+      "warnings": [],
+      "uncertainty": []
+    },
+    {
+      "section_id": "health",
+      "title": "健康傾向",
+      "facts": [],
+      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "evidence": [],
+      "interpretation": [],
+      "advice": [],
+      "warnings": [],
+      "uncertainty": []
+    },
+    {
+      "section_id": "current_luck",
+      "title": "現在の運勢",
+      "facts": [],
+      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "evidence": [],
+      "interpretation": [],
+      "advice": [],
+      "warnings": [],
+      "uncertainty": []
+    },
+    {
+      "section_id": "future_flow",
+      "title": "今後の流れ",
+      "facts": [],
+      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "evidence": [],
+      "interpretation": [],
+      "advice": [],
+      "warnings": [],
+      "uncertainty": [],
+      "yearly": []
+    },
+    {
+      "section_id": "advice",
+      "title": "総合アドバイス",
+      "facts": [],
+      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "evidence": [],
+      "interpretation": [],
+      "advice": [],
+      "warnings": [],
+      "uncertainty": []
+    }
+  ],
+  "consultation_answer": null,
+  "warnings": [],
+  "uncertainty": [],
+  "source_contracts": {
+    "reading_context": {
+      "schema_version": "reading_context_v2",
+      "method": "reading_context_v2",
+      "version": "reading_context_v2",
+      "status": "ready_for_ai_reading"
+    },
+    "judgment_metadata": {
+      "schema_version": "common_judgment_metadata_v1"
+    }
+  },
+  "disclaimer": "本鑑定は八雲式四柱推命エンジンの計算結果に基づく参考情報です。将来の出来事を保証するものではなく、医療・法律・投資その他の専門的判断を代替するものではありません。重要な意思決定は、必要に応じて適切な専門家へご相談ください。",
+  "validation": {
+    "valid": true,
+    "errors": [],
+    "missing_required_fields": [],
+    "unknown_fields": []
+  },
+  "method": "openai_responses_api_v2",
+  "version": "ai_reading_v2",
+  "status": "completed"
+}
+```
+
+-   `engine_version` は validated Reading Context input から exact projection する。
+-   `sections` は22.4の exact eight sectionsをexactly 8件、同一順序で持つ。空配列、
+    subset、追加sectionはsuccessful wrapperとしてinvalidとする。上記JSONは8件すべてを
+    含むvalid structural exampleであり、`sections: []`をplaceholderとして使用しない。
+-   `consultation_answer` は REQUIRED nullable とし、consultation が `null` の場合は
+    `null` とする。consultation inputが存在する場合だけ、次のexact objectを許可する。
+
+``` json
+{
+  "text": "...",
+  "source_fact_codes": [],
+  "source_components": [],
+  "warnings": [],
+  "uncertainty": []
+}
+```
+
+非null `consultation_answer`では`text`だけをmodel-authoredとする。source arraysは22.6の
+dynamic enum、`warnings` / `uncertainty`は22.10のcatalog IDだけを許可し、trusted validatorが
+すべてresolveする。consultation自体をastrology fact sourceとしてはならない。astrology claimは
+少なくとも一つのfact/component referenceを必要とする。pure practical adviceはsource arraysを
+emptyにできるが、engine calculationとして表現してはならない。
+
+-   top-level `summary`は`grounded_text_block`とする。
+-   `warnings` と `uncertainty` は trusted code が input から source contract、
+    resolvable source path、raw valueを保持して投影する配列とする。deduplicate、
+    normalize、相互変換、modelによる追加を禁止する。
+-   `source_contracts` は二つの input contract identity の exact projection とし、
+    source metadata をmergeしない。
+-   `disclaimer`は次のnormative constantとexact string matchしなければならない。
+
+``` text
+AI_READING_V2_DISCLAIMER = "本鑑定は八雲式四柱推命エンジンの計算結果に基づく参考情報です。将来の出来事を保証するものではなく、医療・法律・投資その他の専門的判断を代替するものではありません。重要な意思決定は、必要に応じて適切な専門家へご相談ください。"
+```
+
+この文面は将来保証の禁止、医療・法律・投資に関する非断定、重要判断での専門家相談を
+customer-facingな日本語で示す。trusted codeがexact constantをattachし、modelは生成・変更
+してはならない。validatorはexact string matchを検証する。v1.2では`language="ja"`だけを
+supportし、localizationを行わない。`tone`はこのconstantへ影響しない。disclaimerには個別の
+astrology fact、鑑定結果、consultation内容を含めてはならない。
+-   `validation` は trusted validator の deterministic report とする。
+-   `method` は successful v2 generation method `openai_responses_api_v2`、
+    `status` は generation lifecycle の `completed` とする。これは Common Judgment の
+    canonical judgment statusとは別 namespaceである。
+
+### 22.6 Trusted fields and model-authored fields
+
+Model が生成可能なものは、validated prompt/schemaが許可する次の textに限定する。
+
+-   top-level `summary.text`
+-   section `summary.text` / `detail.text`
+-   evidence / interpretation の `text`
+-   advice blockの`text`
+-   consultation answer text（consultation が存在する場合）
+-   `future_flow.yearly[].summary.text` / `detail.text`
+
+Trusted code は次をattachまたはprojectしなければならない。
+
+-   `schema_version`、`engine_version`、`method`、`version`、`status`
+-   exact section IDs と fixed titles
+-   `source_contracts`
+-   top-level warning / uncertainty catalogとそのID
+-   `validation`
+-   `future_flow` の year と ordering
+-   fixed disclaimer
+
+fact/component referenceの選択責任は次の順序に固定する。
+
+1.  trusted prompt builderがvalidated inputsからallowed `source_fact_codes`とallowed
+    `source_components`のdynamic enumを構築する。fact enumには実在する
+    `reading_context_v2.facts[].code`だけを含める。component enumには§4のregistered recordの
+    うち`source_path`がnon-nullでraw sourceへresolveするcomponentだけを含め、missing sourceの
+    placeholder recordおよび`month_command` aggregate containerを含めない。
+2.  modelはそのenumからreferenceをSELECTできる。
+3.  modelは新しいreferenceをINVENTできない。
+4.  trusted validatorがmodel-selected referenceの存在を確認し、inputへresolveする。
+5.  trusted final wrapperはvalidated referenceだけを保持する。
+6.  trusted codeは、modelがどのfact/componentを意味したかを推測してreferenceを生成、
+    選択、補完してはならない。
+7.  warning ID / uncertainty IDだけは例外とし、trusted codeが22.10のcatalog projection時に
+    deterministicにassignする。modelは既存IDのdynamic enumからSELECTするだけとする。
+
+したがって、trusted codeによるreferenceの`attach`はmodel-selected valueのvalidation後の
+採用を意味し、trusted code自身による意味上のreference選択または生成を意味しない。
+
+### 22.7 Judgment status writing policy
+
+Common Judgment Metadata の canonical `status` は文章表現に次の制約を与える。
+
+-   `resolved`: current engine judgment を通常表現できる。ただし未来・傾向を保証表現にしない。
+-   `provisional`: 限定表現を必須とし、documented limitationを保持する。
+-   `uncertain`: 関連するuncertaintyを明示し、単一の断定結論を避ける。
+-   `unsupported`: 占術解釈を補完しない。current engineではsupportされていない旨だけを
+    表現できる。
+-   `null`: `resolved` として扱わない。direct factの引用は可能だが、そのcomponentだけを
+    根拠にcertainty claimまたはcomponent-derived interpretationを生成しない。
+
+複数componentを参照するsentenceは、参照したすべてのcomponentのpolicyを満たさなければ
+ならない。AIまたはtrusted codeが新しいstatus rankingや「strictest status」を計算しては
+ならない。`component_status` はtrace informationに限定し、canonical `status` をoverride
+してはならない。
+
+### 22.8 Three-pillar / unknown birth time policy
+
+`birth_time_status.known == false` の場合、次をMUSTとする。
+
+-   hour pillarを推定しない。
+-   hour-derived interpretationを生成しない。
+-   `known_pillars_only` scopeを尊重する。
+-   strength confidence capを尊重し、certaintyを強化しない。
+-   applicable uncertaintyを保持し、文章から消さない。
+-   estimated luck timingをestimatedとして表現する。
+-   `internal_reference_time` を出生時刻として表現しない。
+-   missing root / element / relationを、complete chartにおける不存在と断定しない。
+-   hour-dependent relationの不存在を推定しない。
+-   unknown birth timeの影響を受けるclaimは、resolve可能な applicable uncertainty
+    referenceを持たなければならない。
+
+このpolicyはGC10 three-pillar Reading Context v2 contractと整合しなければならない。
+
+### 22.9 Grounding / source policy
+
+1.  AI outputが参照するastrology factは、validated inputの
+    `reading_context_v2.facts[].code` に存在しなければならない。
+2.  calculation-dependent interpretationを含むblockは、`source_fact_codes`または
+    `source_components`の少なくとも一方に1件以上のvalidated referenceを持たなければならない。
+3.  fact code / component referenceは、inputからtrusted codeが構築したdynamic enumで
+    制約しなければならない。
+4.  source referenceはinput内でresolve可能でなければならない。
+5.  `interpretation_hints` はtopic/focusを案内できるが、新しいtruthを作れない。
+6.  Common Judgment Metadataはcertaintyを制御するが、新しいastrology valueを作れない。
+7.  warnings / uncertaintyをfactへ変換してはならない。
+8.  consultationはemphasis / practical adviceにだけ使用する。
+9.  general practical adviceをengine calculationとして表現してはならない。
+10. missing sourceを補完せず、missingのまま扱う。
+11. top-level summaryおよびsectionのsummary、detail、evidence、interpretation、adviceに
+    含まれるastrology claimは、それを含む`grounded_text_block`のreferenceでtraceできなければ
+    ならない。別blockのreferenceを暗黙に流用してはならない。
+
+### 22.10 Evidence, warnings, uncertainty
+
+次の意味を混同してはならない。
+
+-   Common Judgment `evidence`: raw calculation evidence。
+-   AI Reading sectionのevidence `text`: customer-facing explanation。
+-   provenance: input contractのsource path / source metadata。
+-   Golden / human verification evidence: runtime AI Reading contract外のverification artifact。
+
+AI Reading evidence textはvalidated source referenceを持たなければならず、新しいcalculation
+evidenceとして扱ってはならない。
+
+Top-level `warnings` は、exactly次のshapeのwarning entryだけを持つarrayとする。
+
+``` json
+{
+  "warning_id": "warning_0001",
+  "source_contract": "reading_context_v2",
+  "source_path": "warnings[0]",
+  "value": "..."
+}
+```
+
+Top-level `uncertainty` は、exactly次のshapeのuncertainty entryだけを持つarrayとする。
+
+``` json
+{
+  "uncertainty_id": "uncertainty_0001",
+  "source_contract": "common_judgment_metadata_v1",
+  "source_path": "components.strength.uncertainty[0]",
+  "value": {
+    "code": "...",
+    "category": "...",
+    "status": "...",
+    "severity": "...",
+    "scope": [],
+    "message": "..."
+  }
+}
+```
+
+-   `source_contract`は`reading_context_v2`または`common_judgment_metadata_v1`だけを許可する。
+-   `source_path`は指定source contract内のraw valueへexactly resolveしなければならない。
+-   `value`はresolved raw warning stringまたはstructured uncertainty objectのexact deep copyとする。
+-   warning IDは`warning_0001`、uncertainty IDは`uncertainty_0001`から始まる4桁zero-padded
+    independent sequenceとし、trusted codeがdeterministically assignする。同一catalog内のID
+    collisionを禁止する。modelはIDを生成・変更してはならない。
+-   sectionおよびgrounded text blockの`warnings`はwarning ID stringだけ、`uncertainty`は
+    uncertainty ID stringだけを持つ。raw valueの複製を禁止し、全IDはtop-level catalogへ
+    exactly one resolveしなければならない。
+-   raw valueの順序変更、deduplicate、normalize、warning/uncertainty間の相互変換、意味の追加を
+    禁止する。
+
+Catalogのcanonical traversal orderは次に固定する。
+
+1.  `reading_context_v2` top-level `warnings`をraw array順にwarning catalogへ投影する。
+2.  `reading_context_v2` top-level `uncertainty`をraw array順にuncertainty catalogへ投影する。
+3.  Common Judgment recordsを、§4の初期source registryと完全に同じ次の順で一度だけ走査する。
+    `five_elements`、`month_command.basic`、`month_command.weighted`、
+    `month_command.seasonal`、`month_command.integrated`、`roots`、`strength`、`relations`、
+    `pattern`、`useful_gods`、`luck_pillars`、`current_luck`、`annual_luck`、`integrated_luck`。
+    各record内では`warnings`、`uncertainty`の順に参照し、それぞれのraw array順で対応catalogへ
+    投影する。`month_command` aggregateはgroup containerであるためcatalog sourceにせず、
+    nested 4 componentsだけを上記位置・順序で走査する。
+
+この走査順はstable ID assignmentのためだけに使用し、新しい占術priorityを意味しない。
+warning IDとuncertainty IDはそれぞれ独立に連番を進める。
+
+### 22.11 AI MUST NOT CALCULATE
+
+AI Reading v2において、AIおよびAI Reading layerは次を行ってはならない。
+
+-   四柱、蔵干、通変星、十二運の再計算
+-   五行scoreの再計算
+-   身強身弱、格局、用神の再判定
+-   大運、歳運、integrated luckの再計算
+-   missing hourの推定
+-   true solar time、timezone correction、location correctionの推定
+-   sourceにない吉凶判定の生成
+-   confidence / certaintyのupgrade
+-   consultationからの占術結果生成
+-   sourceにないfact、evidence、source path、fact code、component nameの生成
+-   一要素だけからの人物断定
+-   将来の保証
+-   医療・法律・投資等の断定
+-   不安を煽る表現
+-   「必ず」「絶対」等の根拠なき決定表現
+
+AIのroleは、validated engine truthを `organize`、`verbalize`、`explain` することだけとする。
+
+文章生成順序は次を維持する。
 
 ``` text
 事実
@@ -1554,15 +2086,151 @@ v2 builderは既存chart resultおよびv1 contextからのprojectionだけを�
 助言
 ```
 
-### 22.4 禁止事項
+### 22.12 Future flow / luck
 
--   エンジン確定値の変更
--   AI独自の格局・用神再計算
--   一要素だけからの人物断定
--   将来の保証
--   医療・法律・投資等の断定
--   不安を煽る表現
--   「必ず」「絶対」等の根拠なき決定表現
+`future_flow` で扱う yearとorderingは、
+`reading_context_v2.luck.five_year_luck` からtrusted inputとして取得する。modelはyearを
+生成、変更、追加、並べ替えしてはならない。trusted codeがfinal outputへyearとorderingを
+attachし、modelは各固定yearに対する文章だけを生成する。inputにないyearを補完してはならない。
+
+`future_flow` sectionだけは、22.4の共通fieldに加えて`yearly`をREQUIREDとする。`yearly`は
+exactly次のentry shapeを持つarrayとする。
+
+``` json
+{
+  "year": 2026,
+  "summary": {
+    "text": "...",
+    "source_fact_codes": [],
+    "source_components": [],
+    "warnings": [],
+    "uncertainty": []
+  },
+  "detail": {
+    "text": "...",
+    "source_fact_codes": [],
+    "source_components": [],
+    "warnings": [],
+    "uncertainty": []
+  }
+}
+```
+
+-   `year`はintegerとし、trusted codeがinputからattachする。modelはyearを生成、変更、追加、
+    削除、並べ替えしてはならない。
+-   `summary`と`detail`はそれぞれ22.4のexact `grounded_text_block`とする。model-authoredなのは
+    各blockの`text`だけであり、yearly entry全体を別のtraceability unitとして扱ってはならない。
+-   各blockの`source_fact_codes` / `source_components`は22.6のdynamic enumからmodelがSELECTし、
+    trusted validatorがresolveする。modelはreferenceをINVENTできず、trusted codeは意味を推測して
+    referenceを生成・補完しない。
+-   各blockの`warnings` / `uncertainty`は22.10のtrusted catalog IDだけを許可し、全IDを
+    trusted validatorがresolveする。unknown birth timeがyearly claimへ影響する場合は、該当する
+    block自身がapplicable uncertainty IDを持たなければならない。
+-   astrology claimを含む`summary`または`detail` blockでは、`source_fact_codes`と
+    `source_components`の両方をemptyにしてはならない。
+-   `yearly`の件数、year value、orderingは`reading_context_v2.luck.five_year_luck`とexact match
+    しなければならない。同inputがemptyの場合は`yearly=[]`とする。inputにないyearを禁止する。
+-   他の7 sectionに`yearly` fieldを置くことを禁止し、unknown-field rejectionの対象とする。
+
+### 22.13 Validator contract
+
+AI Reading v2のvalidation lifecycleは次の非循環順序に固定する。
+
+1.  `reading_context_v2`をowner validatorで検証する。
+2.  `common_judgment_metadata_v1`をowner validatorで検証する。
+3.  trusted warning / uncertainty catalogとfact/component dynamic enumを構築する。
+4.  validated enumを含むmodel schemaからmodel payloadを生成する。
+5.  model payloadのshapeとmodel-selected referenceを検証・resolveする。
+6.  trusted fields、catalog、fixed section ID/title、future year/orderをattachして、
+    `validation` fieldをまだ持たないfinal candidateを構築する。
+7.  final candidateを検証し、deterministic validation reportを一度だけ生成する。
+8.  そのreportを`validation` fieldへattachする。
+9.  `validation` field自体のexact shape/typeをschema-checkし、report内容を再生成しない。
+
+final candidateのvalidation対象から`validation` fieldを除外してreportを一度だけ作ることで、
+self-referential validationおよび無限loopを禁止する。successful wrapperではreportの`valid`が
+`true`、他の三arrayがemptyでなければならない。reportがinvalidの場合、そのcandidateを
+successful AI Reading v2 wrapperとして返してはならない。
+
+AI Reading v2 validatorは少なくとも次を検証する。
+
+-   exact `schema_version` / `version` / required top-level fields
+-   unknown field rejection
+-   exact eight section IDs、順序、重複、不足
+-   fixed title mapping
+-   `grounded_text_block`のexact shapeとastrology claimのsource-presence rule
+-   fact-code existence
+-   registered component-reference existence
+-   warning / uncertainty catalogのexact shape、stable ID、canonical traversal order、source path resolution
+-   section/block/consultationのwarning ID / uncertainty ID resolution
+-   nonnull consultation answerのexact shape
+-   trusted fieldとmodel-authored fieldのboundary
+-   `future_flow.yearly`のexact shape、year / ordering integrity、および他sectionでの`yearly`禁止
+
+validatorは占術計算、score再計算、status再判定、missing data補完を行ってはならない。
+invalid outputをtrusted AI Reading v2 wrapperとして返してはならない。
+
+### 22.14 Quality Gate v2 handoff
+
+Quality Gate v2は将来、次の三contractをflattenせず別々に受け取る。
+
+1.  `ai_reading_v2`
+2.  `reading_context_v2`
+3.  `common_judgment_metadata_v1`
+
+AI Reading v2 outputは、Quality Gate v2が少なくとも次を検証できるstructureを持たなければ
+ならない。
+
+-   exact schemaおよびexact section IDs
+-   fact-code / component-reference existenceとsource resolution
+-   engine value / label contradiction
+-   canonical status writing policy
+-   unknown-hour restriction
+-   warning / uncertainty preservation
+-   unsupported numeric claim
+-   fabricated evidence / path / reference
+-   consultationとastrology calculationの分離
+-   future-flow year integrity
+
+`prohibited_claim` findingはAI Reading model outputに含めず、Quality Report v2の責任とする。
+
+### 22.15 Compatibility boundary
+
+AI Reading v2導入時、次を変更してはならない。
+
+-   `engine/reading_context.py`
+-   `engine/reading_prompt.py`
+-   `engine/reading_generator.py`
+-   `engine/reading_quality.py`
+-   `engine/reading_repair.py`
+-   `engine/reading_product.py`
+-   `api/reading_routes.py`
+-   `reading_context_v1`
+-   `reading_api_v1`
+-   `reading_product_v1`
+-   existing `ReadingGenerationResult`
+-   `tests/golden/v1_1/**`
+-   existing v1 AI Contract / Product / Renderer / PDF fixtures
+
+AI Reading v2は新規opt-in moduleとして実装し、v1 consumerを一括切替してはならない。
+
+### 22.16 Phased migration
+
+AI Reading v2は次の順に段階導入する。Big Bang migrationを禁止する。
+
+1.  Phase 1: AI Reading v2 spec freeze
+2.  Phase 2: new opt-in `reading_prompt_v2`
+3.  Phase 3: new opt-in `reading_generator_v2`
+4.  Phase 4: AI Reading v2 unit / four-pillar / three-pillar tests
+5.  Phase 5: AI Reading v2 Golden after human review
+6.  Phase 6: Quality Gate v2
+7.  Phase 7: Auto-Repair v2
+8.  Phase 8: ReadingProduct v2
+9.  Phase 9: API v2
+10. Phase 10: PDF / E2E
+
+AI Reading v2はexisting engine outputのvalidation / grounding / verbalization layerであり、
+astrology calculation ruleへのimpactは `NONE` とする。
 
 ------------------------------------------------------------------------
 
