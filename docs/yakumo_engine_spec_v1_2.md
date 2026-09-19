@@ -1682,6 +1682,7 @@ AI_READING_V2_SYSTEM_PROMPT = (
     "四柱、蔵干、通変星、十二運、五行score、身強身弱、干支関係、格局、用神、大運、歳運、current luck、integrated luckを再計算、再判定、再分類してはいけません。\n"
     "missing hour、true solar time、timezone correction、location correctionを推定してはいけません。\n"
     "consultationは説明の優先順位とpractical contextにだけ使用し、占術結果を生成または変更してはいけません。\n"
+    "すべてのgrounded_text_blockでclaim_typeを宣言し、意図するtextと一致させてください。practicalに占術またはluckの主張を含めず、astrologyはfactでgroundし、luck_astrologyは許可されたlocationとluck crosswalkでgroundしてください。占術またはluckの主張をpracticalとして偽装してはいけません。\n"
     "返してよいのはmodel-owned payloadだけです。section_id、title、year、disclaimer、catalog、source contract、engine_version、schema_version、version、method、status、validationを返してはいけません。\n"
     "source_fact_codes、source_components、warning IDs、uncertainty IDsは提示されたallowed valuesからだけ選択し、strict JSONとして返してください。"
 )
@@ -1833,6 +1834,10 @@ allowed valueが0件の場合は22.6のempty dynamic enum policyに従い、exac
   "type": "object",
   "properties": {
     "text": {"type": "string"},
+    "claim_type": {
+      "type": "string",
+      "enum": ["practical", "astrology", "luck_astrology"]
+    },
     "source_fact_codes": {"$ref": "#/$defs/fact_code_array"},
     "source_components": {"$ref": "#/$defs/source_component_array"},
     "warnings": {"$ref": "#/$defs/warning_id_array"},
@@ -1840,6 +1845,7 @@ allowed valueが0件の場合は22.6のempty dynamic enum policyに従い、exac
   },
   "required": [
     "text",
+    "claim_type",
     "source_fact_codes",
     "source_components",
     "warnings",
@@ -1848,6 +1854,12 @@ allowed valueが0件の場合は22.6のempty dynamic enum policyに従い、exac
   "additionalProperties": false
 }
 ```
+
+`claim_type.enum`は上記3語を常に無条件で列挙するstatic enumではなく、22.4のavailable claim type
+policyによってrequestごとにtrusted codeが構築する。上記JSONは3 typeすべてがavailableな場合の
+shapeを示す。per-type reference cardinalityとlocation固有ruleはconditional JSON Schemaへ埋め込まず、
+strict JSON Schema validation後の22.13 semantic validationで検証する。複雑なconditional `oneOf`を
+追加してはならない。
 
 `model_section_payload` definitionはexactly次のshapeとする。
 
@@ -1915,9 +1927,10 @@ root `properties`はexactly次のschemaを持つ。
 model schemaへ含めない。`future_flow_yearly`のyearはschemaへ含めず、trusted year countを両cardinality
 keywordへ同じintegerとして埋め込む。consultationがabsentの場合、modelはJSON `null`以外を返せない。
 
-JSON Schema validationだけでfinal validityを確定してはならない。global component enumは
-scope-specific luck validityを表現しないため、schema validation後に22.12のblock scope、
-source component、`luck_value_source_entry`の一致をsemantic validationしなければならない。
+JSON Schema validationだけでfinal validityを確定してはならない。per-type reference cardinality、
+22.4.2のlocation matrix、およびglobal component enumでは表現しないscope-specific luck validityは、
+schema validation後にsemantic validationしなければならない。luckについては22.12のblock scope、
+source component、`luck_value_source_entry`の一致を検証する。
 
 #### 22.2.4 Common Metadata source path trust boundary
 
@@ -1965,11 +1978,12 @@ title mappingは既存v1の`SECTION_TITLES_JA`をsource of truthとしてfreeze�
 trusted codeがIDとtitleをattachし、modelは生成・変更してはならない。
 
 AI Reading v2のtraceability unitは、1 sentenceではなく次の
-`grounded_text_block`とする。各blockはexactly次の5 fieldをREQUIREDとして持つ。
+`grounded_text_block`とする。各blockはexactly次の6 fieldを記載順でREQUIREDとして持つ。
 
 ``` json
 {
   "text": "...",
+  "claim_type": "practical",
   "source_fact_codes": [],
   "source_components": [],
   "warnings": [],
@@ -1978,17 +1992,90 @@ AI Reading v2のtraceability unitは、1 sentenceではなく次の
 ```
 
 -   `text`はstringとする。
+-   `claim_type`はmodel-owned declarationとし、22.4.1のavailable enumに含まれるstringとする。
 -   `source_fact_codes`はtrusted dynamic enum内のfact codeだけを持つarray of stringとする。
 -   `source_components`は§4のregistered Common Judgment componentだけを持つarray of stringとする。
 -   `warnings`は22.10のtop-level warning catalogにresolveするwarning IDだけを持つarray of stringとする。
 -   `uncertainty`は22.10のtop-level uncertainty catalogにresolveするuncertainty IDだけを持つ
     array of stringとする。
--   astrology claimを含むblockでは、`source_fact_codes`と`source_components`の両方を
-    emptyにしてはならない。
--   pure practical adviceであり、engine calculationまたはastrology claimとして表現しない
-    blockに限り、両source arrayをemptyにできる。
 -   v1.2はblock単位のtraceabilityを要求し、sentence分割によるperfect semantic verificationは
     要求しない。
+
+#### 22.4.1 Machine-readable claim classification
+
+`claim_type`のfull vocabularyは次のnormative constantに固定する。このfieldはCommon Judgmentの
+canonical `status`とは別namespaceである。
+
+``` python
+AI_READING_V2_CLAIM_TYPES = (
+    "practical",
+    "astrology",
+    "luck_astrology",
+)
+```
+
+Modelは各blockの意図するtextについて`claim_type`を宣言する。trusted codeは`claim_type`を推測、
+生成、補完、変更してはならない。Generator v2はdeclaration、reference、location、crosswalkだけを
+structural / semantic validationし、textに対するkeyword、NLP、heuristic classificationを行っては
+ならない。declarationと実際のtext意味の一致は22.14のQuality Gate v2 responsibilityとする。
+
+`claim_type = "practical"`は次をすべてMUSTとする。
+
+-   `source_fact_codes == []`かつ`source_components == []`とする。
+-   `warnings`と`uncertainty`はtrusted catalog内の既存IDを選択できるが、fact groundingとして
+    扱ってはならない。
+-   textにastrology claim、engine-calculated claim、luck-valued claimを含めてはならない。
+
+`claim_type = "astrology"`は次をすべてMUSTとする。
+
+-   `source_fact_codes`に1件以上のvalidated Reading Context v2 fact codeを持つ。
+-   `source_components`はoptionalとするが、`luck_pillars`、`current_luck`、`annual_luck`、
+    `integrated_luck`を含めてはならない。
+-   component-only groundingを禁止する。`source_components`はcertainty / provenance traceの補助であり、
+    astrology value sourceではない。
+-   `warnings`と`uncertainty`はtrusted catalog内の既存IDをoptionalに選択できる。
+
+`claim_type = "luck_astrology"`は次をすべてMUSTとする。
+
+-   `source_components`に22.12のallowed luck componentを1件以上持つ。
+-   block location、selected luck component、trusted `luck_value_source_entry`が22.12のcrosswalkへ
+    exact matchしなければならない。
+-   `source_fact_codes`はoptionalとし、存在する場合はnon-luck contextual groundingだけを補助する。
+-   non-luck `source_components`およびtrusted warning / uncertainty IDはoptionalとする。
+-   Generatorはtextからluck claimを推測せず、declared `claim_type`とcrosswalkだけを検証する。
+
+Available `claim_type` enumはtrusted codeがrequestごとに次の固定順で構築する。
+
+1.  `practical`は常に含める。
+2.  `astrology`は`trusted_catalogs.fact_codes`が1件以上の場合だけ含める。
+3.  `luck_astrology`は`trusted_catalogs.luck_value_sources`が1件以上の場合だけ含める。
+
+fact catalogがemptyなら`astrology`を除外し、luck value source catalogがemptyなら
+`luck_astrology`を除外する。両方がemptyの場合は`["practical"]`とする。claim type enum自体を
+emptyにしてはならず、`enum: []`を使用してはならない。location固有ruleおよびper-type reference
+cardinalityはJSON Schema validation後のsemantic validationで検証する。
+
+#### 22.4.2 Claim type location matrix
+
+各`grounded_text_block` locationで許可するclaim typeを次に固定する。`NO`のtypeをmodelが選択した
+payloadはsemantic-invalidとする。
+
+| block location | `practical` | `astrology` | `luck_astrology` |
+|---|:---:|:---:|:---:|
+| top-level `summary` | YES | YES | NO |
+| `core_personality` / `career` / `wealth` / `relationships` / `health` / `advice` の`summary`・`detail` | YES | YES | NO |
+| 上記6 sectionの`evidence[]`・`interpretation[]` | NO | YES | NO |
+| 上記6 sectionの`advice[]` | YES | YES | NO |
+| `current_luck`の`summary`・`detail`・`advice[]` | YES | YES | YES |
+| `current_luck`の`evidence[]`・`interpretation[]` | NO | YES | YES |
+| `future_flow` non-yearlyの`summary`・`detail`・`advice[]` | YES | YES | YES |
+| `future_flow` non-yearlyの`evidence[]`・`interpretation[]` | NO | YES | YES |
+| `future_flow.yearly[]`の`summary`・`detail` | YES | YES | YES |
+| `consultation_answer` | YES | YES | NO |
+
+`evidence`と`interpretation`はempty collectionにできるため、sourceが利用できない場合の
+`practical` fallbackを許可しない。`luck_astrology`がYESのlocationでも、22.12の対応するcrosswalk
+entryが存在しなければ使用できない。
 
 `future_flow`以外の7 sectionは、次のfieldだけをすべてREQUIREDとして持つ。
 
@@ -1999,6 +2086,7 @@ AI Reading v2のtraceability unitは、1 sentenceではなく次の
   "facts": ["day_master.stem"],
   "summary": {
     "text": "...",
+    "claim_type": "astrology",
     "source_fact_codes": ["day_master.stem"],
     "source_components": ["five_elements"],
     "warnings": [],
@@ -2006,6 +2094,7 @@ AI Reading v2のtraceability unitは、1 sentenceではなく次の
   },
   "detail": {
     "text": "...",
+    "claim_type": "astrology",
     "source_fact_codes": ["day_master.stem"],
     "source_components": ["five_elements"],
     "warnings": [],
@@ -2014,6 +2103,7 @@ AI Reading v2のtraceability unitは、1 sentenceではなく次の
   "evidence": [
     {
       "text": "...",
+      "claim_type": "astrology",
       "source_fact_codes": ["day_master.stem"],
       "source_components": ["five_elements"],
       "warnings": [],
@@ -2023,6 +2113,7 @@ AI Reading v2のtraceability unitは、1 sentenceではなく次の
   "interpretation": [
     {
       "text": "...",
+      "claim_type": "astrology",
       "source_fact_codes": ["day_master.stem"],
       "source_components": ["five_elements"],
       "warnings": [],
@@ -2032,6 +2123,7 @@ AI Reading v2のtraceability unitは、1 sentenceではなく次の
   "advice": [
     {
       "text": "...",
+      "claim_type": "astrology",
       "source_fact_codes": ["day_master.stem"],
       "source_components": [],
       "warnings": [],
@@ -2069,6 +2161,16 @@ Section-level `facts`のownershipは次に固定する。
 8.  block内のclaim groundingは、そのblock自身の`source_fact_codes` / `source_components`で
     検証する。fact codeがsection `facts`に存在するだけではblockのgrounding成立とみなさない。
 
+Non-luck astrology valueのsource of truthは`reading_context_v2.facts`だけとする。`source_components`
+単独ではvalue groundingとしてinvalidであり、Common Judgment Metadataはcertainty / provenance traceを
+補助するだけでastrology value sourceにはならない。raw `chart_result`または第三のvalue sourceを
+AI Reading v2 inputへ追加してはならない。v1.2ではfact化されていないmonth command、roots、relationsの
+詳細値をAI Reading value claimに使用しない。将来必要な場合は別versionでReading Context fact追加または
+explicit crosswalkをreviewし、本versionへnon-luck crosswalkを追加してはならない。
+
+`claim_type`からsection `facts`を自動生成してはならない。trusted codeはmodelが選択しなかったfactまたは
+component referenceを推測して追加・補完してはならない。
+
 ### 22.5 Output contract
 
 successful AI Reading v2 wrapper は次の top-level field をすべて REQUIRED とする。
@@ -2080,6 +2182,7 @@ field omissionを禁止する。
   "engine_version": "1.2",
   "summary": {
     "text": "",
+    "claim_type": "practical",
     "source_fact_codes": [],
     "source_components": [],
     "warnings": [],
@@ -2090,8 +2193,8 @@ field omissionを禁止する。
       "section_id": "core_personality",
       "title": "本質・性格",
       "facts": [],
-      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
-      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "summary": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
       "evidence": [],
       "interpretation": [],
       "advice": [],
@@ -2102,8 +2205,8 @@ field omissionを禁止する。
       "section_id": "career",
       "title": "仕事・適職",
       "facts": [],
-      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
-      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "summary": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
       "evidence": [],
       "interpretation": [],
       "advice": [],
@@ -2114,8 +2217,8 @@ field omissionを禁止する。
       "section_id": "wealth",
       "title": "金運",
       "facts": [],
-      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
-      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "summary": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
       "evidence": [],
       "interpretation": [],
       "advice": [],
@@ -2126,8 +2229,8 @@ field omissionを禁止する。
       "section_id": "relationships",
       "title": "恋愛・人間関係",
       "facts": [],
-      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
-      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "summary": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
       "evidence": [],
       "interpretation": [],
       "advice": [],
@@ -2138,8 +2241,8 @@ field omissionを禁止する。
       "section_id": "health",
       "title": "健康傾向",
       "facts": [],
-      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
-      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "summary": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
       "evidence": [],
       "interpretation": [],
       "advice": [],
@@ -2150,8 +2253,8 @@ field omissionを禁止する。
       "section_id": "current_luck",
       "title": "現在の運勢",
       "facts": [],
-      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
-      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "summary": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
       "evidence": [],
       "interpretation": [],
       "advice": [],
@@ -2162,8 +2265,8 @@ field omissionを禁止する。
       "section_id": "future_flow",
       "title": "今後の流れ",
       "facts": [],
-      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
-      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "summary": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
       "evidence": [],
       "interpretation": [],
       "advice": [],
@@ -2175,8 +2278,8 @@ field omissionを禁止する。
       "section_id": "advice",
       "title": "総合アドバイス",
       "facts": [],
-      "summary": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
-      "detail": {"text": "", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "summary": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
+      "detail": {"text": "", "claim_type": "practical", "source_fact_codes": [], "source_components": [], "warnings": [], "uncertainty": []},
       "evidence": [],
       "interpretation": [],
       "advice": [],
@@ -2221,6 +2324,7 @@ field omissionを禁止する。
 ``` json
 {
   "text": "...",
+  "claim_type": "practical",
   "source_fact_codes": [],
   "source_components": [],
   "warnings": [],
@@ -2228,11 +2332,11 @@ field omissionを禁止する。
 }
 ```
 
-非null `consultation_answer`では`text`だけをmodel-authoredとする。source arraysは22.6の
+非null `consultation_answer`では`text`と`claim_type`をmodel-authoredとする。source arraysは22.6の
 dynamic enum、`warnings` / `uncertainty`は22.10のcatalog IDだけを許可し、trusted validatorが
-すべてresolveする。consultation自体をastrology fact sourceとしてはならない。astrology claimは
-少なくとも一つのfact/component referenceを必要とする。pure practical adviceはsource arraysを
-emptyにできるが、engine calculationとして表現してはならない。
+すべてresolveする。consultation自体をastrology fact sourceとしてはならない。`claim_type = "astrology"`
+は少なくとも一つのfact codeを必要とし、`claim_type = "practical"`は両source arraysをemptyとする。
+`claim_type = "luck_astrology"`は禁止する。practical textをengine calculationとして表現してはならない。
 
 -   top-level `summary`は`grounded_text_block`とする。
 -   `warnings` と `uncertainty` は trusted code が input から source contract、
@@ -2267,9 +2371,10 @@ Model がauthorできる自然言語は、validated prompt/schemaが許可する
 -   consultation answer text（consultation が存在する場合）
 -   `future_flow.yearly[].summary.text` / `detail.text`
 
-自然言語以外では、modelはsection `facts`、各`grounded_text_block`の
-`source_fact_codes` / `source_components`、およびsection/block/consultationのwarning ID / uncertainty
-IDをtrusted dynamic enumからSELECTできる。これらはmodelによる新規reference生成ではない。
+自然言語以外では、modelは各`grounded_text_block`の`claim_type`をavailable claim type enumから宣言し、
+section `facts`、各`grounded_text_block`の`source_fact_codes` / `source_components`、および
+section/block/consultationのwarning ID / uncertainty IDをtrusted dynamic enumからSELECTできる。
+これらはmodelによる新規reference生成ではない。
 
 Trusted code は次をattachまたはprojectしなければならない。
 
@@ -2370,14 +2475,16 @@ Common Judgment Metadata の canonical `status` は文章表現に次の制約�
 
 ### 22.9 Grounding / source policy
 
-1.  non-luckのastrology factual claimが参照するfactは、validated inputの
-    `reading_context_v2.facts[].code` に存在しなければならない。luck valueだけは22.12の
-    explicit crosswalkに限定したtrusted factual source exceptionを使用できる。
-2.  calculation-dependent interpretationを含むblockは、`source_fact_codes`または
-    `source_components`の少なくとも一方に1件以上のvalidated referenceを持たなければならない。
+1.  `claim_type = "astrology"`のnon-luck astrology value sourceは、validated inputの
+    `reading_context_v2.facts`だけとする。そのblockは`reading_context_v2.facts[].code`へresolveする
+    `source_fact_codes`を1件以上持たなければならない。`source_components`だけではvalue groundingを
+    成立させてはならない。
+2.  `claim_type = "luck_astrology"`だけが22.12のexplicit crosswalkに限定したtrusted factual source
+    exceptionを使用できる。`claim_type = "practical"`はfact/component referenceを持ってはならない。
 3.  fact code / component referenceは、inputからtrusted codeが構築したdynamic enumで
     制約しなければならない。
-4.  source referenceはinput内でresolve可能でなければならない。
+4.  source referenceはinput内でresolve可能でなければならない。Common Judgment Metadataのcomponent
+    referenceはcertainty/provenance supportであり、non-luck astrology value sourceではない。
 5.  `interpretation_hints` はtopic/focusを案内できるが、新しいtruthを作れない。
 6.  Common Judgment Metadataはcertaintyを制御するが、新しいastrology valueを作れない。
 7.  warnings / uncertaintyをfactへ変換してはならない。
@@ -2385,8 +2492,8 @@ Common Judgment Metadata の canonical `status` は文章表現に次の制約�
 9.  general practical adviceをengine calculationとして表現してはならない。
 10. missing sourceを補完せず、missingのまま扱う。
 11. top-level summaryおよびsectionのsummary、detail、evidence、interpretation、adviceに
-    含まれるastrology claimは、それを含む`grounded_text_block`のreferenceでtraceできなければ
-    ならない。別blockのreferenceを暗黙に流用してはならない。
+    含まれるastrology claimは、それを含む`grounded_text_block`の`claim_type`とreferenceでtrace
+    できなければならない。別blockのdeclaration/referenceを暗黙に流用してはならない。
 12. 22.12のluck exceptionは`reading_context_v2.facts` allowlist全体を拡張せず、luck以外の
     structured Reading Context fieldを新しいfactual sourceとして許可しない。
 
@@ -2442,6 +2549,8 @@ Top-level `uncertainty` は、exactly次のshapeのuncertainty entryだけを持
     exactly one resolveしなければならない。
 -   raw valueの順序変更、deduplicate、normalize、warning/uncertainty間の相互変換、意味の追加を
     禁止する。
+-   warning / uncertainty referenceはfact groundingではなく、`claim_type`を推測、変更、または
+    自動分類する材料として使用してはならない。`practical` blockも既存trusted IDを参照できる。
 
 Catalogのcanonical traversal orderは次に固定する。
 
@@ -2539,37 +2648,38 @@ trusted prompt builderは、対応するCommon Judgment Metadata recordが利用
 Reading Context pathのvalueがnon-nullであることをいう。対応metadata recordが利用不可、または
 Reading Context pathがmissing/nullの場合、そのluck pathをmodel factual sourceとして許可しない。
 
-luck-valued astrology claimは、次の三条件をすべて満たす場合だけvalidとする。
+`claim_type = "luck_astrology"`のblockは、次の三条件をすべて満たす場合だけvalidとする。
 
 1.  claimを含む`grounded_text_block.source_components`がallowed luck componentを持つ。
 2.  blockのlocation/scopeにexact matchする`luck_value_source_entry`が存在する。
 3.  同entryの`context_path`が本節のallowed Reading Context v2 luck pathへresolveする。
 
-luck exceptionを許可するscopeは、`current_luck` section、`future_flow` section、
+`luck_astrology`を許可するscopeは、`current_luck` section、`future_flow` section、
 `future_flow.yearly[i]`のexactly三つに限定する。top-level `summary`、`core_personality`、`career`、
 `wealth`、`relationships`、`health`、`advice`、`consultation_answer`ではluck structured-path exceptionを
-禁止する。これらのscopeでastrology factual claimを行う場合は通常のfact/component grounding ruleを
-使用し、luck structured pathをvalue sourceとしてはならない。
+禁止する。これらのscopeでnon-luck astrology factual claimを行う場合は`claim_type = "astrology"`と
+22.4.1のfact grounding ruleを使用し、luck structured pathをvalue sourceとしてはならない。
 
 `current_luck` sectionの`summary`、`detail`、各`evidence`、各`interpretation`、およびastrology-dependent
-`advice` blockでluck exceptionを使う場合、各model-selected luck `source_component`はcurrent-luck
+`advice` blockで`claim_type = "luck_astrology"`を使う場合、各model-selected luck `source_component`はcurrent-luck
 crosswalkのexactly one top-level Reading Context luck pathへresolveしなければならない。
 
 `future_flow` sectionのnon-yearly `summary`、`detail`、各`evidence`、各`interpretation`、および
-astrology-dependent `advice` blockでluck exceptionを使う場合、選択された`source_component`について
+astrology-dependent `advice` blockで`claim_type = "luck_astrology"`を使う場合、選択された`source_component`について
 `trusted_catalogs.luck_value_sources`に存在するfuture-flow全year entryのcontext pathをtrusted year順の
 ordered setとしてresolveしなければならない。modelはそのordered setのsubset yearを指定できない。
 特定yearのclaimは対応する`future_flow.yearly[i]` blockに置かなければならない。
 `five_year_luck=[]`の場合、future-flow non-yearly blockはluck exceptionを使用できない。
 
-`future_flow.yearly[i]`の`summary`または`detail` blockでluck exceptionを使う場合、trusted positional
+`future_flow.yearly[i]`の`summary`または`detail` blockで`claim_type = "luck_astrology"`を使う場合、trusted positional
 index `i`とtrusted attached yearによって、選択された`source_component`をexactly one
 `luck.five_year_luck[i].<component>` pathへresolveする。modelはyear、index、pathを返してはならない。
 
 `source_components`はglobal allowed enumであるが、そのmembershipだけでluck groundingをvalidとしては
 ならない。validatorおよびQuality Gateはblock scope、source component、trusted
 `luck_value_source_entry`のcrosswalk一致を必ず検証し、scopeに対応するentryがなければinvalidとする。
-non-luck source componentには従来のcomponent grounding ruleを維持する。
+non-luck source componentはcertainty/provenance supportとして使用できるが、単独ではnon-luck value groundingを
+成立させない。
 
 yearはtrusted attachmentとする。modelおよびAI Reading layerはluck valueを再計算、再分類、normalize、
 補完または推測してはならない。`target_datetime`をbirth timeとして扱わず、`target_datetime`自体から
@@ -2591,6 +2701,7 @@ exactly次のentry shapeを持つarrayとする。
   "year": 2026,
   "summary": {
     "text": "...",
+    "claim_type": "practical",
     "source_fact_codes": [],
     "source_components": [],
     "warnings": [],
@@ -2598,6 +2709,7 @@ exactly次のentry shapeを持つarrayとする。
   },
   "detail": {
     "text": "...",
+    "claim_type": "practical",
     "source_fact_codes": [],
     "source_components": [],
     "warnings": [],
@@ -2609,15 +2721,16 @@ exactly次のentry shapeを持つarrayとする。
 -   `year`はintegerとし、trusted codeがinputからattachする。modelはyearを生成、変更、追加、
     削除、並べ替えしてはならない。
 -   `summary`と`detail`はそれぞれ22.4のexact `grounded_text_block`とする。model-authoredなのは
-    各blockの`text`だけであり、yearly entry全体を別のtraceability unitとして扱ってはならない。
+    各blockの`text`と`claim_type`であり、yearly entry全体を別のtraceability unitとして扱ってはならない。
 -   各blockの`source_fact_codes` / `source_components`は22.6のdynamic enumからmodelがSELECTし、
     trusted validatorがresolveする。modelはreferenceをINVENTできず、trusted codeは意味を推測して
     referenceを生成・補完しない。
 -   各blockの`warnings` / `uncertainty`は22.10のtrusted catalog IDだけを許可し、全IDを
     trusted validatorがresolveする。unknown birth timeがyearly claimへ影響する場合は、該当する
     block自身がapplicable uncertainty IDを持たなければならない。
--   astrology claimを含む`summary`または`detail` blockでは、`source_fact_codes`と
-    `source_components`の両方をemptyにしてはならない。
+-   `summary`と`detail`の各blockは22.4.1のper-type reference ruleおよび22.4.2のlocation matrixを
+    満たさなければならない。`luck_astrology`では対応するyear/index crosswalkを満たすluck componentが
+    1件以上必要であり、`astrology`ではfact codeが1件以上必要である。
 -   `yearly`の件数、year value、orderingは`reading_context_v2.luck.five_year_luck`とexact match
     しなければならない。同inputがemptyの場合は`yearly=[]`とする。inputにないyearを禁止する。
 -   他の7 sectionに`yearly` fieldを置くことを禁止し、unknown-field rejectionの対象とする。
@@ -2679,14 +2792,15 @@ AI Reading v2のvalidation lifecycleは次の非循環順序に固定する。
 1.  `reading_context_v2`をowner validatorで検証する。
 2.  `common_judgment_metadata_v1`をowner validatorで検証する。
 3.  `validate_ai_reading_prompt_inputs_v2()`でprompt-specific prerequisiteを検証する。
-4.  trusted warning / uncertainty catalog、fact/component dynamic enum、luck value source catalogを
-    構築し、trusted attachmentsを構築する。
+4.  trusted warning / uncertainty catalog、fact/component dynamic enum、luck value source catalog、
+    available claim type enumを構築し、trusted attachmentsを構築する。
 5.  22.2.3に従ってexact `model_output_schema`を構築する。
 6.  22.2.1のexact system constantとcanonical user serializationからexact `messages`を構築する。
 7.  exact `messages`と`model_output_schema`を使用してmodelを呼び出す。
-8.  model responseをstrict JSON Schema validationする。
-9.  schema-valid model payloadをsemantic reference validationし、fact resolution、component resolution、
-    luck block scope crosswalk、warning ID、uncertainty ID、section count、future year countを確認する。
+8.  model responseを22.13.3のDraft 2020-12 policyでstrict JSON Schema validationする。
+9.  schema-valid model payloadをsemantic validationし、claim typeごとのreference rule、location matrix、
+    fact resolution、component resolution、luck block scope crosswalk、warning ID、uncertainty ID、
+    section count、future year countを確認する。text意味のNLP判定は行わない。
 10. validated model-owned fieldsへtrusted catalog、source contracts、engine version、fixed section ID/title、
     future year/order、disclaimer、schema/version/method/statusをdeterministically attachして、
     `validation` fieldをまだ持たないfinal candidateを構築する。
@@ -2705,7 +2819,8 @@ AI Reading v2 validatorは少なくとも次を検証する。
 -   unknown field rejection
 -   exact eight section IDs、順序、重複、不足
 -   fixed title mapping
--   `grounded_text_block`のexact shapeとastrology claimのsource-presence rule
+-   `grounded_text_block`のexact six-field shape、available `claim_type`、per-type reference rule、
+    location matrix
 -   fact-code existence
 -   registered component-reference existence
 -   luck value source catalogのexact crosswalk、metadata availability、Reading Context path resolution
@@ -2717,6 +2832,29 @@ AI Reading v2 validatorは少なくとも次を検証する。
 
 validatorは占術計算、score再計算、status再判定、missing data補完を行ってはならない。
 invalid outputをtrusted AI Reading v2 wrapperとして返してはならない。
+
+#### 22.13.3 Local JSON Schema validation
+
+Local validation dialectはJSON Schema Draft 2020-12、Python implementationは
+`jsonschema.Draft202012Validator`に固定する。providerへ渡すschemaとlocal validatorは、いずれも
+`ai_reading_request_v2["model_output_schema"]`という同一schema contractを使用しなければならない。
+provider固有の`type` / `name` / `strict` wrapperはschema本体とは別transport layerとし、schema本体へ
+`$schema` fieldを追加してはならない。
+
+Local structural validationはexactly次の順で行う。
+
+1.  `jsonschema.Draft202012Validator.check_schema(model_output_schema)`を実行する。
+2.  同schemaから`jsonschema.Draft202012Validator` instanceを構築し、
+    `iter_errors(model_payload)`ですべてのstructural errorを取得する。
+3.  errorをinstance JSON pathを第一keyとするdeterministic orderingへ並べる。instance pathは
+    `error.absolute_path`、schema pathは`error.absolute_schema_path`の各segmentをRFC 6901 JSON Pointerへ
+    変換し（`~`を`~0`、`/`を`~1`へescapeし、array indexはbase-10 integer stringとする）、sort keyをexactly
+    `(instance_pointer, schema_pointer, str(validator), message)`とする。
+4.  structural validationがPASSした場合だけ22.13.2 step 9のsemantic validationを実行する。
+
+このlocal validationにはPython dependency `jsonschema`が必要である。dependency追加はPrompt v2
+Phase 1.1またはGenerator v2 implementation changeとして明示的に行い、本spec clarificationだけで
+`requirements.txt`を変更してはならない。
 
 ### 22.14 Quality Gate v2 handoff
 
@@ -2739,6 +2877,17 @@ AI Reading v2 outputは、Quality Gate v2が少なくとも次を検証できる
 -   fabricated evidence / path / reference
 -   consultationとastrology calculationの分離
 -   future-flow year integrity
+
+Generator v2は`claim_type`のenum membership、typeごとのreference cardinality、22.4.2のlocation matrix、
+trusted ID resolution、22.12のluck crosswalk、section/year cardinality、deterministic assembly、および
+model declarationのexact preservationを検証する。Generator v2はkeyword、NLP、その他のheuristicで
+textを分類してはならない。
+
+Quality Gate v2は`claim_type`と実際のtext意味の一致、astrology claimを`practical`と宣言する偽装、
+luck proseを`astrology`または`practical`と宣言する偽装、fact/componentとproseのsemantic relevance、
+engine value contradiction、certainty/status wording、unknown-hour-derived prose、unsupported numeric claim、
+consultationとastrologyの分離を検証する。Quality Gate v2はGenerator v2のstructural/semantic validationを
+代替しない。
 
 `prohibited_claim` findingはAI Reading model outputに含めず、Quality Report v2の責任とする。
 
@@ -2765,22 +2914,37 @@ AI Reading v2は新規opt-in moduleとして実装し、v1 consumerを一括切�
 22.2から22.13のrequest、grounding、validation contractはAI Reading v2 orchestration layerだけの
 clarificationである。§20 Reading Context v2 contract、`engine/reading_context_v2.py`、GC03/GC10
 Reading Context v2 Golden、`engine/judgment_metadata.py`、§4 Common Judgment Metadata semantics、
-v1 pipeline、`tests/golden/v1_1/**`、およびastrology calculation ruleを変更しない。
+v1 pipeline、`tests/golden/v1_1/**`、API、およびastrology calculation ruleを変更しない。
 
 ### 22.16 Phased migration
 
 AI Reading v2は次の順に段階導入する。Big Bang migrationを禁止する。
 
-1.  Phase 1: AI Reading v2 spec freeze
-2.  Phase 2: new opt-in `reading_prompt_v2`
-3.  Phase 3: new opt-in `reading_generator_v2`
-4.  Phase 4: AI Reading v2 unit / four-pillar / three-pillar tests
-5.  Phase 5: AI Reading v2 Golden after human review
+1.  Phase 1: 本`claim_type` / local validator clarificationを含む§22 spec freeze
+2.  Phase 2: Prompt v2 Phase 1.1
+3.  Phase 3: Prompt v2 targeted / regression tests
+4.  Phase 4: new opt-in `reading_generator_v2` implementation
+5.  Phase 5: Generator v2 unit / four-pillar / three-pillar tests
 6.  Phase 6: Quality Gate v2
 7.  Phase 7: Auto-Repair v2
-8.  Phase 8: ReadingProduct v2
-9.  Phase 9: API v2
-10. Phase 10: PDF / E2E
+8.  Phase 8: AI Reading v2 Golden after human review
+9.  Phase 9: ReadingProduct v2
+10. Phase 10: API v2
+11. Phase 11: PDF / E2E
+
+Generator v2をPrompt v2 Phase 1.1より先に実装してはならない。Prompt v2 Phase 1.1のexact scopeは次に
+限定する。
+
+-   `AI_READING_V2_CLAIM_TYPES`の追加
+-   `grounded_text_block`へのrequired `claim_type`追加
+-   dynamic available claim type enumの構築
+-   `AI_READING_V2_SYSTEM_PROMPT`を22.2.1のclaim declaration instructionへexact同期
+-   `model_output_schema`のclaim type property / required list更新
+-   canonical message expected testsおよびPrompt v2 testsの更新
+
+Prompt v2 Phase 1.1ではrequest top-level fields、`trusted_catalogs` top-level fields、`model_input` fields、
+`AI_READING_V2_USER_PROMPT_PREFIX`、prompt-specific prerequisite validator、既存luck crosswalk、
+Reading Context validator、Common Judgment Metadata validatorを変更してはならない。
 
 AI Reading v2はexisting engine outputのvalidation / grounding / verbalization layerであり、
 astrology calculation ruleへのimpactは `NONE` とする。
