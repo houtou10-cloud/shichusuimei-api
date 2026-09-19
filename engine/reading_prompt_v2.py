@@ -34,6 +34,11 @@ AI_READING_REQUEST_V2_STATUS = "ready_for_ai_generation"
 
 AI_READING_V2_SUPPORTED_LANGUAGES = ("ja",)
 AI_READING_V2_SUPPORTED_TONES = ("professional_warm",)
+AI_READING_V2_CLAIM_TYPES = (
+    "practical",
+    "astrology",
+    "luck_astrology",
+)
 
 AI_READING_V2_SECTION_SLOTS = (
     ("core_personality", "本質・性格"),
@@ -74,6 +79,11 @@ AI_READING_V2_SYSTEM_PROMPT = (
     "推定してはいけません。\n"
     "consultationは説明の優先順位とpractical contextにだけ使用し、占術結果を"
     "生成または変更してはいけません。\n"
+    "すべてのgrounded_text_blockでclaim_typeを宣言し、意図するtextと一致"
+    "させてください。practicalに占術またはluckの主張を含めず、astrologyは"
+    "factでgroundし、luck_astrologyは許可されたlocationとluck crosswalkで"
+    "groundしてください。占術またはluckの主張をpracticalとして偽装しては"
+    "いけません。\n"
     "返してよいのはmodel-owned payloadだけです。section_id、title、year、"
     "disclaimer、catalog、source contract、engine_version、schema_version、"
     "version、method、status、validationを返してはいけません。\n"
@@ -536,6 +546,17 @@ def _dynamic_string_array_schema(values: list[str]) -> dict[str, Any]:
     }
 
 
+def _available_claim_types(
+    trusted_catalogs: Mapping[str, Any],
+) -> list[str]:
+    available = [AI_READING_V2_CLAIM_TYPES[0]]
+    if trusted_catalogs["fact_codes"]:
+        available.append(AI_READING_V2_CLAIM_TYPES[1])
+    if trusted_catalogs["luck_value_sources"]:
+        available.append(AI_READING_V2_CLAIM_TYPES[2])
+    return available
+
+
 def _build_model_output_schema(
     trusted_catalogs: Mapping[str, Any],
     *,
@@ -560,6 +581,10 @@ def _build_model_output_schema(
             "type": "object",
             "properties": {
                 "text": {"type": "string"},
+                "claim_type": {
+                    "type": "string",
+                    "enum": _available_claim_types(trusted_catalogs),
+                },
                 "source_fact_codes": {"$ref": "#/$defs/fact_code_array"},
                 "source_components": {
                     "$ref": "#/$defs/source_component_array"
@@ -569,6 +594,7 @@ def _build_model_output_schema(
             },
             "required": [
                 "text",
+                "claim_type",
                 "source_fact_codes",
                 "source_components",
                 "warnings",
@@ -753,6 +779,7 @@ __all__ = [
     "AI_READING_REQUEST_V2_SCHEMA_VERSION",
     "AI_READING_REQUEST_V2_STATUS",
     "AI_READING_REQUEST_V2_VERSION",
+    "AI_READING_V2_CLAIM_TYPES",
     "AI_READING_V2_DISCLAIMER",
     "AI_READING_V2_SECTION_SLOTS",
     "AI_READING_V2_SUPPORTED_LANGUAGES",

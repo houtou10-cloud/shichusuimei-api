@@ -21,6 +21,7 @@ from engine.judgment_metadata import (
 from engine.reading_context_v2 import build_reading_context_v2
 from engine.reading_prompt_v2 import (
     AI_READING_REQUEST_V2_FIELDS,
+    AI_READING_V2_CLAIM_TYPES,
     AI_READING_V2_DISCLAIMER,
     AI_READING_V2_SECTION_SLOTS,
     AI_READING_V2_SUPPORTED_TONES,
@@ -75,6 +76,11 @@ EXPECTED_SYSTEM_PROMPT = (
     "推定してはいけません。\n"
     "consultationは説明の優先順位とpractical contextにだけ使用し、占術結果を"
     "生成または変更してはいけません。\n"
+    "すべてのgrounded_text_blockでclaim_typeを宣言し、意図するtextと一致"
+    "させてください。practicalに占術またはluckの主張を含めず、astrologyは"
+    "factでgroundし、luck_astrologyは許可されたlocationとluck crosswalkで"
+    "groundしてください。占術またはluckの主張をpracticalとして偽装しては"
+    "いけません。\n"
     "返してよいのはmodel-owned payloadだけです。section_id、title、year、"
     "disclaimer、catalog、source contract、engine_version、schema_version、"
     "version、method、status、validationを返してはいけません。\n"
@@ -343,8 +349,32 @@ def test_unsupported_tone_is_rejected(
         )
 
 
+def test_claim_type_vocabulary_is_exact():
+    assert AI_READING_V2_CLAIM_TYPES == (
+        "practical",
+        "astrology",
+        "luck_astrology",
+    )
+
+
 def test_request_has_exact_top_level_fields(four_pillar_request):
-    assert tuple(four_pillar_request) == AI_READING_REQUEST_V2_FIELDS
+    expected_fields = (
+        "schema_version",
+        "version",
+        "method",
+        "status",
+        "language",
+        "tone",
+        "source_contracts",
+        "trusted_catalogs",
+        "trusted_attachments",
+        "model_input",
+        "messages",
+        "model_output_schema",
+        "validation",
+    )
+    assert AI_READING_REQUEST_V2_FIELDS == expected_fields
+    assert tuple(four_pillar_request) == expected_fields
     assert four_pillar_request["schema_version"] == "ai_reading_request_v2"
     assert four_pillar_request["version"] == "ai_reading_request_v2"
     assert four_pillar_request["method"] == "reading_prompt_v2"
@@ -364,6 +394,23 @@ def test_source_contracts_are_exact(four_pillar_request):
             "schema_version": "common_judgment_metadata_v1",
         },
     }
+
+
+def test_phase_1_1_preserves_catalog_shape_and_user_prefix(
+    four_pillar_request,
+):
+    assert tuple(four_pillar_request["trusted_catalogs"]) == (
+        "fact_codes",
+        "source_components",
+        "warnings",
+        "uncertainty",
+        "luck_value_sources",
+    )
+    assert AI_READING_V2_USER_PROMPT_PREFIX == (
+        "以下のmodel_inputだけを使用し、model_output_schemaに厳密に一致するJSONを"
+        "生成してください。\n"
+        "model_input="
+    )
 
 
 def test_exact_eight_section_slots(four_pillar_request):
@@ -602,6 +649,7 @@ def test_grounded_text_block_schema_is_exact(four_pillar_request):
     ]
     assert tuple(block["properties"]) == (
         "text",
+        "claim_type",
         "source_fact_codes",
         "source_components",
         "warnings",
@@ -609,6 +657,62 @@ def test_grounded_text_block_schema_is_exact(four_pillar_request):
     )
     assert block["required"] == list(block["properties"])
     assert block["additionalProperties"] is False
+    assert block["properties"]["claim_type"] == {
+        "type": "string",
+        "enum": ["practical", "astrology", "luck_astrology"],
+    }
+
+
+@pytest.mark.parametrize(
+    ("has_facts", "has_luck_sources", "expected"),
+    (
+        pytest.param(
+            True,
+            True,
+            ["practical", "astrology", "luck_astrology"],
+            id="facts-and-luck",
+        ),
+        pytest.param(
+            True,
+            False,
+            ["practical", "astrology"],
+            id="facts-only",
+        ),
+        pytest.param(
+            False,
+            True,
+            ["practical", "luck_astrology"],
+            id="luck-only",
+        ),
+        pytest.param(
+            False,
+            False,
+            ["practical"],
+            id="neither",
+        ),
+    ),
+)
+def test_available_claim_type_enum_is_exact_and_never_empty(
+    four_pillar_context,
+    four_pillar_metadata,
+    has_facts,
+    has_luck_sources,
+    expected,
+):
+    context = deepcopy(four_pillar_context)
+    metadata = deepcopy(four_pillar_metadata)
+    if not has_facts:
+        context["facts"] = []
+    if not has_luck_sources:
+        metadata = _metadata_with_no_present_sources(metadata)
+
+    request = build_ai_reading_request_v2(context, metadata)
+    claim_type_schema = request["model_output_schema"]["$defs"][
+        "grounded_text_block"
+    ]["properties"]["claim_type"]
+
+    assert claim_type_schema == {"type": "string", "enum": expected}
+    assert claim_type_schema["enum"]
 
 
 def test_model_section_schema_is_exact(four_pillar_request):
