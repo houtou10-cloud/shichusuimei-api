@@ -8,3 +8,4 @@ skyfield
 jplephem
 tzdata
 openai
+jsonschema
