@@ -2983,6 +2983,539 @@ v1.1 では warning が PDF 停止条件ではないケースがある。 v1.2
 では、**占術上の事実整合性に関わる warning** を分類し、Auto-Repair
 対象化できるようにする。
 
+### 23.4 Responsibility boundary
+
+Quality Gate v2は完成済みの次の三contractをflattenせず別々に受け取る。
+
+1.  `ai_reading_v2`
+2.  `reading_context_v2`
+3.  `common_judgment_metadata_v1`
+
+Quality Gate v2は次を行う。
+
+-   trusted field、reference、catalog、year / orderのdefense-in-depth validation。
+-   `claim_type`と本文意味の整合性検査。
+-   fact / component / luck sourceと本文のsemantic relevance検査。
+-   engine value、label、canonical status policy、warning、uncertaintyと本文の整合性検査。
+-   prohibited claim、過度な断定、安全性の検査。
+-   公開可否のdecisionとfindingをQuality Report v2として返却。
+
+Quality Gate v2は次を行ってはならない。
+
+-   占術再計算、score再計算、status再判定またはmissing value補完。
+-   input、AI Reading、本文またはtrusted fieldの変更。
+-   本文の修復、`claim_type`の自動変更またはreferenceの自動追加。
+-   Common Judgment Metadata statusの新しいranking、優先順位または「strictest status」の計算。
+-   raw `chart_result`の第三input化。
+-   `source_components`からのastrology valueまたはluck valueの推測。
+-   keyword不一致がないことだけをsemantic PASSの根拠にすること。
+-   Generator v2のstructural / semantic validationの代替。
+
+Quality Gate v2はAI Reading v2の文章品質と公開可否を判定する層であり、
+Generator v2の成功を占術的正しさの保証として扱ってはならない。
+
+Quality Gate v2のpublic entry pointは次に固定する。
+
+``` python
+evaluate_ai_reading_quality_v2(
+    ai_reading: Mapping[str, Any],
+    reading_context: Mapping[str, Any],
+    judgment_metadata: Mapping[str, Any],
+    *,
+    semantic_assessor: SemanticAssessorV2 | None = None,
+) -> AIReadingQualityReportV2
+```
+
+`AIReadingQualityReportV2`およびfindingを表す`AIReadingQualityFindingV2`はfrozen dataclassとする。
+`AIReadingQualityReportV2.to_dict()`は23.6のexact reportをdeep copyで返し、内部stateへのaliasを返さない。
+
+### 23.5 Input validation and trusted identity
+
+各inputがnon-Mappingの場合は`TypeError`とし、Quality Report v2を生成しない。
+Mapping inputは次の順序で検査する。
+
+1.  Reading Context v2 owner validation。
+2.  Common Judgment Metadata owner validation。
+3.  AI Reading v2 final contract validation。
+4.  Reading Context v2とCommon Judgment MetadataからPrompt v2 trusted requestを再構築。
+5.  再構築したtrusted catalogs / attachmentsとAI Reading v2を照合。
+6.  source contracts、engine version、section ID / title、future year / order、disclaimer、
+    warning catalog、uncertainty catalogを照合。
+7.  sectionおよびblockのfact code、component、warning ID、uncertainty IDを再構築catalogへresolve。
+8.  22.12のluck crosswalkとReading Context pathを照合。
+
+Mapping inputがowner-invalidまたはprompt prerequisite-invalidの場合、
+`input_contract_invalid` ERROR findingを持つ`fail` reportを返し、semantic assessorを呼び出さない。
+個々のcontractがvalidでも、AI Reading v2と検証inputのtrusted identityが一致しない場合は
+`input_contract_mismatch`とする。
+
+Mapping inputのinvalid policyは次に固定する。
+
+-   Reading Context v2、Common Judgment Metadata、AI Reading v2を23.5の順序でそれぞれ
+    独立に検査し、最初のinvalid contractでfail-fastしない。
+-   owner-invalidなReading Context v2またはCommon Judgment Metadataごとに、
+    `input_contract_invalid`候補をexactly 1件生成する。
+-   AI Reading v2 final contractがinvalidな場合は`input_contract_invalid`ではなく、
+    `ai_reading_contract_invalid`候補をexactly 1件生成する。
+-   これらのfinding `path`はreport-levelのempty string、`evidence`は該当contractの
+    rootを示す`[{"source_contract": <contract>, "path": ""}]`とする。
+    `<contract>`はAI Reading v2で`"ai_reading_v2"`、Reading Context v2で
+    `"reading_context_v2"`、Common Judgment Metadataで`"common_judgment_metadata_v1"`とする。
+-   複数contractがinvalidな場合はすべてのcontract単位候補を生成し、23.12で
+    canonical sort / dedupする。owner validatorのerror array順でfinding数を増やさない。
+-   Reading Context v2とCommon Judgment Metadataがowner-validだがprompt prerequisite-invalidの
+    場合は、`input_contract_invalid`候補をexactly 1件生成する。`path` はempty string、
+    `evidence`は両contract rootを指す2 entryとし、23.12の順序にcanonicalizeする。
+-   owner validatorの`missing_required_field:path`、`type:path:...`等の独自error stringを
+    RFC 6901 JSON Pointerとして転記、変換または保存しない。存在しないfield pathを
+    findingまたはevidenceに生成しない。
+
+Quality Gate v2はGenerator v2のprivate helperをimportせず、owner validatorおよび
+`build_ai_reading_request_v2()`のpublic contractからtrusted dataを再構築する。
+inputはmutation、normalization、completionしない。
+
+### 23.6 Quality Report v2 exact contract
+
+Quality Report v2のidentityは次に固定する。
+
+``` python
+AI_READING_QUALITY_REPORT_V2_SCHEMA_VERSION = "ai_reading_quality_report_v2"
+AI_READING_QUALITY_REPORT_V2_VERSION = "ai_reading_quality_report_v2"
+AI_READING_QUALITY_REPORT_V2_METHOD = "ai_reading_quality_gate_v2"
+AI_READING_QUALITY_REPORT_V2_STATUS = "completed"
+```
+
+top-level fieldは次の順序のexactly 13 fieldとする。すべてREQUIRED、unknown field禁止。
+
+1.  `schema_version`
+2.  `version`
+3.  `method`
+4.  `status`
+5.  `decision`
+6.  `blocking`
+7.  `human_review_required`
+8.  `error_count`
+9.  `warning_count`
+10. `info_count`
+11. `input_contracts`
+12. `semantic_assessment`
+13. `findings`
+
+``` json
+{
+  "schema_version": "ai_reading_quality_report_v2",
+  "version": "ai_reading_quality_report_v2",
+  "method": "ai_reading_quality_gate_v2",
+  "status": "completed",
+  "decision": "pass",
+  "blocking": false,
+  "human_review_required": false,
+  "error_count": 0,
+  "warning_count": 0,
+  "info_count": 0,
+  "input_contracts": {
+    "ai_reading_v2": {
+      "schema_version": "ai_reading_v2",
+      "version": "ai_reading_v2",
+      "method": "openai_responses_api_v2",
+      "status": "completed",
+      "engine_version": null
+    },
+    "reading_context_v2": {
+      "schema_version": "reading_context_v2",
+      "version": "reading_context_v2",
+      "method": "reading_context_v2",
+      "status": "ready_for_ai_reading"
+    },
+    "common_judgment_metadata_v1": {
+      "schema_version": "common_judgment_metadata_v1"
+    }
+  },
+  "semantic_assessment": {
+    "status": "completed",
+    "method": "semantic_assessor_method",
+    "version": "semantic_assessor_version"
+  },
+  "findings": []
+}
+```
+
+top-levelの`schema_version`、`version`、`method`、`status`はnon-empty string、
+countはbooleanを含まない0以上のinteger、
+`blocking`と`human_review_required`はboolean、`findings`は23.7のexact finding arrayとする。
+`decision`は`"pass" | "fail" | "review"`のみとする。
+
+`input_contracts` fieldは上記の順序のexactly 3 fieldを持ち、各nested objectも上記の
+field順序を保持する。identity valueはstringまたはnull、`engine_version`はstringまたはnullとする。
+owner-valid inputでは各fixed identityがexact matchしなければならない。
+
+Mapping-invalid inputの`input_contracts` identity projectionは次のexact algorithmに固定する。
+
+-   上記exact field shapeの各identity fieldと`engine_version`を独立に処理する。
+-   対象fieldが存在し、値がPython `str`型なら、empty stringを含むraw値をそのまま投影する。
+-   対象fieldがmissing、nullまたはnon-stringならnullを投影する。
+-   identity投影元の親objectがmissingまたはMappingでない場合、上記exact shapeの
+    該当nested report objectに定義されたすべてのfieldをnullとする。
+-   他fieldのvalidityによって投影値を変更しない。strip、normalize、infer、complete、
+    stringifyを禁止し、boolean、numberまたはその他のnon-stringをstringへ変換しない。
+-   このprojectionのために占術計算または新しい占術判断を行わない。
+
+`semantic_assessment`は次の順序のexactly 3 fieldを持つ。
+
+1.  `status`
+2.  `method`
+3.  `version`
+
+`status`は`"not_run" | "completed" | "unavailable" | "failed" | "inconclusive"`とする。
+`not_run`はdeterministic ERRORのためsemantic検査を開始しなかった場合、
+`unavailable`はassessor未設定またはidentity不正、`failed`はassessor実行またはoutput validation失敗、
+`inconclusive`は少なくとも1件の意味判定を確定できない場合とする。
+`not_run`と`unavailable`では`method` / `version`をnull、他の三statusでは
+23.11で呼出前に検証したassessor identityのnon-empty stringとする。
+`pass`には`status == "completed"`を必須とする。statusごとのexact lifecycleは23.11に従う。
+
+reportはraw provider response、model usage、API key、非決定的timestampを含めない。
+
+### 23.7 Finding exact contract
+
+Findingは次の順序のexactly 9 fieldを持つ。すべてREQUIRED、unknown field禁止。
+
+1.  `finding_id`
+2.  `code`
+3.  `severity`
+4.  `blocking`
+5.  `path`
+6.  `message`
+7.  `evidence`
+8.  `repairability`
+9.  `requires_human_review`
+
+``` json
+{
+  "finding_id": "finding_0001",
+  "code": "claim_type_mismatch",
+  "severity": "ERROR",
+  "blocking": true,
+  "path": "/sections/0/summary",
+  "message": "claim_typeが本文の意味と一致しません。",
+  "evidence": [
+    {
+      "source_contract": "ai_reading_v2",
+      "path": "/sections/0/summary"
+    }
+  ],
+  "repairability": "auto",
+  "requires_human_review": false
+}
+```
+
+-   `finding_id`はcanonical sort後に`finding_0001`から始まる4桁zero-padded独立連番とする。
+-   `code`は23.9のfrozen issue code catalogのみを許可する。
+-   `severity`は`"ERROR" | "WARNING" | "INFO"`のみとする。
+-   `path`はAI Reading v2内のRFC 6901 JSON Pointerとし、report-level findingはempty stringとする。
+-   `message`は23.9のcode catalog所有のfixed messageとし、semantic assessorが生成、変更しない。
+-   `evidence`は原則1件以上のexact evidence entry arrayとする。
+    `semantic_assessment_unavailable`、`semantic_assessment_failed`、
+    `semantic_assessment_inconclusive`のreport-level infrastructure findingに限り、
+    `path == ""`かつ`evidence == []`とする。その他のfindingにempty evidenceを許可しない。
+-   evidence entryは`source_contract`、`path`の順序のexactly 2 fieldを持ち、unknown fieldを禁止する。
+-   evidence `source_contract`は`"ai_reading_v2" | "reading_context_v2" |
+    "common_judgment_metadata_v1"`のみとする。
+-   evidence `path`はRFC 6901 JSON Pointerとし、source contract内のvalueへresolveする。
+    invalid input findingは23.5のcontract root policyに従う。
+-   `repairability`は`"auto" | "human" | "none"`のみとする。
+-   `requires_human_review`はbooleanとする。
+
+### 23.8 Decision, severity, and blocking semantics
+
+`severity`、Findingの`blocking`、Reportの`blocking`は異なる三概念とする。
+
+-   `severity`は問題の重大度を示す。
+-   Finding `blocking`はそのfindingが単独で自動公開を停止するかを示す。
+-   Report `blocking`は最終`decision`に基づく公開停止状態を示す。
+
+次をMUSTとする。
+
+-   ERROR findingは`blocking = true`。
+-   INFO findingは`blocking = false`、`requires_human_review = false`。
+-   `requires_human_review = true`のfindingはseverityがWARNINGでも`blocking = true`。
+-   WARNINGはcode mappingにより`blocking = false`または`true`になり得る。
+-   ERROR findingが1件以上なら`decision = "fail"`。
+-   ERRORがなく、human review findingがあるかsemantic assessmentが未完了なら
+    `decision = "review"`。
+-   その他の場合だけ`decision = "pass"`。
+-   Report `blocking == (decision != "pass")`をexact invariantとする。
+-   ERRORがなくても`decision = "review"`ならReport `blocking = true`。
+-   semantic assessment未完了を`pass`としてはならない。
+-   Reportの`human_review_required == any(finding.requires_human_review for finding in findings)`を
+    exact invariantとする。
+-   `error_count`、`warning_count`、`info_count`はfindingsのseverity countとexact matchする。
+
+v1の「ERRORだけがblocking」という実装慣例をv2に暗黙再利用してはならない。
+`review`はERRORとは異なるが、明示的なhuman approvalなしに自動公開、PDF生成または
+`pass`への変更を行ってはならない。
+
+### 23.9 Frozen issue code catalog
+
+severity、blocking、repairability、human reviewおよびmessageは次のfrozen mappingからtrusted codeが付与する。
+semantic assessorまたはAuto-Repairがこれらを決定、変更してはならない。
+
+| code | severity | blocking | repairability | human review | fixed message |
+|---|---|---:|---|---:|---|
+| `input_contract_invalid` | ERROR | true | none | false | 入力contractがowner validationまたはprompt prerequisite validationを通過しません。 |
+| `input_contract_mismatch` | ERROR | true | none | false | AI Readingと検証入力のtrusted identityが一致しません。 |
+| `ai_reading_contract_invalid` | ERROR | true | none | false | AI Reading v2の構造がfinal contractに一致しません。 |
+| `trusted_field_mismatch` | ERROR | true | none | false | AI Reading v2のtrusted fieldが再構築値と一致しません。 |
+| `reference_resolution_error` | ERROR | true | none | false | 参照がtrusted sourceへ解決できません。 |
+| `warning_uncertainty_not_preserved` | ERROR | true | none | false | warningまたはuncertaintyが保持されていません。 |
+| `disclaimer_mismatch` | ERROR | true | none | false | disclaimerがtrusted constantと一致しません。 |
+| `future_year_integrity_error` | ERROR | true | none | false | future_flowのyearまたは順序がtrusted inputと一致しません。 |
+| `claim_type_mismatch` | ERROR | true | auto | false | claim_typeが本文の意味と一致しません。 |
+| `fact_semantic_mismatch` | ERROR | true | human | true | source_fact_codesが本文の占術主張を意味的に支持しません。 |
+| `component_semantic_mismatch` | ERROR | true | human | true | source_componentsが本文のcertaintyまたはprovenance表現と整合しません。 |
+| `luck_semantic_mismatch` | ERROR | true | human | true | luck_astrology本文がtrusted luck sourceと整合しません。 |
+| `engine_value_contradiction` | ERROR | true | human | true | 本文がengine確定値またはlabelと矛盾します。 |
+| `judgment_status_wording_violation` | ERROR | true | auto | false | 本文の確度表現がcanonical judgment status policyに違反します。 |
+| `unknown_hour_derived_claim` | ERROR | true | human | true | 出生時刻不明入力からhour由来の主張を生成しています。 |
+| `missing_applicable_uncertainty` | ERROR | true | human | true | 適用可能なuncertaintyが本文または参照に保持されていません。 |
+| `unsupported_numeric_claim` | ERROR | true | auto | false | 本文の数値主張をtrusted sourceで確認できません。 |
+| `consultation_astrology_leak` | ERROR | true | human | true | consultationから新しい占術判断を生成しています。 |
+| `prohibited_claim` | ERROR | true | human | true | 医療・法律・投資の断定、将来保証、不安煽りまたはその他の禁止主張が含まれています。 |
+| `overconfident_wording` | WARNING | false | auto | false | 本文に過度に断定的な表現があります。 |
+| `evidence_interpretation_advice_confusion` | WARNING | false | auto | false | evidence、interpretation、adviceの役割が混同されています。 |
+| `astrology_wording_ambiguity` | WARNING | false | auto | false | 占術上の根拠または確度の表現が曖昧です。 |
+| `semantic_assessment_unavailable` | WARNING | true | human | true | semantic assessorが未設定またはidentity不正のため意味検査を実行できません。 |
+| `semantic_assessment_failed` | WARNING | true | human | true | semantic assessorの実行または出力検証に失敗しました。 |
+| `semantic_assessment_inconclusive` | WARNING | true | human | true | semantic assessorが一つ以上の意味検査を確定できませんでした。 |
+| `source_limitation_note` | INFO | false | none | false | source limitationが適切に開示されています。 |
+
+### 23.10 Deterministic and semantic checks
+
+Deterministic checksは少なくとも次を含む。
+
+-   三inputのowner / final contract validation。
+-   contract identity、trusted field、fixed section、title、year / order、disclaimerの照合。
+-   fact / component / warning / uncertainty referenceのexistenceとsource resolution。
+-   warning / uncertainty catalogのexact preservation。
+-   declared `claim_type`のlocation / reference ruleとluck crosswalk。
+-   明示的なunsupported numeric literal。
+-   report / finding shape、count、order、dedup、decision invariant。
+
+Semantic checksは少なくとも次を含む。
+
+-   `claim_type`と本文意味の一致。
+-   fact / componentとproseのsemantic relevance。
+-   luck valueとluck proseの一致。
+-   engine value / labelの言い換え矛盾。
+-   `resolved` / `provisional` / `uncertain` / `unsupported` / null statusに応じた表現。
+-   unknown birth timeからのhour-derived interpretation。
+-   consultationからのastrology calculationまたは新しい占術判断。
+-   医療・法律・投資の断定、将来の保証、不安を煽る表現。
+-   applicable warning / uncertaintyが本文の確度表現に適切に反映されているか。
+
+keyword、regular expression、literal comparisonはpositive evidenceまたはdeterministic findingに使用できるが、
+matchしないことだけでsemantic checkをPASSにしてはならない。
+warnings / uncertaintyはastrology factではなく、`claim_type`の自動分類材料にしない。
+
+### 23.11 Provider-independent semantic assessor
+
+Quality Gate v2 coreはprovider-independentとし、OpenAI SDK、model name、API keyまたは
+provider transportをcore public contractへ固定しない。semantic assessorは次の三inputを
+exact deep copyとして別々に受け取る。
+
+`SemanticAssessorV2`は`assess()`に加え、read-only identity attributeとして`method`と
+`version`を公開し、両方をnon-empty stringとする。Quality Gate v2は
+`assess()`呼出前に`method`、`version`の順で各attributeをat most 1回取得する。
+最初の取得例外で停止し、再取得しない。両方を取得できた場合はtypeと
+non-emptyを検証したidentity snapshotをreportに使用する。呼出後にidentityを
+再取得、推測または補完しない。
+
+`semantic_assessor is None`、identity attributeの取得が例外、attribute欠落、type不正、
+またはempty stringの場合は`unavailable`とし、assessorを呼び出さない。
+`method` / `version`はともにnull、`semantic_assessment_unavailable`をexactly 1件とする。
+
+``` python
+assess(
+    ai_reading,
+    reading_context,
+    judgment_metadata,
+) -> SemanticAssessmentResultV2
+```
+
+raw `chart_result`、Generator request、provider responseまたはflattenしたinputを渡さない。
+
+assessor outputはtop-levelに`status`、`findings`の順序のexactly 2 fieldを持ち、
+unknown fieldを禁止する。
+
+``` json
+{
+  "status": "completed",
+  "findings": [
+    {
+      "code": "claim_type_mismatch",
+      "path": "/sections/0/summary",
+      "evidence": [
+        {
+          "source_contract": "ai_reading_v2",
+          "path": "/sections/0/summary"
+        }
+      ]
+    }
+  ]
+}
+```
+
+`status`は`"completed" | "inconclusive"`とする。各finding declarationは`code`、`path`、
+`evidence`の順序のexactly 3 fieldとし、unknown fieldを禁止する。
+assessorはsemantic issue code、AI Reading path、evidence referenceだけを宣言する。
+severity、blocking、message、repairability、human review、finding IDを返してはならない。
+trusted QG codeが23.9からそれらを付与する。
+
+assessorが宣言できる`code`は次のexact allowlistに限定する。
+
+1.  `claim_type_mismatch`
+2.  `fact_semantic_mismatch`
+3.  `component_semantic_mismatch`
+4.  `luck_semantic_mismatch`
+5.  `engine_value_contradiction`
+6.  `judgment_status_wording_violation`
+7.  `unknown_hour_derived_claim`
+8.  `missing_applicable_uncertainty`
+9.  `unsupported_numeric_claim`
+10. `consultation_astrology_leak`
+11. `prohibited_claim`
+12. `overconfident_wording`
+13. `evidence_interpretation_advice_confusion`
+14. `astrology_wording_ambiguity`
+15. `source_limitation_note`
+
+input / contract / trusted-field error code、および`semantic_assessment_*`のinfrastructure codeを
+assessorが返してはならない。これらはtrusted QG codeだけが生成する。
+
+assessorは次を行ってはならない。
+
+-   新しい占術判断、fact、value、referenceまたはsource pathの生成。
+-   占術計算、status ranking、missing hour推測またはcertainty upgrade。
+-   inputまたはAI Readingの変更。
+-   文章、`claim_type`、referenceまたはtrusted fieldの修復。
+-   severity、blockingまたはAuto-Repair eligibilityの決定。
+
+semantic assessment lifecycleは次に固定する。
+
+| status | assessor call | infrastructure finding | assessor declarations | method / version | decision effect |
+|---|---:|---|---|---|---|
+| `not_run` | no | none | none | null / null | semantic検査前のdeterministic ERRORにより`fail` |
+| `completed` | exactly 1 | none | validated declarationをすべて保持 | validated identity snapshot | 全findingに23.8を適用 |
+| `unavailable` | no | `semantic_assessment_unavailable` exactly 1 | none | null / null | deterministic ERRORがなければ`review` |
+| `failed` | exactly 1 attempt | `semantic_assessment_failed` exactly 1 | すべて破棄 | validated identity snapshot | deterministic ERRORがなければ`review` |
+| `inconclusive` | exactly 1 | `semantic_assessment_inconclusive` exactly 1 | output validationを通過したdeclarationをすべて保持 | validated identity snapshot | 保持したERRORがあれば`fail`、それ以外は`review` |
+
+deterministic checkにERRORが1件以上ある場合は、assessorの有無やidentityを
+評価せず`not_run`とし、assessorを呼び出さない。`completed`で
+`semantic_assessment_*` findingを生成しない。`unavailable`、`failed`、`inconclusive`は
+表の対応するinfrastructure finding以外の`semantic_assessment_*` findingを含めない。
+これらinfrastructure findingは`path == ""`、`evidence == []`とする。
+
+assessorの`assess()`実行が例外を出した場合、またはoutputがexact shape、status、
+allowlist、pathまたはevidence validationを通過しない場合は`failed`とする。
+一部でもinvalidなoutputからdeclarationを採用しない。assessorがvalidな
+`status == "inconclusive"`を返した場合は、validなdeclarationを保持した上で
+infrastructure findingを追加する。hidden retryを禁止する。
+assessorのraw responseをQuality Report v2に保存しない。
+
+### 23.12 Finding order and deduplication
+
+finding候補は次のsort keyでcanonical orderingする。
+
+``` text
+(
+  severity_rank,
+  path,
+  code,
+  canonical_evidence_json
+)
+```
+
+severity rankは`ERROR = 0`、`WARNING = 1`、`INFO = 2`とする。
+evidence entryは`(source_contract, path)`でsortし、同一finding内のexact duplicateだけを除去する。
+finding dedup identityは`(code, path, canonical_evidence_json)`とする。dedup後に
+`finding_0001`からIDを付与する。
+
+sortはlocaleに依存しないUnicode code pointのascending lexicographic comparisonとする。
+`canonical_evidence_json`は、exact duplicate除去後に`(source_contract, path)`でsortした
+evidence arrayを、各entryのfield順序を`source_contract`、`path`に固定し、次の
+Python serializationとexactly同等なUTF-8 JSON textにしたものとする。
+
+``` python
+json.dumps(
+    canonical_evidence,
+    ensure_ascii=False,
+    separators=(",", ":"),
+    sort_keys=False,
+    allow_nan=False,
+)
+```
+
+empty evidenceを許可された23.7のinfrastructure findingでは
+`canonical_evidence_json == "[]"`とする。
+
+このfinding dedup ruleはQuality Report内のfindingにだけ適用する。
+AI Reading、Reading Context、Common Judgment Metadataのwarning / uncertaintyの順序変更、
+deduplicate、normalizeまたは相互変換は22.10どおり禁止する。
+
+### 23.13 Auto-Repair v2 handoff
+
+Quality Report v2自体をAuto-Repair v2へのhandoff sourceとする。Auto-Repair v2は
+`repairability == "auto"`のfindingだけを候補にでき、target finding IDをreport順で保持する。
+`repairability == "human"`または`"none"`のfindingを自動修復してはならない。
+
+`repairability == "auto"`はAuto-Repair v2の検討候補を示すだけであり、
+実際のfield変更許可、repair instructionまたはrepair成功を意味しない。
+変更可能なmodel-owned pathは§24で別途freezeする。
+
+trusted field、trusted reference、catalog、section ID / title、future year / order、disclaimer、
+source contracts、engine versionまたはAI Reading validation reportを自動修復してはならない。
+semantic assessor unavailable / failed / inconclusive findingはAuto-Repair対象外とする。
+
+Auto-Repair後は同じ三input contractを用いてQuality Gate v2を再実行し、§24の
+`attempt`、`issue_codes`、`before_hash`、`after_hash`、`result`を記録する。
+
+### 23.14 Safety and human review policy
+
+`birth_time_status.known == false`の場合、Quality Gate v2は22.8の各MUSTを本文意味と
+referenceの両面から検査する。missing hour、hour pillar、hour-derived relation、
+complete chartにおける不存在または`internal_reference_time`を出生時刻とする主張を禁止する。
+strength confidence cap、`known_pillars_only`、estimated timing、applicable uncertaintyを弱体化しない。
+
+次は`prohibited_claim`のERROR findingとし、disclaimerが正しいことを理由に許可しない。
+
+-   占術による医療診断、治療指示または症状の断定。
+-   法律判断、法的結果または法的行動の断定。
+-   投資利益、損失回避、収益または金銭結果の保証。
+-   結婚、転職、成功、発症その他の将来事象の保証。
+-   不安、恐怖または依存を煽る表現。
+
+general practical advice、専門家への相談推奨、不確実性を保持した一般的な未来表現は、
+それ自体だけで`prohibited_claim`としない。
+
+human reviewは少なくとも次の場合に必須とする。
+
+-   semantic assessorがunavailable、failedまたはinconclusive。
+-   fact / component / luck relevance、engine contradictionまたはunknown-hour-derived proseを自動判定できない。
+-   `prohibited_claim`またはconsultation-derived astrologyが検出された。
+-   applicable uncertaintyの反映可否を確定できない。
+
+human reviewの完了、reviewer、reviewed-at、承認理由またはdecision overrideは
+Quality Report v2へ暗黙追加しない。そのapproval artifactは将来の別contractとしてfreezeする。
+
+### 23.15 Compatibility boundary
+
+Quality Gate v2は新規opt-in moduleとし、`engine/reading_quality.py`、`engine/reading_repair.py`、
+v1 Reading Product、v1 API、v1 Golden、existing `ReadingQualityReport`およびexisting `QualityIssue`を
+変更しない。v1のseverityまたはblocking慣例をv2へ暗黙継承しない。
+
+Quality Gate v2のastrology calculation impactは`NONE`とする。
+
 ------------------------------------------------------------------------
 
 ## 24. Auto-Repair V2
