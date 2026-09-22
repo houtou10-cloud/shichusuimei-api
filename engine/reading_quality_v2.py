@@ -1,9 +1,9 @@
-"""Phase 1 and Phase 2 foundations for AI Reading Quality Gate v2.
+"""Phase 1 through Phase 3 foundations for AI Reading Quality Gate v2.
 
 The exact report/finding contract kernel, input validation, and trusted identity
-reconstruction are implemented.  The semantic assessor lifecycle and prose-level
-semantic checks remain deliberately unavailable until a later implementation
-phase.
+reconstruction are implemented together with the provider-independent semantic
+assessor lifecycle.  Remaining deterministic checks and concrete prose-level
+semantic assessment remain deliberately unavailable until later phases.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 import json
+import math
 import re
 from typing import Any, Protocol
 
@@ -82,6 +83,8 @@ _SEMANTIC_ASSESSMENT_STATUSES = (
     "failed",
     "inconclusive",
 )
+_SEMANTIC_RESULT_FIELDS = ("status", "findings")
+_SEMANTIC_DECLARATION_FIELDS = ("code", "path", "evidence")
 _AI_READING_FIELDS = (
     "schema_version",
     "engine_version",
@@ -445,14 +448,57 @@ def _is_string_array(value: Any) -> bool:
 
 
 def _has_exact_keys(value: Mapping[str, Any], fields: tuple[str, ...]) -> bool:
-    return len(value) == len(fields) and all(field in value for field in fields)
+    actual_fields = tuple(value)
+    return (
+        len(actual_fields) == len(fields)
+        and all(isinstance(field, str) for field in actual_fields)
+        and set(actual_fields) == set(fields)
+    )
+
+
+def _has_exact_ordered_keys(
+    value: Mapping[str, Any],
+    fields: tuple[str, ...],
+) -> bool:
+    actual_fields = tuple(value)
+    return all(isinstance(field, str) for field in actual_fields) and (
+        actual_fields == fields
+    )
+
+
+def _is_json_contract_tree(value: Any, active: set[int] | None = None) -> bool:
+    if value is None or isinstance(value, (str, bool, int)):
+        return True
+    if isinstance(value, float):
+        return math.isfinite(value)
+    if not isinstance(value, (Mapping, list)):
+        return False
+
+    active = set() if active is None else active
+    identity = id(value)
+    if identity in active:
+        return False
+    active.add(identity)
+    try:
+        if isinstance(value, Mapping):
+            return all(
+                isinstance(key, str)
+                and _is_json_contract_tree(item, active)
+                for key, item in value.items()
+            )
+        return all(_is_json_contract_tree(item, active) for item in value)
+    finally:
+        active.remove(identity)
 
 
 def _is_grounded_text_block(value: Any) -> bool:
-    if not isinstance(value, Mapping) or tuple(value) != _GROUNDED_TEXT_BLOCK_FIELDS:
+    if not isinstance(value, Mapping):
+        return False
+    if not _has_exact_ordered_keys(value, _GROUNDED_TEXT_BLOCK_FIELDS):
         return False
     return (
         isinstance(value["text"], str)
+        and isinstance(value["claim_type"], str)
         and value["claim_type"] in AI_READING_V2_CLAIM_TYPES
         and _is_string_array(value["source_fact_codes"])
         and _is_string_array(value["source_components"])
@@ -492,9 +538,13 @@ def _is_catalog(
             return False
         if not isinstance(entry[id_field], str):
             return False
-        if entry["source_contract"] not in (
-            "reading_context_v2",
-            "common_judgment_metadata_v1",
+        if (
+            not isinstance(entry["source_contract"], str)
+            or entry["source_contract"]
+            not in (
+                "reading_context_v2",
+                "common_judgment_metadata_v1",
+            )
         ):
             return False
         if not isinstance(entry["source_path"], str):
@@ -512,9 +562,12 @@ def _is_final_validation_report(value: Any) -> bool:
         isinstance(value, Mapping)
         and _has_exact_keys(value, _FINAL_VALIDATION_FIELDS)
         and value["valid"] is True
-        and value["errors"] == []
-        and value["missing_required_fields"] == []
-        and value["unknown_fields"] == []
+        and isinstance(value["errors"], list)
+        and len(value["errors"]) == 0
+        and isinstance(value["missing_required_fields"], list)
+        and len(value["missing_required_fields"]) == 0
+        and isinstance(value["unknown_fields"], list)
+        and len(value["unknown_fields"]) == 0
     )
 
 
@@ -585,13 +638,19 @@ def _is_section(value: Any, index: int) -> bool:
 def _is_ai_reading_v2_final_contract(value: Mapping[str, Any]) -> bool:
     if not _has_exact_keys(value, _AI_READING_FIELDS):
         return False
-    if value["schema_version"] != "ai_reading_v2":
+    if (
+        not isinstance(value["schema_version"], str)
+        or value["schema_version"] != "ai_reading_v2"
+    ):
         return False
-    if value["version"] != "ai_reading_v2":
+    if not isinstance(value["version"], str) or value["version"] != "ai_reading_v2":
         return False
-    if value["method"] != "openai_responses_api_v2":
+    if (
+        not isinstance(value["method"], str)
+        or value["method"] != "openai_responses_api_v2"
+    ):
         return False
-    if value["status"] != "completed":
+    if not isinstance(value["status"], str) or value["status"] != "completed":
         return False
     if value["engine_version"] is not None and not isinstance(
         value["engine_version"], str
@@ -634,9 +693,12 @@ def _project_identity_fields(
     value: Mapping[str, Any],
     fields: tuple[str, ...],
 ) -> dict[str, str | None]:
+    actual_string_keys = {
+        key for key in value if isinstance(key, str)
+    }
     return {
         field: value[field]
-        if field in value and isinstance(value[field], str)
+        if field in actual_string_keys and isinstance(value[field], str)
         else None
         for field in fields
     }
@@ -707,6 +769,31 @@ def _is_json_pointer(value: Any) -> bool:
     return True
 
 
+def _json_pointer_resolves(value: Any, pointer: str) -> bool:
+    if not _is_json_pointer(pointer):
+        return False
+    if pointer == "":
+        return True
+    current = value
+    for encoded_token in pointer[1:].split("/"):
+        token = encoded_token.replace("~1", "/").replace("~0", "~")
+        if isinstance(current, Mapping):
+            if token not in current:
+                return False
+            current = current[token]
+            continue
+        if isinstance(current, list):
+            if not token.isdigit() or (len(token) > 1 and token.startswith("0")):
+                return False
+            index = int(token)
+            if index >= len(current):
+                return False
+            current = current[index]
+            continue
+        return False
+    return True
+
+
 def _normalize_evidence(value: Any) -> tuple[dict[str, str], ...]:
     if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
         raise TypeError("evidence must be an array")
@@ -715,11 +802,14 @@ def _normalize_evidence(value: Any) -> tuple[dict[str, str], ...]:
     for entry in value:
         if not isinstance(entry, Mapping):
             raise TypeError("evidence entry must be a Mapping")
-        if tuple(entry) != _EVIDENCE_FIELDS:
+        if not _has_exact_ordered_keys(entry, _EVIDENCE_FIELDS):
             raise ValueError("evidence entry fields/order must be source_contract, path")
         source_contract = entry["source_contract"]
         path = entry["path"]
-        if source_contract not in _SOURCE_CONTRACTS:
+        if (
+            not isinstance(source_contract, str)
+            or source_contract not in _SOURCE_CONTRACTS
+        ):
             raise ValueError("evidence source_contract is not allowed")
         if not _is_json_pointer(path):
             raise ValueError("evidence path must be an RFC 6901 JSON Pointer")
@@ -744,6 +834,87 @@ def _canonical_evidence_json(evidence: Any) -> str:
     )
 
 
+def _snapshot_semantic_assessor_identity(
+    semantic_assessor: SemanticAssessorV2 | None,
+) -> tuple[str, str] | None:
+    if semantic_assessor is None:
+        return None
+    try:
+        method = semantic_assessor.method
+    except Exception:
+        return None
+    try:
+        version = semantic_assessor.version
+    except Exception:
+        return None
+    if not isinstance(method, str) or not method:
+        return None
+    if not isinstance(version, str) or not version:
+        return None
+    return method, version
+
+
+def _validate_semantic_assessor_result(
+    value: Any,
+    ai_reading: Mapping[str, Any],
+    reading_context: Mapping[str, Any],
+    judgment_metadata: Mapping[str, Any],
+) -> tuple[str, tuple[dict[str, Any], ...]]:
+    if not isinstance(value, Mapping) or not _has_exact_ordered_keys(
+        value,
+        _SEMANTIC_RESULT_FIELDS,
+    ):
+        raise ValueError("semantic assessor result fields/order are invalid")
+    status = value["status"]
+    if not isinstance(status, str) or status not in (
+        "completed",
+        "inconclusive",
+    ):
+        raise ValueError("semantic assessor result status is invalid")
+    declarations = value["findings"]
+    if not isinstance(declarations, list):
+        raise TypeError("semantic assessor findings must be an array")
+    sources = {
+        "ai_reading_v2": ai_reading,
+        "reading_context_v2": reading_context,
+        "common_judgment_metadata_v1": judgment_metadata,
+    }
+    candidates: list[dict[str, Any]] = []
+    for declaration in declarations:
+        if not isinstance(declaration, Mapping):
+            raise TypeError("semantic assessor finding must be a Mapping")
+        if not _has_exact_ordered_keys(
+            declaration,
+            _SEMANTIC_DECLARATION_FIELDS,
+        ):
+            raise ValueError("semantic assessor finding fields/order are invalid")
+        code = declaration["code"]
+        path = declaration["path"]
+        evidence_value = declaration["evidence"]
+        if not isinstance(code, str) or code not in _SEMANTIC_ISSUE_CODES:
+            raise ValueError("semantic assessor finding code is not allowed")
+        if not _is_json_pointer(path) or not _json_pointer_resolves(ai_reading, path):
+            raise ValueError("semantic assessor finding path does not resolve")
+        if not isinstance(evidence_value, list):
+            raise TypeError("semantic assessor evidence must be an array")
+        evidence = _normalize_evidence(evidence_value)
+        if not evidence:
+            raise ValueError("semantic assessor finding requires evidence")
+        if any(
+            not _json_pointer_resolves(sources[entry["source_contract"]], entry["path"])
+            for entry in evidence
+        ):
+            raise ValueError("semantic assessor evidence path does not resolve")
+        candidates.append(
+            {
+                "code": code,
+                "path": path,
+                "evidence": [dict(entry) for entry in evidence],
+            }
+        )
+    return status, tuple(candidates)
+
+
 @dataclass(frozen=True)
 class AIReadingQualityFindingV2:
     """One canonical Quality Gate v2 finding."""
@@ -766,19 +937,25 @@ class AIReadingQualityFindingV2:
         finding_number = int(self.finding_id.removeprefix("finding_"))
         if finding_number < 1 or self.finding_id != f"finding_{finding_number:04d}":
             raise ValueError("finding_id must use canonical zero-padded format")
+        if not isinstance(self.code, str):
+            raise TypeError("finding code must be a string")
         definition = _ISSUE_BY_CODE.get(self.code)
         if definition is None:
             raise ValueError("finding code is not in the frozen issue catalog")
-        if self.severity not in _SEVERITY_RANK or self.severity != definition.severity:
+        if not isinstance(self.severity, str) or (
+            self.severity not in _SEVERITY_RANK
+            or self.severity != definition.severity
+        ):
             raise ValueError("finding severity does not match the issue catalog")
         if type(self.blocking) is not bool or self.blocking != definition.blocking:
             raise ValueError("finding blocking does not match the issue catalog")
         if not _is_json_pointer(self.path):
             raise ValueError("finding path must be an RFC 6901 JSON Pointer")
-        if self.message != definition.message:
+        if not isinstance(self.message, str) or self.message != definition.message:
             raise ValueError("finding message does not match the issue catalog")
-        if self.repairability not in _REPAIRABILITIES or (
-            self.repairability != definition.repairability
+        if not isinstance(self.repairability, str) or (
+            self.repairability not in _REPAIRABILITIES
+            or self.repairability != definition.repairability
         ):
             raise ValueError("finding repairability does not match the issue catalog")
         if type(self.requires_human_review) is not bool or (
@@ -810,13 +987,19 @@ class AIReadingQualityFindingV2:
 
 
 def _copy_input_contracts(value: Any) -> dict[str, dict[str, str | None]]:
-    if not isinstance(value, Mapping) or tuple(value) != _INPUT_CONTRACT_FIELDS:
+    if not isinstance(value, Mapping) or not _has_exact_ordered_keys(
+        value,
+        _INPUT_CONTRACT_FIELDS,
+    ):
         raise ValueError("input_contracts fields/order do not match the v2 report contract")
     copied: dict[str, dict[str, str | None]] = {}
     for contract in _INPUT_CONTRACT_FIELDS:
         identity = value[contract]
         expected_fields = _INPUT_CONTRACT_NESTED_FIELDS[contract]
-        if not isinstance(identity, Mapping) or tuple(identity) != expected_fields:
+        if not isinstance(identity, Mapping) or not _has_exact_ordered_keys(
+            identity,
+            expected_fields,
+        ):
             raise ValueError(f"input_contracts.{contract} fields/order are invalid")
         projected: dict[str, str | None] = {}
         for field in expected_fields:
@@ -829,12 +1012,15 @@ def _copy_input_contracts(value: Any) -> dict[str, dict[str, str | None]]:
 
 
 def _copy_semantic_assessment(value: Any) -> dict[str, str | None]:
-    if not isinstance(value, Mapping) or tuple(value) != _SEMANTIC_ASSESSMENT_FIELDS:
+    if not isinstance(value, Mapping) or not _has_exact_ordered_keys(
+        value,
+        _SEMANTIC_ASSESSMENT_FIELDS,
+    ):
         raise ValueError("semantic_assessment fields/order do not match the v2 report contract")
     status = value["status"]
     method = value["method"]
     version = value["version"]
-    if status not in _SEMANTIC_ASSESSMENT_STATUSES:
+    if not isinstance(status, str) or status not in _SEMANTIC_ASSESSMENT_STATUSES:
         raise ValueError("semantic_assessment.status is invalid")
     if status in ("not_run", "unavailable"):
         if method is not None or version is not None:
@@ -872,11 +1058,11 @@ def _canonicalize_finding_candidates(
     for candidate in candidates:
         if not isinstance(candidate, Mapping):
             raise TypeError("finding candidate must be a Mapping")
-        if tuple(candidate) != _FINDING_CANDIDATE_FIELDS:
+        if not _has_exact_ordered_keys(candidate, _FINDING_CANDIDATE_FIELDS):
             raise ValueError("finding candidate fields/order must be code, path, evidence")
         code = candidate["code"]
         path = candidate["path"]
-        if code not in _ISSUE_BY_CODE:
+        if not isinstance(code, str) or code not in _ISSUE_BY_CODE:
             raise ValueError("finding code is not in the frozen issue catalog")
         if not _is_json_pointer(path):
             raise ValueError("finding path must be an RFC 6901 JSON Pointer")
@@ -994,9 +1180,16 @@ class AIReadingQualityReportV2:
             (self.method, AI_READING_QUALITY_REPORT_V2_METHOD),
             (self.status, AI_READING_QUALITY_REPORT_V2_STATUS),
         )
-        if any(actual != expected for actual, expected in identities):
+        if any(
+            not isinstance(actual, str) or actual != expected
+            for actual, expected in identities
+        ):
             raise ValueError("Quality Report v2 identity is invalid")
-        if self.decision not in ("pass", "fail", "review"):
+        if not isinstance(self.decision, str) or self.decision not in (
+            "pass",
+            "fail",
+            "review",
+        ):
             raise ValueError("Quality Report v2 decision is invalid")
         if type(self.blocking) is not bool or type(self.human_review_required) is not bool:
             raise TypeError("Quality Report v2 flags must be boolean")
@@ -1125,6 +1318,92 @@ def _build_quality_report_v2(
     )
 
 
+def _semantic_infrastructure_candidate(code: str) -> dict[str, Any]:
+    return {"code": code, "path": "", "evidence": []}
+
+
+def _run_semantic_assessor_v2(
+    input_contracts: Mapping[str, Any],
+    deterministic_candidates: Sequence[Mapping[str, Any]],
+    ai_reading: Mapping[str, Any],
+    reading_context: Mapping[str, Any],
+    judgment_metadata: Mapping[str, Any],
+    semantic_assessor: SemanticAssessorV2 | None,
+) -> AIReadingQualityReportV2:
+    deterministic_candidates = tuple(deterministic_candidates)
+    deterministic_findings = _canonicalize_finding_candidates(
+        deterministic_candidates
+    )
+    if any(finding.severity == "ERROR" for finding in deterministic_findings):
+        return _build_quality_report_v2(
+            input_contracts,
+            {"status": "not_run", "method": None, "version": None},
+            deterministic_candidates,
+        )
+
+    identity = _snapshot_semantic_assessor_identity(semantic_assessor)
+    if identity is None:
+        return _build_quality_report_v2(
+            input_contracts,
+            {"status": "unavailable", "method": None, "version": None},
+            deterministic_candidates
+            + (
+                _semantic_infrastructure_candidate(
+                    "semantic_assessment_unavailable"
+                ),
+            ),
+        )
+
+    method, version = identity
+    semantic_assessment = {
+        "status": "failed",
+        "method": method,
+        "version": version,
+    }
+    try:
+        result = semantic_assessor.assess(
+            deepcopy(ai_reading),
+            deepcopy(reading_context),
+            deepcopy(judgment_metadata),
+        )
+    except Exception:
+        return _build_quality_report_v2(
+            input_contracts,
+            semantic_assessment,
+            deterministic_candidates
+            + (_semantic_infrastructure_candidate("semantic_assessment_failed"),),
+        )
+
+    try:
+        status, semantic_candidates = _validate_semantic_assessor_result(
+            result,
+            ai_reading,
+            reading_context,
+            judgment_metadata,
+        )
+    except Exception:
+        return _build_quality_report_v2(
+            input_contracts,
+            semantic_assessment,
+            deterministic_candidates
+            + (_semantic_infrastructure_candidate("semantic_assessment_failed"),),
+        )
+
+    semantic_assessment["status"] = status
+    if status == "inconclusive":
+        deterministic_candidates += (
+            _semantic_infrastructure_candidate(
+                "semantic_assessment_inconclusive"
+            ),
+        )
+    return _build_quality_report_v2(
+        input_contracts,
+        semantic_assessment,
+        deterministic_candidates,
+        semantic_finding_candidates=semantic_candidates,
+    )
+
+
 def evaluate_ai_reading_quality_v2(
     ai_reading: Mapping[str, Any],
     reading_context: Mapping[str, Any],
@@ -1132,7 +1411,7 @@ def evaluate_ai_reading_quality_v2(
     *,
     semantic_assessor: SemanticAssessorV2 | None = None,
 ) -> AIReadingQualityReportV2:
-    """Validate Phase 2 inputs without running semantic assessment."""
+    """Validate inputs and run the provider-independent semantic lifecycle."""
 
     for name, value in (
         ("ai_reading", ai_reading),
@@ -1149,11 +1428,25 @@ def evaluate_ai_reading_quality_v2(
     )
     deterministic_candidates: list[dict[str, Any]] = []
 
-    reading_context_report = validate_reading_context_v2(reading_context)
-    judgment_metadata_report = validate_common_judgment_metadata(
-        judgment_metadata
+    reading_context_boundary_valid = _is_json_contract_tree(reading_context)
+    reading_context_report = (
+        validate_reading_context_v2(reading_context)
+        if reading_context_boundary_valid
+        else {"valid": False}
     )
-    ai_reading_valid = _is_ai_reading_v2_final_contract(ai_reading)
+
+    judgment_metadata_boundary_valid = _is_json_contract_tree(judgment_metadata)
+    judgment_metadata_report = (
+        validate_common_judgment_metadata(judgment_metadata)
+        if judgment_metadata_boundary_valid
+        else {"valid": False}
+    )
+
+    ai_reading_boundary_valid = _is_json_contract_tree(ai_reading)
+    ai_reading_valid = (
+        ai_reading_boundary_valid
+        and _is_ai_reading_v2_final_contract(ai_reading)
+    )
 
     if not reading_context_report["valid"]:
         deterministic_candidates.append(
@@ -1207,16 +1500,19 @@ def evaluate_ai_reading_quality_v2(
                 )
             )
 
-    if deterministic_candidates:
-        return _build_quality_report_v2(
-            input_contracts,
-            {"status": "not_run", "method": None, "version": None},
-            deterministic_candidates,
-        )
-
-    raise NotImplementedError(
-        "Quality Gate v2 evaluation beyond deterministic Phase 2 is not implemented"
+    report = _run_semantic_assessor_v2(
+        input_contracts,
+        deterministic_candidates,
+        ai_reading,
+        reading_context,
+        judgment_metadata,
+        semantic_assessor,
     )
+    if report.decision == "pass":
+        raise NotImplementedError(
+            "Quality Gate v2 pass requires remaining deterministic checks"
+        )
+    return report
 
 
 __all__ = [

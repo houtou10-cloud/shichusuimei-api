@@ -424,6 +424,135 @@ class ExplodingAssessor:
         raise AssertionError("semantic assessor must not run in Phase 2")
 
 
+class RecordingAssessor:
+    def __init__(
+        self,
+        result=None,
+        *,
+        method="semantic_test",
+        version="1.0",
+        method_error=None,
+        version_error=None,
+        call_error=None,
+        mutate_inputs=False,
+        mutate_identity=False,
+    ):
+        self.result = (
+            {"status": "completed", "findings": []}
+            if result is None
+            else result
+        )
+        self.method_value = method
+        self.version_value = version
+        self.method_error = method_error
+        self.version_error = version_error
+        self.call_error = call_error
+        self.mutate_inputs = mutate_inputs
+        self.mutate_identity = mutate_identity
+        self.method_reads = 0
+        self.version_reads = 0
+        self.calls = 0
+        self.events = []
+        self.received = None
+
+    @property
+    def method(self):
+        self.method_reads += 1
+        self.events.append("method")
+        if self.method_error is not None:
+            raise self.method_error
+        return self.method_value
+
+    @property
+    def version(self):
+        self.version_reads += 1
+        self.events.append("version")
+        if self.version_error is not None:
+            raise self.version_error
+        return self.version_value
+
+    def assess(self, ai_reading, reading_context, judgment_metadata):
+        self.calls += 1
+        self.events.append("assess")
+        self.received = (ai_reading, reading_context, judgment_metadata)
+        if self.mutate_identity:
+            self.method_value = "changed_after_snapshot"
+            self.version_value = "changed_after_snapshot"
+        if self.mutate_inputs:
+            ai_reading["semantic_assessor_mutation"] = True
+            reading_context["semantic_assessor_mutation"] = True
+            judgment_metadata["semantic_assessor_mutation"] = True
+        if self.call_error is not None:
+            raise self.call_error
+        return deepcopy(self.result)
+
+
+class EqualitySpoof:
+    """Non-string value that compares and hashes like one allowed string."""
+
+    def __init__(self, target):
+        self.target = target
+
+    def __eq__(self, other):
+        return other == self.target
+
+    def __hash__(self):
+        return hash(self.target)
+
+
+def _with_equality_spoofed_key(value, target):
+    return {
+        (EqualitySpoof(key) if key == target else key): item
+        for key, item in value.items()
+    }
+
+
+def _apply_final_contract_type_spoof(reading, case):
+    if case in ("schema_version", "version", "method", "status"):
+        reading[case] = EqualitySpoof(reading[case])
+    elif case == "summary_claim_type":
+        reading["summary"]["claim_type"] = EqualitySpoof("practical")
+    elif case == "uncertainty_source_contract":
+        reading["uncertainty"][0]["source_contract"] = EqualitySpoof(
+            reading["uncertainty"][0]["source_contract"]
+        )
+    elif case in ("errors", "missing_required_fields", "unknown_fields"):
+        reading["validation"][case] = EqualitySpoof([])
+    elif case in ("block_warnings", "block_uncertainty"):
+        field = case.removeprefix("block_")
+        reading["summary"][field] = EqualitySpoof([])
+    elif case in ("top_level_warnings", "top_level_uncertainty"):
+        field = case.removeprefix("top_level_")
+        reading[field] = EqualitySpoof([])
+    elif case == "top_level_key":
+        replacement = _with_equality_spoofed_key(reading, "schema_version")
+        reading.clear()
+        reading.update(replacement)
+    elif case == "grounded_block_key":
+        reading["summary"] = _with_equality_spoofed_key(
+            reading["summary"],
+            "claim_type",
+        )
+    else:  # pragma: no cover - parametrization is the closed case catalog.
+        raise AssertionError(f"unknown spoof case: {case}")
+
+
+def _semantic_declaration(
+    code="overconfident_wording",
+    path="/summary",
+    evidence=None,
+):
+    return {
+        "code": code,
+        "path": path,
+        "evidence": (
+            [{"source_contract": "ai_reading_v2", "path": "/summary"}]
+            if evidence is None
+            else evidence
+        ),
+    }
+
+
 def test_public_identity_constants_are_exact():
     assert AI_READING_QUALITY_REPORT_V2_SCHEMA_VERSION == "ai_reading_quality_report_v2"
     assert AI_READING_QUALITY_REPORT_V2_VERSION == "ai_reading_quality_report_v2"
@@ -843,6 +972,94 @@ def test_phase2_non_mapping_input_raises_type_error(phase2_inputs, field):
 
 
 @pytest.mark.parametrize(
+    ("case", "source_contract", "projected_contract", "projected_field"),
+    (
+        (
+            "metadata_identity_value",
+            "common_judgment_metadata_v1",
+            "common_judgment_metadata_v1",
+            "schema_version",
+        ),
+        (
+            "metadata_identity_key",
+            "common_judgment_metadata_v1",
+            "common_judgment_metadata_v1",
+            "schema_version",
+        ),
+        (
+            "reading_context_identity_key",
+            "reading_context_v2",
+            "reading_context_v2",
+            "schema_version",
+        ),
+        (
+            "reading_context_scope_value",
+            "reading_context_v2",
+            None,
+            None,
+        ),
+    ),
+)
+def test_phase3_non_json_input_boundaries_fail_without_assessor_contact(
+    phase2_inputs,
+    case,
+    source_contract,
+    projected_contract,
+    projected_field,
+):
+    inputs = deepcopy(phase2_inputs)
+    if case == "metadata_identity_value":
+        inputs["judgment_metadata"]["schema_version"] = EqualitySpoof(
+            "common_judgment_metadata_v1"
+        )
+    elif case == "metadata_identity_key":
+        inputs["judgment_metadata"] = _with_equality_spoofed_key(
+            inputs["judgment_metadata"],
+            "schema_version",
+        )
+    elif case == "reading_context_identity_key":
+        inputs["reading_context"] = _with_equality_spoofed_key(
+            inputs["reading_context"],
+            "schema_version",
+        )
+    else:
+        expected_scope = inputs["reading_context"]["birth_time_status"][
+            "calculation_scope"
+        ]
+        inputs["reading_context"]["birth_time_status"]["calculation_scope"] = (
+            EqualitySpoof(expected_scope)
+        )
+    before = deepcopy(inputs)
+    assessor = RecordingAssessor()
+
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+
+    assert report["decision"] == "fail"
+    assert report["semantic_assessment"] == {
+        "status": "not_run",
+        "method": None,
+        "version": None,
+    }
+    assert [finding["code"] for finding in report["findings"]] == [
+        "input_contract_invalid"
+    ]
+    assert report["findings"][0]["evidence"] == [
+        {"source_contract": source_contract, "path": ""}
+    ]
+    if projected_contract is not None:
+        assert report["input_contracts"][projected_contract][projected_field] is None
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (
+        0,
+        0,
+        0,
+    )
+    assert inputs == before
+
+
+@pytest.mark.parametrize(
     ("field", "source_contract"),
     (
         ("reading_context", "reading_context_v2"),
@@ -1030,10 +1247,10 @@ def test_phase2_malformed_source_contracts_is_ai_contract_invalid(
 def test_phase2_reordered_owner_valid_three_pillar_uncertainty_reaches_next_phase(
     three_pillar_generated_inputs,
 ):
-    with pytest.raises(NotImplementedError, match="deterministic Phase 2"):
+    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
         evaluate_ai_reading_quality_v2(
             **deepcopy(three_pillar_generated_inputs),
-            semantic_assessor=ExplodingAssessor(),
+            semantic_assessor=RecordingAssessor(),
         )
 
 
@@ -1074,10 +1291,10 @@ def test_phase2_unfrozen_ai_reading_mapping_order_is_not_required(
     else:
         reading["validation"] = _reordered(reading["validation"])
 
-    with pytest.raises(NotImplementedError, match="deterministic Phase 2"):
+    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
         evaluate_ai_reading_quality_v2(
             **inputs,
-            semantic_assessor=ExplodingAssessor(),
+            semantic_assessor=RecordingAssessor(),
         )
 
 
@@ -1090,6 +1307,58 @@ def test_phase2_grounded_text_block_order_remains_required(phase2_inputs):
     assert [finding["code"] for finding in report["findings"]] == [
         "ai_reading_contract_invalid"
     ]
+
+
+@pytest.mark.parametrize(
+    "case",
+    (
+        "schema_version",
+        "version",
+        "method",
+        "status",
+        "summary_claim_type",
+        "uncertainty_source_contract",
+        "errors",
+        "missing_required_fields",
+        "unknown_fields",
+        "block_warnings",
+        "block_uncertainty",
+        "top_level_warnings",
+        "top_level_uncertainty",
+        "top_level_key",
+        "grounded_block_key",
+    ),
+)
+def test_phase3_final_contract_rejects_equality_spoofs_before_assessor_contact(
+    phase2_inputs,
+    case,
+):
+    inputs = deepcopy(phase2_inputs)
+    _apply_final_contract_type_spoof(inputs["ai_reading"], case)
+    before = deepcopy(inputs)
+    assessor = RecordingAssessor()
+
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+
+    assert report["decision"] == "fail"
+    assert report["semantic_assessment"] == {
+        "status": "not_run",
+        "method": None,
+        "version": None,
+    }
+    assert [finding["code"] for finding in report["findings"]] == [
+        "ai_reading_contract_invalid"
+    ]
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (
+        0,
+        0,
+        0,
+    )
+    assert assessor.events == []
+    assert inputs == before
 
 
 @pytest.mark.parametrize("invalid_shape", ("missing", "unknown", "wrong_type"))
@@ -1120,9 +1389,605 @@ def test_phase2_inputs_are_not_mutated(phase2_inputs):
     assert inputs == before
 
 
-def test_phase2_valid_inputs_do_not_return_a_temporary_report(phase2_inputs):
-    with pytest.raises(NotImplementedError, match="deterministic Phase 2"):
+def test_phase3_valid_inputs_do_not_return_a_temporary_pass(phase2_inputs):
+    assessor = RecordingAssessor()
+    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
         evaluate_ai_reading_quality_v2(
             **deepcopy(phase2_inputs),
-            semantic_assessor=ExplodingAssessor(),
+            semantic_assessor=assessor,
         )
+    assert assessor.calls == 1
+
+
+def test_phase3_absent_assessor_returns_unavailable_review(phase2_inputs):
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=None,
+    ).to_dict()
+    assert report["decision"] == "review"
+    assert report["semantic_assessment"] == {
+        "status": "unavailable",
+        "method": None,
+        "version": None,
+    }
+    assert [finding["code"] for finding in report["findings"]] == [
+        "semantic_assessment_unavailable"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("failure_point", "expected_reads"),
+    (("method", (1, 0)), ("version", (1, 1))),
+)
+def test_phase3_identity_getter_failure_is_unavailable(
+    phase2_inputs,
+    failure_point,
+    expected_reads,
+):
+    kwargs = {f"{failure_point}_error": RuntimeError("identity failure")}
+    assessor = RecordingAssessor(**kwargs)
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert report["semantic_assessment"] == {
+        "status": "unavailable",
+        "method": None,
+        "version": None,
+    }
+    assert (assessor.method_reads, assessor.version_reads) == expected_reads
+    assert assessor.calls == 0
+
+
+@pytest.mark.parametrize(
+    ("method", "version"),
+    (("", "1.0"), (1, "1.0"), ("semantic_test", ""), ("semantic_test", 1)),
+)
+def test_phase3_invalid_identity_is_unavailable_without_call(
+    phase2_inputs,
+    method,
+    version,
+):
+    assessor = RecordingAssessor(method=method, version=version)
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert report["semantic_assessment"]["status"] == "unavailable"
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (1, 1, 0)
+
+
+def test_phase3_missing_identity_attributes_are_unavailable(phase2_inputs):
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=object(),
+    ).to_dict()
+    assert report["semantic_assessment"]["status"] == "unavailable"
+
+
+def test_phase3_identity_snapshot_and_single_call(phase2_inputs):
+    assessor = RecordingAssessor(
+        {
+            "status": "completed",
+            "findings": [_semantic_declaration("claim_type_mismatch")],
+        },
+        method="snapshot_method",
+        version="snapshot_version",
+        mutate_identity=True,
+    )
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert report["semantic_assessment"] == {
+        "status": "completed",
+        "method": "snapshot_method",
+        "version": "snapshot_version",
+    }
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (1, 1, 1)
+    assert assessor.events == ["method", "version", "assess"]
+    assert report["decision"] == "fail"
+
+
+def test_phase3_assessor_exception_is_failed_without_retry(phase2_inputs):
+    assessor = RecordingAssessor(call_error=RuntimeError("assessor failed"))
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert report["semantic_assessment"] == {
+        "status": "failed",
+        "method": "semantic_test",
+        "version": "1.0",
+    }
+    assert [finding["code"] for finding in report["findings"]] == [
+        "semantic_assessment_failed"
+    ]
+    assert assessor.calls == 1
+
+
+def test_phase3_assessor_receives_deep_copies_and_cannot_mutate_inputs(
+    phase2_inputs,
+):
+    inputs = deepcopy(phase2_inputs)
+    before = deepcopy(inputs)
+    assessor = RecordingAssessor(
+        {
+            "status": "completed",
+            "findings": [_semantic_declaration("claim_type_mismatch")],
+        },
+        mutate_inputs=True,
+    )
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert report["decision"] == "fail"
+    assert inputs == before
+    assert all(
+        received is not original
+        for received, original in zip(
+            assessor.received,
+            (
+                inputs["ai_reading"],
+                inputs["reading_context"],
+                inputs["judgment_metadata"],
+            ),
+        )
+    )
+
+
+def test_phase3_completed_zero_findings_is_valid_but_not_publicly_passed(
+    phase2_inputs,
+):
+    assessor = RecordingAssessor()
+    report = quality_v2._run_semantic_assessor_v2(
+        quality_v2._project_input_contracts(**phase2_inputs),
+        [],
+        phase2_inputs["ai_reading"],
+        phase2_inputs["reading_context"],
+        phase2_inputs["judgment_metadata"],
+        assessor,
+    ).to_dict()
+    assert report["decision"] == "pass"
+    assert report["findings"] == []
+    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
+        evaluate_ai_reading_quality_v2(
+            **deepcopy(phase2_inputs),
+            semantic_assessor=RecordingAssessor(),
+        )
+
+
+def test_phase3_completed_warning_uses_catalog_but_is_not_publicly_passed(
+    phase2_inputs,
+):
+    result = {
+        "status": "completed",
+        "findings": [_semantic_declaration("overconfident_wording")],
+    }
+    report = quality_v2._run_semantic_assessor_v2(
+        quality_v2._project_input_contracts(**phase2_inputs),
+        [],
+        phase2_inputs["ai_reading"],
+        phase2_inputs["reading_context"],
+        phase2_inputs["judgment_metadata"],
+        RecordingAssessor(result),
+    ).to_dict()
+    assert report["decision"] == "pass"
+    assert report["findings"][0]["severity"] == "WARNING"
+    assert report["findings"][0]["message"] == EXPECTED_MESSAGES[19]
+    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
+        evaluate_ai_reading_quality_v2(
+            **deepcopy(phase2_inputs),
+            semantic_assessor=RecordingAssessor(result),
+        )
+
+
+def test_phase3_completed_error_returns_fail_with_catalog_fields(phase2_inputs):
+    assessor = RecordingAssessor(
+        {
+            "status": "completed",
+            "findings": [_semantic_declaration("claim_type_mismatch")],
+        }
+    )
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=assessor,
+    ).to_dict()
+    finding = report["findings"][0]
+    assert report["decision"] == "fail"
+    assert finding["code"] == "claim_type_mismatch"
+    assert finding["severity"] == "ERROR"
+    assert finding["blocking"] is True
+    assert finding["repairability"] == "auto"
+    assert finding["requires_human_review"] is False
+
+
+def test_phase3_inconclusive_zero_findings_returns_review(phase2_inputs):
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=RecordingAssessor(
+            {"status": "inconclusive", "findings": []}
+        ),
+    ).to_dict()
+    assert report["decision"] == "review"
+    assert report["semantic_assessment"]["status"] == "inconclusive"
+    assert [finding["code"] for finding in report["findings"]] == [
+        "semantic_assessment_inconclusive"
+    ]
+
+
+def test_phase3_inconclusive_error_retains_declaration_and_fails(phase2_inputs):
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=RecordingAssessor(
+            {
+                "status": "inconclusive",
+                "findings": [_semantic_declaration("fact_semantic_mismatch")],
+            }
+        ),
+    ).to_dict()
+    assert report["decision"] == "fail"
+    assert [finding["code"] for finding in report["findings"]] == [
+        "fact_semantic_mismatch",
+        "semantic_assessment_inconclusive",
+    ]
+
+
+@pytest.mark.parametrize(
+    "result",
+    (
+        [],
+        {"findings": [], "status": "completed"},
+        {"status": "invalid", "findings": []},
+        {"status": "completed", "findings": ()},
+        {"status": "completed", "findings": [], "extra": True},
+        {
+            "status": "completed",
+            "findings": [
+                {
+                    "path": "/summary",
+                    "code": "overconfident_wording",
+                    "evidence": [
+                        {"source_contract": "ai_reading_v2", "path": "/summary"}
+                    ],
+                }
+            ],
+        },
+    ),
+)
+def test_phase3_malformed_result_becomes_failed_and_discards_all(
+    phase2_inputs,
+    result,
+):
+    assessor = RecordingAssessor(result)
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert report["semantic_assessment"]["status"] == "failed"
+    assert [finding["code"] for finding in report["findings"]] == [
+        "semantic_assessment_failed"
+    ]
+    assert assessor.calls == 1
+
+
+def test_phase3_one_invalid_declaration_discards_prior_valid_declarations(
+    phase2_inputs,
+):
+    result = {
+        "status": "completed",
+        "findings": [
+            _semantic_declaration("claim_type_mismatch"),
+            _semantic_declaration("input_contract_invalid"),
+        ],
+    }
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=RecordingAssessor(result),
+    ).to_dict()
+    assert report["semantic_assessment"]["status"] == "failed"
+    assert [finding["code"] for finding in report["findings"]] == [
+        "semantic_assessment_failed"
+    ]
+
+
+def test_phase3_unknown_semantic_code_becomes_failed(phase2_inputs):
+    result = {
+        "status": "completed",
+        "findings": [_semantic_declaration("input_contract_invalid")],
+    }
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=RecordingAssessor(result),
+    ).to_dict()
+    assert report["semantic_assessment"]["status"] == "failed"
+    assert report["findings"][0]["code"] == "semantic_assessment_failed"
+
+
+@pytest.mark.parametrize(
+    "declaration",
+    (
+        _semantic_declaration(path="summary"),
+        _semantic_declaration(path="/does-not-exist"),
+        _semantic_declaration(
+            evidence=[{"source_contract": "chart_result", "path": ""}]
+        ),
+        _semantic_declaration(
+            evidence=[
+                {"source_contract": "reading_context_v2", "path": "/missing"}
+            ]
+        ),
+        _semantic_declaration(
+            evidence=[{"path": "/summary", "source_contract": "ai_reading_v2"}]
+        ),
+    ),
+)
+def test_phase3_malformed_path_or_evidence_becomes_failed(
+    phase2_inputs,
+    declaration,
+):
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=RecordingAssessor(
+            {"status": "completed", "findings": [declaration]}
+        ),
+    ).to_dict()
+    assert report["semantic_assessment"]["status"] == "failed"
+    assert report["findings"][0]["code"] == "semantic_assessment_failed"
+
+
+def test_phase3_assessor_cannot_inject_catalog_owned_fields(phase2_inputs):
+    declaration = _semantic_declaration()
+    declaration["severity"] = "INFO"
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=RecordingAssessor(
+            {"status": "completed", "findings": [declaration]}
+        ),
+    ).to_dict()
+    assert report["semantic_assessment"]["status"] == "failed"
+    assert report["findings"][0]["code"] == "semantic_assessment_failed"
+
+
+def test_phase3_deterministic_and_semantic_findings_merge_dedup_and_sort(
+    phase2_inputs,
+):
+    duplicate = _candidate("overconfident_wording")
+    assessor = RecordingAssessor(
+        {
+            "status": "completed",
+            "findings": [
+                _semantic_declaration("overconfident_wording"),
+                _semantic_declaration("claim_type_mismatch", "/sections/0/summary"),
+            ],
+        }
+    )
+    report = quality_v2._run_semantic_assessor_v2(
+        quality_v2._project_input_contracts(**phase2_inputs),
+        [duplicate],
+        phase2_inputs["ai_reading"],
+        phase2_inputs["reading_context"],
+        phase2_inputs["judgment_metadata"],
+        assessor,
+    ).to_dict()
+    assert [
+        (finding["finding_id"], finding["code"])
+        for finding in report["findings"]
+    ] == [
+        ("finding_0001", "claim_type_mismatch"),
+        ("finding_0002", "overconfident_wording"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "result",
+    (
+        {"status": EqualitySpoof("inconclusive"), "findings": []},
+        {
+            "status": "completed",
+            "findings": [
+                {
+                    "code": EqualitySpoof("claim_type_mismatch"),
+                    "path": "/summary",
+                    "evidence": [
+                        {"source_contract": "ai_reading_v2", "path": "/summary"}
+                    ],
+                }
+            ],
+        },
+        {
+            "status": "completed",
+            "findings": [
+                {
+                    "code": "claim_type_mismatch",
+                    "path": "/summary",
+                    "evidence": [
+                        {
+                            "source_contract": EqualitySpoof("ai_reading_v2"),
+                            "path": "/summary",
+                        }
+                    ],
+                }
+            ],
+        },
+    ),
+)
+def test_phase3_non_string_enum_spoofs_become_failed_without_leaking(
+    phase2_inputs,
+    result,
+):
+    inputs = deepcopy(phase2_inputs)
+    before = deepcopy(inputs)
+    assessor = RecordingAssessor(result)
+
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+
+    assert report["semantic_assessment"] == {
+        "status": "failed",
+        "method": "semantic_test",
+        "version": "1.0",
+    }
+    assert [finding["code"] for finding in report["findings"]] == [
+        "semantic_assessment_failed"
+    ]
+    assert assessor.calls == 1
+    assert inputs == before
+
+
+@pytest.mark.parametrize(
+    "location",
+    ("result", "declaration", "evidence"),
+)
+def test_phase3_non_string_mapping_keys_become_failed_without_leaking(
+    phase2_inputs,
+    location,
+):
+    declaration = _semantic_declaration("claim_type_mismatch")
+    result = {"status": "completed", "findings": [declaration]}
+    if location == "result":
+        result = _with_equality_spoofed_key(result, "status")
+    elif location == "declaration":
+        result["findings"][0] = _with_equality_spoofed_key(
+            declaration,
+            "code",
+        )
+    else:
+        declaration["evidence"][0] = _with_equality_spoofed_key(
+            declaration["evidence"][0],
+            "source_contract",
+        )
+
+    inputs = deepcopy(phase2_inputs)
+    before = deepcopy(inputs)
+    assessor = RecordingAssessor(result)
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+
+    assert report["semantic_assessment"] == {
+        "status": "failed",
+        "method": "semantic_test",
+        "version": "1.0",
+    }
+    assert [finding["code"] for finding in report["findings"]] == [
+        "semantic_assessment_failed"
+    ]
+    assert assessor.calls == 1
+    assert inputs == before
+
+
+def test_contract_kernel_rejects_non_string_semantic_status_spoof():
+    with pytest.raises(ValueError, match="semantic_assessment.status"):
+        quality_v2._copy_semantic_assessment(
+            {
+                "status": EqualitySpoof("completed"),
+                "method": "assessor_method",
+                "version": "1.0",
+            }
+        )
+
+
+def test_contract_kernel_rejects_non_string_mapping_keys():
+    with pytest.raises(ValueError, match="semantic_assessment fields/order"):
+        quality_v2._copy_semantic_assessment(
+            _with_equality_spoofed_key(_semantic("completed"), "status")
+        )
+
+    input_contracts = _input_contracts()
+    with pytest.raises(ValueError, match="input_contracts fields/order"):
+        quality_v2._copy_input_contracts(
+            _with_equality_spoofed_key(input_contracts, "ai_reading_v2")
+        )
+
+    input_contracts = _input_contracts()
+    input_contracts["ai_reading_v2"] = _with_equality_spoofed_key(
+        input_contracts["ai_reading_v2"],
+        "schema_version",
+    )
+    with pytest.raises(ValueError, match="input_contracts.ai_reading_v2"):
+        quality_v2._copy_input_contracts(input_contracts)
+
+    candidate = _with_equality_spoofed_key(
+        _candidate("source_limitation_note"),
+        "code",
+    )
+    with pytest.raises(ValueError, match="finding candidate fields/order"):
+        quality_v2._canonicalize_finding_candidates([candidate])
+
+    values = {
+        "finding_id": "finding_0001",
+        "code": "source_limitation_note",
+        "severity": "INFO",
+        "blocking": False,
+        "path": "/summary",
+        "message": EXPECTED_MESSAGES[25],
+        "evidence": (
+            _with_equality_spoofed_key(
+                {"source_contract": "ai_reading_v2", "path": "/summary"},
+                "source_contract",
+            ),
+        ),
+        "repairability": "none",
+        "requires_human_review": False,
+    }
+    with pytest.raises(ValueError, match="evidence entry fields/order"):
+        AIReadingQualityFindingV2(**values)
+
+
+@pytest.mark.parametrize(
+    ("field", "target", "expected_exception"),
+    (
+        ("code", "source_limitation_note", TypeError),
+        ("severity", "INFO", ValueError),
+        ("message", EXPECTED_MESSAGES[25], ValueError),
+        ("repairability", "none", ValueError),
+    ),
+)
+def test_finding_contract_rejects_non_string_enum_spoofs(
+    field,
+    target,
+    expected_exception,
+):
+    values = {
+        "finding_id": "finding_0001",
+        "code": "source_limitation_note",
+        "severity": "INFO",
+        "blocking": False,
+        "path": "/summary",
+        "message": EXPECTED_MESSAGES[25],
+        "evidence": ({"source_contract": "ai_reading_v2", "path": "/summary"},),
+        "repairability": "none",
+        "requires_human_review": False,
+    }
+    values[field] = EqualitySpoof(target)
+
+    with pytest.raises(expected_exception):
+        AIReadingQualityFindingV2(**values)
+
+
+@pytest.mark.parametrize(
+    ("field", "target"),
+    (
+        ("schema_version", "ai_reading_quality_report_v2"),
+        ("decision", "pass"),
+    ),
+)
+def test_report_contract_rejects_non_string_enum_spoofs(field, target):
+    report = _report()
+    values = {item.name: getattr(report, item.name) for item in fields(report)}
+    values[field] = EqualitySpoof(target)
+
+    with pytest.raises(ValueError):
+        AIReadingQualityReportV2(**values)
+
+
+def test_contract_kernel_still_accepts_valid_string_enums():
+    semantic = _semantic("completed")
+    assert quality_v2._copy_semantic_assessment(semantic) == semantic
+    assert _finding_with_id("finding_0001").code == "source_limitation_note"
+    assert _report().decision == "pass"
