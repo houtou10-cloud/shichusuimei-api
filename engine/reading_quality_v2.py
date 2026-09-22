@@ -1,9 +1,10 @@
-"""Phase 1 through Phase 3 foundations for AI Reading Quality Gate v2.
+"""Phase 1 through Phase 4.1 foundations for AI Reading Quality Gate v2.
 
 The exact report/finding contract kernel, input validation, and trusted identity
 reconstruction are implemented together with the provider-independent semantic
-assessor lifecycle.  Remaining deterministic checks and concrete prose-level
-semantic assessment remain deliberately unavailable until later phases.
+assessor lifecycle and trusted-reference deterministic checks.  Remaining
+deterministic checks and concrete prose-level semantic assessment stay
+deliberately unavailable until later phases.
 """
 
 from __future__ import annotations
@@ -156,6 +157,18 @@ _SOURCE_CONTRACTS = (
     "ai_reading_v2",
     "reading_context_v2",
     "common_judgment_metadata_v1",
+)
+_LUCK_COMPONENTS = frozenset(
+    ("luck_pillars", "current_luck", "annual_luck", "integrated_luck")
+)
+_CURRENT_LUCK_PATHS = {
+    "luck_pillars": "luck.luck_pillars",
+    "current_luck": "luck.current_luck",
+    "annual_luck": "luck.annual_luck",
+    "integrated_luck": "luck.integrated_luck",
+}
+_FUTURE_LUCK_COMPONENTS = frozenset(
+    ("current_luck", "annual_luck", "integrated_luck")
 )
 _SEVERITY_RANK = {"ERROR": 0, "WARNING": 1, "INFO": 2}
 _REPAIRABILITIES = ("auto", "human", "none")
@@ -441,8 +454,8 @@ class SemanticAssessorV2(Protocol):
 
 def _is_string_array(value: Any) -> bool:
     return (
-        isinstance(value, list)
-        and all(isinstance(item, str) for item in value)
+        type(value) is list
+        and all(type(item) is str for item in value)
         and len(value) == len(set(value))
     )
 
@@ -451,7 +464,7 @@ def _has_exact_keys(value: Mapping[str, Any], fields: tuple[str, ...]) -> bool:
     actual_fields = tuple(value)
     return (
         len(actual_fields) == len(fields)
-        and all(isinstance(field, str) for field in actual_fields)
+        and all(type(field) is str for field in actual_fields)
         and set(actual_fields) == set(fields)
     )
 
@@ -461,17 +474,17 @@ def _has_exact_ordered_keys(
     fields: tuple[str, ...],
 ) -> bool:
     actual_fields = tuple(value)
-    return all(isinstance(field, str) for field in actual_fields) and (
+    return all(type(field) is str for field in actual_fields) and (
         actual_fields == fields
     )
 
 
 def _is_json_contract_tree(value: Any, active: set[int] | None = None) -> bool:
-    if value is None or isinstance(value, (str, bool, int)):
+    if value is None or type(value) in (str, bool, int):
         return True
-    if isinstance(value, float):
+    if type(value) is float:
         return math.isfinite(value)
-    if not isinstance(value, (Mapping, list)):
+    if not isinstance(value, Mapping) and type(value) is not list:
         return False
 
     active = set() if active is None else active
@@ -482,13 +495,39 @@ def _is_json_contract_tree(value: Any, active: set[int] | None = None) -> bool:
     try:
         if isinstance(value, Mapping):
             return all(
-                isinstance(key, str)
+                type(key) is str
                 and _is_json_contract_tree(item, active)
                 for key, item in value.items()
             )
         return all(_is_json_contract_tree(item, active) for item in value)
     finally:
         active.remove(identity)
+
+
+def _json_values_equal(actual: Any, expected: Any) -> bool:
+    """Compare validated JSON values without invoking container equality."""
+
+    if isinstance(actual, Mapping) and isinstance(expected, Mapping):
+        actual_fields = tuple(actual)
+        expected_fields = tuple(expected)
+        if (
+            len(actual_fields) != len(expected_fields)
+            or any(type(field) is not str for field in actual_fields)
+            or set(actual_fields) != set(expected_fields)
+        ):
+            return False
+        return all(
+            _json_values_equal(actual[field], expected[field])
+            for field in expected_fields
+        )
+    if type(actual) is list and type(expected) is list:
+        return len(actual) == len(expected) and all(
+            _json_values_equal(actual_item, expected_item)
+            for actual_item, expected_item in zip(actual, expected)
+        )
+    if type(actual) is not type(expected):
+        return False
+    return actual == expected
 
 
 def _is_grounded_text_block(value: Any) -> bool:
@@ -693,12 +732,10 @@ def _project_identity_fields(
     value: Mapping[str, Any],
     fields: tuple[str, ...],
 ) -> dict[str, str | None]:
-    actual_string_keys = {
-        key for key in value if isinstance(key, str)
-    }
+    actual_string_keys = {key for key in value if type(key) is str}
     return {
         field: value[field]
-        if field in actual_string_keys and isinstance(value[field], str)
+        if field in actual_string_keys and type(value[field]) is str
         else None
         for field in fields
     }
@@ -745,10 +782,331 @@ def _trusted_identity_mismatch(
     request: Mapping[str, Any],
 ) -> bool:
     return (
-        ai_reading["engine_version"]
-        != request["trusted_attachments"]["engine_version"]
-        or ai_reading["source_contracts"] != request["source_contracts"]
+        not _json_values_equal(
+            ai_reading["engine_version"],
+            request["trusted_attachments"]["engine_version"],
+        )
+        or not _json_values_equal(
+            ai_reading["source_contracts"],
+            request["source_contracts"],
+        )
     )
+
+
+def _ai_reading_candidate(code: str, path: str) -> dict[str, Any]:
+    return {
+        "code": code,
+        "path": path,
+        "evidence": [{"source_contract": "ai_reading_v2", "path": path}],
+    }
+
+
+def _iter_final_blocks(
+    ai_reading: Mapping[str, Any],
+    request: Mapping[str, Any],
+):
+    yield "/summary", ai_reading["summary"], "top", None, None, "summary"
+    slots = request["trusted_attachments"]["sections"]
+    for index, section in enumerate(ai_reading["sections"]):
+        section_id = slots[index]["section_id"]
+        for field in ("summary", "detail"):
+            yield (
+                f"/sections/{index}/{field}",
+                section[field],
+                "section",
+                section_id,
+                None,
+                field,
+            )
+        for field in ("evidence", "interpretation", "advice"):
+            for item_index, block in enumerate(section[field]):
+                yield (
+                    f"/sections/{index}/{field}/{item_index}",
+                    block,
+                    "section",
+                    section_id,
+                    None,
+                    field,
+                )
+        if section_id == "future_flow":
+            for year_index, entry in enumerate(section["yearly"]):
+                for field in ("summary", "detail"):
+                    yield (
+                        f"/sections/{index}/yearly/{year_index}/{field}",
+                        entry[field],
+                        "yearly",
+                        section_id,
+                        year_index,
+                        field,
+                    )
+    if ai_reading["consultation_answer"] is not None:
+        yield (
+            "/consultation_answer",
+            ai_reading["consultation_answer"],
+            "consultation",
+            None,
+            None,
+            "consultation_answer",
+        )
+
+
+def _allowed_claim_types(
+    location_kind: str,
+    section_id: str | None,
+    field: str,
+) -> frozenset[str]:
+    if location_kind in ("top", "consultation"):
+        return frozenset(("practical", "astrology"))
+    if location_kind == "yearly":
+        return frozenset(("practical", "astrology", "luck_astrology"))
+    luck_section = section_id in ("current_luck", "future_flow")
+    if field in ("evidence", "interpretation"):
+        return (
+            frozenset(("astrology", "luck_astrology"))
+            if luck_section
+            else frozenset(("astrology",))
+        )
+    return (
+        frozenset(("practical", "astrology", "luck_astrology"))
+        if luck_section
+        else frozenset(("practical", "astrology"))
+    )
+
+
+def _luck_component_resolves(
+    component: str,
+    *,
+    location_kind: str,
+    section_id: str | None,
+    year_index: int | None,
+    request: Mapping[str, Any],
+) -> bool:
+    entries = request["trusted_catalogs"]["luck_value_sources"]
+    years = request["trusted_attachments"]["future_flow_years"]
+    if location_kind == "section" and section_id == "current_luck":
+        expected_path = _CURRENT_LUCK_PATHS.get(component)
+        return expected_path is not None and sum(
+            entry["section_id"] == "current_luck"
+            and entry["year"] is None
+            and entry["source_component"] == component
+            and entry["context_path"] == expected_path
+            for entry in entries
+        ) == 1
+    if location_kind == "section" and section_id == "future_flow":
+        if component not in _FUTURE_LUCK_COMPONENTS or not years:
+            return False
+        actual = [
+            (entry["year"], entry["context_path"])
+            for entry in entries
+            if entry["section_id"] == "future_flow"
+            and entry["source_component"] == component
+        ]
+        expected = [
+            (year, f"luck.five_year_luck[{index}].{component}")
+            for index, year in enumerate(years)
+        ]
+        return actual == expected
+    if location_kind == "yearly" and year_index is not None:
+        if component not in _FUTURE_LUCK_COMPONENTS or year_index >= len(years):
+            return False
+        expected_year = years[year_index]
+        expected_path = f"luck.five_year_luck[{year_index}].{component}"
+        return sum(
+            entry["section_id"] == "future_flow"
+            and entry["year"] == expected_year
+            and entry["source_component"] == component
+            and entry["context_path"] == expected_path
+            for entry in entries
+        ) == 1
+    return False
+
+
+def _reference_candidates(
+    ai_reading: Mapping[str, Any],
+    request: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    catalogs = request["trusted_catalogs"]
+    allowed = {
+        "source_fact_codes": tuple(catalogs["fact_codes"]),
+        "source_components": tuple(catalogs["source_components"]),
+        "warnings": tuple(
+            entry["warning_id"] for entry in catalogs["warnings"]
+        ),
+        "uncertainty": tuple(
+            entry["uncertainty_id"] for entry in catalogs["uncertainty"]
+        ),
+    }
+    candidates: list[dict[str, Any]] = []
+
+    def check_array(
+        path: str,
+        values: list[str],
+        field: str,
+        *,
+        catalog_field: str | None = None,
+    ) -> None:
+        allowed_values = allowed[field if catalog_field is None else catalog_field]
+        for index, value in enumerate(values):
+            if value not in allowed_values:
+                candidates.append(
+                    _ai_reading_candidate(
+                        "reference_resolution_error",
+                        f"{path}/{field}/{index}",
+                    )
+                )
+
+    for section_index, section in enumerate(ai_reading["sections"]):
+        section_path = f"/sections/{section_index}"
+        check_array(
+            section_path,
+            section["facts"],
+            "facts",
+            catalog_field="source_fact_codes",
+        )
+        check_array(section_path, section["warnings"], "warnings")
+        check_array(section_path, section["uncertainty"], "uncertainty")
+
+    for path, block, kind, section_id, year_index, field in _iter_final_blocks(
+        ai_reading,
+        request,
+    ):
+        for ref_field in (
+            "source_fact_codes",
+            "source_components",
+            "warnings",
+            "uncertainty",
+        ):
+            check_array(path, block[ref_field], ref_field)
+
+        claim_type = block["claim_type"]
+        if claim_type not in _allowed_claim_types(kind, section_id, field):
+            candidates.append(
+                _ai_reading_candidate(
+                    "reference_resolution_error",
+                    f"{path}/claim_type",
+                )
+            )
+        fact_refs = block["source_fact_codes"]
+        component_refs = block["source_components"]
+        luck_refs = [item for item in component_refs if item in _LUCK_COMPONENTS]
+        if claim_type == "practical":
+            if fact_refs:
+                candidates.append(
+                    _ai_reading_candidate(
+                        "reference_resolution_error",
+                        f"{path}/source_fact_codes",
+                    )
+                )
+            if component_refs:
+                candidates.append(
+                    _ai_reading_candidate(
+                        "reference_resolution_error",
+                        f"{path}/source_components",
+                    )
+                )
+        elif claim_type == "astrology":
+            if not fact_refs:
+                candidates.append(
+                    _ai_reading_candidate(
+                        "reference_resolution_error",
+                        f"{path}/source_fact_codes",
+                    )
+                )
+            if luck_refs:
+                candidates.append(
+                    _ai_reading_candidate(
+                        "reference_resolution_error",
+                        f"{path}/source_components",
+                    )
+                )
+        elif claim_type == "luck_astrology":
+            if not luck_refs:
+                candidates.append(
+                    _ai_reading_candidate(
+                        "reference_resolution_error",
+                        f"{path}/source_components",
+                    )
+                )
+            elif any(
+                not _luck_component_resolves(
+                    component,
+                    location_kind=kind,
+                    section_id=section_id,
+                    year_index=year_index,
+                    request=request,
+                )
+                for component in luck_refs
+            ):
+                candidates.append(
+                    _ai_reading_candidate(
+                        "reference_resolution_error",
+                        f"{path}/source_components",
+                    )
+                )
+    return candidates
+
+
+def _trusted_reference_candidates(
+    ai_reading: Mapping[str, Any],
+    request: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    attachments = request["trusted_attachments"]
+    catalogs = request["trusted_catalogs"]
+    candidates: list[dict[str, Any]] = []
+
+    for index, slot in enumerate(attachments["sections"]):
+        section = ai_reading["sections"][index]
+        for field in ("section_id", "title"):
+            if not _json_values_equal(section[field], slot[field]):
+                candidates.append(
+                    _ai_reading_candidate(
+                        "trusted_field_mismatch",
+                        f"/sections/{index}/{field}",
+                    )
+                )
+
+    consultation_present = ai_reading["consultation_answer"] is not None
+    if consultation_present != attachments["consultation_present"]:
+        candidates.append(
+            _ai_reading_candidate(
+                "trusted_field_mismatch",
+                "/consultation_answer",
+            )
+        )
+    if not _json_values_equal(ai_reading["warnings"], catalogs["warnings"]):
+        candidates.append(
+            _ai_reading_candidate(
+                "warning_uncertainty_not_preserved",
+                "/warnings",
+            )
+        )
+    if not _json_values_equal(
+        ai_reading["uncertainty"],
+        catalogs["uncertainty"],
+    ):
+        candidates.append(
+            _ai_reading_candidate(
+                "warning_uncertainty_not_preserved",
+                "/uncertainty",
+            )
+        )
+    if not _json_values_equal(ai_reading["disclaimer"], attachments["disclaimer"]):
+        candidates.append(
+            _ai_reading_candidate("disclaimer_mismatch", "/disclaimer")
+        )
+
+    future_section = ai_reading["sections"][6]
+    actual_years = [entry["year"] for entry in future_section["yearly"]]
+    if not _json_values_equal(actual_years, attachments["future_flow_years"]):
+        candidates.append(
+            _ai_reading_candidate(
+                "future_year_integrity_error",
+                "/sections/6/yearly",
+            )
+        )
+
+    candidates.extend(_reference_candidates(ai_reading, request))
+    return candidates
 
 
 def _is_json_pointer(value: Any) -> bool:
@@ -860,6 +1218,8 @@ def _validate_semantic_assessor_result(
     reading_context: Mapping[str, Any],
     judgment_metadata: Mapping[str, Any],
 ) -> tuple[str, tuple[dict[str, Any], ...]]:
+    if not _is_json_contract_tree(value):
+        raise ValueError("semantic assessor result is not plain JSON data")
     if not isinstance(value, Mapping) or not _has_exact_ordered_keys(
         value,
         _SEMANTIC_RESULT_FIELDS,
@@ -1499,6 +1859,9 @@ def evaluate_ai_reading_quality_v2(
                     "common_judgment_metadata_v1",
                 )
             )
+        deterministic_candidates.extend(
+            _trusted_reference_candidates(ai_reading, request)
+        )
 
     report = _run_semantic_assessor_v2(
         input_contracts,

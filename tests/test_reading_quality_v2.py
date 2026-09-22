@@ -500,6 +500,66 @@ class EqualitySpoof:
         return hash(self.target)
 
 
+class StringSubclassSpoof(str):
+    """A JSON-looking string subclass with dishonest equality."""
+
+    def __new__(cls, value, target):
+        instance = super().__new__(cls, value)
+        instance.target = target
+        return instance
+
+    def __eq__(self, other):
+        return other == self.target
+
+    def __ne__(self, other):
+        return False
+
+    def __deepcopy__(self, memo):
+        return type(self)(str(self), self.target)
+
+    __hash__ = str.__hash__
+
+
+class IntSubclassSpoof(int):
+    """A JSON-looking integer subclass with dishonest equality."""
+
+    def __new__(cls, value, target):
+        instance = super().__new__(cls, value)
+        instance.target = target
+        return instance
+
+    def __eq__(self, other):
+        return other == self.target
+
+    def __ne__(self, other):
+        return False
+
+    def __deepcopy__(self, memo):
+        return type(self)(int(self), self.target)
+
+    __hash__ = int.__hash__
+
+
+class ListSubclassSpoof(list):
+    """A JSON-looking array subclass with dishonest equality."""
+
+    def __eq__(self, other):
+        return True
+
+    def __ne__(self, other):
+        return False
+
+
+class MappingSubclassSpoof(dict):
+    """A supported Mapping subclass whose equality must never be trusted."""
+
+    def __eq__(self, other):
+        return True
+
+    def __ne__(self, other):
+        return False
+
+
 def _with_equality_spoofed_key(value, target):
     return {
         (EqualitySpoof(key) if key == target else key): item
@@ -510,6 +570,16 @@ def _with_equality_spoofed_key(value, target):
 def _apply_final_contract_type_spoof(reading, case):
     if case in ("schema_version", "version", "method", "status"):
         reading[case] = EqualitySpoof(reading[case])
+    elif case in ("section_id", "title"):
+        reading["sections"][0][case] = EqualitySpoof(
+            reading["sections"][0][case]
+        )
+    elif case == "disclaimer":
+        reading["disclaimer"] = EqualitySpoof(reading["disclaimer"])
+    elif case == "future_year":
+        reading["sections"][6]["yearly"][0]["year"] = EqualitySpoof(
+            reading["sections"][6]["yearly"][0]["year"]
+        )
     elif case == "summary_claim_type":
         reading["summary"]["claim_type"] = EqualitySpoof("practical")
     elif case == "uncertainty_source_contract":
@@ -1316,6 +1386,10 @@ def test_phase2_grounded_text_block_order_remains_required(phase2_inputs):
         "version",
         "method",
         "status",
+        "section_id",
+        "title",
+        "disclaimer",
+        "future_year",
         "summary_claim_type",
         "uncertainty_source_contract",
         "errors",
@@ -1991,3 +2065,582 @@ def test_contract_kernel_still_accepts_valid_string_enums():
     assert quality_v2._copy_semantic_assessment(semantic) == semantic
     assert _finding_with_id("finding_0001").code == "source_limitation_note"
     assert _report().decision == "pass"
+
+
+def _phase4_deterministic_report(inputs, expected_code):
+    assessor = RecordingAssessor()
+    before = deepcopy(inputs)
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert report["decision"] == "fail"
+    assert report["semantic_assessment"] == {
+        "status": "not_run",
+        "method": None,
+        "version": None,
+    }
+    assert expected_code in [finding["code"] for finding in report["findings"]]
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (0, 0, 0)
+    assert assessor.events == []
+    assert inputs == before
+    return report
+
+
+@pytest.mark.parametrize(
+    ("field", "expected_code"),
+    (
+        ("section_id", "trusted_field_mismatch"),
+        ("title", "trusted_field_mismatch"),
+        ("consultation", "trusted_field_mismatch"),
+        ("warnings", "warning_uncertainty_not_preserved"),
+        ("uncertainty", "warning_uncertainty_not_preserved"),
+        ("disclaimer", "disclaimer_mismatch"),
+        ("future_year", "future_year_integrity_error"),
+    ),
+)
+def test_phase4_trusted_attachments_and_catalogs_are_exact(
+    phase2_inputs,
+    field,
+    expected_code,
+):
+    inputs = deepcopy(phase2_inputs)
+    reading = inputs["ai_reading"]
+    if field == "section_id":
+        reading["sections"][0]["section_id"] = "career"
+    elif field == "title":
+        reading["sections"][0]["title"] = "changed"
+    elif field == "consultation":
+        reading["consultation_answer"] = _phase2_block()
+    elif field == "warnings":
+        reading["warnings"].append(
+            {
+                "warning_id": "warning_9999",
+                "source_contract": "reading_context_v2",
+                "source_path": "warnings[0]",
+                "value": "changed",
+            }
+        )
+    elif field == "uncertainty":
+        reading["uncertainty"][0]["value"]["message"] = "changed"
+    elif field == "disclaimer":
+        reading["disclaimer"] = "changed"
+    else:
+        reading["sections"][6]["yearly"][0]["year"] += 1
+
+    report = _phase4_deterministic_report(inputs, expected_code)
+    matching = [
+        finding
+        for finding in report["findings"]
+        if finding["code"] == expected_code
+    ]
+    assert len(matching) == 1
+
+
+@pytest.mark.parametrize(
+    "case",
+    (
+        "section_fact",
+        "block_fact",
+        "block_component",
+        "section_warning",
+        "section_uncertainty",
+        "block_warning",
+        "block_uncertainty",
+    ),
+)
+def test_phase4_every_reference_must_resolve_to_the_rebuilt_catalog(
+    phase2_inputs,
+    case,
+):
+    inputs = deepcopy(phase2_inputs)
+    reading = inputs["ai_reading"]
+    if case == "section_fact":
+        reading["sections"][0]["facts"] = ["unknown.fact"]
+    elif case == "block_fact":
+        reading["summary"]["source_fact_codes"] = ["unknown.fact"]
+    elif case == "block_component":
+        reading["summary"]["source_components"] = ["unknown_component"]
+    elif case == "section_warning":
+        reading["sections"][0]["warnings"] = ["warning_9999"]
+    elif case == "section_uncertainty":
+        reading["sections"][0]["uncertainty"] = ["uncertainty_9999"]
+    elif case == "block_warning":
+        reading["summary"]["warnings"] = ["warning_9999"]
+    else:
+        reading["summary"]["uncertainty"] = ["uncertainty_9999"]
+
+    report = _phase4_deterministic_report(
+        inputs,
+        "reference_resolution_error",
+    )
+    if case == "section_fact":
+        finding = next(
+            item
+            for item in report["findings"]
+            if item["code"] == "reference_resolution_error"
+        )
+        assert finding["path"] == "/sections/0/facts/0"
+        assert finding["evidence"] == [
+            {
+                "source_contract": "ai_reading_v2",
+                "path": "/sections/0/facts/0",
+            }
+        ]
+
+
+@pytest.mark.parametrize(
+    "case",
+    (
+        "practical_fact",
+        "practical_component",
+        "astrology_without_fact",
+        "astrology_with_section_fact_only",
+        "astrology_with_luck_component",
+        "practical_evidence",
+        "current_practical_evidence",
+        "future_practical_interpretation",
+        "top_level_luck",
+        "non_luck_section_luck",
+        "future_luck_pillars",
+        "yearly_luck_pillars",
+    ),
+)
+def test_phase4_claim_type_reference_and_location_rules_are_enforced(
+    phase2_inputs,
+    case,
+):
+    inputs = deepcopy(phase2_inputs)
+    reading = inputs["ai_reading"]
+    if case == "practical_fact":
+        reading["summary"]["source_fact_codes"] = ["day_master.stem"]
+    elif case == "practical_component":
+        reading["summary"]["source_components"] = ["strength"]
+    elif case == "astrology_without_fact":
+        reading["summary"]["claim_type"] = "astrology"
+    elif case == "astrology_with_section_fact_only":
+        reading["sections"][0]["facts"] = ["day_master.stem"]
+        reading["sections"][0]["summary"]["claim_type"] = "astrology"
+    elif case == "astrology_with_luck_component":
+        reading["summary"].update(
+            {
+                "claim_type": "astrology",
+                "source_fact_codes": ["day_master.stem"],
+                "source_components": ["current_luck"],
+            }
+        )
+    elif case == "practical_evidence":
+        reading["sections"][0]["evidence"] = [_phase2_block()]
+    elif case == "current_practical_evidence":
+        reading["sections"][5]["evidence"] = [_phase2_block()]
+    elif case == "future_practical_interpretation":
+        reading["sections"][6]["interpretation"] = [_phase2_block()]
+    elif case == "top_level_luck":
+        reading["summary"].update(
+            {
+                "claim_type": "luck_astrology",
+                "source_components": ["current_luck"],
+            }
+        )
+    elif case == "non_luck_section_luck":
+        reading["sections"][0]["summary"].update(
+            {
+                "claim_type": "luck_astrology",
+                "source_components": ["current_luck"],
+            }
+        )
+    elif case == "future_luck_pillars":
+        reading["sections"][6]["summary"].update(
+            {
+                "claim_type": "luck_astrology",
+                "source_components": ["luck_pillars"],
+            }
+        )
+    else:
+        reading["sections"][6]["yearly"][0]["summary"].update(
+            {
+                "claim_type": "luck_astrology",
+                "source_components": ["luck_pillars"],
+            }
+        )
+
+    _phase4_deterministic_report(inputs, "reference_resolution_error")
+
+
+@pytest.mark.parametrize(
+    "case",
+    (
+        "astrology",
+        "section_fact_index",
+        "practical_uncertainty",
+        "current_luck_pillars",
+        "current_luck",
+        "current_luck_multiple",
+        "future_non_yearly",
+        "future_yearly",
+    ),
+)
+def test_phase4_valid_reference_and_luck_crosswalk_reaches_semantic_phase(
+    phase2_inputs,
+    case,
+):
+    inputs = deepcopy(phase2_inputs)
+    reading = inputs["ai_reading"]
+    if case == "astrology":
+        reading["summary"].update(
+            {
+                "claim_type": "astrology",
+                "source_fact_codes": ["day_master.stem"],
+                "source_components": ["strength"],
+            }
+        )
+    elif case == "section_fact_index":
+        reading["sections"][0]["facts"] = ["day_master.stem"]
+    elif case == "practical_uncertainty":
+        reading["summary"]["uncertainty"] = ["uncertainty_0001"]
+    elif case == "current_luck_pillars":
+        reading["sections"][5]["summary"].update(
+            {
+                "claim_type": "luck_astrology",
+                "source_components": ["luck_pillars"],
+            }
+        )
+    elif case == "current_luck":
+        reading["sections"][5]["summary"].update(
+            {
+                "claim_type": "luck_astrology",
+                "source_components": ["current_luck"],
+            }
+        )
+    elif case == "current_luck_multiple":
+        reading["sections"][5]["summary"].update(
+            {
+                "claim_type": "luck_astrology",
+                "source_components": [
+                    "current_luck",
+                    "annual_luck",
+                    "integrated_luck",
+                ],
+            }
+        )
+    elif case == "future_non_yearly":
+        reading["sections"][6]["summary"].update(
+            {
+                "claim_type": "luck_astrology",
+                "source_components": ["annual_luck"],
+            }
+        )
+    else:
+        reading["sections"][6]["yearly"][0]["summary"].update(
+            {
+                "claim_type": "luck_astrology",
+                "source_components": ["integrated_luck"],
+            }
+        )
+
+    assessor = RecordingAssessor()
+    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
+        evaluate_ai_reading_quality_v2(
+            **inputs,
+            semantic_assessor=assessor,
+        )
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (1, 1, 1)
+
+
+def test_phase4_warning_and_uncertainty_refs_do_not_count_as_fact_grounding(
+    phase2_inputs,
+):
+    inputs = deepcopy(phase2_inputs)
+    inputs["ai_reading"]["summary"].update(
+        {
+            "claim_type": "astrology",
+            "uncertainty": ["uncertainty_0001"],
+        }
+    )
+    _phase4_deterministic_report(inputs, "reference_resolution_error")
+
+
+def test_phase4_source_components_alone_do_not_ground_astrology(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    inputs["ai_reading"]["summary"].update(
+        {
+            "claim_type": "astrology",
+            "source_components": ["strength"],
+        }
+    )
+    _phase4_deterministic_report(inputs, "reference_resolution_error")
+
+
+@pytest.mark.parametrize("scope", ("current", "future_all_year"))
+def test_phase4_luck_claim_requires_the_matching_public_luck_source_catalog(
+    phase2_inputs,
+    scope,
+):
+    inputs = deepcopy(phase2_inputs)
+    reading = inputs["ai_reading"]
+    context = inputs["reading_context"]
+    if scope == "current":
+        context["luck"]["current_luck"] = None
+        reading["sections"][5]["summary"].update(
+            {
+                "claim_type": "luck_astrology",
+                "source_components": ["current_luck"],
+            }
+        )
+    else:
+        context["luck"]["five_year_luck"][2]["annual_luck"] = None
+        reading["sections"][6]["summary"].update(
+            {
+                "claim_type": "luck_astrology",
+                "source_components": ["annual_luck"],
+            }
+        )
+
+    assert validate_reading_context_v2(context)["valid"] is True
+    assert validate_ai_reading_prompt_inputs_v2(
+        context,
+        inputs["judgment_metadata"],
+    )["valid"] is True
+    _phase4_deterministic_report(inputs, "reference_resolution_error")
+
+
+def _phase43_assert_public_failure(inputs, expected_code, expected_path):
+    before = deepcopy(inputs)
+    before_json = json.dumps(
+        inputs,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+        allow_nan=False,
+    )
+    assessor = RecordingAssessor()
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert report["decision"] == "fail"
+    assert report["semantic_assessment"] == {
+        "status": "not_run",
+        "method": None,
+        "version": None,
+    }
+    assert [finding["code"] for finding in report["findings"]] == [
+        expected_code
+    ]
+    assert report["findings"][0]["path"] == expected_path
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (0, 0, 0)
+    assert assessor.events == []
+    assert inputs == before
+    assert json.dumps(
+        inputs,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+        allow_nan=False,
+    ) == before_json
+    return report
+
+
+@pytest.mark.parametrize(
+    "case",
+    (
+        "section_id",
+        "title",
+        "disclaimer",
+        "warning_catalog",
+        "uncertainty_catalog",
+        "block_fact",
+        "block_component",
+        "block_uncertainty",
+        "section_fact",
+        "future_year",
+    ),
+)
+def test_phase43_json_scalar_and_array_subclasses_are_contract_invalid(
+    phase2_inputs,
+    case,
+):
+    inputs = deepcopy(phase2_inputs)
+    reading = inputs["ai_reading"]
+    if case in ("section_id", "title"):
+        original = reading["sections"][0][case]
+        reading["sections"][0][case] = StringSubclassSpoof("tampered", original)
+    elif case == "disclaimer":
+        reading["disclaimer"] = StringSubclassSpoof(
+            "tampered",
+            reading["disclaimer"],
+        )
+    elif case == "warning_catalog":
+        reading["warnings"] = ListSubclassSpoof(
+            [
+                {
+                    "warning_id": "warning_9999",
+                    "source_contract": "reading_context_v2",
+                    "source_path": "warnings[0]",
+                    "value": "tampered",
+                }
+            ]
+        )
+    elif case == "uncertainty_catalog":
+        reading["uncertainty"] = ListSubclassSpoof(reading["uncertainty"])
+    elif case == "block_fact":
+        reading["summary"].update(
+            {
+                "claim_type": "astrology",
+                "source_fact_codes": [
+                    StringSubclassSpoof("unknown.fact", "day_master.stem")
+                ],
+            }
+        )
+    elif case == "block_component":
+        reading["summary"]["source_components"] = [
+            StringSubclassSpoof("unknown_component", "strength")
+        ]
+    elif case == "block_uncertainty":
+        reading["summary"]["uncertainty"] = [
+            StringSubclassSpoof("unknown_uncertainty", "uncertainty_0001")
+        ]
+    elif case == "section_fact":
+        reading["sections"][0]["facts"] = [
+            StringSubclassSpoof("unknown.fact", "day_master.stem")
+        ]
+    else:
+        original_year = reading["sections"][6]["yearly"][0]["year"]
+        reading["sections"][6]["yearly"][0]["year"] = IntSubclassSpoof(
+            9999,
+            original_year,
+        )
+
+    report = _phase43_assert_public_failure(
+        inputs,
+        "ai_reading_contract_invalid",
+        "",
+    )
+    assert report["findings"][0]["evidence"] == [
+        {"source_contract": "ai_reading_v2", "path": ""}
+    ]
+
+
+def test_phase43_mapping_subclass_cannot_spoof_catalog_preservation(
+    phase2_inputs,
+):
+    inputs = deepcopy(phase2_inputs)
+    entry = deepcopy(inputs["ai_reading"]["uncertainty"][0])
+    entry["value"]["message"] = "tampered"
+    inputs["ai_reading"]["uncertainty"][0] = MappingSubclassSpoof(entry)
+
+    report = _phase43_assert_public_failure(
+        inputs,
+        "warning_uncertainty_not_preserved",
+        "/uncertainty",
+    )
+    assert report["findings"][0]["evidence"] == [
+        {"source_contract": "ai_reading_v2", "path": "/uncertainty"}
+    ]
+
+
+def test_phase43_mapping_subclass_cannot_spoof_trusted_identity(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    contracts = deepcopy(inputs["ai_reading"]["source_contracts"])
+    contracts["reading_context"]["status"] = "tampered"
+    inputs["ai_reading"]["source_contracts"] = MappingSubclassSpoof(contracts)
+
+    _phase43_assert_public_failure(
+        inputs,
+        "input_contract_mismatch",
+        "",
+    )
+
+
+def test_phase43_valid_mapping_subclasses_remain_supported(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    inputs["ai_reading"] = MappingSubclassSpoof(inputs["ai_reading"])
+    inputs["reading_context"] = MappingSubclassSpoof(inputs["reading_context"])
+    inputs["judgment_metadata"] = MappingSubclassSpoof(
+        inputs["judgment_metadata"]
+    )
+    inputs["ai_reading"]["sections"][0] = MappingSubclassSpoof(
+        inputs["ai_reading"]["sections"][0]
+    )
+    assessor = RecordingAssessor()
+
+    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
+        evaluate_ai_reading_quality_v2(
+            **inputs,
+            semantic_assessor=assessor,
+        )
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (1, 1, 1)
+
+
+def test_phase43_string_subclass_mapping_key_is_not_projected_as_identity(
+    phase2_inputs,
+):
+    inputs = deepcopy(phase2_inputs)
+    context = inputs["reading_context"]
+    value = context.pop("schema_version")
+    context[StringSubclassSpoof("schema_version", "schema_version")] = value
+
+    report = _phase43_assert_public_failure(
+        inputs,
+        "input_contract_invalid",
+        "",
+    )
+    assert report["input_contracts"]["reading_context_v2"][
+        "schema_version"
+    ] is None
+
+
+def test_phase43_bool_is_not_accepted_as_a_future_year(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    inputs["ai_reading"]["sections"][6]["yearly"][0]["year"] = True
+    _phase43_assert_public_failure(
+        inputs,
+        "ai_reading_contract_invalid",
+        "",
+    )
+
+
+@pytest.mark.parametrize(
+    ("contract", "field"),
+    (
+        ("reading_context", "schema_version"),
+        ("judgment_metadata", "schema_version"),
+    ),
+)
+def test_phase43_owner_input_subclass_is_input_contract_invalid(
+    phase2_inputs,
+    contract,
+    field,
+):
+    inputs = deepcopy(phase2_inputs)
+    original = inputs[contract][field]
+    inputs[contract][field] = StringSubclassSpoof("tampered", original)
+    before = deepcopy(inputs)
+    before_json = json.dumps(
+        inputs,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+        allow_nan=False,
+    )
+    assessor = RecordingAssessor()
+
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+
+    assert report["decision"] == "fail"
+    assert report["semantic_assessment"]["status"] == "not_run"
+    assert [finding["code"] for finding in report["findings"]] == [
+        "input_contract_invalid"
+    ]
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (0, 0, 0)
+    assert inputs == before
+    assert json.dumps(
+        inputs,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+        allow_nan=False,
+    ) == before_json
