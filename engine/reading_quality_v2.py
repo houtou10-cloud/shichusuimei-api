@@ -1,9 +1,9 @@
-"""Exact contract kernel for AI Reading Quality Gate v2.
+"""Phase 1 and Phase 2 foundations for AI Reading Quality Gate v2.
 
-This phase implements only the immutable report/finding contract and its
-deterministic normalization rules.  Input validation, trusted reconstruction,
-semantic assessment, and prose checks remain deliberately unavailable until a
-later implementation phase.
+The exact report/finding contract kernel, input validation, and trusted identity
+reconstruction are implemented.  The semantic assessor lifecycle and prose-level
+semantic checks remain deliberately unavailable until a later implementation
+phase.
 """
 
 from __future__ import annotations
@@ -14,6 +14,15 @@ from dataclasses import dataclass
 import json
 import re
 from typing import Any, Protocol
+
+from engine.judgment_metadata import validate_common_judgment_metadata
+from engine.reading_context_v2 import validate_reading_context_v2
+from engine.reading_prompt_v2 import (
+    AI_READING_V2_CLAIM_TYPES,
+    AI_READING_V2_SECTION_SLOTS,
+    build_ai_reading_request_v2,
+    validate_ai_reading_prompt_inputs_v2,
+)
 
 
 AI_READING_QUALITY_REPORT_V2_SCHEMA_VERSION = "ai_reading_quality_report_v2"
@@ -72,6 +81,73 @@ _SEMANTIC_ASSESSMENT_STATUSES = (
     "unavailable",
     "failed",
     "inconclusive",
+)
+_AI_READING_FIELDS = (
+    "schema_version",
+    "engine_version",
+    "summary",
+    "sections",
+    "consultation_answer",
+    "warnings",
+    "uncertainty",
+    "source_contracts",
+    "disclaimer",
+    "validation",
+    "method",
+    "version",
+    "status",
+)
+_GROUNDED_TEXT_BLOCK_FIELDS = (
+    "text",
+    "claim_type",
+    "source_fact_codes",
+    "source_components",
+    "warnings",
+    "uncertainty",
+)
+_SECTION_MODEL_FIELDS = (
+    "facts",
+    "summary",
+    "detail",
+    "evidence",
+    "interpretation",
+    "advice",
+    "warnings",
+    "uncertainty",
+)
+_WARNING_CATALOG_FIELDS = (
+    "warning_id",
+    "source_contract",
+    "source_path",
+    "value",
+)
+_UNCERTAINTY_CATALOG_FIELDS = (
+    "uncertainty_id",
+    "source_contract",
+    "source_path",
+    "value",
+)
+_UNCERTAINTY_VALUE_FIELDS = (
+    "code",
+    "category",
+    "status",
+    "severity",
+    "scope",
+    "message",
+)
+_SOURCE_CONTRACT_FIELDS = ("reading_context", "judgment_metadata")
+_READING_CONTEXT_IDENTITY_FIELDS = (
+    "schema_version",
+    "method",
+    "version",
+    "status",
+)
+_JUDGMENT_METADATA_IDENTITY_FIELDS = ("schema_version",)
+_FINAL_VALIDATION_FIELDS = (
+    "valid",
+    "errors",
+    "missing_required_fields",
+    "unknown_fields",
 )
 _SOURCE_CONTRACTS = (
     "ai_reading_v2",
@@ -358,6 +434,259 @@ class SemanticAssessorV2(Protocol):
         """Return an exact SemanticAssessmentResultV2 mapping."""
 
         ...
+
+
+def _is_string_array(value: Any) -> bool:
+    return (
+        isinstance(value, list)
+        and all(isinstance(item, str) for item in value)
+        and len(value) == len(set(value))
+    )
+
+
+def _has_exact_keys(value: Mapping[str, Any], fields: tuple[str, ...]) -> bool:
+    return len(value) == len(fields) and all(field in value for field in fields)
+
+
+def _is_grounded_text_block(value: Any) -> bool:
+    if not isinstance(value, Mapping) or tuple(value) != _GROUNDED_TEXT_BLOCK_FIELDS:
+        return False
+    return (
+        isinstance(value["text"], str)
+        and value["claim_type"] in AI_READING_V2_CLAIM_TYPES
+        and _is_string_array(value["source_fact_codes"])
+        and _is_string_array(value["source_components"])
+        and _is_string_array(value["warnings"])
+        and _is_string_array(value["uncertainty"])
+    )
+
+
+def _is_uncertainty_value(value: Any) -> bool:
+    if not isinstance(value, Mapping) or not _has_exact_keys(
+        value,
+        _UNCERTAINTY_VALUE_FIELDS,
+    ):
+        return False
+    return (
+        isinstance(value["code"], str)
+        and isinstance(value["category"], str)
+        and isinstance(value["status"], str)
+        and isinstance(value["severity"], str)
+        and isinstance(value["scope"], list)
+        and all(isinstance(item, str) for item in value["scope"])
+        and (value["message"] is None or isinstance(value["message"], str))
+    )
+
+
+def _is_catalog(
+    value: Any,
+    *,
+    fields: tuple[str, ...],
+    id_field: str,
+    uncertainty: bool,
+) -> bool:
+    if not isinstance(value, list):
+        return False
+    for entry in value:
+        if not isinstance(entry, Mapping) or not _has_exact_keys(entry, fields):
+            return False
+        if not isinstance(entry[id_field], str):
+            return False
+        if entry["source_contract"] not in (
+            "reading_context_v2",
+            "common_judgment_metadata_v1",
+        ):
+            return False
+        if not isinstance(entry["source_path"], str):
+            return False
+        if uncertainty:
+            if not _is_uncertainty_value(entry["value"]):
+                return False
+        elif not isinstance(entry["value"], str):
+            return False
+    return True
+
+
+def _is_final_validation_report(value: Any) -> bool:
+    return (
+        isinstance(value, Mapping)
+        and _has_exact_keys(value, _FINAL_VALIDATION_FIELDS)
+        and value["valid"] is True
+        and value["errors"] == []
+        and value["missing_required_fields"] == []
+        and value["unknown_fields"] == []
+    )
+
+
+def _is_source_contracts(value: Any) -> bool:
+    if not isinstance(value, Mapping) or not _has_exact_keys(
+        value,
+        _SOURCE_CONTRACT_FIELDS,
+    ):
+        return False
+    reading_context = value["reading_context"]
+    judgment_metadata = value["judgment_metadata"]
+    return (
+        isinstance(reading_context, Mapping)
+        and _has_exact_keys(reading_context, _READING_CONTEXT_IDENTITY_FIELDS)
+        and all(isinstance(reading_context[field], str) for field in reading_context)
+        and isinstance(judgment_metadata, Mapping)
+        and _has_exact_keys(judgment_metadata, _JUDGMENT_METADATA_IDENTITY_FIELDS)
+        and isinstance(judgment_metadata["schema_version"], str)
+    )
+
+
+def _is_section(value: Any, index: int) -> bool:
+    section_id, _ = AI_READING_V2_SECTION_SLOTS[index]
+    expected_fields = (
+        ("section_id", "title")
+        + _SECTION_MODEL_FIELDS
+        + (("yearly",) if section_id == "future_flow" else ())
+    )
+    if not isinstance(value, Mapping) or not _has_exact_keys(value, expected_fields):
+        return False
+    if not isinstance(value["section_id"], str) or not isinstance(value["title"], str):
+        return False
+    if not _is_string_array(value["facts"]):
+        return False
+    if not _is_grounded_text_block(value["summary"]):
+        return False
+    if not _is_grounded_text_block(value["detail"]):
+        return False
+    for field in ("evidence", "interpretation", "advice"):
+        if not isinstance(value[field], list) or any(
+            not _is_grounded_text_block(block) for block in value[field]
+        ):
+            return False
+    if not _is_string_array(value["warnings"]):
+        return False
+    if not _is_string_array(value["uncertainty"]):
+        return False
+    if section_id != "future_flow":
+        return True
+    yearly = value["yearly"]
+    if not isinstance(yearly, list):
+        return False
+    for entry in yearly:
+        if not isinstance(entry, Mapping) or not _has_exact_keys(
+            entry,
+            ("year", "summary", "detail"),
+        ):
+            return False
+        if not isinstance(entry["year"], int) or isinstance(entry["year"], bool):
+            return False
+        if not _is_grounded_text_block(entry["summary"]):
+            return False
+        if not _is_grounded_text_block(entry["detail"]):
+            return False
+    return True
+
+
+def _is_ai_reading_v2_final_contract(value: Mapping[str, Any]) -> bool:
+    if not _has_exact_keys(value, _AI_READING_FIELDS):
+        return False
+    if value["schema_version"] != "ai_reading_v2":
+        return False
+    if value["version"] != "ai_reading_v2":
+        return False
+    if value["method"] != "openai_responses_api_v2":
+        return False
+    if value["status"] != "completed":
+        return False
+    if value["engine_version"] is not None and not isinstance(
+        value["engine_version"], str
+    ):
+        return False
+    if not _is_grounded_text_block(value["summary"]):
+        return False
+    sections = value["sections"]
+    if not isinstance(sections, list) or len(sections) != 8:
+        return False
+    if any(not _is_section(section, index) for index, section in enumerate(sections)):
+        return False
+    consultation_answer = value["consultation_answer"]
+    if consultation_answer is not None and not _is_grounded_text_block(
+        consultation_answer
+    ):
+        return False
+    if not _is_catalog(
+        value["warnings"],
+        fields=_WARNING_CATALOG_FIELDS,
+        id_field="warning_id",
+        uncertainty=False,
+    ):
+        return False
+    if not _is_catalog(
+        value["uncertainty"],
+        fields=_UNCERTAINTY_CATALOG_FIELDS,
+        id_field="uncertainty_id",
+        uncertainty=True,
+    ):
+        return False
+    return (
+        _is_source_contracts(value["source_contracts"])
+        and isinstance(value["disclaimer"], str)
+        and _is_final_validation_report(value["validation"])
+    )
+
+
+def _project_identity_fields(
+    value: Mapping[str, Any],
+    fields: tuple[str, ...],
+) -> dict[str, str | None]:
+    return {
+        field: value[field]
+        if field in value and isinstance(value[field], str)
+        else None
+        for field in fields
+    }
+
+
+def _project_input_contracts(
+    ai_reading: Mapping[str, Any],
+    reading_context: Mapping[str, Any],
+    judgment_metadata: Mapping[str, Any],
+) -> dict[str, dict[str, str | None]]:
+    return {
+        "ai_reading_v2": _project_identity_fields(
+            ai_reading,
+            ("schema_version", "version", "method", "status", "engine_version"),
+        ),
+        "reading_context_v2": _project_identity_fields(
+            reading_context,
+            ("schema_version", "version", "method", "status"),
+        ),
+        "common_judgment_metadata_v1": _project_identity_fields(
+            judgment_metadata,
+            ("schema_version",),
+        ),
+    }
+
+
+def _root_evidence(source_contract: str) -> dict[str, str]:
+    return {"source_contract": source_contract, "path": ""}
+
+
+def _input_error_candidate(
+    code: str,
+    *source_contracts: str,
+) -> dict[str, Any]:
+    return {
+        "code": code,
+        "path": "",
+        "evidence": [_root_evidence(contract) for contract in source_contracts],
+    }
+
+
+def _trusted_identity_mismatch(
+    ai_reading: Mapping[str, Any],
+    request: Mapping[str, Any],
+) -> bool:
+    return (
+        ai_reading["engine_version"]
+        != request["trusted_attachments"]["engine_version"]
+        or ai_reading["source_contracts"] != request["source_contracts"]
+    )
 
 
 def _is_json_pointer(value: Any) -> bool:
@@ -803,10 +1132,90 @@ def evaluate_ai_reading_quality_v2(
     *,
     semantic_assessor: SemanticAssessorV2 | None = None,
 ) -> AIReadingQualityReportV2:
-    """Evaluate an AI Reading v2 once later implementation phases are complete."""
+    """Validate Phase 2 inputs without running semantic assessment."""
+
+    for name, value in (
+        ("ai_reading", ai_reading),
+        ("reading_context", reading_context),
+        ("judgment_metadata", judgment_metadata),
+    ):
+        if not isinstance(value, Mapping):
+            raise TypeError(f"{name} must be a Mapping")
+
+    input_contracts = _project_input_contracts(
+        ai_reading,
+        reading_context,
+        judgment_metadata,
+    )
+    deterministic_candidates: list[dict[str, Any]] = []
+
+    reading_context_report = validate_reading_context_v2(reading_context)
+    judgment_metadata_report = validate_common_judgment_metadata(
+        judgment_metadata
+    )
+    ai_reading_valid = _is_ai_reading_v2_final_contract(ai_reading)
+
+    if not reading_context_report["valid"]:
+        deterministic_candidates.append(
+            _input_error_candidate(
+                "input_contract_invalid",
+                "reading_context_v2",
+            )
+        )
+    if not judgment_metadata_report["valid"]:
+        deterministic_candidates.append(
+            _input_error_candidate(
+                "input_contract_invalid",
+                "common_judgment_metadata_v1",
+            )
+        )
+    if not ai_reading_valid:
+        deterministic_candidates.append(
+            _input_error_candidate(
+                "ai_reading_contract_invalid",
+                "ai_reading_v2",
+            )
+        )
+
+    prompt_report: Mapping[str, Any] | None = None
+    if reading_context_report["valid"] and judgment_metadata_report["valid"]:
+        prompt_report = validate_ai_reading_prompt_inputs_v2(
+            reading_context,
+            judgment_metadata,
+        )
+        if not prompt_report["valid"]:
+            deterministic_candidates.append(
+                _input_error_candidate(
+                    "input_contract_invalid",
+                    "reading_context_v2",
+                    "common_judgment_metadata_v1",
+                )
+            )
+
+    if ai_reading_valid and prompt_report is not None and prompt_report["valid"]:
+        request = build_ai_reading_request_v2(
+            reading_context,
+            judgment_metadata,
+        )
+        if _trusted_identity_mismatch(ai_reading, request):
+            deterministic_candidates.append(
+                _input_error_candidate(
+                    "input_contract_mismatch",
+                    "ai_reading_v2",
+                    "reading_context_v2",
+                    "common_judgment_metadata_v1",
+                )
+            )
+
+    if deterministic_candidates:
+        return _build_quality_report_v2(
+            input_contracts,
+            {"status": "not_run", "method": None, "version": None},
+            deterministic_candidates,
+        )
 
     raise NotImplementedError(
-        "Quality Gate v2 evaluation is not implemented in contract-kernel Phase 1"
+        "Quality Gate v2 evaluation beyond deterministic Phase 2 is not implemented"
     )
 
 

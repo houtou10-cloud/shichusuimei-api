@@ -4,11 +4,28 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import FrozenInstanceError, fields
+from datetime import datetime
 import inspect
+import json
+from types import SimpleNamespace
 
 import pytest
 
 import engine.reading_quality_v2 as quality_v2
+from engine.chart import calculate_chart
+from engine.judgment_metadata import (
+    build_common_judgment_metadata,
+    validate_common_judgment_metadata,
+)
+from engine.reading_context_v2 import (
+    build_reading_context_v2,
+    validate_reading_context_v2,
+)
+from engine.reading_generator_v2 import generate_ai_reading_v2
+from engine.reading_prompt_v2 import (
+    build_ai_reading_request_v2,
+    validate_ai_reading_prompt_inputs_v2,
+)
 from engine.reading_quality_v2 import (
     AI_READING_QUALITY_REPORT_V2_METHOD,
     AI_READING_QUALITY_REPORT_V2_SCHEMA_VERSION,
@@ -127,6 +144,23 @@ EXPECTED_MESSAGES = (
     "source limitationが適切に開示されています。",
 )
 
+EXPECTED_SECTION_SLOTS = (
+    ("core_personality", "本質・性格"),
+    ("career", "仕事・適職"),
+    ("wealth", "金運"),
+    ("relationships", "恋愛・人間関係"),
+    ("health", "健康傾向"),
+    ("current_luck", "現在の運勢"),
+    ("future_flow", "今後の流れ"),
+    ("advice", "総合アドバイス"),
+)
+EXPECTED_DISCLAIMER = (
+    "本鑑定は八雲式四柱推命エンジンの計算結果に基づく参考情報です。"
+    "将来の出来事を保証するものではなく、医療・法律・投資その他の"
+    "専門的判断を代替するものではありません。重要な意思決定は、"
+    "必要に応じて適切な専門家へご相談ください。"
+)
+
 
 def _input_contracts() -> dict:
     return {
@@ -202,6 +236,192 @@ def _finding_with_id(finding_id: str) -> AIReadingQualityFindingV2:
         repairability="none",
         requires_human_review=False,
     )
+
+
+def _phase2_block() -> dict:
+    return {
+        "text": "実用的な案内です。",
+        "claim_type": "practical",
+        "source_fact_codes": [],
+        "source_components": [],
+        "warnings": [],
+        "uncertainty": [],
+    }
+
+
+def _phase2_valid_reading(request: dict, reading_context: dict) -> dict:
+    sections = []
+    for section_id, title in EXPECTED_SECTION_SLOTS:
+        section = {
+            "section_id": section_id,
+            "title": title,
+            "facts": [],
+            "summary": _phase2_block(),
+            "detail": _phase2_block(),
+            "evidence": [],
+            "interpretation": [],
+            "advice": [_phase2_block()],
+            "warnings": [],
+            "uncertainty": [],
+        }
+        if section_id == "future_flow":
+            section["yearly"] = [
+                {
+                    "year": entry["year"],
+                    "summary": _phase2_block(),
+                    "detail": _phase2_block(),
+                }
+                for entry in reading_context["luck"]["five_year_luck"]
+            ]
+        sections.append(section)
+    return {
+        "schema_version": "ai_reading_v2",
+        "engine_version": deepcopy(reading_context["engine_version"]),
+        "summary": _phase2_block(),
+        "sections": sections,
+        "consultation_answer": None,
+        "warnings": deepcopy(request["trusted_catalogs"]["warnings"]),
+        "uncertainty": deepcopy(request["trusted_catalogs"]["uncertainty"]),
+        "source_contracts": deepcopy(request["source_contracts"]),
+        "disclaimer": EXPECTED_DISCLAIMER,
+        "validation": {
+            "valid": True,
+            "errors": [],
+            "missing_required_fields": [],
+            "unknown_fields": [],
+        },
+        "method": "openai_responses_api_v2",
+        "version": "ai_reading_v2",
+        "status": "completed",
+    }
+
+
+def _phase2_model_payload(reading: dict) -> dict:
+    section_fields = (
+        "facts",
+        "summary",
+        "detail",
+        "evidence",
+        "interpretation",
+        "advice",
+        "warnings",
+        "uncertainty",
+    )
+    return {
+        "summary": deepcopy(reading["summary"]),
+        "sections": [
+            {field: deepcopy(section[field]) for field in section_fields}
+            for section in reading["sections"]
+        ],
+        "future_flow_yearly": [
+            {
+                "summary": deepcopy(entry["summary"]),
+                "detail": deepcopy(entry["detail"]),
+            }
+            for entry in reading["sections"][6]["yearly"]
+        ],
+        "consultation_answer": deepcopy(reading["consultation_answer"]),
+    }
+
+
+class _StaticResponses:
+    def __init__(self, payload: dict):
+        self.payload = deepcopy(payload)
+        self.calls = []
+
+    def create(self, **kwargs):
+        self.calls.append(deepcopy(kwargs))
+        return SimpleNamespace(
+            id="resp_quality_v2",
+            status="completed",
+            output_text=json.dumps(
+                self.payload,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=False,
+                allow_nan=False,
+            ),
+            usage=None,
+        )
+
+
+def _reordered(value: dict) -> dict:
+    return dict(reversed(list(value.items())))
+
+
+@pytest.fixture(scope="module")
+def phase2_inputs():
+    chart = calculate_chart(
+        SimpleNamespace(
+            birth_date="1985-07-17",
+            birth_time="21:50",
+            birth_place="石川県",
+            gender="female",
+        ),
+        target_datetime=datetime(2026, 8, 10, 15, 36),
+    )
+    reading_context = build_reading_context_v2(chart)
+    judgment_metadata = build_common_judgment_metadata(chart)
+    request = build_ai_reading_request_v2(reading_context, judgment_metadata)
+    return {
+        "ai_reading": _phase2_valid_reading(request, reading_context),
+        "reading_context": reading_context,
+        "judgment_metadata": judgment_metadata,
+    }
+
+
+@pytest.fixture(scope="module")
+def three_pillar_generated_inputs():
+    chart = calculate_chart(
+        SimpleNamespace(
+            birth_date="1985-07-17",
+            birth_time=None,
+            birth_place="石川県",
+            gender="female",
+        ),
+        target_datetime=datetime(2026, 8, 10, 15, 36),
+    )
+    reading_context = build_reading_context_v2(chart)
+    judgment_metadata = build_common_judgment_metadata(chart)
+    assert reading_context["uncertainty"]
+    reading_context["uncertainty"][0] = _reordered(
+        reading_context["uncertainty"][0]
+    )
+
+    assert validate_reading_context_v2(reading_context)["valid"] is True
+    assert validate_common_judgment_metadata(judgment_metadata)["valid"] is True
+    assert validate_ai_reading_prompt_inputs_v2(
+        reading_context,
+        judgment_metadata,
+    )["valid"] is True
+
+    request = build_ai_reading_request_v2(reading_context, judgment_metadata)
+    reading_template = _phase2_valid_reading(request, reading_context)
+    responses = _StaticResponses(_phase2_model_payload(reading_template))
+    result = generate_ai_reading_v2(
+        request,
+        client=SimpleNamespace(responses=responses),
+        model="test-model",
+    )
+    assert len(responses.calls) == 1
+    return {
+        "ai_reading": result.reading,
+        "reading_context": reading_context,
+        "judgment_metadata": judgment_metadata,
+    }
+
+
+class ExplodingAssessor:
+    @property
+    def method(self):
+        raise AssertionError("semantic assessor identity must not be read in Phase 2")
+
+    @property
+    def version(self):
+        raise AssertionError("semantic assessor identity must not be read in Phase 2")
+
+    def assess(self, *args):
+        raise AssertionError("semantic assessor must not run in Phase 2")
 
 
 def test_public_identity_constants_are_exact():
@@ -582,7 +802,7 @@ def test_input_contracts_and_semantic_metadata_require_exact_shape_and_order():
         quality_v2._build_quality_report_v2(_input_contracts(), semantic, [])
 
 
-def test_public_evaluator_signature_is_exact_and_explicitly_unimplemented():
+def test_public_evaluator_signature_is_exact():
     signature = inspect.signature(evaluate_ai_reading_quality_v2)
     assert tuple(signature.parameters) == (
         "ai_reading",
@@ -592,8 +812,6 @@ def test_public_evaluator_signature_is_exact_and_explicitly_unimplemented():
     )
     assert signature.parameters["semantic_assessor"].kind is inspect.Parameter.KEYWORD_ONLY
     assert signature.parameters["semantic_assessor"].default is None
-    with pytest.raises(NotImplementedError, match="contract-kernel Phase 1"):
-        evaluate_ai_reading_quality_v2({}, {}, {})
 
 
 def test_semantic_assessor_protocol_declares_read_only_identity_and_assess():
@@ -602,14 +820,309 @@ def test_semantic_assessor_protocol_declares_read_only_identity_and_assess():
     assert callable(SemanticAssessorV2.assess)
 
 
-def test_module_has_no_quality_evaluation_or_astrology_dependencies():
+def test_module_has_no_generator_v1_or_astrology_dependencies():
     source = inspect.getsource(quality_v2)
     forbidden = (
         "engine.reading_generator_v2",
-        "engine.reading_prompt_v2",
-        "engine.reading_context_v2",
-        "engine.judgment_metadata",
+        "engine.reading_quality import",
         "engine.chart",
         "engine.luck",
     )
     assert all(item not in source for item in forbidden)
+
+
+@pytest.mark.parametrize(
+    "field",
+    ("ai_reading", "reading_context", "judgment_metadata"),
+)
+def test_phase2_non_mapping_input_raises_type_error(phase2_inputs, field):
+    inputs = deepcopy(phase2_inputs)
+    inputs[field] = []
+    with pytest.raises(TypeError, match=field):
+        evaluate_ai_reading_quality_v2(**inputs)
+
+
+@pytest.mark.parametrize(
+    ("field", "source_contract"),
+    (
+        ("reading_context", "reading_context_v2"),
+        ("judgment_metadata", "common_judgment_metadata_v1"),
+    ),
+)
+def test_phase2_owner_invalid_contract_returns_one_root_finding(
+    phase2_inputs,
+    field,
+    source_contract,
+):
+    inputs = deepcopy(phase2_inputs)
+    inputs[field]["schema_version"] = "invalid_contract"
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=ExplodingAssessor(),
+    ).to_dict()
+
+    assert report["decision"] == "fail"
+    assert report["semantic_assessment"] == {
+        "status": "not_run",
+        "method": None,
+        "version": None,
+    }
+    assert len(report["findings"]) == 1
+    assert report["findings"][0]["code"] == "input_contract_invalid"
+    assert report["findings"][0]["path"] == ""
+    assert report["findings"][0]["evidence"] == [
+        {"source_contract": source_contract, "path": ""}
+    ]
+
+
+def test_phase2_ai_reading_contract_invalid_returns_one_root_finding(
+    phase2_inputs,
+):
+    inputs = deepcopy(phase2_inputs)
+    inputs["ai_reading"].pop("summary")
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=ExplodingAssessor(),
+    ).to_dict()
+
+    assert len(report["findings"]) == 1
+    assert report["findings"][0]["code"] == "ai_reading_contract_invalid"
+    assert report["findings"][0]["evidence"] == [
+        {"source_contract": "ai_reading_v2", "path": ""}
+    ]
+
+
+def test_phase2_multiple_invalid_contracts_do_not_fail_fast(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    inputs["reading_context"]["schema_version"] = "invalid_context"
+    inputs["judgment_metadata"]["schema_version"] = "invalid_metadata"
+    inputs["ai_reading"].pop("summary")
+    report = evaluate_ai_reading_quality_v2(**inputs).to_dict()
+
+    assert report["error_count"] == 3
+    assert [finding["code"] for finding in report["findings"]] == [
+        "ai_reading_contract_invalid",
+        "input_contract_invalid",
+        "input_contract_invalid",
+    ]
+    assert {
+        finding["evidence"][0]["source_contract"]
+        for finding in report["findings"]
+    } == {
+        "ai_reading_v2",
+        "reading_context_v2",
+        "common_judgment_metadata_v1",
+    }
+
+
+def test_phase2_prompt_prerequisite_invalid_uses_two_contract_roots(
+    phase2_inputs,
+):
+    inputs = deepcopy(phase2_inputs)
+    inputs["reading_context"]["warnings"] = [1]
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=ExplodingAssessor(),
+    ).to_dict()
+
+    assert len(report["findings"]) == 1
+    finding = report["findings"][0]
+    assert finding["code"] == "input_contract_invalid"
+    assert finding["evidence"] == [
+        {"source_contract": "common_judgment_metadata_v1", "path": ""},
+        {"source_contract": "reading_context_v2", "path": ""},
+    ]
+    assert all("warnings" not in entry["path"] for entry in finding["evidence"])
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "projected"),
+    (("", ""), (None, None), (1, None), (False, None)),
+)
+def test_phase2_invalid_identity_projection_is_raw_or_null(
+    phase2_inputs,
+    raw_value,
+    projected,
+):
+    inputs = deepcopy(phase2_inputs)
+    inputs["reading_context"]["schema_version"] = raw_value
+    report = evaluate_ai_reading_quality_v2(**inputs).to_dict()
+    assert report["input_contracts"]["reading_context_v2"][
+        "schema_version"
+    ] == projected
+
+
+def test_phase2_missing_ai_identity_projects_null_without_completion(
+    phase2_inputs,
+):
+    inputs = deepcopy(phase2_inputs)
+    inputs["ai_reading"].pop("version")
+    report = evaluate_ai_reading_quality_v2(**inputs).to_dict()
+    assert report["input_contracts"]["ai_reading_v2"]["version"] is None
+    assert report["findings"][0]["code"] == "ai_reading_contract_invalid"
+
+
+def test_phase2_engine_version_projection_and_mismatch(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    inputs["reading_context"]["engine_version"] = ""
+    report = evaluate_ai_reading_quality_v2(**inputs).to_dict()
+
+    assert report["input_contracts"]["reading_context_v2"] == {
+        "schema_version": "reading_context_v2",
+        "version": "reading_context_v2",
+        "method": "reading_context_v2",
+        "status": "ready_for_ai_reading",
+    }
+    assert report["input_contracts"]["ai_reading_v2"]["engine_version"] == (
+        phase2_inputs["ai_reading"]["engine_version"]
+    )
+    assert [finding["code"] for finding in report["findings"]] == [
+        "input_contract_mismatch"
+    ]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("engine_version", "reading_context_identity", "metadata_identity"),
+)
+def test_phase2_trusted_identity_mismatch_is_deterministic(
+    phase2_inputs,
+    mutation,
+):
+    inputs = deepcopy(phase2_inputs)
+    if mutation == "engine_version":
+        inputs["ai_reading"]["engine_version"] = "different-engine"
+    elif mutation == "reading_context_identity":
+        inputs["ai_reading"]["source_contracts"]["reading_context"][
+            "status"
+        ] = "different-status"
+    else:
+        inputs["ai_reading"]["source_contracts"]["judgment_metadata"][
+            "schema_version"
+        ] = "different-metadata"
+
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=ExplodingAssessor(),
+    ).to_dict()
+    assert report["semantic_assessment"]["status"] == "not_run"
+    assert [finding["code"] for finding in report["findings"]] == [
+        "input_contract_mismatch"
+    ]
+    assert report["findings"][0]["evidence"] == [
+        {"source_contract": "ai_reading_v2", "path": ""},
+        {"source_contract": "common_judgment_metadata_v1", "path": ""},
+        {"source_contract": "reading_context_v2", "path": ""},
+    ]
+
+
+def test_phase2_malformed_source_contracts_is_ai_contract_invalid(
+    phase2_inputs,
+):
+    inputs = deepcopy(phase2_inputs)
+    inputs["ai_reading"].pop("source_contracts")
+    report = evaluate_ai_reading_quality_v2(**inputs).to_dict()
+    assert [finding["code"] for finding in report["findings"]] == [
+        "ai_reading_contract_invalid"
+    ]
+
+
+def test_phase2_reordered_owner_valid_three_pillar_uncertainty_reaches_next_phase(
+    three_pillar_generated_inputs,
+):
+    with pytest.raises(NotImplementedError, match="deterministic Phase 2"):
+        evaluate_ai_reading_quality_v2(
+            **deepcopy(three_pillar_generated_inputs),
+            semantic_assessor=ExplodingAssessor(),
+        )
+
+
+@pytest.mark.parametrize(
+    "mapping_name",
+    (
+        "top_level",
+        "section",
+        "yearly_entry",
+        "catalog_entry",
+        "source_contracts",
+        "source_contract_identity",
+        "validation",
+    ),
+)
+def test_phase2_unfrozen_ai_reading_mapping_order_is_not_required(
+    three_pillar_generated_inputs,
+    mapping_name,
+):
+    inputs = deepcopy(three_pillar_generated_inputs)
+    reading = inputs["ai_reading"]
+    if mapping_name == "top_level":
+        inputs["ai_reading"] = _reordered(reading)
+    elif mapping_name == "section":
+        reading["sections"][0] = _reordered(reading["sections"][0])
+    elif mapping_name == "yearly_entry":
+        reading["sections"][6]["yearly"][0] = _reordered(
+            reading["sections"][6]["yearly"][0]
+        )
+    elif mapping_name == "catalog_entry":
+        reading["uncertainty"][0] = _reordered(reading["uncertainty"][0])
+    elif mapping_name == "source_contracts":
+        reading["source_contracts"] = _reordered(reading["source_contracts"])
+    elif mapping_name == "source_contract_identity":
+        reading["source_contracts"]["reading_context"] = _reordered(
+            reading["source_contracts"]["reading_context"]
+        )
+    else:
+        reading["validation"] = _reordered(reading["validation"])
+
+    with pytest.raises(NotImplementedError, match="deterministic Phase 2"):
+        evaluate_ai_reading_quality_v2(
+            **inputs,
+            semantic_assessor=ExplodingAssessor(),
+        )
+
+
+def test_phase2_grounded_text_block_order_remains_required(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    inputs["ai_reading"]["summary"] = _reordered(
+        inputs["ai_reading"]["summary"]
+    )
+    report = evaluate_ai_reading_quality_v2(**inputs).to_dict()
+    assert [finding["code"] for finding in report["findings"]] == [
+        "ai_reading_contract_invalid"
+    ]
+
+
+@pytest.mark.parametrize("invalid_shape", ("missing", "unknown", "wrong_type"))
+def test_phase2_exact_key_set_still_rejects_invalid_shape(
+    phase2_inputs,
+    invalid_shape,
+):
+    inputs = deepcopy(phase2_inputs)
+    section = inputs["ai_reading"]["sections"][0]
+    if invalid_shape == "missing":
+        section.pop("detail")
+    elif invalid_shape == "unknown":
+        section["unexpected"] = None
+    else:
+        section["warnings"] = "not-an-array"
+
+    report = evaluate_ai_reading_quality_v2(**inputs).to_dict()
+    assert [finding["code"] for finding in report["findings"]] == [
+        "ai_reading_contract_invalid"
+    ]
+
+
+def test_phase2_inputs_are_not_mutated(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    inputs["reading_context"]["schema_version"] = "invalid_context"
+    before = deepcopy(inputs)
+    evaluate_ai_reading_quality_v2(**inputs)
+    assert inputs == before
+
+
+def test_phase2_valid_inputs_do_not_return_a_temporary_report(phase2_inputs):
+    with pytest.raises(NotImplementedError, match="deterministic Phase 2"):
+        evaluate_ai_reading_quality_v2(
+            **deepcopy(phase2_inputs),
+            semantic_assessor=ExplodingAssessor(),
+        )
