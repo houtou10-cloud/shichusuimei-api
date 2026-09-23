@@ -504,6 +504,45 @@ def _is_json_contract_tree(value: Any, active: set[int] | None = None) -> bool:
         active.remove(identity)
 
 
+def _plain_json_snapshot(value: Any, active: set[int] | None = None) -> Any:
+    """Copy one validated JSON tree without invoking user copy hooks."""
+
+    if value is None or type(value) in (str, bool, int):
+        return value
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise ValueError("JSON numbers must be finite")
+        return value
+    if not isinstance(value, Mapping) and type(value) is not list:
+        raise TypeError("value is not plain JSON data")
+
+    active = set() if active is None else active
+    identity = id(value)
+    if identity in active:
+        raise ValueError("JSON data must not contain cycles")
+    active.add(identity)
+    try:
+        if isinstance(value, Mapping):
+            tuple(value.items())
+            snapshot: dict[str, Any] = {}
+            for key in value:
+                if type(key) is not str:
+                    raise TypeError("JSON object keys must be plain strings")
+                item = value[key]
+                snapshot[key] = _plain_json_snapshot(item, active)
+            return snapshot
+        return [_plain_json_snapshot(item, active) for item in value]
+    finally:
+        active.remove(identity)
+
+
+def _try_plain_json_snapshot(value: Any) -> Any | None:
+    try:
+        return _plain_json_snapshot(value)
+    except Exception:
+        return None
+
+
 def _json_values_equal(actual: Any, expected: Any) -> bool:
     """Compare validated JSON values without invoking container equality."""
 
@@ -729,16 +768,33 @@ def _is_ai_reading_v2_final_contract(value: Mapping[str, Any]) -> bool:
 
 
 def _project_identity_fields(
-    value: Mapping[str, Any],
+    value: Any,
     fields: tuple[str, ...],
 ) -> dict[str, str | None]:
-    actual_string_keys = {key for key in value if type(key) is str}
-    return {
-        field: value[field]
-        if field in actual_string_keys and type(value[field]) is str
-        else None
-        for field in fields
+    if not isinstance(value, Mapping):
+        return {field: None for field in fields}
+    try:
+        actual_fields = (
+            tuple(dict.keys(value))
+            if isinstance(value, dict)
+            else tuple(value)
+        )
+    except Exception:
+        actual_fields = ()
+    exact_string_fields = {
+        field for field in actual_fields if type(field) is str
     }
+    projected: dict[str, str | None] = {}
+    for field in fields:
+        if field not in exact_string_fields:
+            projected[field] = None
+            continue
+        try:
+            field_value = value[field]
+        except Exception:
+            field_value = None
+        projected[field] = field_value if type(field_value) is str else None
+    return projected
 
 
 def _project_input_contracts(
@@ -1110,7 +1166,7 @@ def _trusted_reference_candidates(
 
 
 def _is_json_pointer(value: Any) -> bool:
-    if not isinstance(value, str):
+    if type(value) is not str:
         return False
     if value == "":
         return True
@@ -1165,7 +1221,7 @@ def _normalize_evidence(value: Any) -> tuple[dict[str, str], ...]:
         source_contract = entry["source_contract"]
         path = entry["path"]
         if (
-            not isinstance(source_contract, str)
+            type(source_contract) is not str
             or source_contract not in _SOURCE_CONTRACTS
         ):
             raise ValueError("evidence source_contract is not allowed")
@@ -1205,9 +1261,9 @@ def _snapshot_semantic_assessor_identity(
         version = semantic_assessor.version
     except Exception:
         return None
-    if not isinstance(method, str) or not method:
+    if type(method) is not str or method == "":
         return None
-    if not isinstance(version, str) or not version:
+    if type(version) is not str or version == "":
         return None
     return method, version
 
@@ -1226,7 +1282,7 @@ def _validate_semantic_assessor_result(
     ):
         raise ValueError("semantic assessor result fields/order are invalid")
     status = value["status"]
-    if not isinstance(status, str) or status not in (
+    if type(status) is not str or status not in (
         "completed",
         "inconclusive",
     ):
@@ -1251,7 +1307,7 @@ def _validate_semantic_assessor_result(
         code = declaration["code"]
         path = declaration["path"]
         evidence_value = declaration["evidence"]
-        if not isinstance(code, str) or code not in _SEMANTIC_ISSUE_CODES:
+        if type(code) is not str or code not in _SEMANTIC_ISSUE_CODES:
             raise ValueError("semantic assessor finding code is not allowed")
         if not _is_json_pointer(path) or not _json_pointer_resolves(ai_reading, path):
             raise ValueError("semantic assessor finding path does not resolve")
@@ -1290,19 +1346,19 @@ class AIReadingQualityFindingV2:
     requires_human_review: bool
 
     def __post_init__(self) -> None:
-        if not isinstance(self.finding_id, str) or not _FINDING_ID_PATTERN.fullmatch(
+        if type(self.finding_id) is not str or not _FINDING_ID_PATTERN.fullmatch(
             self.finding_id
         ):
             raise ValueError("finding_id must use finding_0001 format")
         finding_number = int(self.finding_id.removeprefix("finding_"))
         if finding_number < 1 or self.finding_id != f"finding_{finding_number:04d}":
             raise ValueError("finding_id must use canonical zero-padded format")
-        if not isinstance(self.code, str):
+        if type(self.code) is not str:
             raise TypeError("finding code must be a string")
         definition = _ISSUE_BY_CODE.get(self.code)
         if definition is None:
             raise ValueError("finding code is not in the frozen issue catalog")
-        if not isinstance(self.severity, str) or (
+        if type(self.severity) is not str or (
             self.severity not in _SEVERITY_RANK
             or self.severity != definition.severity
         ):
@@ -1311,9 +1367,9 @@ class AIReadingQualityFindingV2:
             raise ValueError("finding blocking does not match the issue catalog")
         if not _is_json_pointer(self.path):
             raise ValueError("finding path must be an RFC 6901 JSON Pointer")
-        if not isinstance(self.message, str) or self.message != definition.message:
+        if type(self.message) is not str or self.message != definition.message:
             raise ValueError("finding message does not match the issue catalog")
-        if not isinstance(self.repairability, str) or (
+        if type(self.repairability) is not str or (
             self.repairability not in _REPAIRABILITIES
             or self.repairability != definition.repairability
         ):
@@ -1364,7 +1420,7 @@ def _copy_input_contracts(value: Any) -> dict[str, dict[str, str | None]]:
         projected: dict[str, str | None] = {}
         for field in expected_fields:
             field_value = identity[field]
-            if field_value is not None and not isinstance(field_value, str):
+            if field_value is not None and type(field_value) is not str:
                 raise TypeError(f"input_contracts.{contract}.{field} must be string or null")
             projected[field] = field_value
         copied[contract] = projected
@@ -1380,15 +1436,15 @@ def _copy_semantic_assessment(value: Any) -> dict[str, str | None]:
     status = value["status"]
     method = value["method"]
     version = value["version"]
-    if not isinstance(status, str) or status not in _SEMANTIC_ASSESSMENT_STATUSES:
+    if type(status) is not str or status not in _SEMANTIC_ASSESSMENT_STATUSES:
         raise ValueError("semantic_assessment.status is invalid")
     if status in ("not_run", "unavailable"):
         if method is not None or version is not None:
             raise ValueError(f"{status} semantic assessment requires null identity")
     else:
-        if not isinstance(method, str) or not method:
+        if type(method) is not str or method == "":
             raise ValueError(f"{status} semantic assessment requires a non-empty method")
-        if not isinstance(version, str) or not version:
+        if type(version) is not str or version == "":
             raise ValueError(f"{status} semantic assessment requires a non-empty version")
     return {"status": status, "method": method, "version": version}
 
@@ -1422,7 +1478,7 @@ def _canonicalize_finding_candidates(
             raise ValueError("finding candidate fields/order must be code, path, evidence")
         code = candidate["code"]
         path = candidate["path"]
-        if not isinstance(code, str) or code not in _ISSUE_BY_CODE:
+        if type(code) is not str or code not in _ISSUE_BY_CODE:
             raise ValueError("finding code is not in the frozen issue catalog")
         if not _is_json_pointer(path):
             raise ValueError("finding path must be an RFC 6901 JSON Pointer")
@@ -1541,11 +1597,11 @@ class AIReadingQualityReportV2:
             (self.status, AI_READING_QUALITY_REPORT_V2_STATUS),
         )
         if any(
-            not isinstance(actual, str) or actual != expected
+            type(actual) is not str or actual != expected
             for actual, expected in identities
         ):
             raise ValueError("Quality Report v2 identity is invalid")
-        if not isinstance(self.decision, str) or self.decision not in (
+        if type(self.decision) is not str or self.decision not in (
             "pass",
             "fail",
             "review",
@@ -1701,6 +1757,10 @@ def _run_semantic_assessor_v2(
             deterministic_candidates,
         )
 
+    reference_ai_reading = _plain_json_snapshot(ai_reading)
+    reference_reading_context = _plain_json_snapshot(reading_context)
+    reference_judgment_metadata = _plain_json_snapshot(judgment_metadata)
+
     identity = _snapshot_semantic_assessor_identity(semantic_assessor)
     if identity is None:
         return _build_quality_report_v2(
@@ -1722,9 +1782,9 @@ def _run_semantic_assessor_v2(
     }
     try:
         result = semantic_assessor.assess(
-            deepcopy(ai_reading),
-            deepcopy(reading_context),
-            deepcopy(judgment_metadata),
+            _plain_json_snapshot(reference_ai_reading),
+            _plain_json_snapshot(reference_reading_context),
+            _plain_json_snapshot(reference_judgment_metadata),
         )
     except Exception:
         return _build_quality_report_v2(
@@ -1737,9 +1797,9 @@ def _run_semantic_assessor_v2(
     try:
         status, semantic_candidates = _validate_semantic_assessor_result(
             result,
-            ai_reading,
-            reading_context,
-            judgment_metadata,
+            reference_ai_reading,
+            reference_reading_context,
+            reference_judgment_metadata,
         )
     except Exception:
         return _build_quality_report_v2(
@@ -1788,24 +1848,24 @@ def evaluate_ai_reading_quality_v2(
     )
     deterministic_candidates: list[dict[str, Any]] = []
 
-    reading_context_boundary_valid = _is_json_contract_tree(reading_context)
+    reading_context_snapshot = _try_plain_json_snapshot(reading_context)
     reading_context_report = (
-        validate_reading_context_v2(reading_context)
-        if reading_context_boundary_valid
+        validate_reading_context_v2(reading_context_snapshot)
+        if reading_context_snapshot is not None
         else {"valid": False}
     )
 
-    judgment_metadata_boundary_valid = _is_json_contract_tree(judgment_metadata)
+    judgment_metadata_snapshot = _try_plain_json_snapshot(judgment_metadata)
     judgment_metadata_report = (
-        validate_common_judgment_metadata(judgment_metadata)
-        if judgment_metadata_boundary_valid
+        validate_common_judgment_metadata(judgment_metadata_snapshot)
+        if judgment_metadata_snapshot is not None
         else {"valid": False}
     )
 
-    ai_reading_boundary_valid = _is_json_contract_tree(ai_reading)
+    ai_reading_snapshot = _try_plain_json_snapshot(ai_reading)
     ai_reading_valid = (
-        ai_reading_boundary_valid
-        and _is_ai_reading_v2_final_contract(ai_reading)
+        ai_reading_snapshot is not None
+        and _is_ai_reading_v2_final_contract(ai_reading_snapshot)
     )
 
     if not reading_context_report["valid"]:
@@ -1833,8 +1893,8 @@ def evaluate_ai_reading_quality_v2(
     prompt_report: Mapping[str, Any] | None = None
     if reading_context_report["valid"] and judgment_metadata_report["valid"]:
         prompt_report = validate_ai_reading_prompt_inputs_v2(
-            reading_context,
-            judgment_metadata,
+            reading_context_snapshot,
+            judgment_metadata_snapshot,
         )
         if not prompt_report["valid"]:
             deterministic_candidates.append(
@@ -1847,10 +1907,10 @@ def evaluate_ai_reading_quality_v2(
 
     if ai_reading_valid and prompt_report is not None and prompt_report["valid"]:
         request = build_ai_reading_request_v2(
-            reading_context,
-            judgment_metadata,
+            reading_context_snapshot,
+            judgment_metadata_snapshot,
         )
-        if _trusted_identity_mismatch(ai_reading, request):
+        if _trusted_identity_mismatch(ai_reading_snapshot, request):
             deterministic_candidates.append(
                 _input_error_candidate(
                     "input_contract_mismatch",
@@ -1860,15 +1920,23 @@ def evaluate_ai_reading_quality_v2(
                 )
             )
         deterministic_candidates.extend(
-            _trusted_reference_candidates(ai_reading, request)
+            _trusted_reference_candidates(ai_reading_snapshot, request)
         )
 
     report = _run_semantic_assessor_v2(
         input_contracts,
         deterministic_candidates,
-        ai_reading,
-        reading_context,
-        judgment_metadata,
+        ai_reading_snapshot if ai_reading_snapshot is not None else ai_reading,
+        (
+            reading_context_snapshot
+            if reading_context_snapshot is not None
+            else reading_context
+        ),
+        (
+            judgment_metadata_snapshot
+            if judgment_metadata_snapshot is not None
+            else judgment_metadata
+        ),
         semantic_assessor,
     )
     if report.decision == "pass":
