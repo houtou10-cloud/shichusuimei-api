@@ -3317,6 +3317,230 @@ keyword、regular expression、literal comparisonはpositive evidenceまたはde
 matchしないことだけでsemantic checkをPASSにしてはならない。
 warnings / uncertaintyはastrology factではなく、`claim_type`の自動分類材料にしない。
 
+#### 23.10.1 明示的なunsupported numeric literal
+
+Quality Gate v2は、`claim_type == "astrology"`または
+`claim_type == "luck_astrology"`である各`grounded_text_block.text`について、ASCII数字または
+全角数字を含む明示的numeric literalをdeterministically検査しなければならない。
+`claim_type == "practical"`のtextはこのdeterministic numeric checkの対象外とし、一般助言中の
+行動数・時間と占術数値主張の区別、および`practical`へ偽装された占術数値主張はsemantic assessorが
+検査する。deterministic numeric checkでfindingがないことをsemantic checkのPASSとしてはならない。
+
+numeric grammarで使用するcharacter classをexactly次に固定する。
+
+``` text
+DIGIT := [0-9０-９]
+SIGN := "+" | "-" | "＋" | "－"
+DECIMAL_SEPARATOR := "." | "．"
+PERCENT := "%" | "％"
+HYPHEN_RANGE_SEPARATOR := "-" | "－"
+NON_HYPHEN_RANGE_SEPARATOR := "–" | "—" | "〜" | "～"
+RANGE_SEPARATOR := HYPHEN_RANGE_SEPARATOR | NON_HYPHEN_RANGE_SEPARATOR
+WHITESPACE := Python str.isspace()がtrueを返す1 code point
+OPTIONAL_WHITESPACE := WHITESPACE*
+
+UNSIGNED_SCALAR := DIGIT+ (DECIMAL_SEPARATOR DIGIT+)? PERCENT?
+SCALAR := SIGN? UNSIGNED_SCALAR
+HYPHEN_RANGE := SCALAR OPTIONAL_WHITESPACE HYPHEN_RANGE_SEPARATOR OPTIONAL_WHITESPACE UNSIGNED_SCALAR
+NON_HYPHEN_RANGE := SCALAR OPTIONAL_WHITESPACE NON_HYPHEN_RANGE_SEPARATOR OPTIONAL_WHITESPACE SCALAR
+RANGE := HYPHEN_RANGE | NON_HYPHEN_RANGE
+```
+
+ASCII数字と全角数字が同一token内に混在することを許可する。integer partおよび存在するdecimal
+fractionはそれぞれ1文字以上の`DIGIT`を持たなければならない。hyphen rangeではright endpointを
+`UNSIGNED_SCALAR`に限定するため、`30-40`と`-6-3`はvalid range、`30--40`と`-6--3`はmalformedとする。
+non-hyphen rangeでは両endpointにoptional `SIGN`を許可するため、`-6〜-3`と`－６～－３`はvalid
+rangeとする。`.5`、`．５`、`70.`、`７０．`、decimal separatorの重複、range endpointの欠落、
+その他grammar全体に一致しないnumeric-looking candidateはmalformedとし、部分tokenまたは短い
+rangeへ分割して採用せずsemantic assessorへ委譲する。Unicode minus `−`（U+2212）は`SIGN`または
+`RANGE_SEPARATOR`として扱わず、その文字を含むcandidate全体をsemantic assessorへ委譲する。
+
+`RANGE`は二つのendpointを独立した`SCALAR`として検査する。interval、包含関係、差、幅、順序または
+占術上の意味を計算してはならない。一方でもunsupportedであれば、そのblockはunsupported numeric
+literalを持つものとする。
+
+比較のために、認識済みnumeric token内だけでexactly次の変換を許可する。
+
+``` text
+０..９ -> 0..9
+＋ -> +
+－ -> -
+． -> .
+％ -> %
+```
+
+この変換はcomparison-onlyとし、AI Reading、Reading Context、Common Judgment Metadataまたは
+trusted valueを変更してはならない。全文NFKC normalization、漢数字変換、その他のUnicode
+normalizationを禁止する。漢数字はdeterministic numeric checkの対象外としsemantic assessorへ
+委譲する。
+
+version、IDまたはsource codeの一部であるnumeric spanをnumeric claimとして抽出してはならない。
+lexer用の追加character classをexactly次に固定する。
+
+``` text
+ASCII_LETTER := [A-Za-z]
+IDENTIFIER_CHAR := ASCII_LETTER | "_" | "." | "．" | DIGIT
+NUMERIC_MARK := DIGIT | SIGN | DECIMAL_SEPARATOR | PERCENT | RANGE_SEPARATOR | "−"
+```
+
+version / ID / source code exclusionはexactly次に限定する。
+
+-   maximalな`IDENTIFIER_CHAR+` spanのうち、1文字以上の`DIGIT`と、1文字以上の`ASCII_LETTER`または
+    `_`をともに含むspan。identifierが数字から始まるかどうかを問わない。例: `v1.2`、
+    `warning_0001`、`section2`、`strength.v2`、`70abc`、`70_foo`。
+-   `DIGIT+`だけのsegmentが`.`または`．`で3 segment以上連結されたmaximal dotted chain。
+    例: `1.2.3`。separatorが1件だけの`70.0`はdecimal literalとして扱う。
+
+date / time grammarに一致するspan内のnumeric literalはdeterministic numeric checkから除外し、
+semantic assessorへ委譲する。component widthをexactly次に固定し、各component内でASCII数字、
+全角数字およびその混在を許可する。
+
+``` text
+YEAR := exactly 4 DIGIT
+MONTH := 1 or 2 DIGIT
+DAY := 1 or 2 DIGIT
+HOUR := 1 or 2 DIGIT
+MINUTE := exactly 2 DIGIT
+SECOND := exactly 2 DIGIT
+DATE_TIME_MARK := DIGIT | "/" | "-" | ":" | "年" | "月" | "日" | "時" | "分" | "秒"
+
+YEAR年MONTH月DAY日
+YEAR年MONTH月
+MONTH月DAY日
+YEAR/MONTH/DAY
+MONTH/DAY
+YEAR-MONTH-DAY
+HOUR:MINUTE
+HOUR:MINUTE:SECOND
+HOUR時MINUTE分
+HOUR時MINUTE分SECOND秒
+HOUR時
+```
+
+上記grammarの`/`、`-`、`:`、`年`、`月`、`日`、`時`、`分`、`秒`は記載したliteral characterに
+固定する。standaloneの`MINUTE分`はdurationの可能性があるためdate / time exclusionに含めない。
+date / time candidateはmaximalな連続`DATE_TIME_MARK+` spanとし、そのcandidate全体が上記patternの
+いずれかへ一致する場合だけ除外する。candidateの部分spanをdate / timeとして除外してはならない。
+date / time grammarへの一致は字句上の除外条件だけであり、componentの値域、暦上または時計上の
+実在性、文章上の妥当性、対象時点との整合性を保証しない。したがって`2026年9月23日`と
+`2026年13月40日`はともにlexical dateとして除外する一方、`1年2月`、`123:456`、`999時999分`、
+`30分`は除外しない。意味判定はsemantic assessorの責務とする。除外したdate / time spanの一部を
+numeric tokenとして再抽出してはならない。
+
+lexical processing orderとcandidate boundaryをexactly次に固定する。
+
+1.  maximalなversion / ID / source code spanおよびmaximal dotted chainを先に除外する。
+2.  残るtextから上記date / time grammarに一致するmaximal spanを除外する。
+3.  残るtext上のmaximalな連続`NUMERIC_MARK+`をatomic runとする。通常の`WHITESPACE`はrunを分離する。
+4.  `WHITESPACE+`だけを挟む隣接atomic runについて、left runの末尾またはright runの先頭が
+    `RANGE_SEPARATOR`または`−`である場合、その二runをrange linkで接続する。range linkの推移閉包に
+    含まれるrunと間のwhitespaceをすべて含むleftmost-longestのmaximal spanを一つのrange candidateと
+    する。linkを持たないatomic runはそれ自体を一つのcandidateとする。この規則はseparator前後の
+    whitespaceが0、片側だけ、両側のいずれであっても同じcandidateを構築する。
+5.  各candidate全体が`RANGE`へ一致する場合だけvalid rangeとして採用する。全体が一致しない場合でも、
+    candidateが単一atomic runであり、その全体が`SCALAR`へ一致する場合だけscalar tokenとして採用する。
+6.  1文字以上の`DIGIT`を含むがstep 5のいずれにも一致しないcandidateはcandidate全体をmalformedとし、
+    内部の`SCALAR`または短い`RANGE`を再抽出してはならない。`−`を含むcandidateは全体をsemantic
+    assessorへ委譲する。
+
+一度valid rangeまたはmalformed range candidateへ取り込んだrunを再使用してはならない。この規則により、
+`30-40`、`30 -40`、`30- 40`および`30 - 40`はそれぞれ一つのvalid range、`70 80`は二つのscalar
+tokenとなる。`.5`、`70.`、`70%80`、
+`30--40`および`-6--3`はcandidate全体がmalformedであり、内部の`5`、`70`、`30-40`、`-6-3`等を
+再抽出しない。`30 - 40 - 50`もmaximal candidate全体がmalformedであり、`30 - 40`を短いrangeとして
+採用しない。`70点`では`70`をscalarとして抽出し、`−6`では`6`を再抽出しない。
+
+先に除外したspanまたはmalformed candidateの一部を後続stepでnumeric tokenとして再抽出してはならない。
+このlexical processing order、candidate boundaryおよびatomicityはAI Reading textとtrusted string leafの
+両方へ同じように適用する。
+
+yearだけの表現、yearに一般語が続く表現およびyear rangeはdate / time exclusionに含めない。
+したがって`2026年`、`2026年の運勢`、`2026年度`、`2026年頃`ではyear literalを抽出し、
+`2026〜2030年`では両year endpointを抽出する。一方、`2026年9月23日`、`2026/09/23`および
+`10:30`は各date / time span全体を除外する。`70点`と`７０点`はdate / time exclusionに含めず、
+それぞれcomparison-only normalization後の`70`を検査する。year literalを抽出することと、trusted
+`future_flow_years`を根拠として使用できることは別の規則とし、後者は次のscope一致時だけ許可する。
+
+-   `future_flow.yearly[i]` blockでは、そのtrusted positional indexにattachされたexact yearだけ。
+-   `future_flow` sectionのnon-yearly blockでは、trusted `future_flow_years`の全year。
+-   top-level summary、`current_luck`を含む他section、および`consultation_answer`では、
+    `future_flow_years`をnumeric sourceとして使用しない。
+
+future yearとのnumeric一致はyear literalのsupportだけを意味し、fact grounding、luck grounding、
+future eventの保証または新しい占術判断を成立させない。
+
+`claim_type == "astrology"` blockのtrusted numeric universeは、同じblockの
+`source_fact_codes`がresolveするReading Context factの`value`と、上記scope規則によって当該blockに
+許可されたexact-scope future yearだけとする。section-level `facts`、unreferenced fact、別blockのfact、
+別blockのreferenceまたは当該blockに許可されないfuture yearを流用してはならない。各referenced
+factの`value`をJSON treeとして再帰走査し、booleanを除くfinite JSON number、およびstring leaf内で
+本節のnumeric grammarにより認識され、version / ID / source codeまたはdate / time exclusionに
+該当しないliteralをtrusted numeric tokenとして使用できる。
+
+`claim_type == "luck_astrology"` blockのtrusted numeric universeは、同blockのreferenced fact、
+§22.12のcrosswalkでblock scope、selected `source_component`およびyear / indexへexact matchする
+`luck_value_source_entry.context_path`が指すReading Context value、および上記scope規則によって
+当該blockに許可されたexact-scope future yearだけとする。fact valueとluck valueの再帰走査規則は
+同じとする。unselected component、別year、別scope、nullまたはunavailableなluck value、または
+当該blockに許可されないfuture yearを使用してはならない。
+
+Common Judgment Metadataのvalue / evidence、warning / uncertainty catalog、section-level fact、
+unreferenced fact、other-block fact、crosswalkに一致しないReading Context field、`target_datetime`、
+null / unavailable luck valueをtrusted numeric sourceにしてはならない。Common Judgment Metadataは
+status、certainty、warnings、uncertaintyおよびprovenanceを提供できるが、numeric astrology valueを
+作らない。
+
+trusted JSON numberからcomparison valueを作る前に、§23.5のowner / final input validationを完了
+しなければならない。本節は、NaN、Infinity、numeric subclassまたはその他のowner / final contract
+不適合値について、新しいissue code、finding、error分類または入力契約を追加せず、既存のinput
+validation結果を変更しない。numeric conversionは、既存契約を通過したplain JSON snapshot内のexact
+builtin `int`または`float`だけを受け取り、`bool`をnumeric sourceとして扱ってはならない。
+
+finite JSON numberのcomparison `Decimal`はexactly次の手順で構築する。
+
+1.  valueを
+    `json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=False, allow_nan=False)`で
+    numeric textへserializeする。
+2.  返されたnumeric textをそのまま`Decimal(numeric_text)`へ渡す。
+
+`Decimal.from_float`、rounding、`quantize`、tolerance、unit conversionまたはpercent conversionを
+使用してはならない。したがって、`70`、`70.0`、`0.1`、`1e-6`および`-0.0`から構築するcomparison
+valueは、それぞれ`Decimal("70")`、`Decimal("70.0")`、`Decimal("0.1")`、`Decimal("1e-06")`および
+`Decimal("-0.0")`とする。serializationまたは`Decimal`構築へ到達する前に既存owner / final contractで
+拒否された値を、本節だけを根拠に再分類してはならない。
+
+plain numeric tokenはcomparison-only normalization後のexact decimal valueで比較する。
+`70`と`70.0`、`７０`と`70`、`+70`と`70`、`-0`と`0`はequalとする。signを保持し、
+`-70`と`70`はequalとしない。percent tokenとplain tokenは別kindとし、`0.5`、`50`、`50%`を
+相互に変換してはならない。trusted string leafの`50%`とAI Reading textの`５０％`はequalとするが、
+trusted JSON number `50`は`50%`をsupportしない。rounding、unit conversion、percent conversion、
+tolerance、近似比較またはastrology recalculationを禁止する。
+
+unsupported literalを1件以上持つblockについて、`unsupported_numeric_claim` findingをblockごとに
+exactly 1件生成する。同一block内のunsupported literal数をfinding数へ反映しない。findingの`path`は
+当該`grounded_text_block`の`text` fieldへのRFC 6901 JSON Pointerとし、`evidence`はexactly同じ
+AI Reading text pathを指す次の1 entryだけとする。存在しないtrusted source pathをevidenceとして
+作ってはならない。
+
+``` json
+[
+  {
+    "source_contract": "ai_reading_v2",
+    "path": "/sections/0/summary/text"
+  }
+]
+```
+
+複数blockがunsupported literalを持つ場合は各blockに1 findingを生成する。finding schema、issue
+catalog、fixed message、canonical evidence normalization、sort、exact dedupおよびfinding ID assignmentは
+§23.7、§23.9、§23.12から変更しない。semantic assessor由来の同code findingは
+`(code, path, canonical_evidence_json)`がexact一致する場合だけ既存規則でdeduplicateし、異なるpathまたは
+evidenceを強制統合してはならない。
+
+Phase 5.1では、numeric checkの実装後も`evaluate_ai_reading_quality_v2()`のpublic PASS防止
+`NotImplementedError`境界を維持する。public PASSの解禁はnumeric実装の独立監査後に、別工程および
+別の人間承認によってのみ行う。
+
 ### 23.11 Provider-independent semantic assessor
 
 Quality Gate v2 coreはprovider-independentとし、OpenAI SDK、model name、API keyまたは
