@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import FrozenInstanceError, fields
 from datetime import datetime
+from decimal import Decimal
 import inspect
 import json
 from types import SimpleNamespace
@@ -13,6 +14,7 @@ import pytest
 
 import engine.reading_quality_v2 as quality_v2
 from engine.chart import calculate_chart
+from engine.consultation_context import build_consultation_context
 from engine.judgment_metadata import (
     build_common_judgment_metadata,
     validate_common_judgment_metadata,
@@ -3219,3 +3221,457 @@ def test_phase48_normal_mappings_still_reach_semantic_assessor(phase2_inputs):
         1,
         1,
     )
+
+
+def _phase51_numeric_values(text):
+    return tuple(
+        (item.kind, str(item.value))
+        for item in quality_v2._extract_numeric_values(text)
+    )
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        ("30-40", (("plain", "30"), ("plain", "40"))),
+        ("30 -40", (("plain", "30"), ("plain", "40"))),
+        ("30- 40", (("plain", "30"), ("plain", "40"))),
+        ("30 - 40", (("plain", "30"), ("plain", "40"))),
+        ("-6-3", (("plain", "-6"), ("plain", "3"))),
+        ("-6--3", ()),
+        ("30--40", ()),
+        ("-6〜-3", (("plain", "-6"), ("plain", "-3"))),
+        ("－６～－３", (("plain", "-6"), ("plain", "-3"))),
+        ("30 - 40 - 50", ()),
+        (".5", ()),
+        ("70.", ()),
+        ("70%80", ()),
+        ("70abc", ()),
+        ("70_foo", ()),
+        ("70 80", (("plain", "70"), ("plain", "80"))),
+        ("70点", (("plain", "70"),)),
+        ("７０点", (("plain", "70"),)),
+        ("−6", ()),
+        ("v1.2", ()),
+        ("warning_0001", ()),
+        ("1.2.3", ()),
+    ),
+)
+def test_phase51_numeric_lexer_frozen_matrix(text, expected):
+    assert _phase51_numeric_values(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        ("2026年9月23日", ()),
+        ("2026年13月40日", ()),
+        ("2026年9月", ()),
+        ("9月23日", ()),
+        ("2026/09/23", ()),
+        ("09/23", ()),
+        ("2026-09-23", ()),
+        ("10:30", ()),
+        ("10:30:45", ()),
+        ("10時30分", ()),
+        ("10時30分45秒", ()),
+        ("10時", ()),
+        ("99:99", ()),
+        ("30分", (("plain", "30"),)),
+        ("1年2月", (("plain", "1"), ("plain", "2"))),
+        ("123:456", (("plain", "123"), ("plain", "456"))),
+        ("999時999分", (("plain", "999"), ("plain", "999"))),
+        ("2026年の運勢", (("plain", "2026"),)),
+        ("2026〜2030年", (("plain", "2026"), ("plain", "2030"))),
+    ),
+)
+def test_phase51_date_time_exclusion_frozen_matrix(text, expected):
+    assert _phase51_numeric_values(text) == expected
+
+
+def test_phase51_numeric_normalization_kind_and_exact_equality():
+    assert quality_v2._extract_numeric_values("70 70.0 ７０ +70 -0 0") == (
+        quality_v2._NumericValue("plain", Decimal("70")),
+        quality_v2._NumericValue("plain", Decimal("70.0")),
+        quality_v2._NumericValue("plain", Decimal("70")),
+        quality_v2._NumericValue("plain", Decimal("70")),
+        quality_v2._NumericValue("plain", Decimal("-0")),
+        quality_v2._NumericValue("plain", Decimal("0")),
+    )
+    assert quality_v2._extract_numeric_values("５０％") == (
+        quality_v2._NumericValue("percent", Decimal("50")),
+    )
+    assert quality_v2._NumericValue("plain", Decimal("50")) != (
+        quality_v2._NumericValue("percent", Decimal("50"))
+    )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        (70, Decimal("70")),
+        (70.0, Decimal("70.0")),
+        (0.1, Decimal("0.1")),
+        (1e-6, Decimal("1e-06")),
+        (-0.0, Decimal("-0.0")),
+        (True, None),
+        (float("nan"), None),
+        (float("inf"), None),
+        (IntSubclassSpoof(70, 70), None),
+    ),
+)
+def test_phase51_runtime_json_number_decimal_boundary(value, expected):
+    assert quality_v2._decimal_from_json_number(value) == expected
+
+
+def test_phase51_trusted_json_recursion_uses_the_same_string_lexer():
+    found = set()
+    quality_v2._collect_trusted_numeric_values(
+        {
+            "nested": [70.0, "５０％", "30-40", "v1.2", ".5", True, None],
+            "ignored-key-999": "2026年9月23日",
+        },
+        found,
+    )
+    assert found == {
+        quality_v2._NumericValue("plain", Decimal("70.0")),
+        quality_v2._NumericValue("percent", Decimal("50")),
+        quality_v2._NumericValue("plain", Decimal("30")),
+        quality_v2._NumericValue("plain", Decimal("40")),
+    }
+
+
+def _phase51_set_astrology(block, text, fact_codes=("day_master.stem",)):
+    block.update(
+        {
+            "text": text,
+            "claim_type": "astrology",
+            "source_fact_codes": list(fact_codes),
+            "source_components": [],
+        }
+    )
+
+
+def _phase51_set_luck(block, text, component):
+    block.update(
+        {
+            "text": text,
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [component],
+        }
+    )
+
+
+def _phase51_assert_numeric_error(inputs, expected_paths):
+    assessor = RecordingAssessor()
+    before = deepcopy(inputs)
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+    numeric = [
+        finding
+        for finding in report["findings"]
+        if finding["code"] == "unsupported_numeric_claim"
+    ]
+    assert [finding["path"] for finding in numeric] == list(expected_paths)
+    assert [finding["evidence"] for finding in numeric] == [
+        [{"source_contract": "ai_reading_v2", "path": path}]
+        for path in expected_paths
+    ]
+    assert report["decision"] == "fail"
+    assert report["semantic_assessment"] == {
+        "status": "not_run",
+        "method": None,
+        "version": None,
+    }
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (0, 0, 0)
+    assert inputs == before
+    return report
+
+
+def _phase51_assert_reaches_semantic_phase(inputs):
+    assessor = RecordingAssessor()
+    before = deepcopy(inputs)
+    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
+        evaluate_ai_reading_quality_v2(
+            **inputs,
+            semantic_assessor=assessor,
+        )
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (1, 1, 1)
+    assert inputs == before
+
+
+def _phase51_rebuilt_inputs(reading_context, judgment_metadata):
+    request = build_ai_reading_request_v2(reading_context, judgment_metadata)
+    return {
+        "ai_reading": _phase2_valid_reading(request, reading_context),
+        "reading_context": reading_context,
+        "judgment_metadata": judgment_metadata,
+    }
+
+
+@pytest.mark.parametrize("nested", (False, True))
+def test_phase51_same_block_referenced_fact_values_are_trusted(
+    phase2_inputs,
+    nested,
+):
+    inputs = deepcopy(phase2_inputs)
+    code = "five_elements.weighted_scores" if nested else "strength.final_score"
+    text = "1.4" if nested else "54.75"
+    _phase51_set_astrology(inputs["ai_reading"]["summary"], text, (code,))
+    _phase51_assert_reaches_semantic_phase(inputs)
+
+
+@pytest.mark.parametrize("case", ("unreferenced", "section_level", "other_block"))
+def test_phase51_fact_values_do_not_leak_across_reference_boundaries(
+    phase2_inputs,
+    case,
+):
+    inputs = deepcopy(phase2_inputs)
+    reading = inputs["ai_reading"]
+    _phase51_set_astrology(reading["summary"], "54.75")
+    if case == "section_level":
+        reading["sections"][0]["facts"] = ["strength.final_score"]
+    elif case == "other_block":
+        _phase51_set_astrology(
+            reading["sections"][0]["summary"],
+            "根拠です。",
+            ("strength.final_score",),
+        )
+    _phase51_assert_numeric_error(inputs, ("/summary/text",))
+
+
+def test_phase51_correct_luck_crosswalk_value_is_trusted(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    exact_age = inputs["reading_context"]["luck"]["current_luck"]["exact_age"]
+    _phase51_set_luck(
+        inputs["ai_reading"]["sections"][5]["summary"],
+        str(exact_age),
+        "current_luck",
+    )
+    _phase51_assert_reaches_semantic_phase(inputs)
+
+
+def test_phase51_wrong_luck_component_does_not_supply_numeric_value(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    exact_age = inputs["reading_context"]["luck"]["current_luck"]["exact_age"]
+    _phase51_set_luck(
+        inputs["ai_reading"]["sections"][5]["summary"],
+        str(exact_age),
+        "annual_luck",
+    )
+    _phase51_assert_numeric_error(inputs, ("/sections/5/summary/text",))
+
+
+def test_phase51_wrong_luck_scope_does_not_supply_numeric_value(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    exact_age = inputs["reading_context"]["luck"]["current_luck"]["exact_age"]
+    _phase51_set_luck(inputs["ai_reading"]["summary"], str(exact_age), "current_luck")
+    report = _phase51_assert_numeric_error(inputs, ("/summary/text",))
+    assert "reference_resolution_error" in {
+        finding["code"] for finding in report["findings"]
+    }
+
+
+def test_phase51_future_yearly_luck_value_uses_exact_index_crosswalk(
+    phase2_inputs,
+):
+    supported = deepcopy(phase2_inputs)
+    value = supported["reading_context"]["luck"]["five_year_luck"][0][
+        "annual_luck"
+    ]["current_luck_relation"]["current_luck_index"]
+    _phase51_set_luck(
+        supported["ai_reading"]["sections"][6]["yearly"][0]["summary"],
+        str(value),
+        "annual_luck",
+    )
+    _phase51_assert_reaches_semantic_phase(supported)
+
+    wrong_year = deepcopy(phase2_inputs)
+    _phase51_set_luck(
+        wrong_year["ai_reading"]["sections"][6]["yearly"][0]["summary"],
+        "2027年",
+        "annual_luck",
+    )
+    _phase51_assert_numeric_error(
+        wrong_year,
+        ("/sections/6/yearly/0/summary/text",),
+    )
+
+
+def test_phase51_future_non_yearly_luck_uses_all_crosswalk_year_values(
+    phase2_inputs,
+):
+    inputs = deepcopy(phase2_inputs)
+    value = inputs["reading_context"]["luck"]["five_year_luck"][-1][
+        "current_luck"
+    ]["exact_age"]
+    _phase51_set_luck(
+        inputs["ai_reading"]["sections"][6]["summary"],
+        str(value),
+        "current_luck",
+    )
+    _phase51_assert_reaches_semantic_phase(inputs)
+
+
+def test_phase51_yearly_block_accepts_only_its_attached_year(phase2_inputs):
+    supported = deepcopy(phase2_inputs)
+    block = supported["ai_reading"]["sections"][6]["yearly"][0]["summary"]
+    _phase51_set_astrology(block, "2026年")
+    _phase51_assert_reaches_semantic_phase(supported)
+
+    unsupported = deepcopy(phase2_inputs)
+    block = unsupported["ai_reading"]["sections"][6]["yearly"][0]["summary"]
+    _phase51_set_astrology(block, "2027年")
+    _phase51_assert_numeric_error(
+        unsupported,
+        ("/sections/6/yearly/0/summary/text",),
+    )
+
+
+def test_phase51_future_non_yearly_block_accepts_permitted_future_year(
+    phase2_inputs,
+):
+    inputs = deepcopy(phase2_inputs)
+    _phase51_set_astrology(
+        inputs["ai_reading"]["sections"][6]["summary"],
+        "2030年",
+    )
+    _phase51_assert_reaches_semantic_phase(inputs)
+
+
+@pytest.mark.parametrize(
+    ("scope", "path"),
+    (
+        ("summary", "/summary/text"),
+        ("current_luck", "/sections/5/summary/text"),
+    ),
+)
+def test_phase51_future_year_does_not_leak_to_other_scopes(
+    phase2_inputs,
+    scope,
+    path,
+):
+    inputs = deepcopy(phase2_inputs)
+    block = (
+        inputs["ai_reading"]["summary"]
+        if scope == "summary"
+        else inputs["ai_reading"]["sections"][5]["summary"]
+    )
+    _phase51_set_astrology(block, "2026年")
+    _phase51_assert_numeric_error(inputs, (path,))
+
+
+@pytest.fixture(scope="module")
+def phase51_consultation_inputs():
+    chart = calculate_chart(
+        SimpleNamespace(
+            birth_date="1985-07-17",
+            birth_time="21:50",
+            birth_place="石川県",
+            gender="female",
+        ),
+        target_datetime=datetime(2026, 8, 10, 15, 36),
+    )
+    consultation = build_consultation_context(
+        concern="仕事について相談したい",
+        desired_future="落ち着いて働きたい",
+    )
+    context = build_reading_context_v2(chart, consultation_context=consultation)
+    metadata = build_common_judgment_metadata(chart)
+    inputs = _phase51_rebuilt_inputs(context, metadata)
+    inputs["ai_reading"]["consultation_answer"] = _phase2_block()
+    return inputs
+
+
+def test_phase51_future_year_does_not_leak_to_consultation(
+    phase51_consultation_inputs,
+):
+    inputs = deepcopy(phase51_consultation_inputs)
+    _phase51_set_astrology(inputs["ai_reading"]["consultation_answer"], "2026年")
+    _phase51_assert_numeric_error(inputs, ("/consultation_answer/text",))
+
+
+def test_phase51_metadata_numbers_are_not_numeric_sources(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    _phase51_set_astrology(inputs["ai_reading"]["summary"], "60")
+    _phase51_assert_numeric_error(inputs, ("/summary/text",))
+
+
+def test_phase51_warning_numbers_are_not_numeric_sources(phase2_inputs):
+    context = deepcopy(phase2_inputs["reading_context"])
+    metadata = deepcopy(phase2_inputs["judgment_metadata"])
+    context["warnings"].append("777")
+    inputs = _phase51_rebuilt_inputs(context, metadata)
+    _phase51_set_astrology(inputs["ai_reading"]["summary"], "777")
+    _phase51_assert_numeric_error(inputs, ("/summary/text",))
+
+
+def test_phase51_uncertainty_numbers_are_not_numeric_sources(phase2_inputs):
+    context = deepcopy(phase2_inputs["reading_context"])
+    metadata = deepcopy(phase2_inputs["judgment_metadata"])
+    metadata["components"]["strength"]["uncertainty"][0]["message"] = "888"
+    inputs = _phase51_rebuilt_inputs(context, metadata)
+    _phase51_set_astrology(inputs["ai_reading"]["summary"], "888")
+    _phase51_assert_numeric_error(inputs, ("/summary/text",))
+
+
+def test_phase51_target_datetime_numbers_are_not_numeric_sources(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    assert "2026" in inputs["reading_context"]["luck"]["five_year_luck"][0][
+        "target_datetime"
+    ]
+    _phase51_set_astrology(inputs["ai_reading"]["summary"], "2026年")
+    _phase51_assert_numeric_error(inputs, ("/summary/text",))
+
+
+def test_phase51_practical_blocks_are_not_deterministically_scanned(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    inputs["ai_reading"]["summary"]["text"] = "999個の行動"
+    _phase51_assert_reaches_semantic_phase(inputs)
+
+
+def test_phase51_one_finding_per_block_and_canonical_ids(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    _phase51_set_astrology(inputs["ai_reading"]["summary"], "999 998")
+    _phase51_set_astrology(
+        inputs["ai_reading"]["sections"][0]["summary"],
+        "997 996",
+    )
+    report = _phase51_assert_numeric_error(
+        inputs,
+        ("/sections/0/summary/text", "/summary/text"),
+    )
+    numeric = [
+        finding
+        for finding in report["findings"]
+        if finding["code"] == "unsupported_numeric_claim"
+    ]
+    assert [finding["finding_id"] for finding in numeric] == [
+        "finding_0001",
+        "finding_0002",
+    ]
+
+
+@pytest.mark.parametrize("invalid", (float("nan"), float("inf"), IntSubclassSpoof(70, 70)))
+def test_phase51_invalid_runtime_numbers_keep_existing_input_error_authority(
+    phase2_inputs,
+    invalid,
+):
+    inputs = deepcopy(phase2_inputs)
+    inputs["reading_context"]["facts"][0]["value"] = invalid
+    assessor = RecordingAssessor()
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert "input_contract_invalid" in {
+        finding["code"] for finding in report["findings"]
+    }
+    assert "unsupported_numeric_claim" not in {
+        finding["code"] for finding in report["findings"]
+    }
+    assert report["semantic_assessment"]["status"] == "not_run"
+    assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (0, 0, 0)

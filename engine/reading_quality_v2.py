@@ -1,9 +1,9 @@
-"""Phase 1 through Phase 4.1 foundations for AI Reading Quality Gate v2.
+"""Phase 1 through Phase 5.1 foundations for AI Reading Quality Gate v2.
 
 The exact report/finding contract kernel, input validation, and trusted identity
 reconstruction are implemented together with the provider-independent semantic
-assessor lifecycle and trusted-reference deterministic checks.  Remaining
-deterministic checks and concrete prose-level semantic assessment stay
+assessor lifecycle, trusted-reference checks, and deterministic numeric-claim
+validation.  Public PASS and concrete prose-level semantic assessment stay
 deliberately unavailable until later phases.
 """
 
@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 import json
 import math
 import re
@@ -173,6 +174,52 @@ _FUTURE_LUCK_COMPONENTS = frozenset(
 _SEVERITY_RANK = {"ERROR": 0, "WARNING": 1, "INFO": 2}
 _REPAIRABILITIES = ("auto", "human", "none")
 _FINDING_ID_PATTERN = re.compile(r"finding_[0-9]+\Z")
+
+_NUMERIC_DIGITS = frozenset("0123456789０１２３４５６７８９")
+_NUMERIC_SIGNS = frozenset(("+", "-", "＋", "－"))
+_NUMERIC_DECIMAL_SEPARATORS = frozenset((".", "．"))
+_NUMERIC_PERCENT_SIGNS = frozenset(("%", "％"))
+_HYPHEN_RANGE_SEPARATORS = frozenset(("-", "－"))
+_NON_HYPHEN_RANGE_SEPARATORS = frozenset(("–", "—", "〜", "～"))
+_RANGE_SEPARATORS = _HYPHEN_RANGE_SEPARATORS | _NON_HYPHEN_RANGE_SEPARATORS
+_NUMERIC_MARKS = (
+    _NUMERIC_DIGITS
+    | _NUMERIC_SIGNS
+    | _NUMERIC_DECIMAL_SEPARATORS
+    | _NUMERIC_PERCENT_SIGNS
+    | _RANGE_SEPARATORS
+    | frozenset(("−",))
+)
+_IDENTIFIER_CHARS = (
+    frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_.．")
+    | _NUMERIC_DIGITS
+)
+_DATE_TIME_MARKS = _NUMERIC_DIGITS | frozenset(("/", "-", ":", "年", "月", "日", "時", "分", "秒"))
+_NUMERIC_TRANSLATION = str.maketrans(
+    "０１２３４５６７８９＋－．％",
+    "0123456789+-.%",
+)
+_NORMALIZED_SCALAR_PATTERN = re.compile(r"[+-]?[0-9]+(?:\.[0-9]+)?%?\Z")
+_NORMALIZED_UNSIGNED_SCALAR_PATTERN = re.compile(r"[0-9]+(?:\.[0-9]+)?%?\Z")
+_DOTTED_VERSION_PATTERN = re.compile(
+    r"[0-9０-９]+(?:[\.．][0-9０-９]+){2,}"
+)
+_DATE_TIME_PATTERNS = tuple(
+    re.compile(pattern)
+    for pattern in (
+        r"[0-9０-９]{4}年[0-9０-９]{1,2}月[0-9０-９]{1,2}日\Z",
+        r"[0-9０-９]{4}年[0-9０-９]{1,2}月\Z",
+        r"[0-9０-９]{1,2}月[0-9０-９]{1,2}日\Z",
+        r"[0-9０-９]{4}/[0-9０-９]{1,2}/[0-9０-９]{1,2}\Z",
+        r"[0-9０-９]{1,2}/[0-9０-９]{1,2}\Z",
+        r"[0-9０-９]{4}-[0-9０-９]{1,2}-[0-9０-９]{1,2}\Z",
+        r"[0-9０-９]{1,2}:[0-9０-９]{2}\Z",
+        r"[0-9０-９]{1,2}:[0-9０-９]{2}:[0-9０-９]{2}\Z",
+        r"[0-9０-９]{1,2}時[0-9０-９]{2}分\Z",
+        r"[0-9０-９]{1,2}時[0-9０-９]{2}分[0-9０-９]{2}秒\Z",
+        r"[0-9０-９]{1,2}時\Z",
+    )
+)
 
 
 @dataclass(frozen=True)
@@ -450,6 +497,181 @@ class SemanticAssessorV2(Protocol):
         """Return an exact SemanticAssessmentResultV2 mapping."""
 
         ...
+
+
+@dataclass(frozen=True)
+class _NumericValue:
+    kind: str
+    value: Decimal
+
+
+def _normalize_numeric_token_text(value: str) -> str:
+    return value.translate(_NUMERIC_TRANSLATION)
+
+
+def _parse_numeric_scalar(
+    candidate: str,
+    *,
+    unsigned: bool = False,
+) -> _NumericValue | None:
+    normalized = _normalize_numeric_token_text(candidate)
+    pattern = (
+        _NORMALIZED_UNSIGNED_SCALAR_PATTERN
+        if unsigned
+        else _NORMALIZED_SCALAR_PATTERN
+    )
+    if pattern.fullmatch(normalized) is None:
+        return None
+    kind = "percent" if normalized.endswith("%") else "plain"
+    numeric_text = normalized[:-1] if kind == "percent" else normalized
+    try:
+        value = Decimal(numeric_text)
+    except InvalidOperation:
+        return None
+    if not value.is_finite():
+        return None
+    return _NumericValue(kind, value)
+
+
+def _trim_candidate_whitespace(
+    value: str,
+    start: int,
+    end: int,
+) -> tuple[int, int]:
+    while start < end and value[start].isspace():
+        start += 1
+    while end > start and value[end - 1].isspace():
+        end -= 1
+    return start, end
+
+
+def _parse_numeric_range(candidate: str) -> tuple[_NumericValue, _NumericValue] | None:
+    matches: list[tuple[_NumericValue, _NumericValue]] = []
+    for index, separator in enumerate(candidate):
+        if separator not in _RANGE_SEPARATORS:
+            continue
+        left_start, left_end = _trim_candidate_whitespace(candidate, 0, index)
+        right_start, right_end = _trim_candidate_whitespace(
+            candidate,
+            index + 1,
+            len(candidate),
+        )
+        left = _parse_numeric_scalar(candidate[left_start:left_end])
+        right = _parse_numeric_scalar(
+            candidate[right_start:right_end],
+            unsigned=separator in _HYPHEN_RANGE_SEPARATORS,
+        )
+        if left is not None and right is not None:
+            matches.append((left, right))
+    if len(matches) != 1:
+        return None
+    return matches[0]
+
+
+def _identifier_and_version_exclusions(text: str) -> list[bool]:
+    excluded = [False] * len(text)
+    index = 0
+    while index < len(text):
+        if text[index] not in _IDENTIFIER_CHARS:
+            index += 1
+            continue
+        end = index + 1
+        while end < len(text) and text[end] in _IDENTIFIER_CHARS:
+            end += 1
+        span = text[index:end]
+        if any(character in _NUMERIC_DIGITS for character in span) and any(
+            character == "_" or character.isascii() and character.isalpha()
+            for character in span
+        ):
+            excluded[index:end] = [True] * (end - index)
+        index = end
+
+    for match in _DOTTED_VERSION_PATTERN.finditer(text):
+        if not any(excluded[match.start() : match.end()]):
+            excluded[match.start() : match.end()] = [True] * (
+                match.end() - match.start()
+            )
+    return excluded
+
+
+def _date_time_exclusions(text: str, excluded: list[bool]) -> None:
+    index = 0
+    while index < len(text):
+        if excluded[index] or text[index] not in _DATE_TIME_MARKS:
+            index += 1
+            continue
+        end = index + 1
+        while (
+            end < len(text)
+            and not excluded[end]
+            and text[end] in _DATE_TIME_MARKS
+        ):
+            end += 1
+        candidate = text[index:end]
+        if any(pattern.fullmatch(candidate) is not None for pattern in _DATE_TIME_PATTERNS):
+            excluded[index:end] = [True] * (end - index)
+        index = end
+
+
+def _numeric_candidates(text: str) -> tuple[str, ...]:
+    excluded = _identifier_and_version_exclusions(text)
+    _date_time_exclusions(text, excluded)
+
+    runs: list[tuple[int, int]] = []
+    index = 0
+    while index < len(text):
+        if excluded[index] or text[index] not in _NUMERIC_MARKS:
+            index += 1
+            continue
+        end = index + 1
+        while (
+            end < len(text)
+            and not excluded[end]
+            and text[end] in _NUMERIC_MARKS
+        ):
+            end += 1
+        runs.append((index, end))
+        index = end
+
+    candidates: list[str] = []
+    run_index = 0
+    while run_index < len(runs):
+        start, end = runs[run_index]
+        linked_end = run_index
+        while linked_end + 1 < len(runs):
+            next_start, next_end = runs[linked_end + 1]
+            gap = text[end:next_start]
+            if not gap or not all(character.isspace() for character in gap):
+                break
+            left = text[runs[linked_end][0] : runs[linked_end][1]]
+            right = text[next_start:next_end]
+            if (
+                left[-1] not in _RANGE_SEPARATORS
+                and left[-1] != "−"
+                and right[0] not in _RANGE_SEPARATORS
+                and right[0] != "−"
+            ):
+                break
+            linked_end += 1
+            end = next_end
+        candidates.append(text[start:end])
+        run_index = linked_end + 1
+    return tuple(candidates)
+
+
+def _extract_numeric_values(text: str) -> tuple[_NumericValue, ...]:
+    values: list[_NumericValue] = []
+    for candidate in _numeric_candidates(text):
+        range_values = _parse_numeric_range(candidate)
+        if range_values is not None:
+            values.extend(range_values)
+            continue
+        if any(character.isspace() for character in candidate):
+            continue
+        scalar = _parse_numeric_scalar(candidate)
+        if scalar is not None:
+            values.append(scalar)
+    return tuple(values)
 
 
 def _is_string_array(value: Any) -> bool:
@@ -975,6 +1197,162 @@ def _luck_component_resolves(
             for entry in entries
         ) == 1
     return False
+
+
+def _decimal_from_json_number(value: Any) -> Decimal | None:
+    if type(value) not in (int, float) or type(value) is bool:
+        return None
+    try:
+        numeric_text = json.dumps(
+            value,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=False,
+            allow_nan=False,
+        )
+        result = Decimal(numeric_text)
+    except (TypeError, ValueError, InvalidOperation):
+        return None
+    return result if result.is_finite() else None
+
+
+def _collect_trusted_numeric_values(
+    value: Any,
+    result: set[_NumericValue],
+) -> None:
+    if type(value) is str:
+        result.update(_extract_numeric_values(value))
+        return
+    number = _decimal_from_json_number(value)
+    if number is not None:
+        result.add(_NumericValue("plain", number))
+        return
+    if type(value) is list:
+        for item in value:
+            _collect_trusted_numeric_values(item, result)
+        return
+    if type(value) is dict:
+        for item in value.values():
+            _collect_trusted_numeric_values(item, result)
+
+
+def _fact_value_index(request: Mapping[str, Any]) -> dict[str, Any]:
+    facts = request["model_input"]["reading_context"]["facts"]
+    return {fact["code"]: fact["value"] for fact in facts}
+
+
+def _luck_values_for_block(
+    block: Mapping[str, Any],
+    *,
+    location_kind: str,
+    section_id: str | None,
+    year_index: int | None,
+    request: Mapping[str, Any],
+) -> tuple[Any, ...]:
+    reading_context = request["model_input"]["reading_context"]
+    luck = reading_context["luck"]
+    values: list[Any] = []
+    for component in block["source_components"]:
+        if component not in _LUCK_COMPONENTS or not _luck_component_resolves(
+            component,
+            location_kind=location_kind,
+            section_id=section_id,
+            year_index=year_index,
+            request=request,
+        ):
+            continue
+        if location_kind == "section" and section_id == "current_luck":
+            values.append(luck[component])
+        elif location_kind == "section" and section_id == "future_flow":
+            values.extend(
+                entry[component]
+                for entry in luck["five_year_luck"]
+            )
+        elif location_kind == "yearly" and year_index is not None:
+            values.append(luck["five_year_luck"][year_index][component])
+    return tuple(values)
+
+
+def _future_year_values_for_block(
+    *,
+    location_kind: str,
+    section_id: str | None,
+    year_index: int | None,
+    request: Mapping[str, Any],
+) -> tuple[int, ...]:
+    if section_id != "future_flow":
+        return ()
+    years = request["trusted_attachments"]["future_flow_years"]
+    if location_kind == "yearly" and year_index is not None:
+        return (years[year_index],)
+    if location_kind == "section":
+        return tuple(years)
+    return ()
+
+
+def _trusted_numeric_universe_for_block(
+    block: Mapping[str, Any],
+    *,
+    location_kind: str,
+    section_id: str | None,
+    year_index: int | None,
+    request: Mapping[str, Any],
+) -> frozenset[_NumericValue]:
+    trusted: set[_NumericValue] = set()
+    fact_values = _fact_value_index(request)
+    for code in block["source_fact_codes"]:
+        if code in fact_values:
+            _collect_trusted_numeric_values(fact_values[code], trusted)
+
+    if block["claim_type"] == "luck_astrology":
+        for value in _luck_values_for_block(
+            block,
+            location_kind=location_kind,
+            section_id=section_id,
+            year_index=year_index,
+            request=request,
+        ):
+            _collect_trusted_numeric_values(value, trusted)
+
+    for year in _future_year_values_for_block(
+        location_kind=location_kind,
+        section_id=section_id,
+        year_index=year_index,
+        request=request,
+    ):
+        _collect_trusted_numeric_values(year, trusted)
+    return frozenset(trusted)
+
+
+def _unsupported_numeric_candidates(
+    ai_reading: Mapping[str, Any],
+    request: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    for path, block, kind, section_id, year_index, _ in _iter_final_blocks(
+        ai_reading,
+        request,
+    ):
+        if block["claim_type"] == "practical":
+            continue
+        actual = _extract_numeric_values(block["text"])
+        if not actual:
+            continue
+        trusted = _trusted_numeric_universe_for_block(
+            block,
+            location_kind=kind,
+            section_id=section_id,
+            year_index=year_index,
+            request=request,
+        )
+        if any(value not in trusted for value in actual):
+            candidates.append(
+                _ai_reading_candidate(
+                    "unsupported_numeric_claim",
+                    f"{path}/text",
+                )
+            )
+    return candidates
 
 
 def _reference_candidates(
@@ -1921,6 +2299,9 @@ def evaluate_ai_reading_quality_v2(
             )
         deterministic_candidates.extend(
             _trusted_reference_candidates(ai_reading_snapshot, request)
+        )
+        deterministic_candidates.extend(
+            _unsupported_numeric_candidates(ai_reading_snapshot, request)
         )
 
     report = _run_semantic_assessor_v2(
