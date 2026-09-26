@@ -51,12 +51,12 @@ def test_calculate_chart_exposes_engine_metadata():
     }
 
 
-def test_reading_context_preserves_engine_metadata():
+def test_reading_context_v2_preserves_engine_metadata():
     from datetime import datetime
     from types import SimpleNamespace
 
     from engine.chart import calculate_chart
-    from engine.reading_context import build_reading_context
+    from engine.reading_context_v2 import build_reading_context_v2
 
     request = SimpleNamespace(
         birth_date="1985-07-17",
@@ -70,22 +70,23 @@ def test_reading_context_preserves_engine_metadata():
         target_datetime=datetime(2026, 8, 10, 15, 36),
     )
 
-    context = build_reading_context(chart_result)
+    context = build_reading_context_v2(chart_result)
 
+    assert context["engine_version"] == "1.2"
     assert context["source_metadata"]["engine"] == {
-        "engine_name": "Yakumo Engine",
-        "engine_version": "1.2",
-        "rule_version": "1.2",
+        "source_path": "engine_metadata",
+        "method": None,
+        "version": "1.2",
         "status": "development",
     }
 
 
-def test_reading_context_accepts_legacy_chart_without_engine_metadata():
+def test_reading_context_v2_accepts_legacy_chart_without_engine_metadata():
     from datetime import datetime
     from types import SimpleNamespace
 
     from engine.chart import calculate_chart
-    from engine.reading_context import build_reading_context
+    from engine.reading_context_v2 import build_reading_context_v2
 
     request = SimpleNamespace(
         birth_date="1985-07-17",
@@ -101,6 +102,12 @@ def test_reading_context_accepts_legacy_chart_without_engine_metadata():
 
     chart_result.pop("engine_metadata")
 
-    context = build_reading_context(chart_result)
+    context = build_reading_context_v2(chart_result)
 
-    assert context["source_metadata"]["engine"] is None
+    assert context["engine_version"] is None
+    assert context["source_metadata"]["engine"] == {
+        "source_path": None,
+        "method": None,
+        "version": None,
+        "status": None,
+    }
