@@ -1,10 +1,10 @@
-"""Phase 1 through Phase 5.1 foundations for AI Reading Quality Gate v2.
+"""AI Reading Quality Gate v2 public report implementation.
 
 The exact report/finding contract kernel, input validation, and trusted identity
 reconstruction are implemented together with the provider-independent semantic
 assessor lifecycle, trusted-reference checks, and deterministic numeric-claim
-validation.  Public PASS and concrete prose-level semantic assessment stay
-deliberately unavailable until later phases.
+validation.  Concrete prose-level semantic assessment remains delegated to the
+provider-independent ``SemanticAssessorV2`` contract.
 """
 
 from __future__ import annotations
@@ -2304,7 +2304,7 @@ def evaluate_ai_reading_quality_v2(
             _unsupported_numeric_candidates(ai_reading_snapshot, request)
         )
 
-    report = _run_semantic_assessor_v2(
+    return _run_semantic_assessor_v2(
         input_contracts,
         deterministic_candidates,
         ai_reading_snapshot if ai_reading_snapshot is not None else ai_reading,
@@ -2320,11 +2320,6 @@ def evaluate_ai_reading_quality_v2(
         ),
         semantic_assessor,
     )
-    if report.decision == "pass":
-        raise NotImplementedError(
-            "Quality Gate v2 pass requires remaining deterministic checks"
-        )
-    return report
 
 
 __all__ = [

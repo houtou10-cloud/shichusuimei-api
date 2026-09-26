@@ -1386,14 +1386,14 @@ def test_phase2_malformed_source_contracts_is_ai_contract_invalid(
     ]
 
 
-def test_phase2_reordered_owner_valid_three_pillar_uncertainty_reaches_next_phase(
+def test_phase2_reordered_owner_valid_three_pillar_uncertainty_returns_pass(
     three_pillar_generated_inputs,
 ):
-    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
-        evaluate_ai_reading_quality_v2(
-            **deepcopy(three_pillar_generated_inputs),
-            semantic_assessor=RecordingAssessor(),
-        )
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(three_pillar_generated_inputs),
+        semantic_assessor=RecordingAssessor(),
+    ).to_dict()
+    assert report["decision"] == "pass"
 
 
 @pytest.mark.parametrize(
@@ -1433,11 +1433,11 @@ def test_phase2_unfrozen_ai_reading_mapping_order_is_not_required(
     else:
         reading["validation"] = _reordered(reading["validation"])
 
-    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
-        evaluate_ai_reading_quality_v2(
-            **inputs,
-            semantic_assessor=RecordingAssessor(),
-        )
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=RecordingAssessor(),
+    ).to_dict()
+    assert report["decision"] == "pass"
 
 
 def test_phase2_grounded_text_block_order_remains_required(phase2_inputs):
@@ -1535,13 +1535,27 @@ def test_phase2_inputs_are_not_mutated(phase2_inputs):
     assert inputs == before
 
 
-def test_phase3_valid_inputs_do_not_return_a_temporary_pass(phase2_inputs):
+def test_phase52_valid_inputs_return_public_pass(phase2_inputs):
     assessor = RecordingAssessor()
-    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
-        evaluate_ai_reading_quality_v2(
-            **deepcopy(phase2_inputs),
-            semantic_assessor=assessor,
-        )
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert tuple(report) == REPORT_FIELDS
+    assert report["decision"] == "pass"
+    assert report["blocking"] is False
+    assert report["human_review_required"] is False
+    assert (report["error_count"], report["warning_count"], report["info_count"]) == (
+        0,
+        0,
+        0,
+    )
+    assert report["semantic_assessment"] == {
+        "status": "completed",
+        "method": "semantic_test",
+        "version": "1.0",
+    }
+    assert report["findings"] == []
     assert assessor.calls == 1
 
 
@@ -1649,6 +1663,9 @@ def test_phase3_assessor_exception_is_failed_without_retry(phase2_inputs):
     assert [finding["code"] for finding in report["findings"]] == [
         "semantic_assessment_failed"
     ]
+    assert report["decision"] == "review"
+    assert report["blocking"] is True
+    assert report["human_review_required"] is True
     assert assessor.calls == 1
 
 
@@ -1683,50 +1700,78 @@ def test_phase3_assessor_receives_deep_copies_and_cannot_mutate_inputs(
     )
 
 
-def test_phase3_completed_zero_findings_is_valid_but_not_publicly_passed(
+def test_phase52_completed_zero_findings_returns_public_pass(
     phase2_inputs,
 ):
-    assessor = RecordingAssessor()
-    report = quality_v2._run_semantic_assessor_v2(
-        quality_v2._project_input_contracts(**phase2_inputs),
-        [],
-        phase2_inputs["ai_reading"],
-        phase2_inputs["reading_context"],
-        phase2_inputs["judgment_metadata"],
-        assessor,
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=RecordingAssessor(),
     ).to_dict()
     assert report["decision"] == "pass"
+    assert report["blocking"] is False
+    assert report["human_review_required"] is False
+    assert (report["error_count"], report["warning_count"], report["info_count"]) == (
+        0,
+        0,
+        0,
+    )
     assert report["findings"] == []
-    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
-        evaluate_ai_reading_quality_v2(
-            **deepcopy(phase2_inputs),
-            semantic_assessor=RecordingAssessor(),
-        )
 
 
-def test_phase3_completed_warning_uses_catalog_but_is_not_publicly_passed(
+def test_phase52_completed_ordinary_warning_returns_public_pass(
     phase2_inputs,
 ):
     result = {
         "status": "completed",
         "findings": [_semantic_declaration("overconfident_wording")],
     }
-    report = quality_v2._run_semantic_assessor_v2(
-        quality_v2._project_input_contracts(**phase2_inputs),
-        [],
-        phase2_inputs["ai_reading"],
-        phase2_inputs["reading_context"],
-        phase2_inputs["judgment_metadata"],
-        RecordingAssessor(result),
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=RecordingAssessor(result),
     ).to_dict()
     assert report["decision"] == "pass"
+    assert report["blocking"] is False
+    assert report["human_review_required"] is False
+    assert (report["error_count"], report["warning_count"], report["info_count"]) == (
+        0,
+        1,
+        0,
+    )
+    assert report["findings"][0]["finding_id"] == "finding_0001"
     assert report["findings"][0]["severity"] == "WARNING"
     assert report["findings"][0]["message"] == EXPECTED_MESSAGES[19]
-    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
-        evaluate_ai_reading_quality_v2(
-            **deepcopy(phase2_inputs),
-            semantic_assessor=RecordingAssessor(result),
-        )
+
+
+def test_phase52_completed_info_only_returns_public_pass(phase2_inputs):
+    result = {
+        "status": "completed",
+        "findings": [_semantic_declaration("source_limitation_note")],
+    }
+    report = evaluate_ai_reading_quality_v2(
+        **deepcopy(phase2_inputs),
+        semantic_assessor=RecordingAssessor(result),
+    ).to_dict()
+    assert report["decision"] == "pass"
+    assert report["blocking"] is False
+    assert report["human_review_required"] is False
+    assert (report["error_count"], report["warning_count"], report["info_count"]) == (
+        0,
+        0,
+        1,
+    )
+    assert report["findings"][0]["finding_id"] == "finding_0001"
+    assert report["findings"][0]["code"] == "source_limitation_note"
+
+
+def test_phase52_completed_human_review_branch_uses_frozen_decision_rule():
+    synthetic_finding = SimpleNamespace(
+        severity="WARNING",
+        requires_human_review=True,
+    )
+    assert quality_v2._expected_decision(
+        (synthetic_finding,),
+        "completed",
+    ) == "review"
 
 
 def test_phase3_completed_error_returns_fail_with_catalog_fields(phase2_inputs):
@@ -2411,11 +2456,11 @@ def test_phase4_valid_reference_and_luck_crosswalk_reaches_semantic_phase(
         )
 
     assessor = RecordingAssessor()
-    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
-        evaluate_ai_reading_quality_v2(
-            **inputs,
-            semantic_assessor=assessor,
-        )
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert report["decision"] == "pass"
     assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (1, 1, 1)
 
 
@@ -2636,11 +2681,11 @@ def test_phase43_valid_mapping_subclasses_remain_supported(phase2_inputs):
     )
     assessor = RecordingAssessor()
 
-    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
-        evaluate_ai_reading_quality_v2(
-            **inputs,
-            semantic_assessor=assessor,
-        )
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert report["decision"] == "pass"
     assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (1, 1, 1)
 
 
@@ -3391,14 +3436,14 @@ def _phase51_assert_numeric_error(inputs, expected_paths):
     return report
 
 
-def _phase51_assert_reaches_semantic_phase(inputs):
+def _phase51_assert_public_pass(inputs):
     assessor = RecordingAssessor()
     before = deepcopy(inputs)
-    with pytest.raises(NotImplementedError, match="remaining deterministic checks"):
-        evaluate_ai_reading_quality_v2(
-            **inputs,
-            semantic_assessor=assessor,
-        )
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=assessor,
+    ).to_dict()
+    assert report["decision"] == "pass"
     assert (assessor.method_reads, assessor.version_reads, assessor.calls) == (1, 1, 1)
     assert inputs == before
 
@@ -3421,7 +3466,7 @@ def test_phase51_same_block_referenced_fact_values_are_trusted(
     code = "five_elements.weighted_scores" if nested else "strength.final_score"
     text = "1.4" if nested else "54.75"
     _phase51_set_astrology(inputs["ai_reading"]["summary"], text, (code,))
-    _phase51_assert_reaches_semantic_phase(inputs)
+    _phase51_assert_public_pass(inputs)
 
 
 @pytest.mark.parametrize("case", ("unreferenced", "section_level", "other_block"))
@@ -3451,7 +3496,7 @@ def test_phase51_correct_luck_crosswalk_value_is_trusted(phase2_inputs):
         str(exact_age),
         "current_luck",
     )
-    _phase51_assert_reaches_semantic_phase(inputs)
+    _phase51_assert_public_pass(inputs)
 
 
 def test_phase51_wrong_luck_component_does_not_supply_numeric_value(phase2_inputs):
@@ -3487,7 +3532,7 @@ def test_phase51_future_yearly_luck_value_uses_exact_index_crosswalk(
         str(value),
         "annual_luck",
     )
-    _phase51_assert_reaches_semantic_phase(supported)
+    _phase51_assert_public_pass(supported)
 
     wrong_year = deepcopy(phase2_inputs)
     _phase51_set_luck(
@@ -3513,14 +3558,14 @@ def test_phase51_future_non_yearly_luck_uses_all_crosswalk_year_values(
         str(value),
         "current_luck",
     )
-    _phase51_assert_reaches_semantic_phase(inputs)
+    _phase51_assert_public_pass(inputs)
 
 
 def test_phase51_yearly_block_accepts_only_its_attached_year(phase2_inputs):
     supported = deepcopy(phase2_inputs)
     block = supported["ai_reading"]["sections"][6]["yearly"][0]["summary"]
     _phase51_set_astrology(block, "2026年")
-    _phase51_assert_reaches_semantic_phase(supported)
+    _phase51_assert_public_pass(supported)
 
     unsupported = deepcopy(phase2_inputs)
     block = unsupported["ai_reading"]["sections"][6]["yearly"][0]["summary"]
@@ -3539,7 +3584,7 @@ def test_phase51_future_non_yearly_block_accepts_permitted_future_year(
         inputs["ai_reading"]["sections"][6]["summary"],
         "2030年",
     )
-    _phase51_assert_reaches_semantic_phase(inputs)
+    _phase51_assert_public_pass(inputs)
 
 
 @pytest.mark.parametrize(
@@ -3630,7 +3675,7 @@ def test_phase51_target_datetime_numbers_are_not_numeric_sources(phase2_inputs):
 def test_phase51_practical_blocks_are_not_deterministically_scanned(phase2_inputs):
     inputs = deepcopy(phase2_inputs)
     inputs["ai_reading"]["summary"]["text"] = "999個の行動"
-    _phase51_assert_reaches_semantic_phase(inputs)
+    _phase51_assert_public_pass(inputs)
 
 
 def test_phase51_one_finding_per_block_and_canonical_ids(phase2_inputs):
