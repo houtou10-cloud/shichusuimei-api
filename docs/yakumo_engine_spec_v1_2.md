@@ -3252,8 +3252,9 @@ Findingは次の順序のexactly 9 fieldを持つ。すべてREQUIRED、unknown 
 -   `error_count`、`warning_count`、`info_count`はfindingsのseverity countとexact matchする。
 
 v1の「ERRORだけがblocking」という実装慣例をv2に暗黙再利用してはならない。
-`review`はERRORとは異なるが、明示的なhuman approvalなしに自動公開、PDF生成または
-`pass`への変更を行ってはならない。
+`review`はERRORとは異なるが、自動公開、PDF生成または`pass`への変更を行ってはならない。
+§23.8のdecision kernel自体は変更しない。v1.2では§23.14どおりhuman approval overrideを
+定義しないため、明示的なhuman approvalを理由とする公開またはdecision overrideも許可しない。
 
 ### 23.9 Frozen issue code catalog
 
@@ -3695,7 +3696,7 @@ Quality Report v2自体をAuto-Repair v2へのhandoff sourceとする。Auto-Rep
 
 `repairability == "auto"`はAuto-Repair v2の検討候補を示すだけであり、
 実際のfield変更許可、repair instructionまたはrepair成功を意味しない。
-変更可能なmodel-owned pathは§24で別途freezeする。
+変更可能なmodel-owned pathは§24.4のexact contractだけとする。
 
 trusted field、trusted reference、catalog、section ID / title、future year / order、disclaimer、
 source contracts、engine versionまたはAI Reading validation reportを自動修復してはならない。
@@ -3731,6 +3732,8 @@ human reviewは少なくとも次の場合に必須とする。
 
 human reviewの完了、reviewer、reviewed-at、承認理由またはdecision overrideは
 Quality Report v2へ暗黙追加しない。そのapproval artifactは将来の別contractとしてfreezeする。
+v1.2ではそのapproval artifactを定義せず、`review`をhuman approvalで`pass`へ変更すること、
+ReadingProduct V2を構築すること、またはPDFを生成・公開することを禁止する。
 
 ### 23.15 Compatibility boundary
 
@@ -3744,118 +3747,991 @@ Quality Gate v2のastrology calculation impactは`NONE`とする。
 
 ## 24. Auto-Repair V2
 
-### 原則
+### 24.1 Owner, identity, and public API
 
--   エンジン計算値を変更しない。
--   問題箇所だけを修正する。
--   修正理由を記録する。
--   修正後に Quality Gate を再実行する。
--   無限修正を防止する。
--   最大試行回数を設定する。
+Auto-Repair v2のownerは新規opt-in module `engine/reading_repair_v2.py`とする。
+`engine/reading_repair.py`とv1 repair contractは変更しない。
 
-### Repair Log
+identity literalをexactly次に固定する。
+
+``` text
+AI_READING_REPAIR_V2_SCHEMA_VERSION = "ai_reading_repair_result_v2"
+AI_READING_REPAIR_V2_VERSION = "ai_reading_repair_v2"
+AI_READING_REPAIR_V2_METHOD = "openai_quality_issue_targeted_patch_v2"
+AI_READING_REPAIR_V2_MAX_ATTEMPTS = 2
+```
+
+public entrypointはexactly次とする。`client`と`model`は明示的なkeyword-only
+argumentとし、Auto-Repair v2 moduleが環境変数からproviderまたはmodelを暗黙決定してはならない。
+
+``` python
+def repair_ai_reading_v2(
+    ai_reading: Mapping[str, Any],
+    quality_report: AIReadingQualityReportV2,
+    reading_context: Mapping[str, Any],
+    judgment_metadata: Mapping[str, Any],
+    *,
+    semantic_assessor: SemanticAssessorV2 | None,
+    client: Any,
+    model: str,
+    max_output_tokens: int = 6000,
+    reasoning_effort: str = "low",
+    store: bool = False,
+) -> AIReadingRepairResultV2:
+    ...
+```
+
+1 attemptにつき`client.responses.create(...)`をat most 1回呼び出す。provider transport、
+configuration、response schemaまたはpatch validation failureに対するhidden provider retryを禁止する。
+callerが同じattemptを暗黙再実行することも禁止する。
+
+### 24.2 Trigger and target selection
+
+automatic repairはexactly次の全条件を満たす場合だけ開始する。
+
+1.  `quality_report.decision == "fail"`。
+2.  blocking findingが1件以上存在する。
+3.  すべてのblocking findingで`repairability == "auto"`。
+4.  各target findingが24.4のeditable grounded text blockへ1意にresolveできる。
+
+`pass`のauto-repairable WARNINGは記録のみとし、PASSを理由に文章を書き換えない。
+`review`をPASSへ変更するためのautomatic repairを禁止する。blocking findingに
+`repairability == "human"`または`"none"`が1件でもある場合、providerを呼び出さず
+configuration errorとする。
+
+initial target findingはinitial Quality Report v2のcanonical report orderで、
+`repairability == "auto"`のfindingを抽出する。resultの`target_finding_ids`はそのfinding IDを
+exact orderで保持し、deduplicate、sort、renumberまたは修正後reportのIDへ置換しない。
+attempt 2のprovider inputはattempt 1後のQuality Reportに残るauto-repairable findingから再構築するが、
+top-level `target_finding_ids`はinitial reportの値を維持する。
+
+### 24.3 Exact provider request and provider-owned patch response
+
+Auto-Repair v2はGenerator v2と同じResponses-style injectable client boundaryを使うが、
+Generator v2のprivate helperをcontract authorityとしない。repair moduleは各attemptで
+public `build_ai_reading_request_v2(reading_context, judgment_metadata)`を呼び、そのowner-valid
+`model_input`をgrounding inputとしてdeep snapshotする。Prompt requestの`messages`、
+`model_output_schema`、provider raw response、usage、response ID、API keyはrepair model inputへ入れない。
+
+repair providerへ渡すmodel inputは次の順序でexactly 5 fieldを持つ。unknown fieldを禁止する。
+下のJSONはordered field schemaの説明用fragmentであり、empty array / objectは以下の
+exact runtime contentと置換すべきplaceholderである。そのままvalid request instanceではない。
 
 ``` json
 {
+  "schema_version": "ai_reading_repair_request_v2",
   "attempt": 1,
-  "issue_codes": [],
-  "before_hash": "...",
-  "after_hash": "...",
-  "result": "repaired|failed"
+  "target_findings": [],
+  "editable_blocks": [],
+  "grounding_input": {}
 }
 ```
+
+-   `schema_version`はliteral `"ai_reading_repair_request_v2"`。
+-   `attempt`はcurrent attemptとexact matchする`1 | 2`。
+-   `target_findings`はcurrent pre-attempt reportから24.2で選択したfindingをreport orderで
+    deep-copyする。各entryは§23.7のexactly 9-field finding representationとし、少なくとも1件。
+-   `editable_blocks`は24.4でdeduplicateしたeditable path orderのarray。各entryは`path`、`text`の
+    順序でexactly 2 fieldを持ち、`path`はeditable text path、`text`はcurrent AIReadingV2の
+    そのpathにあるexact stringとする。
+-   `grounding_input`は上記public Prompt Builderが返した`model_input`のexact deep snapshot。
+    repair moduleは値の抽出、再計算、要約、catalog削減またはreference補完を行わない。
+
+providerへは上の5-field inputと、変更可能pathとgroundingを識別するために必要な
+データだけを渡す。full AIReadingV2、full QualityReportV2、その他のapplication
+stateをmodel inputとして渡さない。`target_findings`と`grounding_input`はread-only contextであり、
+providerが返せる変更権限を与えない。
+
+system instructionのownerはrepair moduleとし、constantとvalueをexactly次に固定する。
+
+``` python
+AI_READING_REPAIR_V2_JSON_SCHEMA_NAME = "ai_reading_repair_patch_v2"
+AI_READING_REPAIR_V2_INSTRUCTIONS = (
+    "You repair only the supplied AI Reading v2 text fields. "
+    "Return only JSON matching the supplied strict schema. "
+    "Use only op=replace and only an allowed path. "
+    "Do not invent or modify trusted facts, references, identities, catalogs, "
+    "section metadata, years, disclaimer, or validation data."
+)
+```
+
+user contentは5-field repair model inputを次でserializeしたexact stringとし、prefix、suffix、
+current time、environment valueまたはnetworkから取得したhidden contextを追加しない。
+
+``` python
+json.dumps(
+    repair_model_input,
+    ensure_ascii=False,
+    separators=(",", ":"),
+    sort_keys=False,
+    allow_nan=False,
+)
+```
+
+1 attemptのprovider payloadは次のkey order / value constructionに固定し、
+`client.responses.create(**deepcopy(payload))`をexactly 1回呼び出す。
+
+``` python
+{
+    "model": resolved_model,
+    "instructions": AI_READING_REPAIR_V2_INSTRUCTIONS,
+    "input": [{"role": "user", "content": serialized_repair_model_input}],
+    "max_output_tokens": max_output_tokens,
+    "reasoning": {"effort": reasoning_effort},
+    "store": store,
+    "text": {
+        "format": {
+            "type": "json_schema",
+            "name": "ai_reading_repair_patch_v2",
+            "schema": repair_patch_schema,
+            "strict": True,
+        }
+    },
+}
+```
+
+`model`はcaller-supplied non-empty stringをstripした値。environmentまたはdefault modelへfallbackしない。
+`max_output_tokens`はbooleanを含まなpositive integer、`reasoning_effort`はexactly
+`"minimal" | "low" | "medium" | "high"`、`store`はexact built-in booleanとする。`client.responses.create`が
+callableでない、またはいずれかのcaller optionがinvalidな場合はproviderを呼ぶ前に
+`AIReadingRepairV2ConfigurationError`とする。Auto-Repair moduleはAPI key、model、clientまたはcurrent timeを
+environmentから暗黙取得しない。
+
+`repair_patch_schema`はJSON Schema Draft 2020-12の次のexact mappingとする。key orderも記載順とし、
+field、keywordまたはconstraintを追加・削除しない。
+
+``` json
+{
+  "type": "object",
+  "properties": {
+    "patches": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "op": {"const": "replace"},
+          "path": {"type": "string", "minLength": 1},
+          "value": {"type": "string", "minLength": 1}
+        },
+        "required": ["op", "path", "value"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["patches"],
+  "additionalProperties": false
+}
+```
+
+JSON Schemaで表現しないwhitespace-only、path eligibility、duplicate、order、no-opは
+response parse後に本節と24.4でlocal validationする。
+
+response extractionは次のexact algorithmとする。field accessは対象が`Mapping`ならkey lookup、
+それ以外はattribute lookupとする。最初に`response.output_text`がnon-empty stringなら
+stripして使う。それ以外は`response.output`がlist / tupleの場合にそのorder、各itemの
+`content`がlist / tupleの場合にそのorderでnon-empty stringの`text`をstripして集め、
+`"\n".join(parts)`を使う。usable textが0件なら
+`AIReadingRepairV2ProviderResponseError`。extracted text全体をJSONとして1回parseし、NaN / Infinity /
+duplicate key / trailing prose / code fenceをrejectする。raw response、usage、response ID、API keyは
+result、attempt log、exception diagnosticへ保存しない。
+
+providerが返すmodel-owned JSONはexactly次のshapeとする。unknown fieldを禁止する。
+
+``` json
+{
+  "patches": [
+    {
+      "op": "replace",
+      "path": "/sections/0/summary/text",
+      "value": "修正後の文章"
+    }
+  ]
+}
+```
+
+`patches`は1件以上のarray。各entryは`op`、`path`、`value`の順序でexactly 3 fieldを持つ。
+
+-   `op`はliteral `"replace"`のみ。
+-   `path`はRFC 6901 JSON Pointerのnon-empty string。
+-   `value`はnon-empty string。whitespace-only stringを禁止する。
+-   同一`path`の重複を禁止する。
+-   異なるpatch間でancestor / descendant関係にある`path`を禁止する。
+-   provider responseのpath orderは24.4で導出したeditable path orderのsubsequenceでなければならない。
+-   元のtextとexactly同じ`value`はno-opとし、invalid patchである。
+-   empty `patches`、malformed JSON、code fence、extra prose、unknown op、unknown path、type mismatchを
+    repair failureとし、部分的に適用しない。
+
+patch array全体のvalidationがPASSした後だけ、deep copyしたAIReadingV2へarray orderでatomicに適用する。
+1件でもinvalidな場合は0件適用とする。full AIReadingV2 response、model-owned payload全体の
+replacement、merge-patch、JSON Patchの`add` / `remove` / `move` / `copy` / `test`を許可しない。
+
+### 24.4 Editable path derivation
+
+Auto-Repair v2が変更できるのは、target findingと関連付くmodel-owned
+`grounded_text_block.text`だけとする。AIReadingV2から次のblock rootをcanonical traversal orderで列挙する。
+
+1.  `/summary`
+2.  section array orderで、各sectionの`/summary`、`/detail`、`/evidence` array order、
+    `/interpretation` array order、`/advice` array order
+3.  `future_flow`の`yearly` array orderで各entryの`/summary`、`/detail`
+4.  non-nullな`/consultation_answer`
+
+finding `path`に対し、上記block rootのうちfinding pathと同一、またはfinding pathの
+RFC 6901 segment ancestorであるlongest rootを関連blockとする。finding pathがそのblockの
+`/text`または`/claim_type`等のdescendantであっても、editable pathはexactly
+`<block-root>/text`とする。関連blockが0件または1意でないfindingはautomatic repair対象にできない。
+
+provider responseの`path`はここで導出したeditable path stringのいずれかと
+Unicode code point単位でexact matchしなければならない。URI fragment / percent encoding、
+decode後だけ等価な`~0` / `~1`変形、array indexのleading zero、Unicode digitまたは
+normalize後だけ等価なpathを許可しない。decodeしたpathを別pathとして再解釈せず、
+exact membership検査に失敗した場合はpatch array全体をrejectする。
+
+複数findingが同じtext pathへresolveする場合、最初のfinding orderの位置で1つのeditable pathに
+deduplicateするが、`target_finding_ids`は全finding IDを元の順序で保持する。
+
+次はmodel-owned fieldであってもeditableではない。
+
+-   `claim_type`
+-   `source_fact_codes`
+-   `source_components`
+-   block / sectionの`warnings`、`uncertainty`
+-   section `facts`
+-   future yearおよびyear order
+-   consultation presence / absence
+
+次は所有者にかかわらず常に変更禁止とする。
+
+-   schema / version / method / status / engine identity
+-   trusted warning / uncertainty catalog
+-   source contracts
+-   fixed section ID / title / order
+-   attached future year / order
+-   disclaimer
+-   AI Reading validation report
+-   Reading Context、Common Judgment Metadata、Quality Report
+-   engine resultまたは占術計算値
+
+### 24.5 Validation and Quality Gate rerun
+
+validation orderをexactly次に固定する。
+
+1.  input typeとplain JSON snapshot可否を検証する。
+2.  Reading Context v2とCommon Judgment Metadataのowner validationを実行する。
+3.  initial Quality Report v2のidentity、decision、finding catalog invariantをowner contractで検証する。
+4.  24.2のtriggerとtarget finding orderを検証する。
+5.  editable pathを24.4で導出する。
+6.  current AIReadingV2のbefore hashを算出する。
+7.  providerを1回だけ呼び出す。
+8.  response全体と24.3で検証する。
+9.  deep copyへpatchをatomicに適用する。
+10. final AIReadingV2 contractとtrusted fieldが変更されていないことを検証する。
+11. after hashを算出する。
+12. 同じReading Context v2、Common Judgment Metadata、同じ`semantic_assessor` instanceで
+    `evaluate_ai_reading_quality_v2()`を実行する。
+13. resultにattempt logとfinal reportを保存する。
+
+rerunのdeterministic ERRORが残る場合、Quality Gateの凍結lifecycleによりsemantic assessorは
+呼び出されない。deterministic checkがPASSした場合は、同じassessorを通じてsemantic lifecycleを
+最初から実行する。initial semantic resultをrepair後へcopy、reuseまたはPASSとしてはならない。
+
+attempt後reportが`decision == "pass"`なら即時終了する。PASS以外で、かつ次attemptの
+24.2条件を満たす場合だけattempt 2へ進む。次attemptのtriggerを満たさなくなった場合、または
+2回のattempt後もPASSでない場合は、利用可能なautomatic repair attemptが尽きたものとして
+`status == "exhausted"`を返す。PASSでないreportを書き換えたり、repairが成功したとみなしたり
+しない。
+
+### 24.6 Canonical hashing
+
+`before_hash`、`after_hash`、および他節のAuto-Repair snapshot hashはexactly次で算出する。
+
+``` python
+sha256(
+    json.dumps(
+        value,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+        allow_nan=False,
+    ).encode("utf-8")
+).hexdigest()
+```
+
+hex digestはlowercase 64 ASCII characterとする。hashのためにinputのkey order、numeric value、string、
+warning / uncertainty orderを変更しない。`sort_keys=True`はserializationのためだけに使用する。
+
+### 24.7 Exact result and attempt-log contracts
+
+`RepairAttemptLogV2`のJSON representationは次の順序でexactly 5 fieldを持つ。
+
+1.  `attempt`: integer。`1 | 2`。
+2.  `issue_codes`: current pre-attempt reportでtargetとなったcodeのreport-order array of string。
+3.  `before_hash`: 24.6のlowercase SHA-256。
+4.  `after_hash`: 24.6のlowercase SHA-256。
+5.  `result`: `"repaired" | "failed"`。
+
+valid patchがatomicに適用され、after hashがbefore hashと異なり、final AIReadingV2 contractを
+満たすattemptだけ`result == "repaired"`とする。provider / transport / schema / invalid patch failureは
+`result == "failed"`相当だが、public resultを返さずtyped exceptionをraiseする。exceptionは実行済み
+attempt number、issue codes、before hash、存在する場合のafter hashをread-only diagnostic dataとして
+保持できるが、Quality Reportへ追加してはならない。
+
+`AIReadingRepairResultV2.to_dict()`は次の順序でexactly 10 fieldを返す。
+下のJSONはordered outer schemaの説明用fragmentであり、`{}`と`[]`は各owner
+contractに従うcomplete snapshot / non-empty runtime arrayと置換すべきplaceholderである。
+そのままvalid result instanceではない。
+
+``` json
+{
+  "schema_version": "ai_reading_repair_result_v2",
+  "version": "ai_reading_repair_v2",
+  "method": "openai_quality_issue_targeted_patch_v2",
+  "status": "pass",
+  "initial_ai_reading": {},
+  "final_ai_reading": {},
+  "initial_quality_report": {},
+  "final_quality_report": {},
+  "target_finding_ids": [],
+  "attempts": []
+}
+```
+
+-   `status == "pass"`はfinal reportの`decision == "pass"`とexact matchする。
+-   `status == "exhausted"`は1件以上のvalid attemptを完了したが、final decisionがPASSでなく、
+    次attemptの24.2 triggerを満たさないか2 attemptsへ到達した場合とする。
+-   initial / final AI Readingはplain JSON deep snapshot。
+-   initial / final Quality Reportはそれぞれの`to_dict()` deep snapshot。
+-   `target_finding_ids`は24.2のinitial report order。
+-   `attempts`はattempt number orderの1または2件のlog。
+-   resultと`to_dict()`はinputまたは保持snapshotへのmutable referenceを公開しない。
+
+### 24.8 Exceptions and non-goals
+
+moduleはbase `AIReadingRepairV2Error`と、次のpublic typed subclassを所有する。
+
+-   `AIReadingRepairV2ConfigurationError`
+-   `AIReadingRepairV2ProviderRequestError`
+-   `AIReadingRepairV2ProviderResponseError`
+-   `AIReadingRepairV2PatchValidationError`
+-   `AIReadingRepairV2CandidateValidationError`
+
+trigger不成立、invalid caller optionまたはmissing dependencyはconfiguration error。provider transport failureは
+provider request error。model responseのparse / schema failureはprovider response error。24.3違反はpatch
+validation error。patch後のfinal AIReadingV2 / trusted-field invariant違反はcandidate validation errorとする。
+exceptionから個人情報、API key、full provider responseを暗黙にmessageへ含めない。
+
+Auto-Repair v2は占術計算、fact生成、reference補完、claim type再分類、human approval、
+publication decision overrideを行わない。入力AIReadingV2、Reading Context、Common Judgment Metadata、
+Quality Reportを変更しない。
 
 ------------------------------------------------------------------------
 
 ## 25. ReadingProduct V2
 
-ReadingProduct は、
+### 25.1 Owner, identity, and public builder
+
+ReadingProduct v2のownerは新規opt-in module `engine/reading_product_v2.py`とする。
+`engine/reading_product.py`、`reading_product_v1`およびv1 consumerを変更しない。
+
+identity literalをexactly次に固定する。
 
 ``` text
-Engine Result
-+
-Reading Context
-+
-AI Reading
-+
-Quality Report
+READING_PRODUCT_V2_SCHEMA_VERSION = "reading_product_v2"
+READING_PRODUCT_V2_VERSION = "reading_product_v2"
+READING_PRODUCT_V2_METHOD = "reading_product_v2"
+READING_PRODUCT_V2_STATUS = "ready_for_publication"
 ```
 
-を PDF 商品へ渡す統合オブジェクトとする。
+public builderはexactly次とする。
 
-必須 metadata:
+``` python
+def build_reading_product_v2(
+    engine_result: Mapping[str, Any],
+    reading_context: Mapping[str, Any],
+    ai_reading: Mapping[str, Any],
+    quality_report: AIReadingQualityReportV2,
+    *,
+    generated_at: datetime,
+    repair_result: AIReadingRepairResultV2 | None = None,
+) -> ReadingProductV2:
+    ...
+```
 
--   product version
--   engine version
--   reading context schema
--   AI generation method
--   quality status
--   generated_at
--   recalculates_astrology = false
--   rewrites_ai_reading の状態
+Prompt request、provider raw response、API keyをargumentまたはproduct fieldとして受け取らない。
+Common Judgment MetadataはQuality Gate inputであるが、ReadingProductV2の5番目のembedded source snapshotとしない。
+
+### 25.2 Exact top-level schema
+
+`ReadingProductV2.to_dict()`は次の順序でexactly 10 fieldを返す。すべてREQUIRED、
+unknown field禁止。
+下のJSONはordered top-level schemaの説明用fragmentであり、`{}`は各owner contractで
+展開すべきnested snapshotのplaceholderである。そのままvalid Product instanceとはみなさない。
+
+``` json
+{
+  "schema_version": "reading_product_v2",
+  "version": "reading_product_v2",
+  "method": "reading_product_v2",
+  "status": "ready_for_publication",
+  "engine_result": {},
+  "reading_context": {},
+  "ai_reading": {},
+  "quality_report": {},
+  "repair_history": {},
+  "metadata": {}
+}
+```
+
+`engine_result`、`reading_context`、`ai_reading`、`quality_report`はbuilder inputのplain JSON deep snapshotとする。
+`quality_report`は`AIReadingQualityReportV2.to_dict()` representationとする。builder後のinput mutationまたは
+productの`to_dict()` result mutationは、product内部snapshotに影響してはならない。
+
+4 source snapshotのowner contractとnullabilityを次に固定する。
+
+| Product field | type / nullability | owner contract |
+|---|---|---|
+| `engine_result` | non-null plain JSON object | public `calculate_chart()` successful result。Productはfieldを追加・削除・normalizeしない |
+| `reading_context` | non-null plain JSON object | §20のowner-valid `reading_context_v2` |
+| `ai_reading` | non-null plain JSON object | §22のfinal validated `ai_reading_v2` |
+| `quality_report` | non-null plain JSON object | §23.6の`AIReadingQualityReportV2.to_dict()` |
+
+各snapshot内でowner contractがnullableと定義したfieldのnullは保持する。Product独自のnull fallback、
+legacy aliasまたはsource reconstructionを禁止する。
+
+### 25.3 Repair history
+
+`repair_history`は常にnon-null mappingとし、次の順序でexactly 2 fieldを持つ。
+
+repairなし:
+
+``` json
+{
+  "state": "not_repaired",
+  "result": null
+}
+```
+
+Auto-Repair v2あり:
+下の`{}`は24.7のcomplete `AIReadingRepairResultV2.to_dict()` snapshotを表す説明用
+placeholderであり、そのままvalid repair history instanceではない。
+
+``` json
+{
+  "state": "auto_repair_v2",
+  "result": {}
+}
+```
+
+`state`は`"not_repaired" | "auto_repair_v2"`だけを許可する。`auto_repair_v2`の`result`は
+24.7のexact `AIReadingRepairResultV2.to_dict()` snapshot、`not_repaired`の`result`はnullとする。
+booleanによる曖昧なrepair状態を禁止する。
+
+`repair_result` supplied時は次をすべて満たさなければならない。
+
+-   `repair_result.status == "pass"`
+-   `repair_result.final_ai_reading == ai_reading`
+-   `repair_result.final_quality_report.to_dict() == quality_report.to_dict()`
+-   attempt logが1件または2件
+-   first log `before_hash`が`repair_result.initial_ai_reading`の24.6 hashと一致する
+-   final log `after_hash`が`ai_reading`の24.6 hashと一致する
+-   2 logsの場合、log 1 `after_hash ==` log 2 `before_hash`
+-   `target_finding_ids`がinitial report内のauto-repairable finding IDをinitial report orderで保持する
+-   各logのattempt number、issue code order、hash、resultが§24.7を満たす
+
+`repair_result` absent時は`state == "not_repaired"`とし、repair historyを推測、復元または空arrayで
+代用しない。
+
+### 25.4 Exact metadata schema
+
+`metadata`は次の順序でexactly 12 fieldを持つ。
+下のJSONは`not_repaired`のvalid enum choiceを使ったfield / orderを示す。`"..."`と
+`{}`は実際のowner value / 25.4 exact nested mappingに置換すべき説明用placeholderであり、
+そのままvalid Product instanceではない。
+
+``` json
+{
+  "product_version": "reading_product_v2",
+  "engine_version": "...",
+  "reading_context_schema": "reading_context_v2",
+  "ai_reading_version": "ai_reading_v2",
+  "ai_generation_method": "...",
+  "quality_gate_version": "ai_reading_quality_report_v2",
+  "quality_status": "pass",
+  "generated_at": "2026-01-01T00:00:00+09:00",
+  "recalculates_astrology": false,
+  "rewrites_ai_reading": "none",
+  "snapshot_hashes": {},
+  "source_bundle_sha256": "..."
+}
+```
+
+-   `engine_version`は`engine_result["engine_metadata"]["engine_version"]`、
+    `reading_context["engine_version"]`、`ai_reading["engine_version"]`の共通するnon-empty exact string。
+    いずれかがnull / missing / non-string、または相互不一致の場合はProductを構築しない。
+-   `reading_context_schema == reading_context["schema_version"] == "reading_context_v2"`。
+-   `ai_reading_version == ai_reading["version"]`。
+-   `ai_generation_method == ai_reading["method"]`。
+-   `quality_gate_version == quality_report["version"]`。
+-   `quality_status == quality_report["decision"] == "pass"`。
+-   `generated_at`はcaller-supplied timezone-aware `datetime`を`isoformat(timespec="seconds")`で表したstring。
+    `tzinfo is None`、`utcoffset() is None`、または`microsecond != 0`をrejectする。timezone変換または
+    現在時刻補完を行わない。
+-   `recalculates_astrology` is exactly `false`。
+-   `rewrites_ai_reading`はrepair history stateとexact matchする`"none" | "auto_repair_v2"`。
+
+`snapshot_hashes`は次の順序でexactly 5 fieldを持ち、値は24.6で算出したlowercase SHA-256とする。
+
+``` json
+{
+  "engine_result": "...",
+  "reading_context": "...",
+  "ai_reading": "...",
+  "quality_report": "...",
+  "repair_history": "..."
+}
+```
+
+`source_bundle_sha256`は次のexact mappingを24.6でhashした値とする。
+下の`{}`はhash inputのordered fieldを示す説明用placeholderであり、実際の
+hash inputではProductがdeep-snapshotした対応field値に置換する。
+
+``` json
+{
+  "engine_result": {},
+  "reading_context": {},
+  "ai_reading": {},
+  "quality_report": {},
+  "repair_history": {}
+}
+```
+
+snapshot hashとbundle hashはProduct内のexact snapshotsが一緒にpackageされたことと、構築後の
+置換を検出する。とくにembedded `ai_reading`とembedded `quality_report`のその組を
+Product構築後に改変していないことを証明する。
+
+このhashは、embedded Quality Reportが過去にそのexact AIReading snapshotをQuality Gateで
+評価して生成されたことまでをcryptographically証明しない。v1.2 Productが検証できるのは、
+両owner contract、PASS / completed state、frozen owner contract上すでに表現できるidentity /
+source-contract relationship、および本節のsnapshot / bundle invariantに限る。
+
+歴史的な実行provenanceはcanonical application pipeline
+`Generator v2 -> Quality Gate v2 -> PASS -> ReadingProductV2 builder`が保証する運用境界であり、
+ReadingProductV2 v1.2のcryptographic proof responsibilityの範囲外とする。Productはそれより強い
+provenanceをclaimしない。QualityReportV2にAI snapshot hash、`evaluated_ai_sha256`、source hash、
+provenance hashその他のnew fieldを追加せず、Product builderもQuality Gateを再実行しない。
+このexplicit binding hashをQualityReport側に持たせる変更は将来の別contract / versionに限る。
+
+### 25.5 PASS-only construction and validation order
+
+ReadingProductV2はfinal `quality_report.decision == "pass"`の場合だけ構築する。
+`review`または`fail`ではvalidation errorをraiseし、blockedまたはpartial Productを返さない。
+
+validation orderをexactly次に固定する。
+
+1.  four source inputのtype、plain JSON、finite numberを検証する。
+2.  Reading Context v2をowner validatorで検証する。
+3.  AIReadingV2のexact final identity、`status == "completed"`、`validation.valid == true`を検証する。
+4.  Quality Report v2をowner dataclass contractで検証し、`status == "completed"`および
+    `decision == "pass"`を検証する。
+5.  Quality Reportの`input_contracts.ai_reading_v2`がembedded AIReadingV2の
+    `schema_version`、`version`、`method`、`status`、`engine_version`のexact projectionと一致し、
+    `input_contracts.reading_context_v2`がembedded Reading Contextの`schema_version`、`version`、
+    `method`、`status`のexact projectionと一致することを検証する。
+6.  Quality Reportの`input_contracts.common_judgment_metadata_v1`がAIReadingV2
+    `source_contracts.judgment_metadata`のidentityとexact matchすることを検証する。
+7.  AIReadingV2 `source_contracts.reading_context`がReading Context snapshotのidentityとexact matchすることを検証する。
+8.  engine versionが25.4のexact owner paths間で一致することを検証する。
+9.  PASS-only preconditionを検証する。
+10. repair historyと25.3のconsistencyを検証する。
+11. `generated_at`を25.4で検証する。
+12. source snapshotsをdeep copyし、snapshot hashとbundle hashを算出する。
+13. final Productを構築し、exact top-level / metadata / repair shapeを再検証する。
+
+mismatch、missing field、hash inconsistency、non-PASS report、repair provenance inconsistencyは
+`ReadingProductV2ValidationError`とする。builderはQuality Gateを再実行しない、decisionを変更しない、
+占術計算を行わない、AI proseを書き換えない、missing sourceを補完しない。
+Judgment Metadata、Prompt request、SemanticAssessor、provider responseまたはその他の5番目の
+source snapshot / dependencyを、historical Quality Gate executionを証明する目的で追加しない。
+
+### 25.6 Publication and compatibility boundary
+
+v1.2では`pass`だけがpublication eligibleとする。`review`と`fail`はpublication prohibited。
+human approval override contractをv1.2に追加しない、REVIEWをPASSへ変更しない、human approvalで
+Quality Gateをbypassしない。
+
+publication state transitionをexactly次に固定する。
+
+``` text
+QualityReport pass
+  -> ReadingProductV2 construction eligible
+  -> PDF v2 generation eligible
+
+QualityReport fail + all blocking findings auto-repairable
+  -> Auto-Repair v2 eligible
+  -> rerun Quality Gate
+  -> final passの場合だけReadingProductV2 construction eligible
+
+QualityReport review
+or non-auto-repairable fail
+or exhausted repair result
+  -> ReadingProductV2 construction prohibited
+  -> PDF v2 generation / publication prohibited
+```
+
+ReadingProductV2導入を理由にReadingProduct v1、v1 renderer、v1 PDF、v1 APIまたはv1 Goldenを
+変更しない。
 
 ------------------------------------------------------------------------
 
 ## 26. PDF鑑定書 V2
 
-### 26.1 基本セクション
+### 26.1 Owner, identity, and input boundary
 
--   表紙
--   基本情報
--   命式
--   日主
--   五行
--   月令・通根
--   身強身弱
--   干支関係
--   格局
--   用神
--   本質・性格
--   仕事・適職
--   金運
--   恋愛・人間関係
--   健康傾向
--   現在大運
--   現在歳運
--   今後の流れ
--   長期大運
--   総合アドバイス
--   注意事項・免責
+HTML renderer ownerを新規`engine/reading_renderer_v2.py`、PDF ownerを新規
+`engine/reading_pdf_v2.py`とする。v1 modulesを変更しない。
 
-### 26.2 PDF原則
+identity literalをexactly次に固定する。
 
--   計算値とAI文章を混同しない。
--   engine / schema / product version を内部metadataへ保持する。
--   三柱モード等の warning を落とさない。
--   Golden PDF を回帰比較できる。
--   レイアウト変更と占術ルール変更を同一PRで大量に混ぜない。
+``` text
+READING_RENDERER_V2_VERSION = "reading_renderer_v2"
+READING_RENDERER_V2_METHOD = "reading_renderer_v2"
+READING_RENDERER_V2_STATUS = "ready"
+READING_PDF_V2_TEMPLATE_VERSION = "reading_pdf_template_v2"
+READING_PDF_V2_VERSION = "reading_pdf_v2"
+READING_PDF_V2_METHOD = "html_to_pdf_playwright_chromium_v2"
+READING_PDF_V2_STATUS = "ready"
+```
+
+rendererとPDFの唯一のauthoritative content inputは`ReadingProductV2`とする。Engine Result、
+Reading Context、AIReadingV2、Quality Reportを別argumentで受け取るalternate pathを禁止する。
+Productの`status == "ready_for_publication"`、`quality_report.decision == "pass"`、metadata
+`quality_status == "pass"`、snapshot / bundle hash consistencyをrender前に検証する。
+
+### 26.2 Public renderer and PDF APIs
+
+public signatureをexactly次に固定する。
+
+``` python
+def render_reading_product_v2_html(
+    product: ReadingProductV2,
+    *,
+    document_title: str | None = None,
+    include_css: bool = True,
+) -> str:
+    ...
+
+async def write_reading_product_v2_pdf_async(
+    product: ReadingProductV2,
+    output_path: str | Path,
+    *,
+    document_title: str | None = None,
+    page_format: str = "A4",
+    print_background: bool = True,
+    prefer_css_page_size: bool = True,
+    timeout_ms: int = 30000,
+) -> Path:
+    ...
+
+def write_reading_product_v2_pdf(
+    product: ReadingProductV2,
+    output_path: str | Path,
+    *,
+    document_title: str | None = None,
+    page_format: str = "A4",
+    print_background: bool = True,
+    prefer_css_page_size: bool = True,
+    timeout_ms: int = 30000,
+) -> Path:
+    ...
+
+async def render_reading_product_v2_pdf_bytes_async(
+    product: ReadingProductV2,
+    *,
+    document_title: str | None = None,
+    page_format: str = "A4",
+    print_background: bool = True,
+    prefer_css_page_size: bool = True,
+    timeout_ms: int = 30000,
+) -> bytes:
+    ...
+
+def render_reading_product_v2_pdf_bytes(
+    product: ReadingProductV2,
+    *,
+    document_title: str | None = None,
+    page_format: str = "A4",
+    print_background: bool = True,
+    prefer_css_page_size: bool = True,
+    timeout_ms: int = 30000,
+) -> bytes:
+    ...
+```
+
+sync APIをrunning event loopから呼び出した場合は、nested loopまたはthreadへ暗黙fallbackせず
+`ReadingPdfV2GenerationError`をraiseしasync APIの使用を要求する。
+`output_path`は`.pdf`のみを許可する。parent directoryはPDF writerが作成できるが、既存の
+non-directory parent、write failure、empty fileをgeneration errorとする。
+
+argument validationを次に固定する。`document_title`がnullの場合はliteral
+`"八雲式四柱推命 鑑定書"`を使用し、non-nullの場合はnon-empty / non-whitespace stringだけを許可して
+内容をnormalizeしない。v1.2の`page_format`はliteral `"A4"`だけを許可する。
+`include_css`、`print_background`、`prefer_css_page_size`はexact built-in boolean、`timeout_ms`は
+booleanを含まないpositive built-in integerとする。invalid argumentはprovider / Chromiumを起動する前に
+`ReadingPdfV2ValidationError`とする。
+
+### 26.3 Mandatory visible content and order
+
+可視content sectionを次の順序に固定する。applicable sourceが空の場合もheadingを暗黙に
+削除せず、contract上optionalと明示された「相談への回答」だけpresenceに応じて出力する。
+
+1.  表紙
+2.  基本情報
+3.  命式
+4.  日主
+5.  五行
+6.  月令・通根
+7.  身強身弱
+8.  干支関係
+9.  格局
+10. 用神
+11. 本質・性格
+12. 仕事・適職
+13. 金運
+14. 恋愛・人間関係
+15. 健康傾向
+16. 現在大運
+17. 現在歳運
+18. 今後の流れ
+19. 長期大運
+20. 総合アドバイス
+21. 相談への回答（`consultation_answer != null`の場合だけ）
+22. 注意事項・免責
+
+source ownershipを次に固定する。
+
+-   表紙、基本情報、命式、日主、五行、月令・通根、身強身弱、干支関係、格局、用神、
+    現在大運、現在歳運、長期大運の計算値はProduct内のEngine Result / Reading Context snapshotから
+    表示し、rendererが再計算しない。
+-   AI section、future/yearly flow、総合アドバイス、consultation answerはProduct内のfinal
+    AIReadingV2 textをexactly表示し、rewrite、summarize、mergeまたは補完しない。
+-   `future_flow.yearly`はProduct内のyear orderを保持し、attached yearを各yearly entryと一緒に表示する。
+-   non-null `consultation_answer`は専用の「相談への回答」sectionに表示し、他sectionに暗黙mergeしない。
+-   visible warning / uncertaintyの唯一のauthorityはProduct内のfinal AIReadingV2 top-level
+    `warnings`および`uncertainty` catalogとする。それぞれのarray orderとentry内のexact valueを
+    維持して「注意事項・免責」に表示し、deduplicate、sort、Reading Context catalogとの
+    merge / concatenation、severity rewrite、message rewriteまたは補完を行わない。Reading Contextの
+    warning / uncertaintyはProduct invariantですでに必要なvalidation / cross-checkにだけ用い、
+    第二のvisible catalogとして表示しない。
+-   `birth_time_status.known == false`では、hour pillarが不明であること、three-pillar / known-pillars-only
+    scope、timing uncertaintyに対応するfinal AIReadingV2 catalog entryを「注意事項・免責」に
+    visibleに表示する。hourを補完しない。AIReadingV2 / Reading Context preservation invariantが
+    崩れている場合、Product / rendererは文言を補完または修復せずvalidation errorとする。
+-   disclaimerはfinal AIReadingV2のtrusted disclaimerを「注意事項・免責」にexactly表示し、
+    fallback disclaimerへ置換しない。
+
+### 26.4 Canonical HTML and provenance metadata
+
+`render_reading_product_v2_html()`の戻り値はUTF-8でserialize可能なcomplete HTML documentとし、
+`<!DOCTYPE html>`を持つ。同じProductと同じargumentsからbyte-for-byte同じHTML stringを返す。
+現在時刻、random ID、network resource、provider call、filesystem contentをrendering inputにしない。
+
+HTMLは次の7項目のinternal provenance metadataを`<meta>`に保持する。各valueは
+Product metadataおよび本節のidentity constantからexact-copyし、これらを顧客向けproseへ
+混入させない。
+
+-   engine version
+-   Reading Context schema
+-   AI Reading version / method
+-   Quality Gate version / decision
+-   ReadingProduct version
+-   PDF template versionはowner constant
+    `READING_PDF_V2_TEMPLATE_VERSION == "reading_pdf_template_v2"`
+-   Product `source_bundle_sha256`
+
+HTML escapeを行い、API key、system/user prompt、provider raw response、usage、response IDをvisible contentまたは
+HTML metadataへ出力しない。
+
+### 26.5 PDF generation, failures, and non-goals
+
+PDF backendはPlaywright Chromiumによるcanonical HTMLのprintとする。rendererまたはPDF moduleは
+占術計算、AI prose rewrite、repair、Quality Gate decision override、AI provider callを行わない。
+
+`engine/reading_pdf_v2.py`は次のexact public exception hierarchyを所有する。これ以外の
+public PDF v2 exception subclassをv1.2に追加しない。v1 PDFのexceptionを変更しない。
+
+``` python
+class ReadingPdfV2Error(Exception): ...
+class ReadingPdfV2ValidationError(ReadingPdfV2Error): ...
+class ReadingPdfV2DependencyError(ReadingPdfV2Error): ...
+class ReadingPdfV2GenerationError(ReadingPdfV2Error): ...
+```
+
+public HTML rendererとPDF APIのinput / argument / Product invariant failureは
+`ReadingPdfV2ValidationError`。Playwright import failure、Chromium不在または起動失敗は
+`ReadingPdfV2DependencyError`。renderer execution failure、timeout、file write failure、invalid /
+empty PDF backend outputは`ReadingPdfV2GenerationError`とする。sync APIのrunning-event-loop failureは
+26.2どおり`ReadingPdfV2GenerationError`とする。
+
+file outputは存在、regular file、size > 0、prefix `%PDF`を検証する。bytes outputもnon-emptyかつ
+prefix `%PDF`を検証する。invalid / empty outputをsuccessful artifactとして返さない。
+
+typography、color、marginその他のvisual stylingは、readability、content preservation、section orderまたは
+securityを壊さない限りv1.2 frozen content contractに含めない。レイアウト変更と占術ルール変更を
+同一PRで大量に混ぜない。
+
+### 26.6 PDF Golden authority
+
+machine regression authorityはexact ReadingProductV2 JSONと26.4のcanonical HTML / content structureとする。
+Chromiumが再生成したPDF bytesのenvironment間bit-for-bit equalityを要求しない。
+
+committed/reference PDFは30.6に従ってmanifestのsize、SHA-256、human visual review recordへbindする。
+SHA-256はcommitted artifact自体の完全性を検査するもので、別environmentでの再生成bytes一致を
+意味しない。visual reviewはmandatory section、切れ、重なり、文字化け、warning / uncertainty、
+unknown-hour notice、disclaimer、future/yearly、consultation sectionの保持を確認する。
 
 ------------------------------------------------------------------------
 
 ## 27. API V2
 
-### 27.1 Metadata
+### 27.1 Scope and schema owner
+
+v1.2でfreezeするのはtransport-neutralなAPI v2 metadata / success envelope / error envelope contractである。
+schema ownerは将来のopt-in `api/reading_contract_v2.py`とする。public HTTP route、router registration、
+authentication、storage、download URLは本節のv1.2必須実装に含めない。
+
+identity literalをexactly次に固定する。
+
+``` text
+READING_API_V2_SCHEMA_VERSION = "reading_api_envelope_v2"
+READING_API_V2_ERROR_SCHEMA_VERSION = "reading_api_error_v2"
+READING_API_V2_VERSION = "v2"
+```
+
+### 27.2 Success envelope
+
+success envelopeは次の順序でexactly 11 fieldを持つ。すべてREQUIRED、unknown field禁止。
+下のJSONはtransport-neutral outer / nested envelope fieldの説明用fragmentであり、
+`reading_product: {}`は§25のcomplete owner-valid snapshotと置換すべきplaceholderである。
+そのままvalid success envelope instanceではない。
 
 ``` json
 {
+  "schema_version": "reading_api_envelope_v2",
   "api_version": "v2",
-  "engine_version": "1.2",
+  "engine_version": "...",
   "schema_versions": {
-    "reading_context": "v2",
-    "reading_product": "v2"
+    "reading_context": "reading_context_v2",
+    "ai_reading": "ai_reading_v2",
+    "quality_report": "ai_reading_quality_report_v2",
+    "reading_product": "reading_product_v2",
+    "pdf": "reading_pdf_v2"
   },
-  "rule_versions": {},
+  "rule_versions": {
+    "rule_version": "1.2"
+  },
+  "quality": {
+    "version": "ai_reading_quality_report_v2",
+    "status": "completed",
+    "decision": "pass"
+  },
+  "publication": {
+    "eligible": true,
+    "reason": "quality_gate_pass"
+  },
+  "reading_product": {},
+  "pdf_artifact": null,
   "warnings": [],
   "uncertainty": []
 }
 ```
 
-### 27.2 原則
+-   `engine_version`はReadingProductV2 metadataからexact-copyするnon-empty string。
+-   `schema_versions`は記載順のexactly 5 field。PDF artifactがnullでも`pdf` versionを保持する。
+-   `rule_versions`はexactly `rule_version` 1 fieldを持ち、embedded Productの
+    `engine_result["engine_metadata"]["rule_version"]` non-empty stringをexact-copyする。
+-   `quality`は記載順のexactly 3 fieldで、embedded ProductのQuality Reportとexact matchする。
+-   ProductがPASS-onlyであるため`publication`はexactly
+    `{"eligible":true,"reason":"quality_gate_pass"}`とする。REVIEW / FAIL envelopeをsuccessとして構築しない。
+-   `reading_product`はexact ReadingProductV2 snapshot。
+-   `warnings`と`uncertainty`はembedded `ai_reading`のcatalogをorderを変更せずdeep-copyする。
 
--   API response だけで、どのルールで算出されたか追跡できる。
--   breaking change は API version を分離する。
--   v1.1 互換が必要な場合は adapter を設ける。
--   内部例外をそのまま個人情報付きで外部へ返さない。
+`pdf_artifact`はnullまたは次の順序でexactly 4 fieldのmappingとする。
+下のJSONはschema-valid field / type exampleであり、actual `size`と`sha256`は
+対応するPDF bytesとexact matchしなければならない。
+
+``` json
+{
+  "type": "pdf",
+  "media_type": "application/pdf",
+  "size": 1,
+  "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+}
+```
+
+`size`はpositive integer。`sha256`はlowercase 64-character SHA-256。filesystem path、signed URL、
+storage key、raw bytesは本metadata objectに含めない。
+
+### 27.3 Error envelope
+
+error envelopeは次の順序でexactly 3 fieldを持つ。
+
+``` json
+{
+  "schema_version": "reading_api_error_v2",
+  "api_version": "v2",
+  "error": {
+    "code": "generation_error",
+    "message": "処理を完了できませんでした。",
+    "stage": "quality_gate",
+    "request_id": null
+  }
+}
+```
+
+`error`は`code`、`message`、`stage`、`request_id`の順序でexactly 4 field。
+
+-   `code`は`"input_error" | "unsupported" | "calculation_error" | "generation_error"`。
+-   `message`は個人情報、API key、prompt、provider raw response、Python exception textを含まないpublic string。
+-   `stage`は`"input" | "calculation" | "reading_context" | "judgment_metadata" | "prompt" |
+    "generation" | "quality_gate" | "repair" | "product" | "pdf" | "publication" | null`。
+-   `request_id`はnon-empty stringまたはnull。
+
+HTTP status mapping、route path、request modelはHTTP v2 route freezeまで本節のcontract外とする。
+
+### 27.4 Contract builder and compatibility
+
+transport-neutral builderを実装する場合のpublic signatureは次とする。
+
+``` python
+def build_reading_api_v2_envelope(
+    product: ReadingProductV2,
+    *,
+    pdf_artifact: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    ...
+
+def build_reading_api_v2_error_envelope(
+    *,
+    code: str,
+    message: str,
+    stage: str | None = None,
+    request_id: str | None = None,
+) -> dict[str, Any]:
+    ...
+```
+
+builderはProductのPASS/publication/hash invariantとoptional PDF artifact metadataを検証し、deep-copyした
+JSON-safe envelopeを返す。占術計算、AI generation、Quality Gate、PDF generationを実行しない。
+error builderは27.3のallowlist / type / public-message constraintsだけを検証し、exception textを
+messageへ自動変換しない。両builderはinput mappingを変更せず、current timeを追加しない。
+success envelopeの`engine_version`、`schema_versions`、`rule_versions`とembedded Productにより、
+response単体から使用したengine / rule / source schemaを追跡可能にする。
+
+breaking changeはAPI versionを分離する。v1.1互換が必要な場合は将来のHTTP layerでadapterを設ける。
+`api/reading_routes.py`、`reading_api_v1`、existing request / response modelを変更しない。
+public HTTP v2 routeはcomprehensive v1.2 engine / product releaseの必須条件ではなく、
+28.2のexternal-release separationに従うpost-v1.2 product integrationとする。
 
 ------------------------------------------------------------------------
 
@@ -3974,8 +4850,10 @@ Common Judgment Metadata導入を理由に、`tests/golden/v1_1/**`、`reading_c
 6.  AI Contract Test
 7.  Quality Gate Test
 8.  Auto-Repair Test
-9.  PDF End-to-End Test
-10. Security / Privacy Test
+9.  ReadingProduct Contract Test
+10. PDF End-to-End Test
+11. Golden Artifact Verification Test
+12. Security / Privacy Test
 
 ### 30.2 Golden Chart
 
@@ -3996,14 +4874,247 @@ Common Judgment Metadata導入を理由に、`tests/golden/v1_1/**`、`reading_c
 -   歳運
 -   現在運
 
-### 30.3 Golden Artifact
+### 30.3 Golden Artifact共通contract
 
--   reading_context JSON
--   AI Contract fixture
--   ReadingProduct JSON
--   PDF
+v1.2 Golden Artifactはhuman-reviewed regression artifactであり、runtime astrology evidence、
+trusted calculation source、AI grounding sourceまたはprovider substituteではない。Goldenの存在を理由に
+新しい占術値、fact、reference、warning、uncertaintyまたはQuality Gate PASSを生成してはならない。
 
-### 30.4 ルール変更時
+Goldenは`tests/golden/v1_2/`配下に置き、各artifact categoryは`manifest.json`を持つ。
+manifestは次の順序でexactly 5 fieldを持つ。
+下のJSONは`ai_reading_v2` categoryのschema-valid exampleである。actual manifestの
+`size`と`sha256`はcommitted bytesから算出した値へ置換する。
+
+``` json
+{
+  "schema_version": "golden_artifact_manifest_v2",
+  "version": "golden_artifact_v2",
+  "artifact_type": "ai_reading_v2",
+  "file_count": 2,
+  "files": [
+    {
+      "artifact_id": "GC03:ai_reading_v2",
+      "path": "GC03_1984_fukuoka_male_afternoon_ai_reading_v2.json",
+      "size": 1,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "artifact_id": "GC10:ai_reading_v2",
+      "path": "GC10_1985_ishikawa_female_unknown_birth_time_ai_reading_v2.json",
+      "size": 1,
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  ]
+}
+```
+
+`artifact_type`はenumであり、allowed literalはexactly
+`"ai_reading_v2" | "reading_product_v2" | "pdf_v2"`の3つとする。
+AI Reading、ReadingProduct、PDFのcategory manifestはそれぞれ対応する単一literalを使い、
+pipe-concatenated stringをvalueとして使ってはならない。
+
+`files` entryは次の順序でexactly 4 fieldを持つ。下のentryはfield / typeの
+schema-valid exampleであり、actual integrity valueはcommitted fileとexact matchしなければならない。
+
+``` json
+{
+  "artifact_id": "GC03:ai_reading_v2",
+  "path": "GC03_1984_fukuoka_male_afternoon_ai_reading_v2.json",
+  "size": 1,
+  "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+}
+```
+
+-   `artifact_id`はcategory内でuniqueなnon-empty string。
+-   `path`はmanifest directoryからのrelative POSIX path。absolute path、`..`、backslashを禁止する。
+-   `size`はcommitted fileのbyte lengthとexact matchするpositive integer。
+-   `sha256`はcommitted file bytesのlowercase 64-character SHA-256とexact matchする。
+-   `files`は`artifact_id`のUnicode code point ascending order、`file_count == len(files)`とする。
+-   manifest自身を`files`へ含めない。
+
+JSON GoldenはUTF-8、trailing newline 1個、duplicate keyなし、finite plain JSON valueだけを許可し、
+parse後のcanonical comparisonには24.6のserializationを用いる。human review timestampをtest実行時に
+更新せず、reviewed artifactの固定recordとして扱う。
+
+### 30.4 AI Reading v2 Golden
+
+AI Reading v2 Golden rootは`tests/golden/v1_2/ai_reading_v2/`とし、minimum caseをexactly次の
+2 fixture familyとする。
+
+1.  `GC03_1984_fukuoka_male_afternoon`
+2.  `GC10_1985_ishikawa_female_unknown_birth_time`
+
+case filenameはそれぞれ
+`GC03_1984_fukuoka_male_afternoon_ai_reading_v2.json`、
+`GC10_1985_ishikawa_female_unknown_birth_time_ai_reading_v2.json`に固定し、manifest
+`file_count == 2`とする。
+
+各case JSONは次の順序でexactly 9 fieldを持つ。
+下のJSONはouter / nested field ownershipの説明用fragmentであり、`{}`は
+参照するowner contractのcomplete snapshotと置換すべきplaceholderである。そのまま
+valid Golden instanceとはみなさない。
+
+``` json
+{
+  "schema_version": "ai_reading_v2_golden_v1",
+  "version": "ai_reading_v2_golden_v1",
+  "case_id": "GC03",
+  "source_references": {
+    "chart_fixture_id": "GC03_1984_fukuoka_male_afternoon",
+    "reading_context_fixture": "tests/golden/v1_2/reading_context/GC03_1984_fukuoka_male_afternoon_consultation_reading_context_v2.json",
+    "target_datetime": "2026-08-10T15:36:00+09:00",
+    "consultation_context": {}
+  },
+  "provider_model": "test-model",
+  "provider_response": {},
+  "ai_reading": {},
+  "quality_report": {},
+  "human_review": {}
+}
+```
+
+`source_references`は次の順序でexactly 4 fieldを持つ。
+
+1.  `chart_fixture_id`: section冒頭のfixture family IDとexact matchするstring。
+2.  `reading_context_fixture`: `tests/golden/v1_2/reading_context/`配下のsame-case owner-valid Golden path。
+    GC03はnon-null consultationを含む上記consultation-bound fixture、GC10はexisting unknown-hour fixtureとする。
+3.  `target_datetime`: timezone-aware ISO 8601 string。fixed inputでありcurrent timeを使用しない。
+4.  `consultation_context`: public `build_consultation_context()`のowner-valid exact output snapshotまたはnull。
+    GC03はnon-null、GC10はnullとし、referenced Reading Contextの`consultation`とexact matchさせる。
+
+`provider_model`はliteral `"test-model"`。`provider_response`はGenerator v2へ1回だけ返すdeterministicな
+model-owned payloadであり、final trusted wrapper fieldを含めない。`ai_reading`はそのresponseとsourceから
+public Generator v2が構築したfinal AIReadingV2 snapshot、`quality_report`はdeterministic test assessorで
+public Quality Gate v2を実行したcompleted / zero-finding / `decision == "pass"` reportとする。
+live provider、network、API key、current time、environment-selected modelをGolden生成またはverificationに
+使用してはならない。
+
+Golden verificationのtest-only `SemanticAssessorV2`はidentityとoutputをexactly次に固定する。
+
+``` text
+method = "golden_semantic_assessor_v1"
+version = "v1"
+```
+
+``` json
+{
+  "status": "completed",
+  "findings": []
+}
+```
+
+このassessorはprovider-independentなtest-only fakeであり、production concrete SemanticAssessorではない。
+`method`と`version`はpublic Quality Gate v2の`semantic_assessment`へexact-copyされ、Golden
+QualityReportのcanonical JSONとSHA-256を安定させる。Golden生成 / verificationは毎回この
+same identity / outputを使い、liveまたはproduction assessorへfallbackしない。
+
+`human_review`は次の順序でexactly 5 fieldを持つ。
+
+``` json
+{
+  "status": "approved",
+  "reviewer": "reviewer-id",
+  "reviewed_at": "2026-01-01T00:00:00+09:00",
+  "scope": "ai_reading_v2_prose_and_contract",
+  "notes": []
+}
+```
+
+`reviewer`はnon-empty string、`reviewed_at`はtimezone-aware ISO 8601 seconds、`notes`はarray of string。
+このreviewはprose / contract / expected coverageの承認記録であり、runtime Quality Gate decision overrideではない。
+
+GC03は少なくともfour pillars、current luck、future/yearly flow、exact numeric / luck grounding、
+non-null consultation answer、clean PASSを同じintegrated artifactでcoverする。GC10はunknown hour、
+null hour pillar、warning / uncertainty exact preservation、three-pillar / known-pillars-only wording、clean PASSをcoverする。
+
+### 30.5 ReadingProduct v2 Golden
+
+ReadingProduct v2 Golden rootは`tests/golden/v1_2/reading_product_v2/`とし、minimum casesはGC03とGC10とする。
+case filenameは30.4のfixture family nameにsuffix `_reading_product_v2.json`を付けたものとし、
+manifest `file_count == 2`とする。
+各case JSONは次の順序でexactly 7 fieldを持つ。
+下のJSONはouter field ownershipの説明用fragmentであり、`{}`は§25または30.4の
+complete snapshotと置換すべきplaceholderである。そのままvalid Golden instanceではない。
+
+``` json
+{
+  "schema_version": "reading_product_v2_golden_v1",
+  "version": "reading_product_v2_golden_v1",
+  "case_id": "GC03",
+  "source_ai_reading_golden": "...",
+  "generated_at": "2026-01-01T00:00:00+09:00",
+  "reading_product": {},
+  "human_review": {}
+}
+```
+
+`source_ai_reading_golden`は30.4のsame-case repository-relative path、`generated_at`はProductに渡した
+fixed caller-supplied timestampとexact matchする。`reading_product`は§25 public builderのexact outputで、
+4 source snapshot、repair state、snapshot hashes、bundle hashを含む。GC03 / GC10いずれも
+`repair_history.state == "not_repaired"`をminimum baselineとし、Auto-Repair provenance Goldenは追加caseとしてよい。
+
+`human_review`は30.4と同じfield order / typeを使い、`scope`だけliteral
+`"reading_product_v2_contract_and_content"`とする。verificationはsource GoldenからProductを再構築し、
+canonical Product JSON、individual snapshot hash、bundle hash、PASS-only invariantをexact比較する。
+
+### 30.6 PDF v2 Golden
+
+PDF v2 Golden rootは`tests/golden/v1_2/pdf_v2/`とし、minimum casesはGC03とGC10とする。
+各caseは少なくとも次の3 committed artifactを持つ。
+
+1.  §26.4のcanonical UTF-8 HTML。
+2.  human-reviewed reference PDF。
+3.  visual review JSON。
+
+filenameは30.4のfixture family nameへそれぞれ`.html`、`.pdf`、`_visual_review.json`を付けたものに固定し、
+manifestは6 fileすべてを列挙して`file_count == 6`とする。
+
+visual review JSONは次の順序でexactly 7 fieldを持つ。
+
+``` json
+{
+  "schema_version": "pdf_v2_visual_review_v1",
+  "version": "pdf_v2_visual_review_v1",
+  "case_id": "GC03",
+  "status": "approved",
+  "reviewer": "reviewer-id",
+  "reviewed_at": "2026-01-01T00:00:00+09:00",
+  "checks": {
+    "mandatory_sections": "pass",
+    "no_clipping": "pass",
+    "no_overlap": "pass",
+    "no_mojibake": "pass",
+    "warnings_uncertainty": "pass",
+    "unknown_hour_notice": "pass",
+    "disclaimer": "pass",
+    "future_yearly": "pass",
+    "consultation_answer": "pass"
+  }
+}
+```
+
+`checks`は次の順序でexactly 9 fieldを持つ。各valueは`"pass" | "not_applicable"`。
+
+1.  `mandatory_sections`
+2.  `no_clipping`
+3.  `no_overlap`
+4.  `no_mojibake`
+5.  `warnings_uncertainty`
+6.  `unknown_hour_notice`
+7.  `disclaimer`
+8.  `future_yearly`
+9.  `consultation_answer`
+
+applicable itemは`"pass"`必須。GC03の`future_yearly`と`consultation_answer`、GC10の
+`warnings_uncertainty`と`unknown_hour_notice`は`"not_applicable"`にしてはならない。
+renderer regressionはsame-case ReadingProductからcanonical HTMLを再生成してexact compareする。
+Golden HTML regenerationは`document_title=None`、`include_css=True`のdefault argumentsを使用する。
+reference PDF generationも26.2のdefault `document_title`、`page_format`、`print_background`、
+`prefer_css_page_size`を使用し、renderer / PDF versionをvisual review recordと同じcommitで固定する。
+reference PDFはmanifestのsize / SHA-256でintegrityを検査し、human visual review recordと一緒に保持するが、
+別environmentで再生成したChromium PDF bytesとのbit-for-bit equalityを要求しない。
+
+### 30.7 ルール変更時
 
 ``` text
 Change ID
@@ -4157,31 +5268,63 @@ AI / Quality Gate / PDF生成失敗。
 
 ## 35. v1.2 完成判定 Definition of Done
 
-以下をすべて満たした時点で v1.2 完成とする。
+本節はcomprehensive v1.2 engine / product / publication releaseのmechanical DoDとする。
+`[x]`は本spec freeze時点でrepository実物とindependent auditにより完了確認済み、`[ ]`は
+release前にartifactまたは実装の完了確認が必要な項目を表す。
 
--   [ ] v1.1 baseline が固定されている
--   [ ] 全主要ルールに method/version/status がある
--   [ ] 主要判断に evidence がある
--   [ ] warning / uncertainty が共通形式で出る
--   [ ] 節入り境界テストが通る
--   [ ] 通変星100組テストが通る
--   [ ] 十二運完全マトリクスが通る
--   [ ] 身強身弱境界テストが通る
--   [ ] 格局候補と最終判定が分離されている
--   [ ] 用神の採用・不採用理由が追跡できる
--   [ ] 大運・歳運の根拠が構造化されている
--   [ ] 三柱モードの不確実性がAI/PDFまで伝播する
--   [ ] reading_context v2 が固定されている
--   [ ] AIが占術を再計算しない
--   [ ] facts / interpretation / advice が分離されている
--   [ ] Quality Gate V2 が通る
--   [ ] Auto-Repair後に再検査される
--   [ ] ReadingProduct V2 が固定されている
--   [ ] PDF V2 E2E が通る
--   [ ] Golden Chart 差分が説明済み
--   [ ] Golden PDF 差分が説明済み
--   [ ] 重大な未説明 regression が0件
--   [ ] v1.2 の既知制約が文書化されている
+### 35.1 Complete already
+
+-   [x] v1.1 baselineと§28.3 compatibility boundaryが固定されている。
+-   [x] calculation coreの主要ruleはmethod / version / status、structured evidence、warning / uncertaintyを持つ。
+-   [x] 節入り境界、通変星100組、十二運matrix、身強身弱boundary、格局、用神、luck / annual luckの
+    frozen regression coverageがある。
+-   [x] Golden Chart baselineと承認recordが固定され、既知のintentional differenceが追跡可能である。
+-   [x] Reading Context v2 public builder、owner validation、Goldenが固定されている。
+-   [x] Common Judgment Metadata adapter / validator contractが実装・検証済みである。
+-   [x] Prompt Builder v2がtrusted catalogs / attachments / section contractを構築する。
+-   [x] Generator v2がprovider injection、one-call、strict model response、trusted final assemblyを実装する。
+-   [x] Quality Gate v2がdeterministic / semantic / numeric checksとfinal PASS / REVIEW / FAIL reportを公開する。
+-   [x] AI Reading v2がfacts / interpretation / advice ownershipを分離し、占術を再計算しない。
+-   [x] calculationからQuality Gateまでのpublic-function engine-level E2EがGC03 / GC10で検証されている。
+
+### 35.2 Remaining required before comprehensive v1.2 release
+
+-   [ ] §24 Auto-Repair v2、§25 ReadingProduct v2、§26 PDF v2、§27 API v2および§30 Goldenの
+    contractがPhase 7.1 independent auditをPASSし、spec freeze commit済みであることを確認する。
+-   [ ] Auto-Repair v2を§24どおり実装し、text-only patch、2-attempt limit、no hidden retry、
+    Quality Gate rerun、exhausted / typed-exception、immutabilityをtestする。
+-   [ ] §30.4のGC03 / GC10 AI Reading v2 Goldenを作成し、human review、manifest size / SHA-256、
+    network-independent regeneration testを完了する。
+-   [ ] ReadingProduct v2を§25どおり実装し、PASS-only construction、4 snapshots、repair provenance、
+    canonical binding hash、caller-supplied timestamp、immutabilityをtestする。
+-   [ ] §30.5のGC03 / GC10 ReadingProduct v2 Goldenを作成し、canonical JSON / hash / human reviewを完了する。
+-   [ ] renderer / PDF v2を§26どおり実装し、sync / async path / bytes API、ReadingProduct-only input、
+    mandatory visible content、failure boundaryをE2E testする。
+-   [ ] §30.6のGC03 / GC10 canonical HTML、reference PDF、manifest、human visual reviewを完了する。
+-   [ ] GC10のunknown-hour / three-pillar warningとuncertaintyがAI Golden、Product Golden、canonical HTML、
+    reference PDFまで保持されることを確認する。
+-   [ ] GC03のcurrent luck、future/yearly numeric grounding、consultation answerがAI Golden、Product Golden、
+    canonical HTML、reference PDFまで保持されることを確認する。
+-   [ ] v1 / v2 full regressionを実行し、重大な未説明failure / errorが0件、xfail / xpass / skip差分が
+    説明済みであることを確認する。
+-   [ ] v1.2 changelog、既知制約、sample customer readingおよびGolden差分reviewを完了する。
+-   [ ] 付録Dのrelease checklistを満たし、versionを固定して`v1.2.0` release tagを作成する。
+
+### 35.3 Post-v1.2 / not required for this DoD
+
+次はcomprehensive v1.2 engine / product / publication releaseの完了条件に含めない。
+
+-   public HTTP v2 route、router registration、deployment-specific authentication / storage。
+-   UI。
+-   provider-specific concrete `SemanticAssessorV2` implementation。Protocol / injected boundaryはv1.2 contractとする。
+-   live-provider GoldenまたはGolden test中のnetwork / API key使用。
+-   REVIEWを公開可能にするhuman approval artifact / override。
+
+### 35.4 Completion rule
+
+v1.2完成と宣言できるのは、35.2と付録Dの全itemが完了し、§24〜§27 / §30のindependent contract audit、
+implementation audit、final regression auditで未解決HIGH / MEDIUMが0件、remaining ambiguityがない場合だけとする。
+35.3 itemの未実装をv1.2 blockerとして扱わず、逆に35.3を理由に35.2 itemを省略してはならない。
 
 ------------------------------------------------------------------------
 
