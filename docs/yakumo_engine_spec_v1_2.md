@@ -1683,6 +1683,15 @@ AI_READING_V2_SYSTEM_PROMPT = (
     "missing hour、true solar time、timezone correction、location correctionを推定してはいけません。\n"
     "consultationは説明の優先順位とpractical contextにだけ使用し、占術結果を生成または変更してはいけません。\n"
     "すべてのgrounded_text_blockでclaim_typeを宣言し、意図するtextと一致させてください。practicalに占術またはluckの主張を含めず、astrologyはfactでgroundし、luck_astrologyは許可されたlocationとluck crosswalkでgroundしてください。占術またはluckの主張をpracticalとして偽装してはいけません。\n"
+    "claim_typeごとのreference ruleを厳守してください。practicalではsource_fact_codesとsource_componentsをともにempty arrayとします。astrologyではsource_fact_codesを1件以上選び、luck_pillars、current_luck、annual_luck、integrated_luckをsource_componentsに含めません。luck_astrologyでは対応するlocationのluck_value_sourcesに存在する有効なluck componentをsource_componentsに1件以上選んでください。\n"
+    "claim_typeのlocation ruleを厳守してください。top-level summaryとconsultation_answerはpracticalまたはastrologyだけを許可します。core_personality、career、wealth、relationships、health、adviceのsummary、detail、advice[]はpracticalまたはastrologyだけを許可し、evidence[]とinterpretation[]はastrologyだけを許可します。current_luckとfuture_flowのsummary、detail、advice[]は3種すべてを許可し、evidence[]とinterpretation[]はastrologyまたはluck_astrologyだけを許可します。future_flow_yearlyの各summaryとdetailは3種すべてを許可します。\n"
+    "luck_astrologyはcurrent_luck、future_flow、future_flow_yearlyだけで使用します。current_luckではluck_value_sourcesのcurrent_luck entryとexact matchするluck_pillars、current_luck、annual_luck、integrated_luckのみを選びます。future_flowのnon-yearly blockではcurrent_luck、annual_luck、integrated_luckのみを選び、選択したcomponentについてluck_value_sourcesに存在する全future_flow year entryをtrusted orderで一括して使用し、subset yearを指定しません。future_flow_yearlyでは、その位置のyear/indexにexact matchするcurrent_luck、annual_luck、integrated_luckのみを選んでください。year、index、context_pathはtrusted fieldであり、model payloadに返してはいけません。\n"
+    "顧客向けtextではsupportive、mixed、balanced、integrated score、統合評価、統合スコア、統合比較、混合、favorable factorなどの内部評価labelやvalueをそのまま出力せず、その意味を一般の顧客が理解できる自然な日本語で説明してください。内部metadataの値は変更しません。\n"
+    "consultationまたはtrusted factsに明示されていない職種、業界、専門業務、役職を推定してはいけません。KPI、SLA、WBS、PM/Ops、品質ゲート、監査ログ、ダッシュボード、要件定義書、CS起点、A/Bテストなどの専門用語は、入力情報に具体的な根拠がある場合にだけ使用し、一般の相談者にも理解できる日本語を優先してください。「仕組み化」を根拠なくこれらの専門用語へ展開してはいけません。\n"
+    "職種、活動、場面などの具体例は、trusted factsまたはconsultationに本人の事実として示されていない限り、『たとえば』『一例として』『こうした分野では』など、例示であることを明示してください。例示を相談者本人の経歴、現在の仕事、予定、希望として断定してはいけません。\n"
+    "文章上の役割が異なる内容を1つのgrounded_text_blockへ混在させないでください。evidence[]は提示されたfactまたはluckの根拠、interpretation[]はその根拠から読める傾向と現実生活での意味、advice[]は助言または明示された具体例として役割を分けます。practicalな助言・具体例だけを述べるblockはclaim_typeをpracticalとしてreferenceをemptyにし、占術またはluckの主張を含めるblockは対応するclaim_typeと有効なreferenceを使用してください。summaryとdetailを含む各blockも、宣言した単一のclaim_typeとtextの意味を一致させてください。\n"
+    "鑑定文はsection全体として、四柱推命上の根拠、そこから読める傾向、日常・仕事・人間関係など現実生活での現れ方、必要に応じた具体例、実行可能な助言が自然につながるようにし、同じ内容を反復しないでください。落ち着いた丁寧な語り口で、押し付けや過度な断定を避け、一般の30〜60代が理解できる表現を使い、神秘主義やAI・コンサル資料のような文体へ寄せないでください。\n"
+    "healthでは病名の診断、特定疾患の予測、特定臓器についての医学的断定、医療行為の代替、具体的な治療法や健康法の断定をしてはいけません。命式から直接導けないデジタル断食や朝型生活などの具体策を作らず、休息、生活リズム、無理を重ねないこと、自分の状態の確認、必要に応じた専門家への相談という一般的な生活助言に留めてください。\n"
     "返してよいのはmodel-owned payloadだけです。section_id、title、year、disclaimer、catalog、source contract、engine_version、schema_version、version、method、status、validationを返してはいけません。\n"
     "source_fact_codes、source_components、warning IDs、uncertainty IDsは提示されたallowed valuesからだけ選択し、strict JSONとして返してください。"
 )
@@ -2796,8 +2805,11 @@ AI Reading v2のvalidation lifecycleは次の非循環順序に固定する。
     available claim type enumを構築し、trusted attachmentsを構築する。
 5.  22.2.3に従ってexact `model_output_schema`を構築する。
 6.  22.2.1のexact system constantとcanonical user serializationからexact `messages`を構築する。
-7.  exact `messages`と`model_output_schema`を使用してmodelを呼び出す。
-8.  model responseを22.13.3のDraft 2020-12 policyでstrict JSON Schema validationする。
+7.  exact `messages`を使用し、OpenAI Responses APIでは22.13.3のprovider transport schemaを、
+    それ以外ではexact `model_output_schema`を使用してmodelを呼び出す。
+8.  OpenAI provider responseは22.13.3のfixed-key transport representationからcanonical fixed-order
+    `sections` arrayへdeterministically decodeし、model responseを22.13.3のDraft 2020-12 policyで
+    strict canonical JSON Schema validationする。
 9.  schema-valid model payloadをsemantic validationし、claim typeごとのreference rule、location matrix、
     fact resolution、component resolution、luck block scope crosswalk、warning ID、uncertainty ID、
     section count、future year countを確認する。text意味のNLP判定は行わない。
@@ -2836,10 +2848,28 @@ invalid outputをtrusted AI Reading v2 wrapperとして返してはならない�
 #### 22.13.3 Local JSON Schema validation
 
 Local validation dialectはJSON Schema Draft 2020-12、Python implementationは
-`jsonschema.Draft202012Validator`に固定する。providerへ渡すschemaとlocal validatorは、いずれも
-`ai_reading_request_v2["model_output_schema"]`という同一schema contractを使用しなければならない。
-provider固有の`type` / `name` / `strict` wrapperはschema本体とは別transport layerとし、schema本体へ
-`$schema` fieldを追加してはならない。
+`jsonschema.Draft202012Validator`に固定する。local validatorのauthoritative canonical schemaは
+`ai_reading_request_v2["model_output_schema"]`とし、`uniqueItems`を含む22.2.3の完全なschemaを変更しては
+ならない。OpenAI Responses APIへ渡すprovider transport schemaに限り、canonical schemaからexactly次の
+二つのtransport projectionを行う。
+
+1.  canonical schemaのdeep copyから`uniqueItems` keywordだけを再帰的に除外する。
+2.  canonicalの固定順`sections` arrayをprovider transport上だけ、`core_personality`、`career`、
+    `wealth`、`relationships`、`health`、`current_luck`、`future_flow`、`advice`をexact required keyとする
+    objectとして表現する。各key配下の`claim_type` enumは22.4.1 / 22.4.2 / 22.12の既存location matrixと
+    exact一致させ、Generator semantic validatorと同一のruleから構築する。
+
+provider response受信後、fixed-key `sections` objectを上記canonical orderのarrayへdeterministically decode
+する。このdecodeはcontainer representationだけを変換し、`claim_type`、`text`、reference、fact code、
+component、warning / uncertainty IDの変更、補完、推測またはsemantic post-processingを禁止する。
+decode後のpayloadは必ず完全なcanonical schemaでlocal validationし、その後に既存semantic validatorを
+実行する。
+
+これはproviderが対応するJSON Schema subsetへのtransport compatibility projectionであり、provider
+transport schemaをcanonical schemaとして扱ってはならない。`uniqueItems`以外のkeywordを暗黙に除外して
+はならず、上記二つ以外のtransport divergenceまたは追加のunsupported keywordが判明した場合は新しい
+human decisionを必要とする。unique constraintはlocal validatorで強制する。provider固有の`type` / `name` /
+`strict` wrapperはschema本体とは別transport layerとし、schema本体へ`$schema` fieldを追加してはならない。
 
 Local structural validationはexactly次の順で行う。
 
@@ -3898,7 +3928,7 @@ callableでない、またはいずれかのcaller optionがinvalidな場合はp
 environmentから暗黙取得しない。
 
 `repair_patch_schema`はJSON Schema Draft 2020-12の次のexact mappingとする。key orderも記載順とし、
-field、keywordまたはconstraintを追加・削除しない。
+canonical/local schemaではfield、keywordまたはconstraintを追加・削除しない。
 
 ``` json
 {
@@ -3923,6 +3953,14 @@ field、keywordまたはconstraintを追加・削除しない。
   "additionalProperties": false
 }
 ```
+
+OpenAI Responses APIへ渡すprovider transport schemaに限り、上のcanonical/local schemaをdeep copyし、
+JSON Pointer `/properties/patches/items/properties/op` のmappingへ記載順で`"type": "string"`を追加する。
+したがってtransport上の`op`はexactly `{"const": "replace", "type": "string"}`となる。この追加は
+OpenAI Structured Outputs compatibilityだけを目的とするtransport projectionであり、canonical/local
+repair schemaとして扱わない。canonical schemaをmutationせず、`op`以外のfield、keyword、constraint、
+key orderを変更せず、genericなkeyword追加または削除を行わない。provider responseは下記のcanonical/local
+validationおよび24.4以降の既存ruleで検証する。
 
 JSON Schemaで表現しないwhitespace-only、path eligibility、duplicate、order、no-opは
 response parse後に本節と24.4でlocal validationする。
@@ -5500,3 +5538,6 @@ v1.1 で成立した、
 `命式 → 判定 + evidence + version + uncertainty → AI翻訳 → 整合性検査 → PDF`
 
 へ進化させる。
+### v1.2 大運詳細読解のcanonical拡張
+
+`AIReadingV2.long_term_luck` はtrustedな現在大運と後続4大運を固定順で保持し、各大運のmodel-owned本文を既存のgrounded semantic validation対象として扱う。大運のindex、干支、年齢帯、通変星、五行はReading Contextから決定的に結合し、providerは計算・変更しない。decode後は既存local schema、SemanticAssessor、Quality Gateを実行する。

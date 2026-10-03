@@ -26,6 +26,9 @@ POST /reading
 from fastapi import APIRouter
 
 from api.models import ChartRequest
+from api.customer_routes import (
+    router as customer_router,
+)
 from api.reading_routes import (
     router as reading_router,
 )
@@ -76,6 +79,16 @@ def chart(
 
 router.include_router(
     reading_router
+)
+
+
+# ============================================================
+# Customer web application
+# ============================================================
+
+
+router.include_router(
+    customer_router
 )
 
 

@@ -92,6 +92,7 @@ _AI_READING_FIELDS = (
     "engine_version",
     "summary",
     "sections",
+    "long_term_luck",
     "consultation_answer",
     "warnings",
     "uncertainty",
@@ -101,6 +102,9 @@ _AI_READING_FIELDS = (
     "method",
     "version",
     "status",
+)
+_AI_READING_FIELDS_LEGACY = tuple(
+    field for field in _AI_READING_FIELDS if field != "long_term_luck"
 )
 _GROUNDED_TEXT_BLOCK_FIELDS = (
     "text",
@@ -120,6 +124,12 @@ _SECTION_MODEL_FIELDS = (
     "warnings",
     "uncertainty",
 )
+_LONG_TERM_DETAIL_FIELDS = (
+    "index", "ganzhi", "start_age", "end_age", "stem_ten_god",
+    "stem_element", "branch_element", "title", "theme", "career",
+    "wealth", "relationships", "caution", "advice",
+)
+_YEARLY_DETAIL_FIELDS = ("title", "theme", "career", "wealth", "relationships", "caution", "advice")
 _WARNING_CATALOG_FIELDS = (
     "warning_id",
     "source_contract",
@@ -921,9 +931,9 @@ def _is_section(value: Any, index: int) -> bool:
     if not isinstance(yearly, list):
         return False
     for entry in yearly:
-        if not isinstance(entry, Mapping) or not _has_exact_keys(
-            entry,
-            ("year", "summary", "detail"),
+        if not isinstance(entry, Mapping) or not (
+            _has_exact_keys(entry, ("year", "summary", "detail"))
+            or _has_exact_keys(entry, ("year", "summary", "detail", *_YEARLY_DETAIL_FIELDS))
         ):
             return False
         if not isinstance(entry["year"], int) or isinstance(entry["year"], bool):
@@ -932,11 +942,44 @@ def _is_section(value: Any, index: int) -> bool:
             return False
         if not _is_grounded_text_block(entry["detail"]):
             return False
+        if any(field in entry for field in _YEARLY_DETAIL_FIELDS):
+            if not all(field in entry for field in _YEARLY_DETAIL_FIELDS):
+                return False
+            if any(not _is_grounded_text_block(entry[field]) for field in _YEARLY_DETAIL_FIELDS if field != "advice"):
+                return False
+            if not isinstance(entry["advice"], list) or not 2 <= len(entry["advice"]) <= 4:
+                return False
+            if any(not _is_grounded_text_block(block) for block in entry["advice"]):
+                return False
     return True
 
 
+def _is_long_term_detail(value: Any) -> bool:
+    if not isinstance(value, Mapping) or not _has_exact_keys(value, _LONG_TERM_DETAIL_FIELDS):
+        return False
+    if not isinstance(value["index"], int) or isinstance(value["index"], bool):
+        return False
+    if not isinstance(value["ganzhi"], str) or not isinstance(value["stem_ten_god"], str):
+        return False
+    if any(type(value[field]) not in (int, float) or isinstance(value[field], bool)
+           for field in ("start_age", "end_age")):
+        return False
+    if any(not isinstance(value[field], str) for field in
+           ("stem_element", "branch_element")):
+        return False
+    for field in ("title", "theme", "career", "wealth", "relationships", "caution"):
+        if not _is_grounded_text_block(value[field]):
+            return False
+    return (
+        isinstance(value["advice"], list)
+        and 2 <= len(value["advice"]) <= 4
+        and all(_is_grounded_text_block(block) for block in value["advice"])
+    )
+
+
 def _is_ai_reading_v2_final_contract(value: Mapping[str, Any]) -> bool:
-    if not _has_exact_keys(value, _AI_READING_FIELDS):
+    has_long_term = _has_exact_keys(value, _AI_READING_FIELDS)
+    if not has_long_term and not _has_exact_keys(value, _AI_READING_FIELDS_LEGACY):
         return False
     if (
         not isinstance(value["schema_version"], str)
@@ -963,6 +1006,12 @@ def _is_ai_reading_v2_final_contract(value: Mapping[str, Any]) -> bool:
         return False
     if any(not _is_section(section, index) for index, section in enumerate(sections)):
         return False
+    if has_long_term:
+        long_term = value["long_term_luck"]
+        if not isinstance(long_term, list) or len(long_term) != 5 or any(
+            not _is_long_term_detail(item) for item in long_term
+        ):
+            return False
     consultation_answer = value["consultation_answer"]
     if consultation_answer is not None and not _is_grounded_text_block(
         consultation_answer
@@ -1108,7 +1157,12 @@ def _iter_final_blocks(
                 )
         if section_id == "future_flow":
             for year_index, entry in enumerate(section["yearly"]):
-                for field in ("summary", "detail"):
+                for field in (
+                    "title", "theme", "career", "wealth", "relationships", "caution",
+                    "summary", "detail",
+                ):
+                    if field not in entry:
+                        continue
                     yield (
                         f"/sections/{index}/yearly/{year_index}/{field}",
                         entry[field],
@@ -1116,6 +1170,11 @@ def _iter_final_blocks(
                         section_id,
                         year_index,
                         field,
+                    )
+                for advice_index, block in enumerate(entry.get("advice", [])):
+                    yield (
+                        f"/sections/{index}/yearly/{year_index}/advice/{advice_index}",
+                        block, "yearly", section_id, year_index, "advice",
                     )
     if ai_reading["consultation_answer"] is not None:
         yield (
@@ -1126,6 +1185,17 @@ def _iter_final_blocks(
             None,
             "consultation_answer",
         )
+    for index, detail in enumerate(ai_reading.get("long_term_luck", [])):
+        for field in ("title", "theme", "career", "wealth", "relationships", "caution"):
+            yield (
+                f"/long_term_luck/{index}/{field}", detail[field],
+                "long_term", "long_term_luck", index, field,
+            )
+        for advice_index, block in enumerate(detail["advice"]):
+            yield (
+                f"/long_term_luck/{index}/advice/{advice_index}", block,
+                "long_term", "long_term_luck", index, "advice",
+            )
 
 
 def _allowed_claim_types(
@@ -1137,6 +1207,8 @@ def _allowed_claim_types(
         return frozenset(("practical", "astrology"))
     if location_kind == "yearly":
         return frozenset(("practical", "astrology", "luck_astrology"))
+    if location_kind == "long_term":
+        return frozenset(("luck_astrology", "practical"))
     luck_section = section_id in ("current_luck", "future_flow")
     if field in ("evidence", "interpretation"):
         return (
@@ -1194,6 +1266,18 @@ def _luck_component_resolves(
             and entry["year"] == expected_year
             and entry["source_component"] == component
             and entry["context_path"] == expected_path
+            for entry in entries
+        ) == 1
+    if location_kind == "long_term" and year_index is not None:
+        pillars = request["trusted_attachments"].get("long_term_luck_pillars", [])
+        if component != "luck_pillars" or year_index >= len(pillars):
+            return False
+        pillar = pillars[year_index]
+        return sum(
+            entry["section_id"] == "long_term_luck"
+            and entry["year"] == pillar["index"]
+            and entry["source_component"] == "luck_pillars"
+            and entry["context_path"] == f"luck.luck_pillars.pillars[{year_index}]"
             for entry in entries
         ) == 1
     return False
@@ -1270,6 +1354,10 @@ def _luck_values_for_block(
             )
         elif location_kind == "yearly" and year_index is not None:
             values.append(luck["five_year_luck"][year_index][component])
+        elif location_kind == "long_term" and year_index is not None:
+            values.append(
+                request["trusted_attachments"]["long_term_luck_pillars"][year_index]
+            )
     return tuple(values)
 
 
@@ -1321,6 +1409,25 @@ def _trusted_numeric_universe_for_block(
         request=request,
     ):
         _collect_trusted_numeric_values(year, trusted)
+    # Customer presentation rounds trusted luck ages (for example, an
+    # engine value such as 39.2576 is displayed as approximately 39.3 or
+    # 39).  Add only deterministic renderings of the same trusted values;
+    # arbitrary numbers remain unsupported.
+    if location_kind == "long_term" and year_index is not None:
+        pillars = request["trusted_attachments"].get("long_term_luck_pillars", [])
+        if year_index < len(pillars):
+            for key in ("start_age", "end_age"):
+                raw = pillars[year_index].get(key)
+                number = _decimal_from_json_number(raw)
+                if number is not None:
+                    trusted.add(_NumericValue("plain", number.quantize(Decimal("0.1"))))
+                    trusted.add(_NumericValue("plain", number.to_integral_value()))
+    if location_kind == "section" and section_id == "current_luck":
+        raw = request["model_input"]["reading_context"].get("luck", {}).get("current_luck", {}).get("exact_age")
+        number = _decimal_from_json_number(raw)
+        if number is not None:
+            trusted.add(_NumericValue("plain", number.quantize(Decimal("0.1"))))
+            trusted.add(_NumericValue("plain", number.to_integral_value()))
     return frozenset(trusted)
 
 
@@ -1538,6 +1645,17 @@ def _trusted_reference_candidates(
                 "/sections/6/yearly",
             )
         )
+
+    if "long_term_luck" in ai_reading and "long_term_luck_pillars" in attachments:
+        details = ai_reading["long_term_luck"]
+        pillars = attachments["long_term_luck_pillars"]
+        if [item.get("index") for item in details] != [item["index"] for item in pillars]:
+            candidates.append(_ai_reading_candidate("trusted_field_mismatch", "/long_term_luck"))
+        else:
+            for index, (detail, pillar) in enumerate(zip(details, pillars)):
+                for field in ("index", "ganzhi", "start_age", "end_age", "stem_ten_god", "stem_element", "branch_element"):
+                    if not _json_values_equal(detail.get(field), pillar.get(field)):
+                        candidates.append(_ai_reading_candidate("trusted_field_mismatch", f"/long_term_luck/{index}/{field}"))
 
     candidates.extend(_reference_candidates(ai_reading, request))
     return candidates

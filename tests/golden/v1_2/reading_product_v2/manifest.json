@@ -1,0 +1,20 @@
+{
+  "schema_version": "golden_artifact_manifest_v2",
+  "version": "golden_artifact_v2",
+  "artifact_type": "reading_product_v2",
+  "file_count": 2,
+  "files": [
+    {
+      "artifact_id": "GC03:reading_product_v2",
+      "path": "GC03_1984_fukuoka_male_afternoon_reading_product_v2.json",
+      "size": 1363232,
+      "sha256": "2472c99b261d34f633caf30638032439555456dddfbb62031095b396f22957c6"
+    },
+    {
+      "artifact_id": "GC10:reading_product_v2",
+      "path": "GC10_1985_ishikawa_female_unknown_birth_time_reading_product_v2.json",
+      "size": 1285490,
+      "sha256": "1eaebc00bfcc2d206035ed2a478462e5e9cc62e534a232dd7cad384035c728f5"
+    }
+  ]
+}

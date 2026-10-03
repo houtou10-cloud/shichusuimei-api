@@ -25,6 +25,7 @@ from engine.reading_context_v2 import (
 )
 from engine.reading_generator_v2 import generate_ai_reading_v2
 from engine.reading_prompt_v2 import (
+    AI_READING_V2_SECTION_SLOTS,
     build_ai_reading_request_v2,
     validate_ai_reading_prompt_inputs_v2,
 )
@@ -276,11 +277,28 @@ def _phase2_valid_reading(request: dict, reading_context: dict) -> dict:
                 for entry in reading_context["luck"]["five_year_luck"]
             ]
         sections.append(section)
+    long_term = []
+    for pillar in request["trusted_attachments"].get("long_term_luck_pillars", []):
+        def luck_block():
+            block = deepcopy(_phase2_block())
+            block["claim_type"] = "luck_astrology"
+            block["source_components"] = ["luck_pillars"]
+            return block
+        long_term.append({
+            "index": pillar["index"], "ganzhi": pillar["ganzhi"],
+            "start_age": pillar["start_age"], "end_age": pillar["end_age"],
+            "stem_ten_god": pillar["stem_ten_god"],
+            "stem_element": pillar["stem_element"], "branch_element": pillar["branch_element"],
+            "title": luck_block(), "theme": luck_block(), "career": luck_block(),
+            "wealth": luck_block(), "relationships": luck_block(), "caution": luck_block(),
+            "advice": [luck_block(), luck_block()],
+        })
     return {
         "schema_version": "ai_reading_v2",
         "engine_version": deepcopy(reading_context["engine_version"]),
         "summary": _phase2_block(),
         "sections": sections,
+        "long_term_luck": long_term,
         "consultation_answer": None,
         "warnings": deepcopy(request["trusted_catalogs"]["warnings"]),
         "uncertainty": deepcopy(request["trusted_catalogs"]["uncertainty"]),
@@ -317,10 +335,19 @@ def _phase2_model_payload(reading: dict) -> dict:
         ],
         "future_flow_yearly": [
             {
+                **{
+                    field: deepcopy(entry.get(field, entry["detail"]))
+                    for field in ("title", "theme", "career", "wealth", "relationships", "caution")
+                },
+                "advice": deepcopy(entry.get("advice", [entry["detail"], entry["detail"]])),
                 "summary": deepcopy(entry["summary"]),
                 "detail": deepcopy(entry["detail"]),
             }
             for entry in reading["sections"][6]["yearly"]
+        ],
+        "long_term_luck": [
+            {field: deepcopy(item[field]) for field in ("title", "theme", "career", "wealth", "relationships", "caution", "advice")}
+            for item in reading.get("long_term_luck", [])
         ],
         "consultation_answer": deepcopy(reading["consultation_answer"]),
     }
@@ -333,11 +360,22 @@ class _StaticResponses:
 
     def create(self, **kwargs):
         self.calls.append(deepcopy(kwargs))
+        section_ids = tuple(
+            section_id for section_id, _title in AI_READING_V2_SECTION_SLOTS
+        )
+        transport_payload = deepcopy(self.payload)
+        transport_payload["sections"] = {
+            section_id: section
+            for section_id, section in zip(
+                section_ids,
+                transport_payload["sections"],
+            )
+        }
         return SimpleNamespace(
             id="resp_quality_v2",
             status="completed",
             output_text=json.dumps(
-                self.payload,
+                transport_payload,
                 ensure_ascii=False,
                 separators=(",", ":"),
                 sort_keys=False,
@@ -3516,6 +3554,27 @@ def test_phase51_wrong_luck_scope_does_not_supply_numeric_value(phase2_inputs):
     _phase51_set_luck(inputs["ai_reading"]["summary"], str(exact_age), "current_luck")
     report = _phase51_assert_numeric_error(inputs, ("/summary/text",))
     assert "reference_resolution_error" in {
+        finding["code"] for finding in report["findings"]
+    }
+
+
+def test_phase51_trusted_long_term_age_renderings_are_numeric_safe(phase2_inputs):
+    inputs = deepcopy(phase2_inputs)
+    pillar = inputs["ai_reading"]["long_term_luck"][0]
+    request = build_ai_reading_request_v2(
+        inputs["reading_context"], inputs["judgment_metadata"]
+    )
+    start_age = request["trusted_attachments"]["long_term_luck_pillars"][0]["start_age"]
+    displayed = str(round(float(start_age), 1))
+    pillar["title"]["text"] = f"{displayed}歳からの流れ"
+    pillar["title"]["claim_type"] = "luck_astrology"
+    pillar["title"]["source_components"] = ["luck_pillars"]
+    pillar["title"]["source_fact_codes"] = []
+    report = evaluate_ai_reading_quality_v2(
+        **inputs,
+        semantic_assessor=RecordingAssessor(),
+    ).to_dict()
+    assert "unsupported_numeric_claim" not in {
         finding["code"] for finding in report["findings"]
     }
 

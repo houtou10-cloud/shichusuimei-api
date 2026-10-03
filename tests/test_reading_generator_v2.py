@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from jsonschema import Draft202012Validator
 
 import engine.reading_generator_v2 as generator_v2
 from engine.chart import calculate_chart
@@ -41,6 +42,7 @@ EXPECTED_SECTION_SLOTS = [
     {"section_id": "future_flow", "title": "今後の流れ"},
     {"section_id": "advice", "title": "総合アドバイス"},
 ]
+SECTION_IDS = tuple(item["section_id"] for item in EXPECTED_SECTION_SLOTS)
 EXPECTED_DISCLAIMER = (
     "本鑑定は八雲式四柱推命エンジンの計算結果に基づく参考情報です。"
     "将来の出来事を保証するものではなく、医療・法律・投資その他の"
@@ -146,16 +148,43 @@ def _model_payload(request: dict[str, Any]) -> dict[str, Any]:
             }
         )
     yearly = [
-        {"summary": _block(), "detail": _block()}
+        {
+            "title": _block(), "theme": _block(), "career": _block(),
+            "wealth": _block(), "relationships": _block(), "caution": _block(),
+            "advice": [_block(), _block()],
+            "summary": _block(), "detail": _block(),
+        }
         for _ in request["trusted_attachments"]["future_flow_years"]
     ]
     answer = _block() if request["trusted_attachments"]["consultation_present"] else None
+    long_term = []
+    for _ in request["trusted_attachments"].get("long_term_luck_pillars", []):
+        def luck_block():
+            return _block(claim_type="luck_astrology", components=["luck_pillars"])
+        long_term.append({
+            "title": luck_block(), "theme": luck_block(), "career": luck_block(),
+            "wealth": luck_block(), "relationships": luck_block(), "caution": luck_block(),
+            "advice": [luck_block(), luck_block()],
+        })
     return {
         "summary": _block(),
         "sections": sections,
         "future_flow_yearly": yearly,
+        "long_term_luck": long_term,
         "consultation_answer": answer,
     }
+
+
+def _transport_payload(payload: Any) -> Any:
+    result = deepcopy(payload)
+    if isinstance(result, dict) and isinstance(result.get("sections"), list):
+        sections = result["sections"]
+        if len(sections) == len(SECTION_IDS):
+            result["sections"] = {
+                section_id: section
+                for section_id, section in zip(SECTION_IDS, sections)
+            }
+    return result
 
 
 class FakeResponses:
@@ -168,8 +197,9 @@ class FakeResponses:
         self.calls.append(deepcopy(kwargs))
         if self.failure is not None:
             raise self.failure
-        text = self.payload if isinstance(self.payload, str) else json.dumps(
-            self.payload,
+        provider_value = _transport_payload(self.payload)
+        text = provider_value if isinstance(provider_value, str) else json.dumps(
+            provider_value,
             ensure_ascii=False,
             separators=(",", ":"),
             allow_nan=False,
@@ -201,6 +231,16 @@ def _first_fact(request: dict[str, Any]) -> str:
     return request["trusted_catalogs"]["fact_codes"][0]
 
 
+def _contains_schema_keyword(value: Any, keyword: str) -> bool:
+    if isinstance(value, dict):
+        return keyword in value or any(
+            _contains_schema_keyword(item, keyword) for item in value.values()
+        )
+    if isinstance(value, list):
+        return any(_contains_schema_keyword(item, keyword) for item in value)
+    return False
+
+
 def test_valid_four_pillar_success(four_pillar_request):
     result, client = _generate(four_pillar_request, _model_payload(four_pillar_request))
     assert isinstance(result, AIReadingGenerationResultV2)
@@ -208,6 +248,29 @@ def test_valid_four_pillar_success(four_pillar_request):
     assert result.reading["status"] == "completed"
     assert result.response_id == "resp_v2"
     assert len(client.responses.calls) == 1
+
+
+def test_long_term_luck_details_are_current_plus_next_four_and_owner_sourced(four_pillar_request):
+    result, _ = _generate(four_pillar_request, _model_payload(four_pillar_request))
+    details = result.reading["long_term_luck"]
+    pillars = four_pillar_request["trusted_attachments"]["long_term_luck_pillars"]
+    assert len(details) == min(5, len(pillars))
+    assert [item["index"] for item in details] == [item["index"] for item in pillars]
+    assert [item["ganzhi"] for item in details] == [item["ganzhi"] for item in pillars]
+    assert all(len(item["advice"]) == 2 for item in details)
+    for item, pillar in zip(details, pillars):
+        assert item["start_age"] == pillar["start_age"]
+        assert item["end_age"] == pillar["end_age"]
+
+
+def test_yearly_detail_fields_round_trip_and_follow_trusted_year_order(four_pillar_request):
+    result, _ = _generate(four_pillar_request, _model_payload(four_pillar_request))
+    yearly = result.reading["sections"][6]["yearly"]
+    expected_years = four_pillar_request["trusted_attachments"]["future_flow_years"]
+    assert [item["year"] for item in yearly] == expected_years
+    for item in yearly:
+        assert all(field in item for field in ("title", "theme", "career", "wealth", "relationships", "caution", "advice"))
+        assert 2 <= len(item["advice"]) <= 4
 
 
 def test_valid_three_pillar_success_preserves_uncertainty(three_pillar_request):
@@ -291,22 +354,193 @@ def test_deterministic_assembly(four_pillar_request):
     assert first.reading == second.reading
 
 
-def test_provider_receives_exact_schema_and_is_called_once(four_pillar_request):
+def test_provider_receives_unique_items_compatible_transport_schema_once(
+    four_pillar_request,
+):
     request_before = deepcopy(four_pillar_request)
     _, client = _generate(four_pillar_request, _model_payload(four_pillar_request))
     call = client.responses.calls[0]
-    assert call["text"]["format"] == {
-        "type": "json_schema",
-        "name": "ai_reading_v2",
-        "schema": four_pillar_request["model_output_schema"],
-        "strict": True,
-    }
+    canonical_schema = four_pillar_request["model_output_schema"]
+    transport_format = call["text"]["format"]
+    assert transport_format["type"] == "json_schema"
+    assert transport_format["name"] == "ai_reading_v2"
+    assert transport_format["strict"] is True
+    assert _contains_schema_keyword(canonical_schema, "uniqueItems")
+    assert not _contains_schema_keyword(transport_format["schema"], "uniqueItems")
+    assert set(transport_format) == {"type", "name", "schema", "strict"}
     assert call["instructions"] == four_pillar_request["messages"][0]["content"]
     assert call["input"] == [
         {"role": "user", "content": four_pillar_request["messages"][1]["content"]}
     ]
+    assert call["max_output_tokens"] == 25000
     assert four_pillar_request == request_before
     assert len(client.responses.calls) == 1
+
+
+def test_provider_transport_sections_are_fixed_key_object(four_pillar_request):
+    schema = generator_v2._openai_transport_schema(
+        four_pillar_request["model_output_schema"]
+    )
+    sections = schema["properties"]["sections"]
+    assert sections["type"] == "object"
+    assert tuple(sections["properties"]) == SECTION_IDS
+    assert sections["required"] == list(SECTION_IDS)
+    assert sections["additionalProperties"] is False
+    assert four_pillar_request["model_output_schema"]["properties"]["sections"][
+        "type"
+    ] == "array"
+
+
+def test_transport_decode_is_exact_deterministic_container_conversion(
+    four_pillar_request,
+):
+    canonical_payload = _model_payload(four_pillar_request)
+    transport_payload = _transport_payload(canonical_payload)
+    before = deepcopy(transport_payload)
+    first = generator_v2._decode_openai_transport_payload(transport_payload)
+    second = generator_v2._decode_openai_transport_payload(transport_payload)
+    assert first == canonical_payload
+    assert second == canonical_payload
+    assert transport_payload == before
+
+
+def _set_transport_block(
+    payload: dict[str, Any],
+    *,
+    section_id: str | None,
+    field: str,
+    block: dict[str, Any],
+    yearly: bool = False,
+) -> None:
+    if section_id is None:
+        payload[field] = block
+    elif yearly:
+        payload["future_flow_yearly"][0][field] = block
+    elif field in ("evidence", "interpretation", "advice"):
+        payload["sections"][section_id][field] = [block]
+    else:
+        payload["sections"][section_id][field] = block
+
+
+_LOCATION_MATRIX = [
+    (None, "summary", False, ("practical", "astrology")),
+    *[
+        (
+            section_id,
+            field,
+            False,
+            (
+                ("astrology", "luck_astrology")
+                if section_id in ("current_luck", "future_flow")
+                and field in ("evidence", "interpretation")
+                else (
+                    ("practical", "astrology", "luck_astrology")
+                    if section_id in ("current_luck", "future_flow")
+                    else (
+                        ("astrology",)
+                        if field in ("evidence", "interpretation")
+                        else ("practical", "astrology")
+                    )
+                )
+            ),
+        )
+        for section_id in SECTION_IDS
+        for field in ("summary", "detail", "evidence", "interpretation", "advice")
+    ],
+    ("future_flow", "summary", True, ("practical", "astrology", "luck_astrology")),
+    ("future_flow", "detail", True, ("practical", "astrology", "luck_astrology")),
+]
+
+
+@pytest.mark.parametrize(
+    ("section_id", "field", "yearly", "allowed"),
+    _LOCATION_MATRIX,
+)
+def test_transport_schema_enforces_complete_location_claim_type_matrix(
+    four_pillar_request,
+    section_id,
+    field,
+    yearly,
+    allowed,
+):
+    schema = generator_v2._openai_transport_schema(
+        four_pillar_request["model_output_schema"]
+    )
+    validator = Draft202012Validator(schema)
+    for claim_type in ("practical", "astrology", "luck_astrology"):
+        payload = _transport_payload(_model_payload(four_pillar_request))
+        _set_transport_block(
+            payload,
+            section_id=section_id,
+            field=field,
+            block=_block(claim_type=claim_type),
+            yearly=yearly,
+        )
+        errors = list(validator.iter_errors(payload))
+        assert (not errors) is (claim_type in allowed)
+
+
+def test_transport_schema_enforces_consultation_claim_types(consultation_request):
+    schema = generator_v2._openai_transport_schema(
+        consultation_request["model_output_schema"]
+    )
+    validator = Draft202012Validator(schema)
+    for claim_type in ("practical", "astrology", "luck_astrology"):
+        payload = _transport_payload(_model_payload(consultation_request))
+        payload["consultation_answer"] = _block(claim_type=claim_type)
+        errors = list(validator.iter_errors(payload))
+        assert (not errors) is (claim_type in ("practical", "astrology"))
+
+
+def test_health_interpretation_transport_claim_type_is_astrology_only(
+    four_pillar_request,
+):
+    schema = generator_v2._openai_transport_schema(
+        four_pillar_request["model_output_schema"]
+    )
+    block_schema = schema["properties"]["sections"]["properties"]["health"][
+        "properties"
+    ]["interpretation"]["items"]
+    assert block_schema["properties"]["claim_type"]["enum"] == ["astrology"]
+
+
+def test_decode_is_followed_by_canonical_and_semantic_validation(
+    four_pillar_request,
+):
+    canonical_payload = _model_payload(four_pillar_request)
+    transport_payload = _transport_payload(canonical_payload)
+    decoded = generator_v2._decode_openai_transport_payload(transport_payload)
+    generator_v2._validate_structure(
+        decoded,
+        four_pillar_request["model_output_schema"],
+    )
+    generator_v2._validate_semantics(decoded, four_pillar_request)
+
+
+def test_provider_duplicate_array_item_is_rejected_by_canonical_local_schema(
+    four_pillar_request,
+):
+    payload = _model_payload(four_pillar_request)
+    fact_code = _first_fact(four_pillar_request)
+    payload["summary"]["source_fact_codes"] = [fact_code, fact_code]
+    client = FakeClient(payload)
+
+    with pytest.raises(AIReadingGeneratorV2StructuralValidationError):
+        generate_ai_reading_v2(
+            deepcopy(four_pillar_request),
+            client=client,
+            model="test-model",
+        )
+
+    assert len(client.responses.calls) == 1
+    assert not _contains_schema_keyword(
+        client.responses.calls[0]["text"]["format"]["schema"],
+        "uniqueItems",
+    )
+    assert _contains_schema_keyword(
+        four_pillar_request["model_output_schema"],
+        "uniqueItems",
+    )
 
 
 @pytest.mark.parametrize("text", ["not-json", '{"summary":', "NaN"])
@@ -405,6 +639,44 @@ def test_astrology_without_fact_is_rejected(four_pillar_request):
         _generate(four_pillar_request, payload)
 
 
+@pytest.mark.parametrize("field", ["detail", "evidence", "interpretation"])
+def test_relationship_astrology_blocks_use_relations_and_existing_pillar_fact(
+    four_pillar_request, field
+):
+    payload = _model_payload(four_pillar_request)
+    block = _block(
+        claim_type="astrology",
+        fact_codes=["chart.pillar_sequence"],
+        components=["relations"],
+    )
+    if field in {"detail", "evidence", "interpretation"}:
+        if field == "detail":
+            payload["sections"][3][field] = block
+        else:
+            payload["sections"][3][field] = [block]
+    result, _ = _generate(four_pillar_request, payload)
+    output_block = result.reading["sections"][3][field]
+    if field != "detail":
+        output_block = output_block[0]
+    assert output_block["claim_type"] == "astrology"
+    assert output_block["source_components"] == ["relations"]
+    assert output_block["source_fact_codes"] == ["chart.pillar_sequence"]
+
+
+@pytest.mark.parametrize("field", ["detail", "evidence", "interpretation"])
+def test_relationship_astrology_blocks_without_fact_are_rejected(
+    four_pillar_request, field
+):
+    payload = _model_payload(four_pillar_request)
+    block = _block(claim_type="astrology", components=["relations"])
+    if field == "detail":
+        payload["sections"][3][field] = block
+    else:
+        payload["sections"][3][field] = [block]
+    with pytest.raises(AIReadingGeneratorV2SemanticValidationError):
+        _generate(four_pillar_request, payload)
+
+
 def test_astrology_with_luck_component_is_rejected(four_pillar_request):
     payload = _model_payload(four_pillar_request)
     payload["sections"][5]["summary"] = _block(
@@ -430,7 +702,7 @@ def test_luck_astrology_is_forbidden_in_top_summary(four_pillar_request):
         components=["current_luck"],
     )
     with pytest.raises(AIReadingGeneratorV2SemanticValidationError):
-        _generate(four_pillar_request, payload)
+        generator_v2._validate_semantics(payload, four_pillar_request)
 
 
 def test_luck_astrology_is_forbidden_in_non_luck_section(four_pillar_request):
@@ -440,14 +712,14 @@ def test_luck_astrology_is_forbidden_in_non_luck_section(four_pillar_request):
         components=["current_luck"],
     )
     with pytest.raises(AIReadingGeneratorV2SemanticValidationError):
-        _generate(four_pillar_request, payload)
+        generator_v2._validate_semantics(payload, four_pillar_request)
 
 
 def test_practical_evidence_is_forbidden(four_pillar_request):
     payload = _model_payload(four_pillar_request)
     payload["sections"][0]["evidence"] = [_block()]
     with pytest.raises(AIReadingGeneratorV2SemanticValidationError):
-        _generate(four_pillar_request, payload)
+        generator_v2._validate_semantics(payload, four_pillar_request)
 
 
 def test_current_luck_crosswalk_is_accepted(four_pillar_request):
@@ -460,6 +732,16 @@ def test_current_luck_crosswalk_is_accepted(four_pillar_request):
     assert result.reading["sections"][5]["summary"]["source_components"] == [
         "luck_pillars"
     ]
+
+
+def test_provider_transport_yearly_detail_object_is_strict_and_complete(four_pillar_request):
+    schema = generator_v2._openai_transport_schema(
+        four_pillar_request["model_output_schema"]
+    )
+    yearly = schema["properties"]["future_flow_yearly"]["items"]
+    assert set(yearly["properties"]) == set(yearly["required"])
+    assert {"title", "theme", "career", "wealth", "relationships", "caution", "advice"} <= set(yearly["required"])
+    assert yearly["additionalProperties"] is False
 
 
 def test_future_flow_non_yearly_crosswalk_is_accepted(four_pillar_request):
@@ -535,6 +817,7 @@ def test_validation_report_is_attached_once_and_non_circular(four_pillar_request
         "engine_version",
         "summary",
         "sections",
+        "long_term_luck",
         "consultation_answer",
         "warnings",
         "uncertainty",
@@ -621,6 +904,107 @@ def test_unusable_provider_response_is_rejected(four_pillar_request):
             model="test-model",
         )
     assert responses.calls == 1
+
+
+def test_incomplete_partial_output_is_not_misclassified_as_invalid_json(
+    four_pillar_request,
+):
+    secret = "PARTIAL_PROVIDER_OUTPUT_SECRET"
+
+    class IncompleteResponses:
+        def __init__(self):
+            self.calls = 0
+
+        def create(self, **_kwargs):
+            self.calls += 1
+            return SimpleNamespace(
+                id="resp_incomplete",
+                status="incomplete",
+                incomplete_details=SimpleNamespace(reason="max_output_tokens"),
+                output_text='{"summary":"' + secret,
+                output=[],
+                usage=None,
+            )
+
+    responses = IncompleteResponses()
+    with pytest.raises(AIReadingGeneratorV2ResponseError) as captured:
+        generate_ai_reading_v2(
+            deepcopy(four_pillar_request),
+            client=SimpleNamespace(responses=responses),
+            model="test-model",
+        )
+    error = captured.value
+    assert type(error) is AIReadingGeneratorV2ResponseError
+    assert str(error) == "provider response is incomplete: max_output_tokens"
+    assert secret not in str(error)
+    assert responses.calls == 1
+
+
+def test_completed_sdk_output_fallback_extracts_structured_text(
+    four_pillar_request,
+):
+    payload = _transport_payload(_model_payload(four_pillar_request))
+    text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+    class SDKLikeResponses:
+        def __init__(self):
+            self.calls = 0
+
+        def create(self, **_kwargs):
+            self.calls += 1
+            return SimpleNamespace(
+                id="resp_sdk_shape",
+                status="completed",
+                output_text="",
+                output=[
+                    SimpleNamespace(type="reasoning", content=[]),
+                    SimpleNamespace(
+                        type="message",
+                        content=[SimpleNamespace(type="output_text", text=text)],
+                    ),
+                ],
+                usage=None,
+            )
+
+    responses = SDKLikeResponses()
+    result = generate_ai_reading_v2(
+        deepcopy(four_pillar_request),
+        client=SimpleNamespace(responses=responses),
+        model="test-model",
+    )
+    assert result.reading["status"] == "completed"
+    assert responses.calls == 1
+
+
+def test_structured_output_refusal_is_rejected_without_retaining_text(
+    four_pillar_request,
+):
+    secret = "REFUSAL_PROVIDER_TEXT_SECRET"
+
+    class RefusalResponses:
+        def create(self, **_kwargs):
+            return SimpleNamespace(
+                id="resp_refusal",
+                status="completed",
+                output_text="",
+                output=[
+                    SimpleNamespace(
+                        type="message",
+                        content=[SimpleNamespace(type="refusal", refusal=secret)],
+                    )
+                ],
+                usage=None,
+            )
+
+    with pytest.raises(AIReadingGeneratorV2ResponseError) as captured:
+        generate_ai_reading_v2(
+            deepcopy(four_pillar_request),
+            client=SimpleNamespace(responses=RefusalResponses()),
+            model="test-model",
+        )
+    assert type(captured.value) is AIReadingGeneratorV2ResponseError
+    assert str(captured.value) == "provider response contains a refusal"
+    assert secret not in str(captured.value)
 
 
 def test_generator_source_has_no_repair_quality_or_astrology_calculation_calls():

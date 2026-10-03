@@ -254,8 +254,8 @@ def test_gc03_reading_context_v2_golden_manifest_integrity():
 
     assert root_manifest["baseline"] == "Yakumo Engine v1.2"
     assert category_manifest["baseline"] == "Yakumo Engine v1.2"
-    assert root_manifest["file_count"] == 3
-    assert category_manifest["file_count"] == 2
+    assert root_manifest["file_count"] == 4
+    assert category_manifest["file_count"] == 3
     assert root_manifest["file_count"] == len(root_manifest["files"])
     assert category_manifest["file_count"] == len(category_manifest["files"])
 

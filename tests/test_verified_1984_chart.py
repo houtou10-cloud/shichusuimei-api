@@ -897,34 +897,48 @@ def test_verified_1984_future_strength_matches_document():
 # =========================================================
 
 
-@pytest.mark.xfail(
-    reason=(
-        "鑑定書では食神格。"
-        "現在の格局ロジックとは判定方式が異なるため、"
-        "格局精密化フェーズで一致させる。"
-    ),
-    strict=False,
-)
-def test_verified_1984_future_pattern_matches_document():
+def test_verified_1984_pattern_uses_exposed_month_branch_hidden_stem():
     """
-    鑑定書：
-        格局 = 食神格
+    月干辛の偏官と、月支未から取格する食神を混同しない。
+
+    未の蔵干は己・丁・乙で、丁が時干へ透出している。
+    既存の月支蔵干透干優先ルールにより丁（食神）が選択され、
+    後段の成立判定でも食神格が代表格局となる。
     """
 
     result = (
         calculate_verified_chart()
     )
 
+    month = result["chart"]["month"]
+    candidate = result["pattern_candidates"]["primary_candidate"]
     judgment = result[
         "pattern_judgment"
     ]
 
-    assert (
-        judgment[
-            "primary_pattern"
-        ]
-        == EXPECTED_PATTERN
-    )
+    assert month["stem"] == "辛"
+    assert month["stem_ten_god"] == "偏官"
+    assert month["branch"] == "未"
+    assert month["hidden_stems"] == ["己", "丁", "乙"]
+    assert month["hidden_stem_ten_gods"] == [
+        {"stem": "己", "ten_god": "偏財"},
+        {"stem": "丁", "ten_god": "食神"},
+        {"stem": "乙", "ten_god": "比肩"},
+    ]
+    assert candidate["source"] == "month_exposed_hidden_stem"
+    assert candidate["selection_rule"] == "exposed_month_hidden_stem_priority_v1"
+    assert candidate["month_branch"] == "未"
+    assert candidate["month_main_hidden_stem"] == "己"
+    assert candidate["selected_hidden_stem"] == "丁"
+    assert candidate["selected_hidden_stem_rank"] == 2
+    assert candidate["selected_is_main_hidden_stem"] is False
+    assert candidate["ten_god"] == "食神"
+    assert candidate["is_exposed"] is True
+    assert candidate["exposure_positions"] == ["hour"]
+    assert judgment["primary_pattern"] == EXPECTED_PATTERN
+    assert judgment["primary_judgment"]["technical_pattern"] == "eating_god"
+    assert judgment["primary_judgment"]["is_exposed"] is True
+    assert judgment["primary_judgment"]["exposure_positions"] == ["hour"]
 
 
 # =========================================================

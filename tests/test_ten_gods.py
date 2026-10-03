@@ -71,6 +71,11 @@ def test_all_ten_gods_for_yi_day_master():
         ) == ten_god
 
 
+def test_yi_day_master_distinguishes_month_stem_and_hidden_stem_ten_gods():
+    assert calculate_ten_god("乙", "辛") == "偏官"
+    assert calculate_ten_god("乙", "丁") == "食神"
+
+
 def test_verified_chart_ten_gods():
     # 1985年7月17日
     # 年柱：乙丑

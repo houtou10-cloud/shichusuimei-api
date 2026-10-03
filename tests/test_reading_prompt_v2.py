@@ -81,11 +81,85 @@ EXPECTED_SYSTEM_PROMPT = (
     "factでgroundし、luck_astrologyは許可されたlocationとluck crosswalkで"
     "groundしてください。占術またはluckの主張をpracticalとして偽装しては"
     "いけません。\n"
+    "claim_typeごとのreference ruleを厳守してください。practicalでは"
+    "source_fact_codesとsource_componentsをともにempty arrayとします。"
+    "astrologyではsource_fact_codesを1件以上選び、luck_pillars、current_luck、"
+    "annual_luck、integrated_luckをsource_componentsに含めません。luck_astrologyでは"
+    "対応するlocationのluck_value_sourcesに存在する有効なluck componentを"
+    "source_componentsに1件以上選んでください。\n"
+    "claim_typeのlocation ruleを厳守してください。top-level summaryと"
+    "consultation_answerはpracticalまたはastrologyだけを許可します。"
+    "core_personality、career、wealth、relationships、health、adviceのsummary、detail、"
+    "advice[]はpracticalまたはastrologyだけを許可し、evidence[]とinterpretation[]は"
+    "astrologyだけを許可します。current_luckとfuture_flowのsummary、detail、"
+    "advice[]は3種すべてを許可し、evidence[]とinterpretation[]はastrologyまたは"
+    "luck_astrologyだけを許可します。future_flow_yearlyの各summaryとdetailは"
+    "3種すべてを許可します。\n"
+    "luck_astrologyはcurrent_luck、future_flow、future_flow_yearlyだけで使用します。"
+    "current_luckではluck_value_sourcesのcurrent_luck entryとexact matchするluck_pillars、"
+    "current_luck、annual_luck、integrated_luckのみを選びます。future_flowのnon-yearly"
+    " blockではcurrent_luck、annual_luck、integrated_luckのみを選び、選択した"
+    "componentについてluck_value_sourcesに存在する全future_flow year entryをtrusted orderで"
+    "一括して使用し、subset yearを指定しません。"
+    "future_flow_yearlyでは、その位置のyear/indexにexact matchするcurrent_luck、"
+    "annual_luck、integrated_luckのみを選んでください。year、index、context_pathは"
+    "trusted fieldであり、model payloadに返してはいけません。\n"
+    "顧客向けtextではsupportive、mixed、balanced、integrated score、統合評価、"
+    "統合スコア、統合比較、混合、favorable factorなどの"
+    "内部評価labelやvalueをそのまま出力せず、その意味を一般の顧客が理解できる"
+    "自然な日本語で説明してください。内部metadataの値は変更しません。\n"
+    "consultationまたはtrusted factsに明示されていない職種、業界、専門業務、役職を"
+    "推定してはいけません。KPI、SLA、WBS、PM/Ops、品質ゲート、監査ログ、"
+    "ダッシュボード、要件定義書、CS起点、A/Bテストなどの専門用語は、入力情報に"
+    "具体的な根拠がある場合にだけ使用し、一般の相談者にも理解できる日本語を優先して"
+    "ください。「仕組み化」を根拠なくこれらの専門用語へ展開してはいけません。\n"
+    "職種、活動、場面などの具体例は、trusted factsまたはconsultationに本人の事実として"
+    "示されていない限り、『たとえば』『一例として』『こうした分野では』など、例示で"
+    "あることを明示してください。例示を相談者本人の経歴、現在の仕事、予定、希望として"
+    "断定してはいけません。\n"
+    "文章上の役割が異なる内容を1つのgrounded_text_blockへ混在させないでください。"
+    "evidence[]は提示されたfactまたはluckの根拠、interpretation[]はその根拠から読める"
+    "傾向と現実生活での意味、advice[]は助言または明示された具体例として役割を分けます。"
+    "practicalな助言・具体例だけを述べるblockはclaim_typeをpracticalとしてreferenceを"
+    "emptyにし、占術またはluckの主張を含めるblockは対応するclaim_typeと有効なreferenceを"
+    "使用してください。summaryとdetailを含む各blockも、宣言した単一のclaim_typeとtextの"
+    "意味を一致させてください。\n"
+    "鑑定文はsection全体として、四柱推命上の根拠、そこから読める傾向、日常・仕事・"
+    "人間関係など現実生活での現れ方、必要に応じた具体例、実行可能な助言が自然に"
+    "つながるようにし、同じ内容を反復しないでください。"
+    "落ち着いた丁寧な語り口で、押し付けや過度な断定を避け、一般の30〜60代が理解できる"
+    "表現を使い、神秘主義やAI・コンサル資料のような文体へ寄せないでください。\n"
+    "healthでは病名の診断、特定疾患の予測、特定臓器についての医学的断定、医療行為の"
+    "代替、具体的な治療法や健康法の断定をしてはいけません。命式から直接導けない"
+    "デジタル断食や朝型生活などの具体策を作らず、休息、生活リズム、無理を重ねないこと、"
+    "自分の状態の確認、必要に応じた専門家への相談という一般的な生活助言に留めてください。\n"
     "返してよいのはmodel-owned payloadだけです。section_id、title、year、"
     "disclaimer、catalog、source contract、engine_version、schema_version、"
     "version、method、status、validationを返してはいけません。\n"
     "source_fact_codes、source_components、warning IDs、uncertainty IDsは"
     "提示されたallowed valuesからだけ選択し、strict JSONとして返してください。"
+    " long_term_luck はtrusted_attachmentsのlong_term_luck_pillarsの順序をそのまま使い、各要素をtitle/theme/career/wealth/relationships/caution/adviceとして生成してください。これらの本文は対応するluck_pillarsだけでgroundし、pillarの干支・年齢・通変星・五行を計算・変更しないでください。"
+)
+
+
+EXPECTED_SYSTEM_PROMPT += (
+    " For relationships evidence and interpretation grounded in the trusted branch-relation facts, "
+    "use astrology with source_components containing exactly relations; relationships is a section name, "
+    "not a source component. Do not mix another component into that block unless its text is explicitly "
+    "grounded in that component's trusted facts. Use the existing fact code chart.pillar_sequence "
+    "as the fact reference for that branch-relation grounding; do not invent a relation fact code."
+)
+EXPECTED_SYSTEM_PROMPT += (
+    " Customer-facing prose must not expose internal labels such as 統合評価、統合運評価、"
+    "統合スコア、内部評価; describe the combined flow naturally in ordinary Japanese instead."
+)
+
+
+EXPECTED_SYSTEM_PROMPT += (
+    " For each future_flow_yearly item, provide title, theme, career, wealth, relationships, "
+    "caution, and 2-4 advice blocks in addition to summary and detail. Keep the supplied year "
+    "order and ground luck claims only in the matching yearly luck crosswalk; do not calculate "
+    "years or invent fact codes. Distinguish the year's concrete actions from long-term luck themes."
 )
 
 
@@ -551,7 +625,7 @@ def test_current_luck_crosswalk_is_exact(four_pillar_request):
 
 def test_five_year_luck_crosswalk_is_exact(four_pillar_request):
     entries = four_pillar_request["trusted_catalogs"]["luck_value_sources"]
-    future = entries[4:]
+    future = [entry for entry in entries if entry["section_id"] == "future_flow"]
     years = four_pillar_request["trusted_attachments"]["future_flow_years"]
     expected = []
     for index, year in enumerate(years):
@@ -613,6 +687,85 @@ def test_canonical_messages_are_exact(four_pillar_request):
     )) == four_pillar_request["model_input"]
 
 
+def test_system_prompt_explicitly_covers_generator_semantic_contract():
+    required_instructions = (
+        "practicalではsource_fact_codesとsource_componentsをともに"
+        "empty array",
+        "astrologyではsource_fact_codesを1件以上",
+        "luck_pillars、current_luck、annual_luck、integrated_luckを"
+        "source_componentsに含めません",
+        "luck_astrologyでは対応するlocationのluck_value_sourcesに存在する"
+        "有効なluck componentをsource_componentsに1件以上",
+        "top-level summaryとconsultation_answerはpracticalまたは"
+        "astrologyだけ",
+        "core_personality、career、wealth、relationships、health、adviceの"
+        "summary、detail、advice[]はpracticalまたはastrologyだけ",
+        "evidence[]とinterpretation[]はastrologyだけ",
+        "current_luckとfuture_flowのsummary、detail、advice[]は"
+        "3種すべて",
+        "future_flow_yearlyの各summaryとdetailは3種すべて",
+        "luck_astrologyはcurrent_luck、future_flow、future_flow_yearlyだけ",
+        "選択したcomponentについてluck_value_sourcesに存在する全"
+        "future_flow year entryをtrusted orderで一括して使用",
+        "その位置のyear/indexにexact matchするcurrent_luck、annual_luck、"
+        "integrated_luckのみ",
+    )
+    for instruction in required_instructions:
+        assert instruction in AI_READING_V2_SYSTEM_PROMPT
+
+
+def test_system_prompt_requires_customer_readable_grounded_prose():
+    required_instructions = (
+        "supportive、mixed、balanced、integrated score、統合評価",
+        "統合スコア、統合比較、混合、favorable factor",
+        "内部評価labelやvalueをそのまま出力せず",
+        "職種、業界、専門業務、役職を推定してはいけません",
+        "KPI、SLA、WBS、PM/Ops、品質ゲート、監査ログ",
+        "入力情報に具体的な根拠がある場合にだけ使用",
+        "「仕組み化」を根拠なくこれらの専門用語へ展開してはいけません",
+        "『たとえば』『一例として』『こうした分野では』",
+        "例示を相談者本人の経歴、現在の仕事、予定、希望として断定してはいけません",
+        "文章上の役割が異なる内容を1つのgrounded_text_blockへ混在させないでください",
+        "evidence[]は提示されたfactまたはluckの根拠、interpretation[]はその根拠から読める",
+        "practicalな助言・具体例だけを述べるblockはclaim_typeをpracticalとして"
+        "referenceをempty",
+        "各blockも、宣言した単一のclaim_typeとtextの意味を一致させてください",
+        "四柱推命上の根拠、そこから読める傾向、日常・仕事・人間関係など"
+        "現実生活での現れ方、必要に応じた具体例、実行可能な助言",
+        "押し付けや過度な断定を避け",
+        "病名の診断、特定疾患の予測、特定臓器についての医学的断定",
+        "医療行為の代替、具体的な治療法や健康法の断定",
+        "必要に応じた専門家への相談",
+    )
+    for instruction in required_instructions:
+        assert instruction in AI_READING_V2_SYSTEM_PROMPT
+
+
+def test_relationship_grounding_uses_relations_component_not_section_name():
+    assert "relationships evidence and interpretation grounded in the trusted branch-relation facts" in AI_READING_V2_SYSTEM_PROMPT
+    assert "source_components containing exactly relations" in AI_READING_V2_SYSTEM_PROMPT
+    assert "relationships is a section name" in AI_READING_V2_SYSTEM_PROMPT
+
+
+def test_system_prompt_suppresses_customer_internal_evaluation_labels():
+    for label in ("統合評価", "統合運評価", "統合スコア", "内部評価"):
+        assert label in AI_READING_V2_SYSTEM_PROMPT
+    assert "describe the combined flow naturally" in AI_READING_V2_SYSTEM_PROMPT
+
+
+def test_model_input_redacts_integrated_luck_internal_evaluation_fields(four_pillar_request):
+    model_input = four_pillar_request["model_input"]
+    luck = model_input["reading_context"]["luck"]
+    serialized = json.dumps(
+        {"integrated_luck": luck.get("integrated_luck"), "five_year_luck": [
+            entry.get("integrated_luck") for entry in luck["five_year_luck"]
+        ]},
+        ensure_ascii=False,
+    )
+    for key in ("overall_score", "overall_level", "agreement_level", "confidence", "reasoning"):
+        assert key not in serialized
+
+
 def test_v1_prompt_is_not_imported_or_reused():
     source = inspect.getsource(reading_prompt_v2_module)
     assert "from engine.reading_prompt import" not in source
@@ -637,6 +790,7 @@ def test_model_output_schema_has_exact_root(four_pillar_request):
         "summary",
         "sections",
         "future_flow_yearly",
+        "long_term_luck",
         "consultation_answer",
     )
     assert schema["required"] == list(schema["properties"])
@@ -903,10 +1057,12 @@ def test_model_input_is_separate_and_exact_deep_copy(
         "trusted_catalogs",
         "section_slots",
         "future_flow_years",
+        "long_term_luck_pillars",
     )
-    assert model_input["reading_context"] == four_pillar_context
     assert model_input["reading_context"] is not four_pillar_context
-    assert model_input["judgment_metadata"] == four_pillar_metadata
+    assert model_input["reading_context"]["subject"] == four_pillar_context["subject"]
+    assert model_input["reading_context"]["luck"] != four_pillar_context["luck"]
+    assert model_input["judgment_metadata"]["schema_version"] == four_pillar_metadata["schema_version"]
     assert model_input["judgment_metadata"] is not four_pillar_metadata
 
 
@@ -920,6 +1076,7 @@ def test_trusted_attachments_have_exact_fields(four_pillar_request):
         "engine_version",
         "sections",
         "future_flow_years",
+        "long_term_luck_pillars",
         "consultation_present",
         "disclaimer",
     )

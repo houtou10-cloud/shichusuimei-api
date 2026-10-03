@@ -19,6 +19,8 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 
 from engine.reading_prompt_v2 import (
+    AI_READING_V2_LONG_TERM_LUCK_COUNT,
+    AI_READING_V2_SECTION_SLOTS,
     AI_READING_REQUEST_V2_FIELDS,
     build_ai_reading_request_v2,
 )
@@ -28,7 +30,7 @@ READING_GENERATOR_V2_VERSION = "reading_generator_v2"
 READING_GENERATOR_V2_METHOD = "openai_responses_api_v2"
 OPENAI_READING_MODEL_ENV = "OPENAI_READING_MODEL"
 DEFAULT_OPENAI_MODEL = "gpt-5"
-DEFAULT_MAX_OUTPUT_TOKENS = 6000
+DEFAULT_MAX_OUTPUT_TOKENS = 25000
 DEFAULT_REASONING_EFFORT = "low"
 SUPPORTED_REASONING_EFFORTS = ("minimal", "low", "medium", "high")
 DEFAULT_STORE = False
@@ -39,6 +41,7 @@ _FINAL_FIELDS_WITHOUT_VALIDATION = (
     "engine_version",
     "summary",
     "sections",
+    "long_term_luck",
     "consultation_answer",
     "warnings",
     "uncertainty",
@@ -53,6 +56,7 @@ _FINAL_FIELDS = (
     "engine_version",
     "summary",
     "sections",
+    "long_term_luck",
     "consultation_answer",
     "warnings",
     "uncertainty",
@@ -91,6 +95,7 @@ _CURRENT_LUCK_PATHS = {
 _FUTURE_LUCK_COMPONENTS = frozenset(
     ("current_luck", "annual_luck", "integrated_luck")
 )
+_SECTION_IDS = tuple(section_id for section_id, _title in AI_READING_V2_SECTION_SLOTS)
 
 
 class AIReadingGeneratorV2Error(RuntimeError):
@@ -283,11 +288,201 @@ def _provider_payload(
             "format": {
                 "type": "json_schema",
                 "name": JSON_SCHEMA_NAME,
-                "schema": deepcopy(request["model_output_schema"]),
+                "schema": _openai_transport_schema(request["model_output_schema"]),
                 "strict": True,
             }
         },
     }
+
+
+def _without_openai_unsupported_unique_items(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {
+            key: _without_openai_unsupported_unique_items(item)
+            for key, item in value.items()
+            if key != "uniqueItems"
+        }
+    if isinstance(value, list):
+        return [_without_openai_unsupported_unique_items(item) for item in value]
+    return deepcopy(value)
+
+
+def _transport_block_schema(
+    canonical_block_schema: Mapping[str, Any],
+    canonical_claim_types: Sequence[str],
+    *,
+    location_kind: str,
+    section_id: str | None,
+    field: str,
+) -> dict[str, Any]:
+    result = deepcopy(dict(canonical_block_schema))
+    allowed = _allowed_claim_types(location_kind, section_id, field)
+    result["properties"]["claim_type"]["enum"] = [
+        claim_type
+        for claim_type in canonical_claim_types
+        if claim_type in allowed
+    ]
+    return result
+
+
+def _transport_section_schema(
+    canonical_section_schema: Mapping[str, Any],
+    canonical_block_schema: Mapping[str, Any],
+    canonical_claim_types: Sequence[str],
+    *,
+    section_id: str,
+) -> dict[str, Any]:
+    result = deepcopy(dict(canonical_section_schema))
+    properties = result["properties"]
+    for field in ("summary", "detail"):
+        properties[field] = _transport_block_schema(
+            canonical_block_schema,
+            canonical_claim_types,
+            location_kind="section",
+            section_id=section_id,
+            field=field,
+        )
+    for field in ("evidence", "interpretation", "advice"):
+        properties[field]["items"] = _transport_block_schema(
+            canonical_block_schema,
+            canonical_claim_types,
+            location_kind="section",
+            section_id=section_id,
+            field=field,
+        )
+    return result
+
+
+def _transport_long_term_schema(
+    canonical_schema: Mapping[str, Any],
+    canonical_block_schema: Mapping[str, Any],
+    canonical_claim_types: Sequence[str],
+) -> dict[str, Any]:
+    result = deepcopy(dict(canonical_schema))
+    for field in ("title", "theme", "career", "wealth", "relationships", "caution"):
+        result["properties"][field] = _transport_block_schema(
+            canonical_block_schema, canonical_claim_types,
+            location_kind="long_term", section_id="long_term_luck", field=field,
+        )
+    result["properties"]["advice"]["items"] = _transport_block_schema(
+        canonical_block_schema, canonical_claim_types,
+        location_kind="long_term", section_id="long_term_luck", field="advice",
+    )
+    return result
+
+
+def _openai_transport_schema(canonical_schema: Mapping[str, Any]) -> dict[str, Any]:
+    """Build the approved OpenAI-only encoding of the canonical model schema."""
+
+    canonical = deepcopy(dict(canonical_schema))
+    canonical_definitions = canonical["$defs"]
+    canonical_block = canonical_definitions["grounded_text_block"]
+    canonical_section = canonical_definitions["model_section_payload"]
+    canonical_year = canonical_definitions["model_year_payload"]
+    canonical_long_term = canonical_definitions["long_term_luck_payload"]
+    canonical_claim_types = canonical_block["properties"]["claim_type"]["enum"]
+
+    definitions = {
+        name: deepcopy(canonical_definitions[name])
+        for name in (
+            "fact_code_array",
+            "source_component_array",
+            "warning_id_array",
+            "uncertainty_id_array",
+        )
+    }
+    section_properties = {
+        section_id: _transport_section_schema(
+            canonical_section,
+            canonical_block,
+            canonical_claim_types,
+            section_id=section_id,
+        )
+        for section_id in _SECTION_IDS
+    }
+    year_schema = deepcopy(canonical_year)
+    for field in (
+        "title", "theme", "career", "wealth", "relationships", "caution",
+        "summary", "detail",
+    ):
+        year_schema["properties"][field] = _transport_block_schema(
+            canonical_block,
+            canonical_claim_types,
+            location_kind="yearly",
+            section_id="future_flow",
+            field=field,
+        )
+    advice_schema = year_schema["properties"]["advice"]
+    advice_schema["items"] = _transport_block_schema(
+        canonical_block,
+        canonical_claim_types,
+        location_kind="yearly",
+        section_id="future_flow",
+        field="advice",
+    )
+    # OpenAI strict structured outputs require every property of an object to
+    # be listed in required.  The canonical yearly payload keeps the new
+    # detail fields additive for local/legacy compatibility; the provider
+    # projection makes that object strict without mutating the canonical copy.
+    year_schema["required"] = list(year_schema["properties"])
+    long_term_schema = _transport_long_term_schema(
+        canonical_long_term, canonical_block, canonical_claim_types
+    )
+
+    properties = canonical["properties"]
+    transport_properties = {
+        "summary": _transport_block_schema(
+            canonical_block,
+            canonical_claim_types,
+            location_kind="top",
+            section_id=None,
+            field="summary",
+        ),
+        "sections": {
+            "type": "object",
+            "properties": section_properties,
+            "required": list(_SECTION_IDS),
+            "additionalProperties": False,
+        },
+        "future_flow_yearly": {
+            **deepcopy(properties["future_flow_yearly"]),
+            "items": year_schema,
+        },
+        "long_term_luck": {
+            **deepcopy(properties["long_term_luck"]),
+            "items": long_term_schema,
+        },
+        "consultation_answer": (
+            _transport_block_schema(
+                canonical_block,
+                canonical_claim_types,
+                location_kind="consultation",
+                section_id=None,
+                field="consultation_answer",
+            )
+            if properties["consultation_answer"].get("type") != "null"
+            else {"type": "null"}
+        ),
+    }
+    transport = {
+        "$defs": definitions,
+        "type": "object",
+        "properties": transport_properties,
+        "required": deepcopy(canonical["required"]),
+        "additionalProperties": False,
+    }
+    return _without_openai_unsupported_unique_items(transport)
+
+
+def _decode_openai_transport_payload(
+    transport_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Decode only the approved fixed-key section container representation."""
+
+    sections = transport_payload["sections"]
+    result = deepcopy(dict(transport_payload))
+    result["sections"] = [deepcopy(sections[section_id]) for section_id in _SECTION_IDS]
+    return result
 
 
 def _call_provider(client: Any, payload: Mapping[str, Any]) -> Any:
@@ -309,7 +504,35 @@ def _get(value: Any, name: str, default: Any = None) -> Any:
     return value.get(name, default) if isinstance(value, Mapping) else getattr(value, name, default)
 
 
+def _validate_provider_response_state(response: Any) -> None:
+    status = _get(response, "status")
+    if status == "incomplete":
+        details = _get(response, "incomplete_details")
+        reason = _get(details, "reason") if details is not None else None
+        if reason == "max_output_tokens":
+            raise AIReadingGeneratorV2ResponseError(
+                "provider response is incomplete: max_output_tokens"
+            )
+        raise AIReadingGeneratorV2ResponseError("provider response is incomplete")
+    if isinstance(status, str) and status != "completed":
+        raise AIReadingGeneratorV2ResponseError("provider response is not completed")
+
+    output = _get(response, "output", [])
+    if not isinstance(output, (list, tuple)):
+        return
+    for item in output:
+        content = _get(item, "content", [])
+        if not isinstance(content, (list, tuple)):
+            continue
+        for content_item in content:
+            if _get(content_item, "type") == "refusal":
+                raise AIReadingGeneratorV2ResponseError(
+                    "provider response contains a refusal"
+                )
+
+
 def _extract_output_text(response: Any) -> str:
+    _validate_provider_response_state(response)
     direct = _get(response, "output_text")
     if isinstance(direct, str) and direct.strip():
         return direct.strip()
@@ -412,7 +635,12 @@ def _iter_blocks(
                     field,
                 )
     for index, year_payload in enumerate(payload["future_flow_yearly"]):
-        for field in ("summary", "detail"):
+        for field in (
+            "title", "theme", "career", "wealth", "relationships", "caution",
+            "summary", "detail",
+        ):
+            if field not in year_payload:
+                continue
             yield (
                 f"/future_flow_yearly/{index}/{field}",
                 year_payload[field],
@@ -420,6 +648,22 @@ def _iter_blocks(
                 "future_flow",
                 index,
                 field,
+            )
+        for advice_index, block in enumerate(year_payload.get("advice", [])):
+            yield (
+                f"/future_flow_yearly/{index}/advice/{advice_index}", block,
+                "yearly", "future_flow", index, "advice",
+            )
+    for index, detail in enumerate(payload["long_term_luck"]):
+        for field in ("title", "theme", "career", "wealth", "relationships", "caution"):
+            yield (
+                f"/long_term_luck/{index}/{field}", detail[field],
+                "long_term", "long_term_luck", index, field,
+            )
+        for advice_index, block in enumerate(detail["advice"]):
+            yield (
+                f"/long_term_luck/{index}/advice/{advice_index}", block,
+                "long_term", "long_term_luck", index, "advice",
             )
     if payload["consultation_answer"] is not None:
         yield (
@@ -441,6 +685,8 @@ def _allowed_claim_types(
         return frozenset(("practical", "astrology"))
     if location_kind == "yearly":
         return frozenset(("practical", "astrology", "luck_astrology"))
+    if location_kind == "long_term":
+        return frozenset(("luck_astrology", "practical"))
     luck_section = section_id in ("current_luck", "future_flow")
     if field in ("evidence", "interpretation"):
         return (
@@ -507,6 +753,18 @@ def _validate_luck_component(
             and entry["context_path"] == expected_path
         ]
         return len(matches) == 1
+    if location_kind == "long_term" and year_index is not None:
+        pillars = request["trusted_attachments"]["long_term_luck_pillars"]
+        if component != "luck_pillars" or year_index >= len(pillars):
+            return False
+        pillar = pillars[year_index]
+        return any(
+            entry["section_id"] == "long_term_luck"
+            and entry["year"] == pillar["index"]
+            and entry["source_component"] == "luck_pillars"
+            and entry["context_path"] == f"luck.luck_pillars.pillars[{year_index}]"
+            for entry in entries
+        )
     return False
 
 
@@ -613,16 +871,41 @@ def _assemble_candidate(
                     "summary": deepcopy(year_payload["summary"]),
                     "detail": deepcopy(year_payload["detail"]),
                 }
+                | {
+                    field: deepcopy(year_payload[field])
+                    for field in (
+                        "title", "theme", "career", "wealth", "relationships",
+                        "caution", "advice",
+                    )
+                    if field in year_payload
+                }
                 for year_index, year_payload in enumerate(
                     payload["future_flow_yearly"]
                 )
             ]
         sections.append(assembled)
+    long_term_luck = []
+    long_term_fields = ("title", "theme", "career", "wealth", "relationships", "caution", "advice")
+    for index, model_detail in enumerate(payload["long_term_luck"]):
+        pillar = attachments["long_term_luck_pillars"][index]
+        item = {
+            "index": pillar["index"],
+            "ganzhi": pillar["ganzhi"],
+            "start_age": pillar["start_age"],
+            "end_age": pillar["end_age"],
+            "stem_ten_god": pillar["stem_ten_god"],
+            "stem_element": pillar["stem_element"],
+            "branch_element": pillar["branch_element"],
+        }
+        for field in long_term_fields:
+            item[field] = deepcopy(model_detail[field])
+        long_term_luck.append(item)
     return {
         "schema_version": attachments["final_schema_version"],
         "engine_version": deepcopy(attachments["engine_version"]),
         "summary": deepcopy(payload["summary"]),
         "sections": sections,
+        "long_term_luck": long_term_luck,
         "consultation_answer": deepcopy(payload["consultation_answer"]),
         "warnings": deepcopy(request["trusted_catalogs"]["warnings"]),
         "uncertainty": deepcopy(request["trusted_catalogs"]["uncertainty"]),
@@ -684,42 +967,53 @@ def _validate_candidate(
                 elif [entry.get("year") for entry in yearly] != years:
                     errors.append("/sections/6/yearly: trusted year/order mismatch")
 
-        try:
-            reconstructed_sections = [
+    long_term = candidate.get("long_term_luck")
+    pillars = attachments["long_term_luck_pillars"]
+    if not isinstance(long_term, list) or len(long_term) != len(pillars):
+        errors.append("/long_term_luck: trusted cardinality mismatch")
+    elif [item.get("index") for item in long_term] != [item["index"] for item in pillars]:
+        errors.append("/long_term_luck: trusted order mismatch")
+
+    try:
+        reconstructed_sections = [
                 {
                     field: deepcopy(section[field])
                     for field in _MODEL_SECTION_FIELDS
                 }
                 for section in sections
             ]
-            reconstructed_yearly = [
+        reconstructed_yearly = [
                 {
                     "summary": deepcopy(entry["summary"]),
                     "detail": deepcopy(entry["detail"]),
                 }
                 for entry in sections[6]["yearly"]
             ]
-            reconstructed_payload = {
+        reconstructed_payload = {
                 "summary": deepcopy(candidate["summary"]),
                 "sections": reconstructed_sections,
                 "future_flow_yearly": reconstructed_yearly,
+                "long_term_luck": [
+                    {field: deepcopy(item[field]) for field in ("title", "theme", "career", "wealth", "relationships", "caution", "advice")}
+                    for item in candidate["long_term_luck"]
+                ],
                 "consultation_answer": deepcopy(candidate["consultation_answer"]),
             }
-            _validate_structure(
+        _validate_structure(
                 reconstructed_payload,
                 request["model_output_schema"],
             )
-            _validate_semantics(reconstructed_payload, request)
-        except (KeyError, TypeError, IndexError) as exc:
-            errors.append(
+        _validate_semantics(reconstructed_payload, request)
+    except (KeyError, TypeError, IndexError) as exc:
+        errors.append(
                 "/sections: cannot reconstruct exact model-owned payload "
                 f"({type(exc).__name__})"
             )
-        except (
+    except (
             AIReadingGeneratorV2StructuralValidationError,
             AIReadingGeneratorV2SemanticValidationError,
         ) as exc:
-            errors.extend(
+        errors.extend(
                 f"/model_payload: {issue}"
                 for issue in exc.issues
             )
@@ -800,7 +1094,10 @@ def generate_ai_reading_v2(
         client = _create_openai_client(api_key=api_key)
     response = _call_provider(client, provider_payload)
     text = _extract_output_text(response)
-    model_payload = _parse_model_json(text)
+    transport_payload = _parse_model_json(text)
+    transport_schema = provider_payload["text"]["format"]["schema"]
+    _validate_structure(transport_payload, transport_schema)
+    model_payload = _decode_openai_transport_payload(transport_payload)
     _validate_structure(model_payload, canonical["model_output_schema"])
     _validate_semantics(model_payload, canonical)
     candidate = _assemble_candidate(model_payload, canonical)
@@ -812,6 +1109,7 @@ def generate_ai_reading_v2(
         "engine_version": candidate["engine_version"],
         "summary": candidate["summary"],
         "sections": candidate["sections"],
+        "long_term_luck": candidate["long_term_luck"],
         "consultation_answer": candidate["consultation_answer"],
         "warnings": candidate["warnings"],
         "uncertainty": candidate["uncertainty"],

@@ -34,6 +34,7 @@ AI_READING_REQUEST_V2_STATUS = "ready_for_ai_generation"
 
 AI_READING_V2_SUPPORTED_LANGUAGES = ("ja",)
 AI_READING_V2_SUPPORTED_TONES = ("professional_warm",)
+AI_READING_V2_LONG_TERM_LUCK_COUNT = 5
 AI_READING_V2_CLAIM_TYPES = (
     "practical",
     "astrology",
@@ -84,11 +85,89 @@ AI_READING_V2_SYSTEM_PROMPT = (
     "factでgroundし、luck_astrologyは許可されたlocationとluck crosswalkで"
     "groundしてください。占術またはluckの主張をpracticalとして偽装しては"
     "いけません。\n"
+    "claim_typeごとのreference ruleを厳守してください。practicalでは"
+    "source_fact_codesとsource_componentsをともにempty arrayとします。"
+    "astrologyではsource_fact_codesを1件以上選び、luck_pillars、current_luck、"
+    "annual_luck、integrated_luckをsource_componentsに含めません。luck_astrologyでは"
+    "対応するlocationのluck_value_sourcesに存在する有効なluck componentを"
+    "source_componentsに1件以上選んでください。\n"
+    "claim_typeのlocation ruleを厳守してください。top-level summaryと"
+    "consultation_answerはpracticalまたはastrologyだけを許可します。"
+    "core_personality、career、wealth、relationships、health、adviceのsummary、detail、"
+    "advice[]はpracticalまたはastrologyだけを許可し、evidence[]とinterpretation[]は"
+    "astrologyだけを許可します。current_luckとfuture_flowのsummary、detail、"
+    "advice[]は3種すべてを許可し、evidence[]とinterpretation[]はastrologyまたは"
+    "luck_astrologyだけを許可します。future_flow_yearlyの各summaryとdetailは"
+    "3種すべてを許可します。\n"
+    "luck_astrologyはcurrent_luck、future_flow、future_flow_yearlyだけで使用します。"
+    "current_luckではluck_value_sourcesのcurrent_luck entryとexact matchするluck_pillars、"
+    "current_luck、annual_luck、integrated_luckのみを選びます。future_flowのnon-yearly"
+    " blockではcurrent_luck、annual_luck、integrated_luckのみを選び、選択した"
+    "componentについてluck_value_sourcesに存在する全future_flow year entryをtrusted orderで"
+    "一括して使用し、subset yearを指定しません。"
+    "future_flow_yearlyでは、その位置のyear/indexにexact matchするcurrent_luck、"
+    "annual_luck、integrated_luckのみを選んでください。year、index、context_pathは"
+    "trusted fieldであり、model payloadに返してはいけません。\n"
+    "顧客向けtextではsupportive、mixed、balanced、integrated score、統合評価、"
+    "統合スコア、統合比較、混合、favorable factorなどの"
+    "内部評価labelやvalueをそのまま出力せず、その意味を一般の顧客が理解できる"
+    "自然な日本語で説明してください。内部metadataの値は変更しません。\n"
+    "consultationまたはtrusted factsに明示されていない職種、業界、専門業務、役職を"
+    "推定してはいけません。KPI、SLA、WBS、PM/Ops、品質ゲート、監査ログ、"
+    "ダッシュボード、要件定義書、CS起点、A/Bテストなどの専門用語は、入力情報に"
+    "具体的な根拠がある場合にだけ使用し、一般の相談者にも理解できる日本語を優先して"
+    "ください。「仕組み化」を根拠なくこれらの専門用語へ展開してはいけません。\n"
+    "職種、活動、場面などの具体例は、trusted factsまたはconsultationに本人の事実として"
+    "示されていない限り、『たとえば』『一例として』『こうした分野では』など、例示で"
+    "あることを明示してください。例示を相談者本人の経歴、現在の仕事、予定、希望として"
+    "断定してはいけません。\n"
+    "文章上の役割が異なる内容を1つのgrounded_text_blockへ混在させないでください。"
+    "evidence[]は提示されたfactまたはluckの根拠、interpretation[]はその根拠から読める"
+    "傾向と現実生活での意味、advice[]は助言または明示された具体例として役割を分けます。"
+    "practicalな助言・具体例だけを述べるblockはclaim_typeをpracticalとしてreferenceを"
+    "emptyにし、占術またはluckの主張を含めるblockは対応するclaim_typeと有効なreferenceを"
+    "使用してください。summaryとdetailを含む各blockも、宣言した単一のclaim_typeとtextの"
+    "意味を一致させてください。\n"
+    "鑑定文はsection全体として、四柱推命上の根拠、そこから読める傾向、日常・仕事・"
+    "人間関係など現実生活での現れ方、必要に応じた具体例、実行可能な助言が自然に"
+    "つながるようにし、同じ内容を反復しないでください。"
+    "落ち着いた丁寧な語り口で、押し付けや過度な断定を避け、一般の30〜60代が理解できる"
+    "表現を使い、神秘主義やAI・コンサル資料のような文体へ寄せないでください。\n"
+    "healthでは病名の診断、特定疾患の予測、特定臓器についての医学的断定、医療行為の"
+    "代替、具体的な治療法や健康法の断定をしてはいけません。命式から直接導けない"
+    "デジタル断食や朝型生活などの具体策を作らず、休息、生活リズム、無理を重ねないこと、"
+    "自分の状態の確認、必要に応じた専門家への相談という一般的な生活助言に留めてください。\n"
     "返してよいのはmodel-owned payloadだけです。section_id、title、year、"
     "disclaimer、catalog、source contract、engine_version、schema_version、"
     "version、method、status、validationを返してはいけません。\n"
     "source_fact_codes、source_components、warning IDs、uncertainty IDsは"
     "提示されたallowed valuesからだけ選択し、strict JSONとして返してください。"
+)
+
+AI_READING_V2_SYSTEM_PROMPT += (
+    " long_term_luck はtrusted_attachmentsのlong_term_luck_pillarsの順序をそのまま使い、"
+    "各要素をtitle/theme/career/wealth/relationships/caution/adviceとして生成してください。"
+    "これらの本文は対応するluck_pillarsだけでgroundし、pillarの干支・年齢・通変星・五行を計算・変更しないでください。"
+)
+
+AI_READING_V2_SYSTEM_PROMPT += (
+    " For relationships evidence and interpretation grounded in the trusted branch-relation facts, "
+    "use astrology with source_components containing exactly relations; relationships is a section name, "
+    "not a source component. Do not mix another component into that block unless its text is explicitly "
+    "grounded in that component's trusted facts. Use the existing fact code chart.pillar_sequence "
+    "as the fact reference for that branch-relation grounding; do not invent a relation fact code."
+)
+
+AI_READING_V2_SYSTEM_PROMPT += (
+    " Customer-facing prose must not expose internal labels such as 統合評価、統合運評価、"
+    "統合スコア、内部評価; describe the combined flow naturally in ordinary Japanese instead."
+)
+
+AI_READING_V2_SYSTEM_PROMPT += (
+    " For each future_flow_yearly item, provide title, theme, career, wealth, relationships, "
+    "caution, and 2-4 advice blocks in addition to summary and detail. Keep the supplied year "
+    "order and ground luck claims only in the matching yearly luck crosswalk; do not calculate "
+    "years or invent fact codes. Distinguish the year's concrete actions from long-term luck themes."
 )
 
 AI_READING_V2_USER_PROMPT_PREFIX = (
@@ -138,6 +217,75 @@ _FUTURE_LUCK_COMPONENTS = (
     "annual_luck",
     "integrated_luck",
 )
+
+_INTERNAL_INTEGRATED_LUCK_KEYS = frozenset(
+    {
+        "overall_score",
+        "overall_level",
+        "agreement_level",
+        "score",
+        "confidence",
+        "reasoning",
+    }
+)
+
+
+def _strip_internal_integrated_luck(value: Any) -> Any:
+    """Remove internal evaluation labels from the customer-facing model input only."""
+    if isinstance(value, Mapping):
+        return {
+            key: _strip_internal_integrated_luck(item)
+            for key, item in value.items()
+            if key not in _INTERNAL_INTEGRATED_LUCK_KEYS
+        }
+    if isinstance(value, (list, tuple)):
+        return [_strip_internal_integrated_luck(item) for item in value]
+    return deepcopy(value)
+
+
+def _customer_prompt_reading_context(reading_context: Mapping[str, Any]) -> dict[str, Any]:
+    projected = deepcopy(dict(reading_context))
+    luck = projected.get("luck")
+    if isinstance(luck, Mapping):
+        if "integrated_luck" in luck:
+            luck["integrated_luck"] = _strip_internal_integrated_luck(
+                luck["integrated_luck"]
+            )
+        yearly = luck.get("five_year_luck")
+        if isinstance(yearly, list):
+            for entry in yearly:
+                if isinstance(entry, Mapping) and "integrated_luck" in entry:
+                    entry["integrated_luck"] = _strip_internal_integrated_luck(
+                        entry["integrated_luck"]
+                    )
+    return projected
+
+
+def _customer_prompt_judgment_metadata(judgment_metadata: Mapping[str, Any]) -> dict[str, Any]:
+    projected = deepcopy(dict(judgment_metadata))
+    components = projected.get("components")
+    if isinstance(components, Mapping) and isinstance(components.get("integrated_luck"), Mapping):
+        components["integrated_luck"]["evidence"] = _strip_internal_integrated_luck(
+            components["integrated_luck"].get("evidence")
+        )
+    return projected
+
+
+def _build_long_term_luck_pillars(
+    reading_context: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    """Select current and following four owner-calculated luck pillars."""
+    luck = reading_context["luck"]
+    pillars = luck["luck_pillars"]["pillars"]
+    current = luck.get("current_luck")
+    current_index = current.get("current_pillar", {}).get("index") if isinstance(current, Mapping) else None
+    start = next(
+        (position for position, pillar in enumerate(pillars)
+         if pillar.get("index") == current_index),
+        0,
+    )
+    selected = pillars[start:start + AI_READING_V2_LONG_TERM_LUCK_COUNT]
+    return [deepcopy(dict(pillar)) for pillar in selected]
 
 
 def _new_validation_report() -> dict[str, Any]:
@@ -507,6 +655,16 @@ def _build_luck_value_sources(
                     ),
                 }
             )
+    if _component_available(judgment_metadata, "luck_pillars"):
+        for position, pillar in enumerate(_build_long_term_luck_pillars(reading_context)):
+            result.append(
+                {
+                    "section_id": "long_term_luck",
+                    "year": pillar["index"],
+                    "source_component": "luck_pillars",
+                    "context_path": f"luck.luck_pillars.pillars[{position}]",
+                }
+            )
     return result
 
 
@@ -562,6 +720,7 @@ def _build_model_output_schema(
     *,
     future_year_count: int,
     consultation_present: bool,
+    long_term_luck_count: int,
 ) -> dict[str, Any]:
     warning_ids = [entry["warning_id"] for entry in trusted_catalogs["warnings"]]
     uncertainty_ids = [
@@ -638,10 +797,46 @@ def _build_model_output_schema(
         "model_year_payload": {
             "type": "object",
             "properties": {
+                "title": {"$ref": "#/$defs/grounded_text_block"},
+                "theme": {"$ref": "#/$defs/grounded_text_block"},
+                "career": {"$ref": "#/$defs/grounded_text_block"},
+                "wealth": {"$ref": "#/$defs/grounded_text_block"},
+                "relationships": {"$ref": "#/$defs/grounded_text_block"},
+                "caution": {"$ref": "#/$defs/grounded_text_block"},
+                "advice": {
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/grounded_text_block"},
+                    "minItems": 2,
+                    "maxItems": 4,
+                },
                 "summary": {"$ref": "#/$defs/grounded_text_block"},
                 "detail": {"$ref": "#/$defs/grounded_text_block"},
             },
+            # The detail fields are additive: legacy deterministic fixtures remain
+            # valid, while production prompts request and render them when present.
             "required": ["summary", "detail"],
+            "additionalProperties": False,
+        },
+        "long_term_luck_payload": {
+            "type": "object",
+            "properties": {
+                field: {"$ref": "#/$defs/grounded_text_block"}
+                for field in (
+                    "title", "theme", "career", "wealth",
+                    "relationships", "caution",
+                )
+            } | {
+                "advice": {
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/grounded_text_block"},
+                    "minItems": 2,
+                    "maxItems": 4,
+                }
+            },
+            "required": [
+                "title", "theme", "career", "wealth",
+                "relationships", "caution", "advice",
+            ],
             "additionalProperties": False,
         },
     }
@@ -667,12 +862,19 @@ def _build_model_output_schema(
                 "minItems": future_year_count,
                 "maxItems": future_year_count,
             },
+            "long_term_luck": {
+                "type": "array",
+                "items": {"$ref": "#/$defs/long_term_luck_payload"},
+                "minItems": long_term_luck_count,
+                "maxItems": long_term_luck_count,
+            },
             "consultation_answer": consultation_schema,
         },
         "required": [
             "summary",
             "sections",
             "future_flow_yearly",
+            "long_term_luck",
             "consultation_answer",
         ],
         "additionalProperties": False,
@@ -711,6 +913,11 @@ def build_ai_reading_request_v2(
         entry["year"] for entry in reading_context["luck"]["five_year_luck"]
     ]
     consultation_present = reading_context["consultation"] is not None
+    long_term_luck_pillars = (
+        _build_long_term_luck_pillars(reading_context)
+        if _component_available(judgment_metadata, "luck_pillars")
+        else []
+    )
     trusted_attachments = {
         "final_schema_version": "ai_reading_v2",
         "final_version": "ai_reading_v2",
@@ -719,15 +926,17 @@ def build_ai_reading_request_v2(
         "engine_version": deepcopy(reading_context["engine_version"]),
         "sections": deepcopy(section_slots),
         "future_flow_years": deepcopy(future_flow_years),
+        "long_term_luck_pillars": long_term_luck_pillars,
         "consultation_present": consultation_present,
         "disclaimer": AI_READING_V2_DISCLAIMER,
     }
     model_input = {
-        "reading_context": deepcopy(dict(reading_context)),
-        "judgment_metadata": deepcopy(dict(judgment_metadata)),
+        "reading_context": _customer_prompt_reading_context(reading_context),
+        "judgment_metadata": _customer_prompt_judgment_metadata(judgment_metadata),
         "trusted_catalogs": deepcopy(trusted_catalogs),
         "section_slots": deepcopy(section_slots),
         "future_flow_years": deepcopy(future_flow_years),
+        "long_term_luck_pillars": deepcopy(long_term_luck_pillars),
     }
     user_content = AI_READING_V2_USER_PROMPT_PREFIX + json.dumps(
         model_input,
@@ -744,6 +953,7 @@ def build_ai_reading_request_v2(
         trusted_catalogs,
         future_year_count=len(future_flow_years),
         consultation_present=consultation_present,
+        long_term_luck_count=len(trusted_attachments["long_term_luck_pillars"]),
     )
 
     return {
@@ -780,6 +990,7 @@ __all__ = [
     "AI_READING_REQUEST_V2_STATUS",
     "AI_READING_REQUEST_V2_VERSION",
     "AI_READING_V2_CLAIM_TYPES",
+    "AI_READING_V2_LONG_TERM_LUCK_COUNT",
     "AI_READING_V2_DISCLAIMER",
     "AI_READING_V2_SECTION_SLOTS",
     "AI_READING_V2_SUPPORTED_LANGUAGES",

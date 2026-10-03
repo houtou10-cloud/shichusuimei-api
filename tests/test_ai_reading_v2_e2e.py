@@ -30,7 +30,10 @@ from engine.reading_generator_v2 import (
     AIReadingGeneratorV2StructuralValidationError,
     generate_ai_reading_v2,
 )
-from engine.reading_prompt_v2 import build_ai_reading_request_v2
+from engine.reading_prompt_v2 import (
+    AI_READING_V2_SECTION_SLOTS,
+    build_ai_reading_request_v2,
+)
 from engine.reading_quality_v2 import evaluate_ai_reading_quality_v2
 
 
@@ -140,7 +143,12 @@ def _model_payload(request: dict[str, Any]) -> dict[str, Any]:
         for _ in range(8)
     ]
     yearly = [
-        {"summary": _block(), "detail": _block()}
+        {
+            "title": _block(), "theme": _block(), "career": _block(),
+            "wealth": _block(), "relationships": _block(), "caution": _block(),
+            "advice": [_block(), _block()],
+            "summary": _block(), "detail": _block(),
+        }
         for _ in request["trusted_attachments"]["future_flow_years"]
     ]
     consultation_answer = (
@@ -148,12 +156,37 @@ def _model_payload(request: dict[str, Any]) -> dict[str, Any]:
         if request["trusted_attachments"]["consultation_present"]
         else None
     )
+    long_term = []
+    for _ in request["trusted_attachments"].get("long_term_luck_pillars", []):
+        def luck_block(text: str = "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・"):
+            return _block(text=text, claim_type="luck_astrology", components=["luck_pillars"])
+        long_term.append({
+            "title": luck_block(), "theme": luck_block(), "career": luck_block(),
+            "wealth": luck_block(), "relationships": luck_block(), "caution": luck_block(),
+            "advice": [luck_block(), luck_block()],
+        })
     return {
         "summary": _block(),
         "sections": sections,
         "future_flow_yearly": yearly,
+        "long_term_luck": long_term,
         "consultation_answer": consultation_answer,
     }
+
+
+def _transport_payload(payload: Any) -> Any:
+    result = deepcopy(payload)
+    if isinstance(result, dict) and isinstance(result.get("sections"), list):
+        section_ids = tuple(
+            section_id for section_id, _title in AI_READING_V2_SECTION_SLOTS
+        )
+        sections = result["sections"]
+        if len(sections) == len(section_ids):
+            result["sections"] = {
+                section_id: section
+                for section_id, section in zip(section_ids, sections)
+            }
+    return result
 
 
 class FakeResponses:
@@ -163,11 +196,12 @@ class FakeResponses:
 
     def create(self, **kwargs):
         self.calls.append(deepcopy(kwargs))
+        provider_value = _transport_payload(self.payload)
         output_text = (
-            self.payload
-            if isinstance(self.payload, str)
+            provider_value
+            if isinstance(provider_value, str)
             else json.dumps(
-                self.payload,
+                provider_value,
                 ensure_ascii=False,
                 separators=(",", ":"),
                 sort_keys=False,
@@ -642,3 +676,16 @@ def test_quality_gate_preserves_all_pipeline_inputs(
         reading,
     ) == before
     assert tuple(report) == REPORT_FIELDS
+
+
+@pytest.mark.parametrize("variant", range(10))
+def test_repeated_legal_provenance_variations_remain_publishable(variant):
+    def mutate(payload, _request):
+        payload["summary"]["text"] = f"合法な表現バリエーション {variant}"
+        payload["sections"][1]["detail"]["text"] = f"仕事に関する説明 {variant}"
+
+    artifacts = _generate_pipeline(
+        gc03_chart.__wrapped__(), mutate_payload=mutate
+    )
+    report = _evaluate(artifacts, RecordingSemanticAssessor())
+    assert report["decision"] == "pass"

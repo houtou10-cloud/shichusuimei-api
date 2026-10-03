@@ -1,0 +1,2443 @@
+{
+  "schema_version": "ai_reading_v2_golden_v1",
+  "version": "ai_reading_v2_golden_v1",
+  "case_id": "GC10",
+  "source_references": {
+    "chart_fixture_id": "GC10_1985_ishikawa_female_unknown_birth_time",
+    "reading_context_fixture": "tests/golden/v1_2/reading_context/GC10_1985_ishikawa_female_unknown_birth_time_reading_context_v2.json",
+    "target_datetime": "2026-08-10T15:36:00+09:00",
+    "consultation_context": null
+  },
+  "provider_model": "test-model",
+  "provider_response": {
+    "summary": {
+      "text": "出生時刻不明のため、既知の三柱だけを用いて説明します。",
+      "claim_type": "practical",
+      "source_fact_codes": [],
+      "source_components": [],
+      "warnings": [],
+      "uncertainty": []
+    },
+    "sections": [
+      {
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      }
+    ],
+    "future_flow_yearly": [
+      {
+        "title": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        }
+      },
+      {
+        "title": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        }
+      },
+      {
+        "title": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        }
+      },
+      {
+        "title": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        }
+      },
+      {
+        "title": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        }
+      }
+    ],
+    "long_term_luck": [
+      {
+        "title": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ]
+      },
+      {
+        "title": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ]
+      },
+      {
+        "title": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ]
+      },
+      {
+        "title": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ]
+      },
+      {
+        "title": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ]
+      }
+    ],
+    "consultation_answer": null
+  },
+  "ai_reading": {
+    "schema_version": "ai_reading_v2",
+    "engine_version": "1.2",
+    "summary": {
+      "text": "出生時刻不明のため、既知の三柱だけを用いて説明します。",
+      "claim_type": "practical",
+      "source_fact_codes": [],
+      "source_components": [],
+      "warnings": [],
+      "uncertainty": []
+    },
+    "sections": [
+      {
+        "section_id": "core_personality",
+        "title": "本質・性格",
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "section_id": "career",
+        "title": "仕事・適職",
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "section_id": "wealth",
+        "title": "金運",
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "section_id": "relationships",
+        "title": "恋愛・人間関係",
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "section_id": "health",
+        "title": "健康傾向",
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "section_id": "current_luck",
+        "title": "現在の運勢",
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      },
+      {
+        "section_id": "future_flow",
+        "title": "今後の流れ",
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": [],
+        "yearly": [
+          {
+            "year": 2026,
+            "summary": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "detail": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "title": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "theme": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "career": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "wealth": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "relationships": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "caution": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "advice": [
+              {
+                "text": "実用的な指針です。",
+                "claim_type": "practical",
+                "source_fact_codes": [],
+                "source_components": [],
+                "warnings": [],
+                "uncertainty": []
+              },
+              {
+                "text": "実用的な指針です。",
+                "claim_type": "practical",
+                "source_fact_codes": [],
+                "source_components": [],
+                "warnings": [],
+                "uncertainty": []
+              }
+            ]
+          },
+          {
+            "year": 2027,
+            "summary": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "detail": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "title": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "theme": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "career": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "wealth": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "relationships": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "caution": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "advice": [
+              {
+                "text": "実用的な指針です。",
+                "claim_type": "practical",
+                "source_fact_codes": [],
+                "source_components": [],
+                "warnings": [],
+                "uncertainty": []
+              },
+              {
+                "text": "実用的な指針です。",
+                "claim_type": "practical",
+                "source_fact_codes": [],
+                "source_components": [],
+                "warnings": [],
+                "uncertainty": []
+              }
+            ]
+          },
+          {
+            "year": 2028,
+            "summary": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "detail": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "title": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "theme": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "career": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "wealth": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "relationships": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "caution": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "advice": [
+              {
+                "text": "実用的な指針です。",
+                "claim_type": "practical",
+                "source_fact_codes": [],
+                "source_components": [],
+                "warnings": [],
+                "uncertainty": []
+              },
+              {
+                "text": "実用的な指針です。",
+                "claim_type": "practical",
+                "source_fact_codes": [],
+                "source_components": [],
+                "warnings": [],
+                "uncertainty": []
+              }
+            ]
+          },
+          {
+            "year": 2029,
+            "summary": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "detail": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "title": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "theme": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "career": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "wealth": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "relationships": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "caution": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "advice": [
+              {
+                "text": "実用的な指針です。",
+                "claim_type": "practical",
+                "source_fact_codes": [],
+                "source_components": [],
+                "warnings": [],
+                "uncertainty": []
+              },
+              {
+                "text": "実用的な指針です。",
+                "claim_type": "practical",
+                "source_fact_codes": [],
+                "source_components": [],
+                "warnings": [],
+                "uncertainty": []
+              }
+            ]
+          },
+          {
+            "year": 2030,
+            "summary": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "detail": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "title": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "theme": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "career": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "wealth": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "relationships": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "caution": {
+              "text": "実用的な指針です。",
+              "claim_type": "practical",
+              "source_fact_codes": [],
+              "source_components": [],
+              "warnings": [],
+              "uncertainty": []
+            },
+            "advice": [
+              {
+                "text": "実用的な指針です。",
+                "claim_type": "practical",
+                "source_fact_codes": [],
+                "source_components": [],
+                "warnings": [],
+                "uncertainty": []
+              },
+              {
+                "text": "実用的な指針です。",
+                "claim_type": "practical",
+                "source_fact_codes": [],
+                "source_components": [],
+                "warnings": [],
+                "uncertainty": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "section_id": "advice",
+        "title": "総合アドバイス",
+        "facts": [],
+        "summary": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "detail": {
+          "text": "実用的な指針です。",
+          "claim_type": "practical",
+          "source_fact_codes": [],
+          "source_components": [],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "evidence": [],
+        "interpretation": [],
+        "advice": [
+          {
+            "text": "実用的な指針です。",
+            "claim_type": "practical",
+            "source_fact_codes": [],
+            "source_components": [],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ],
+        "warnings": [],
+        "uncertainty": []
+      }
+    ],
+    "long_term_luck": [
+      {
+        "index": 4,
+        "ganzhi": "丁亥",
+        "start_age": 37.153764,
+        "end_age": 47.153764,
+        "stem_ten_god": "比肩",
+        "stem_element": "火",
+        "branch_element": "水",
+        "title": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "ganzhi": "戊子",
+        "start_age": 47.153764,
+        "end_age": 57.153764,
+        "stem_ten_god": "傷官",
+        "stem_element": "土",
+        "branch_element": "水",
+        "title": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ]
+      },
+      {
+        "index": 6,
+        "ganzhi": "己丑",
+        "start_age": 57.153764,
+        "end_age": 67.153764,
+        "stem_ten_god": "食神",
+        "stem_element": "土",
+        "branch_element": "土",
+        "title": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ]
+      },
+      {
+        "index": 7,
+        "ganzhi": "庚寅",
+        "start_age": 67.153764,
+        "end_age": 77.153764,
+        "stem_ten_god": "正財",
+        "stem_element": "金",
+        "branch_element": "木",
+        "title": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ]
+      },
+      {
+        "index": 8,
+        "ganzhi": "辛卯",
+        "start_age": 77.153764,
+        "end_age": 87.153764,
+        "stem_ten_god": "偏財",
+        "stem_element": "金",
+        "branch_element": "木",
+        "title": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "theme": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "career": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "wealth": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "relationships": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "caution": {
+          "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+          "claim_type": "luck_astrology",
+          "source_fact_codes": [],
+          "source_components": [
+            "luck_pillars"
+          ],
+          "warnings": [],
+          "uncertainty": []
+        },
+        "advice": [
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          },
+          {
+            "text": "螟ｧ驕九・譁ｰ逕溘・縺ｮ謗｡縺ｧ縺吶・",
+            "claim_type": "luck_astrology",
+            "source_fact_codes": [],
+            "source_components": [
+              "luck_pillars"
+            ],
+            "warnings": [],
+            "uncertainty": []
+          }
+        ]
+      }
+    ],
+    "consultation_answer": null,
+    "warnings": [
+      {
+        "warning_id": "warning_0001",
+        "source_contract": "reading_context_v2",
+        "source_path": "warnings[0]",
+        "value": "出生時間が不明なため、時柱は計算していません。"
+      },
+      {
+        "warning_id": "warning_0002",
+        "source_contract": "reading_context_v2",
+        "source_path": "warnings[1]",
+        "value": "出生時間が不明なため、五行・通根・身強身弱・格局・用神などは確認可能な年柱・月柱・日柱の範囲での評価です。"
+      },
+      {
+        "warning_id": "warning_0003",
+        "source_contract": "reading_context_v2",
+        "source_path": "warnings[2]",
+        "value": "出生時間が不明なため、大運開始年齢・開始日時・現在大運の切り替わり時期には精度上の制限があります。"
+      }
+    ],
+    "uncertainty": [
+      {
+        "uncertainty_id": "uncertainty_0001",
+        "source_contract": "reading_context_v2",
+        "source_path": "uncertainty[0]",
+        "value": {
+          "code": "birth_time_unknown",
+          "category": "input_uncertainty",
+          "status": "uncertain",
+          "severity": "warning",
+          "scope": [
+            "hour_pillar",
+            "five_elements",
+            "root_strength",
+            "strength",
+            "pattern",
+            "useful_gods",
+            "luck_timing"
+          ],
+          "message": "出生時間が不明なため、一部の判定は既知の三柱範囲または推定値です。"
+        }
+      },
+      {
+        "uncertainty_id": "uncertainty_0002",
+        "source_contract": "common_judgment_metadata_v1",
+        "source_path": "components.strength.uncertainty[0]",
+        "value": {
+          "code": "season_transition_adjustment_not_applied",
+          "category": "rule_uncertainty",
+          "status": "provisional",
+          "severity": "info",
+          "scope": [
+            "strength"
+          ],
+          "message": "土用期間および節入り後日数による季節強弱の細分補正は未適用です。"
+        }
+      },
+      {
+        "uncertainty_id": "uncertainty_0003",
+        "source_contract": "common_judgment_metadata_v1",
+        "source_path": "components.strength.uncertainty[1]",
+        "value": {
+          "code": "birth_time_unknown_strength_confidence_reduced",
+          "category": "input_uncertainty",
+          "status": "uncertain",
+          "severity": "warning",
+          "scope": [
+            "strength"
+          ],
+          "message": "出生時間が不明なため、身強身弱判定のconfidence上限をmediumとして扱います。"
+        }
+      }
+    ],
+    "source_contracts": {
+      "reading_context": {
+        "schema_version": "reading_context_v2",
+        "method": "reading_context_v2",
+        "version": "reading_context_v2",
+        "status": "ready_for_ai_reading"
+      },
+      "judgment_metadata": {
+        "schema_version": "common_judgment_metadata_v1"
+      }
+    },
+    "disclaimer": "本鑑定は八雲式四柱推命エンジンの計算結果に基づく参考情報です。将来の出来事を保証するものではなく、医療・法律・投資その他の専門的判断を代替するものではありません。重要な意思決定は、必要に応じて適切な専門家へご相談ください。",
+    "validation": {
+      "valid": true,
+      "errors": [],
+      "missing_required_fields": [],
+      "unknown_fields": []
+    },
+    "method": "openai_responses_api_v2",
+    "version": "ai_reading_v2",
+    "status": "completed"
+  },
+  "quality_report": {
+    "schema_version": "ai_reading_quality_report_v2",
+    "version": "ai_reading_quality_report_v2",
+    "method": "ai_reading_quality_gate_v2",
+    "status": "completed",
+    "decision": "pass",
+    "blocking": false,
+    "human_review_required": false,
+    "error_count": 0,
+    "warning_count": 0,
+    "info_count": 0,
+    "input_contracts": {
+      "ai_reading_v2": {
+        "schema_version": "ai_reading_v2",
+        "version": "ai_reading_v2",
+        "method": "openai_responses_api_v2",
+        "status": "completed",
+        "engine_version": "1.2"
+      },
+      "reading_context_v2": {
+        "schema_version": "reading_context_v2",
+        "version": "reading_context_v2",
+        "method": "reading_context_v2",
+        "status": "ready_for_ai_reading"
+      },
+      "common_judgment_metadata_v1": {
+        "schema_version": "common_judgment_metadata_v1"
+      }
+    },
+    "semantic_assessment": {
+      "status": "completed",
+      "method": "golden_semantic_assessor_v1",
+      "version": "v1"
+    },
+    "findings": []
+  },
+  "human_review": {}
+}
