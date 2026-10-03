@@ -136,6 +136,13 @@ def test_customer_form_is_japanese_responsive_and_has_all_inputs():
     assert "鑑定結果を作成しています" in response.text
 
 
+def test_reading_form_is_available_at_get_reading_path():
+    response = TestClient(app).get("/app/reading")
+    assert response.status_code == 200
+    assert 'id="reading-form"' in response.text
+    assert 'action="/app/reading"' in response.text
+
+
 def test_known_and_unknown_time_map_to_formal_chart_request():
     known = validate_customer_input(_values())
     known_request = build_customer_chart_request(known)

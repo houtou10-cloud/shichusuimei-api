@@ -187,6 +187,11 @@ def customer_form() -> HTMLResponse:
     return HTMLResponse(_render_form())
 
 
+@router.get("/app/reading", response_class=HTMLResponse, include_in_schema=False)
+def customer_reading_form() -> HTMLResponse:
+    return HTMLResponse(_render_form())
+
+
 @router.post("/app/reading", response_class=HTMLResponse, include_in_schema=False)
 async def customer_reading(request: Request) -> HTMLResponse:
     values: dict[str, str] = {}
