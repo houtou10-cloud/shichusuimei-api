@@ -37,6 +37,8 @@ def _fixture_projection():
 
 
 def test_academy_home_and_start_do_not_call_provider_or_leak_answers():
+    assert CLIENT.get("/academy/courses").status_code == 200
+    assert CLIENT.get("/academy/practice").status_code == 200
     response = CLIENT.get("/academy")
     assert response.status_code == 200
     assert "八雲式 四柱推命Academy" in response.text
@@ -100,3 +102,20 @@ def test_academy_unknown_birth_time_uses_three_pillar_scope_without_fake_hour():
 def test_existing_customer_routes_remain_available():
     assert CLIENT.get("/app").status_code == 200
     assert CLIENT.get("/app/reading").status_code == 200
+
+
+def test_academy_portal_navigation_and_course_catalog():
+    portal = CLIENT.get("/academy")
+    assert 'href="/academy/courses"' in portal.text
+    assert 'href="/academy/practice"' in portal.text
+
+    courses = CLIENT.get("/academy/courses")
+    assert courses.status_code == 200
+    assert "四柱推命の土台" in courses.text
+    assert "四柱推命とは何を読むものか" in courses.text
+    assert "日主とは何か" in courses.text
+    assert "第7章" in courses.text
+
+    practice = CLIENT.get("/academy/practice")
+    assert practice.status_code == 200
+    assert 'action="/academy/start"' in practice.text
