@@ -146,8 +146,7 @@ def test_reading_form_is_available_at_get_reading_path():
     assert 'action="/app/reading"' in response.text
 
 
-def test_performance_trace_logs_pipeline_steps_without_customer_data(caplog):
-    caplog.set_level("INFO", logger="uvicorn.error")
+def test_performance_trace_logs_pipeline_steps_without_customer_data(capsys):
     fake = _client()
     trace = PerformanceTrace()
     token = set_performance_trace(trace)
@@ -161,7 +160,7 @@ def test_performance_trace_logs_pipeline_steps_without_customer_data(caplog):
     finally:
         reset_performance_trace(token)
     trace.finish(status="success")
-    text = caplog.text
+    text = capsys.readouterr().err
     for step in (
         "chart_calculation", "reading_context_build", "prompt_build",
         "ai_generation", "semantic_assessment", "quality_gate_first",
@@ -174,16 +173,16 @@ def test_performance_trace_logs_pipeline_steps_without_customer_data(caplog):
     assert "OPENAI_API_KEY" not in text
 
 
-def test_performance_trace_logs_summary_on_error(caplog):
-    caplog.set_level("INFO", logger="uvicorn.error")
+def test_performance_trace_logs_summary_on_error(capsys):
     trace = PerformanceTrace()
     with pytest.raises(RuntimeError):
         with trace.measure("ai_generation"):
             raise RuntimeError("synthetic test failure")
     trace.finish(status="error")
-    assert "step=ai_generation status=error" in caplog.text
-    assert "[PERF_SUMMARY]" in caplog.text
-    assert "synthetic test failure" not in caplog.text
+    text = capsys.readouterr().err
+    assert "step=ai_generation status=error" in text
+    assert "[PERF_SUMMARY]" in text
+    assert "synthetic test failure" not in text
 
 
 def test_known_and_unknown_time_map_to_formal_chart_request():

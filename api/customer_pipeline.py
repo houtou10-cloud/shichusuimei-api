@@ -14,8 +14,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime
 import json
-import logging
 import os
+import sys
 import time
 import uuid
 from typing import Any
@@ -65,13 +65,16 @@ from engine.reading_repair_v2 import (
 
 JST = ZoneInfo("Asia/Tokyo")
 
-# Uvicorn configures this logger at INFO with a stderr handler in production.
-# Using it keeps performance diagnostics visible in Render Application Logs
-# without changing application-wide logging configuration.
-_logger = logging.getLogger("uvicorn.error")
 _performance_trace: contextvars.ContextVar["PerformanceTrace | None"] = (
     contextvars.ContextVar("yakumo_performance_trace", default=None)
 )
+
+
+def _emit_perf_log(message: str) -> None:
+    """Write performance diagnostics directly to Render-captured stderr."""
+
+    sys.stderr.write(message + "\n")
+    sys.stderr.flush()
 
 
 class PerformanceTrace:
@@ -102,16 +105,16 @@ class PerformanceTrace:
             elapsed = time.perf_counter() - started
             self._steps.add(step)
             self._durations[step] = self._durations.get(step, 0.0) + elapsed
-            _logger.info(
-                "[PERF] request_id=%s step=%s status=%s executed=true elapsed=%.3fs",
-                self.request_id, step, status, elapsed,
+            _emit_perf_log(
+                f"[PERF] request_id={self.request_id} step={step} "
+                f"status={status} executed=true elapsed={elapsed:.3f}s"
             )
 
     def skip(self, step: str) -> None:
         self._steps.add(step)
-        _logger.info(
-            "[PERF] request_id=%s step=%s status=not_executed executed=false elapsed=0.000s",
-            self.request_id, step,
+        _emit_perf_log(
+            f"[PERF] request_id={self.request_id} step={step} "
+            "status=not_executed executed=false elapsed=0.000s"
         )
 
     def provider_call(self) -> None:
@@ -126,10 +129,11 @@ class PerformanceTrace:
             max(self._durations.items(), key=lambda item: item[1])
             if self._durations else ("none", 0.0)
         )
-        _logger.info(
-            "[PERF_SUMMARY] request_id=%s total=%.3fs slowest=%s slowest_elapsed=%.3fs provider_calls=%d auto_repair=%s status=%s",
-            self.request_id, elapsed, slowest, slowest_elapsed,
-            self.provider_calls, str(self.auto_repair).lower(), status,
+        _emit_perf_log(
+            f"[PERF_SUMMARY] request_id={self.request_id} total={elapsed:.3f}s "
+            f"slowest={slowest} slowest_elapsed={slowest_elapsed:.3f}s "
+            f"provider_calls={self.provider_calls} "
+            f"auto_repair={str(self.auto_repair).lower()} status={status}"
         )
 
 
