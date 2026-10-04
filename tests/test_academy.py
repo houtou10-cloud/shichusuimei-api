@@ -146,7 +146,7 @@ def test_first_lesson_quiz_scores_on_server_and_explains_answers():
     )
     assert response.status_code == 200
     assert "3問中3問正解" in response.text
-    assert "正解：年柱・月柱・日柱・時柱" in response.text
+    assert "命式から確認できる事実" in response.text
     assert 'href="/academy/course/1/1"' in response.text
     assert 'href="/academy/practice"' in response.text
     assert "次の講座：陰陽五行" in response.text or 'href="/academy/course/1/2"' in response.text

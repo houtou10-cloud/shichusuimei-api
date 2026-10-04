@@ -63,7 +63,7 @@ def test_all_lessons_have_source_grounding_and_non_repeated_quizzes():
     for lesson in lessons:
         body = (CONTENT_ROOT / "lessons" / f'{lesson["lesson_id"]}.md').read_text(encoding="utf-8")
         assert len(body) > 700
-        assert "原典参照" in body
+        assert "学習資料から読む" in body
         quiz = json.loads((CONTENT_ROOT / "quizzes" / f'{lesson["lesson_id"]}.json').read_text(encoding="utf-8"))
         assert 3 <= len(quiz["questions"]) <= 5
         signatures.append(tuple(q["prompt"] for q in quiz["questions"]))
@@ -80,7 +80,12 @@ def test_all_84_lessons_are_gettable_and_quizzes_are_server_scored():
         assert response.status_code == 200
         assert f' action="/academy/course/{chapter}/{number}/check"' in response.text
         assert '"answer"' not in response.text
+        for marker in ("原典参照", "参照元:", "旧第", ".zip", ".txt", "source_file", "source_files", "legacy_catalog", "engine"):
+            assert marker not in response.text
         quiz = load_lesson_quiz(lesson["lesson_id"])
+        quiz_text = json.dumps(quiz, ensure_ascii=False)
+        for marker in ("旧第", "原典", "参照元", ".zip", ".txt", "source_file"):
+            assert marker not in quiz_text
         values = {
             _curriculum_quiz_name(lesson["lesson_id"], q["id"]): q["answer"]
             for q in quiz["questions"]
