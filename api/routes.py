@@ -29,6 +29,7 @@ from api.models import ChartRequest
 from api.customer_routes import (
     router as customer_router,
 )
+from api.academy_routes import router as academy_router
 from api.reading_routes import (
     router as reading_router,
 )
@@ -89,6 +90,9 @@ router.include_router(
 
 router.include_router(
     customer_router
+)
+router.include_router(
+    academy_router
 )
 
 
