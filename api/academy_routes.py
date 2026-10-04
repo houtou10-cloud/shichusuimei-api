@@ -185,7 +185,7 @@ def _start_fields(values: dict[str, list[str]]) -> str:
     } for _ in [0])
 
 
-def _render_start_form(values: dict[str, list[str]] | None = None, error: str = "") -> str:
+def _render_start_form_raw(values: dict[str, list[str]] | None = None, error: str = "") -> str:
     values = values or {}
     date = values.get("birth_date", [""])[0]
     place = values.get("birth_place", [""])[0]
@@ -204,7 +204,18 @@ def _render_start_form(values: dict[str, list[str]] | None = None, error: str = 
         f'<option value="{value}"{' selected' if value == gender else ''}>{label}</option>'
         for value, label in (("male", "男性"), ("female", "女性"))
     )
-    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>八雲式 四柱推命Academy</title>{_STYLES}</head><body><main class="shell"><header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>八雲式 四柱推命Academy</h1><p>命式を自分で読み、八雲式で答え合わせしながら四柱推命を身につける実践学習ツール。</p><p>まず自分で考えてから、八雲式の判定を確認しましょう。</p></header><section class="content"><h2>学習を始める</h2>{f'<p class="error">{escape(error)}</p>' if error else ''}<form method="post" action="/academy/start"><div class="grid"><div><label for="birth_date">生年月日</label><input id="birth_date" name="birth_date" type="date" value="{escape(date, quote=True)}" required></div><div><label for="birth_place">出生地</label><select id="birth_place" name="birth_place" required><option value="">選択してください</option>{places}</select></div><div class="full"><label>出生時刻</label><div class="grid"><select name="birth_hour"><option value="">時</option>{hours}</select><select name="birth_minute"><option value="">分</option>{minutes}</select></div><label class="choice"><input type="checkbox" name="birth_time_unknown" value="1"{checked}>出生時刻が分からない</label></div><div><label for="gender">性別</label><select id="gender" name="gender" required><option value="">選択してください</option>{selected_gender}</select></div><div class="full"><button class="button" type="submit">学習を開始する</button></div></div></form></section></main></body></html>'''
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>八雲式 四柱推命Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>八雲式 四柱推命Academy</h1><p>命式を自分で読み、八雲式で答え合わせしながら四柱推命を身につける実践学習ツール。</p><p>まず自分で考えてから、八雲式の判定を確認しましょう。</p></header><section class="content"><h2>学習を始める</h2>{f'<p class="error">{escape(error)}</p>' if error else ''}<form method="post" action="/academy/start"><div class="grid"><div><label for="birth_date">生年月日</label><input id="birth_date" name="birth_date" type="date" value="{escape(date, quote=True)}" required></div><div><label for="birth_place">出生地</label><select id="birth_place" name="birth_place" required><option value="">選択してください</option>{places}</select></div><div class="full"><label>出生時刻</label><div class="grid"><select name="birth_hour"><option value="">時</option>{hours}</select><select name="birth_minute"><option value="分">分</option>{minutes}</select></div><label class="choice"><input type="checkbox" name="birth_time_unknown" value="1"{checked}>出生時刻が分からない</label></div><div><label for="gender">性別</label><select id="gender" name="gender" required><option value="">選択してください</option>{selected_gender}</select></div><div class="full"><button class="button" type="submit">学習を開始する</button></div></div></form></section></main></body></html>'''
+
+
+def _render_start_form(values: dict[str, list[str]] | None = None, error: str = "") -> str:
+    html = _render_start_form_raw(values, error)
+    return html.replace('name="birth_minute"><option value="分">', 'name="birth_minute"><option value="">')
+
+
+def _with_academy_nav(html: str) -> str:
+    if '<nav class="nav">' in html:
+        return html
+    return html.replace("<body>", f"<body>{_academy_nav()}", 1)
 
 
 def _radio(name: str, values: Sequence[str]) -> str:
@@ -264,7 +275,7 @@ async def academy_lesson_1_1_check(request: Request) -> HTMLResponse:
 
 @router.get("/academy/practice", response_class=HTMLResponse, include_in_schema=False)
 def academy_practice() -> HTMLResponse:
-    return HTMLResponse(_render_start_form())
+    return HTMLResponse(_with_academy_nav(_render_start_form()))
 
 
 @router.post("/academy/start", response_class=HTMLResponse, include_in_schema=False)
@@ -274,8 +285,8 @@ async def academy_start(request: Request) -> HTMLResponse:
         chart, projection = _chart_from_values(values)
     except (CustomerInputError, ValueError) as exc:
         message = next(iter(exc.errors.values())) if isinstance(exc, CustomerInputError) else "入力を確認してください。"
-        return HTMLResponse(_render_start_form(values if "values" in locals() else {}, message), status_code=422)
-    return HTMLResponse(_render_questions(values, projection).replace("<body>", f"<body>{_academy_nav()}", 1))
+        return HTMLResponse(_with_academy_nav(_render_start_form(values if "values" in locals() else {}, message)), status_code=422)
+    return HTMLResponse(_with_academy_nav(_render_questions(values, projection)))
 
 
 @router.post("/academy/check", response_class=HTMLResponse, include_in_schema=False)
@@ -285,8 +296,8 @@ async def academy_check(request: Request) -> HTMLResponse:
         chart, projection = _chart_from_values(values)
         results = grade_academy_answers(projection, {key: (items if key == "q2" else items[0]) for key, items in values.items()})
     except (CustomerInputError, ValueError):
-        return HTMLResponse(_render_start_form({}, "入力を確認して、もう一度学習を開始してください。"), status_code=422)
-    return HTMLResponse(_render_result(projection, results).replace("<body>", f"<body>{_academy_nav()}", 1))
+        return HTMLResponse(_with_academy_nav(_render_start_form({}, "入力を確認して、もう一度学習を開始してください。")), status_code=422)
+    return HTMLResponse(_with_academy_nav(_render_result(projection, results)))
 
 
 __all__ = ["router", "academy_home", "academy_courses", "academy_lesson_1_1", "academy_lesson_1_1_check", "academy_practice", "academy_start", "academy_check"]

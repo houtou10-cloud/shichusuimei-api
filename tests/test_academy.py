@@ -168,3 +168,21 @@ def test_first_lesson_quiz_rejects_unknown_fields_and_handles_missing_answers():
     assert response.status_code == 200
     assert "3問中0問正解" in response.text
     assert "0問正解" in response.text
+
+
+def test_academy_navigation_is_present_once_across_all_screens():
+    def assert_nav(response):
+        assert response.status_code in (200, 422)
+        for href in ('href="/academy"', 'href="/academy/courses"', 'href="/academy/practice"'):
+            assert href in response.text
+        assert response.text.count('<nav class="nav">') == 1
+
+    assert_nav(CLIENT.get("/academy"))
+    assert_nav(CLIENT.get("/academy/courses"))
+    assert_nav(CLIENT.get("/academy/practice"))
+    assert_nav(CLIENT.get("/academy/course/1/1"))
+    assert_nav(CLIENT.post("/academy/course/1/1/check", data={"lesson_q1": "0", "lesson_q2": "1", "lesson_q3": "1"}))
+    assert_nav(CLIENT.post("/academy/start", data=_fixture_values()))
+    assert_nav(CLIENT.post("/academy/check", data={"bad": "input"}))
+    assert_nav(CLIENT.post("/academy/start", data={"birth_date": "not-a-date"}))
+    assert_nav(CLIENT.post("/academy/start", data=_fixture_values(birth_hour="", birth_minute="", birth_time_unknown="1")))
