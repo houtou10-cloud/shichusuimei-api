@@ -18,13 +18,16 @@ import engine.reading_renderer_v2 as renderer_v2
 from api.customer_pipeline import (
     MAX_CONCERN_CHARS,
     PREFECTURES,
+    PerformanceTrace,
     CustomerInputError,
     CustomerReadingUnavailableError,
     OpenAISemanticAssessorV2,
     SemanticAssessmentProviderError,
     _semantic_reference_catalog,
     build_customer_chart_request,
+    reset_performance_trace,
     run_customer_reading,
+    set_performance_trace,
     validate_customer_input,
 )
 from main import app
@@ -141,6 +144,34 @@ def test_reading_form_is_available_at_get_reading_path():
     assert response.status_code == 200
     assert 'id="reading-form"' in response.text
     assert 'action="/app/reading"' in response.text
+
+
+def test_performance_trace_logs_pipeline_steps_without_customer_data(caplog):
+    caplog.set_level("INFO", logger="api.customer_pipeline")
+    fake = _client()
+    trace = PerformanceTrace()
+    token = set_performance_trace(trace)
+    try:
+        run_customer_reading(
+            validate_customer_input(_values()),
+            client=fake,
+            model="test-model",
+            reference_time=FIXED,
+        )
+    finally:
+        reset_performance_trace(token)
+    trace.finish(status="success")
+    text = caplog.text
+    for step in (
+        "chart_calculation", "reading_context_build", "prompt_build",
+        "ai_generation", "semantic_assessment", "quality_gate_first",
+        "reading_product_build",
+    ):
+        assert f"step={step}" in text
+    assert "[PERF_SUMMARY]" in text
+    assert "1984" not in text
+    assert "13:40" not in text
+    assert "OPENAI_API_KEY" not in text
 
 
 def test_known_and_unknown_time_map_to_formal_chart_request():

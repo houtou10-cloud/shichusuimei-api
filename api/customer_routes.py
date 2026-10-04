@@ -17,7 +17,10 @@ from api.customer_pipeline import (
     CustomerConfigurationError,
     CustomerInputError,
     CustomerReadingUnavailableError,
+    PerformanceTrace,
     run_customer_reading,
+    reset_performance_trace,
+    set_performance_trace,
     validate_customer_input,
 )
 from engine.reading_renderer_v2 import render_customer_reading_product_v2_html
@@ -194,16 +197,28 @@ def customer_reading_form() -> HTMLResponse:
 
 @router.post("/app/reading", response_class=HTMLResponse, include_in_schema=False)
 async def customer_reading(request: Request) -> HTMLResponse:
+    performance = PerformanceTrace()
     values: dict[str, str] = {}
     try:
-        values = await _form_values(request)
-        customer_input = validate_customer_input(values)
+        with performance.measure("request_parse"):
+            values = await _form_values(request)
+            customer_input = validate_customer_input(values)
     except CustomerInputError as exc:
+        performance.finish(status="error")
         return HTMLResponse(_render_form(values, exc.errors), status_code=422)
     try:
-        product = await run_in_threadpool(run_customer_reading, customer_input)
-        return HTMLResponse(_render_customer_result(product))
+        token = set_performance_trace(performance)
+        try:
+            product = await run_in_threadpool(run_customer_reading, customer_input)
+        finally:
+            reset_performance_trace(token)
+        with performance.measure("html_render"):
+            document = _render_customer_result(product)
+        performance.skip("pdf_generation")
+        performance.finish(status="success")
+        return HTMLResponse(document)
     except CustomerConfigurationError as exc:
+        performance.finish(status="error")
         logger.error(
             "customer reading configuration failure stage=%s reason=%s",
             exc.stage,
@@ -214,6 +229,7 @@ async def customer_reading(request: Request) -> HTMLResponse:
             status_code=503,
         )
     except CustomerReadingUnavailableError as exc:
+        performance.finish(status="error")
         logger.warning(
             "customer reading publication unavailable stage=%s reason=%s decision=%s blockers=%s diagnostic_codes=%s locations=%s",
             exc.stage,
@@ -228,6 +244,7 @@ async def customer_reading(request: Request) -> HTMLResponse:
             status_code=503,
         )
     except Exception as exc:
+        performance.finish(status="error")
         logger.error("customer reading unexpected failure: %s", type(exc).__name__)
         return HTMLResponse(
             _render_form(values, {"_form": "鑑定結果を作成できませんでした。時間をおいてもう一度お試しください。"}),

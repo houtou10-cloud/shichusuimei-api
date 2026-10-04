@@ -8,11 +8,16 @@ content.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from contextlib import contextmanager
+import contextvars
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime
 import json
+import logging
 import os
+import time
+import uuid
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -59,6 +64,108 @@ from engine.reading_repair_v2 import (
 
 
 JST = ZoneInfo("Asia/Tokyo")
+
+_logger = logging.getLogger(__name__)
+_performance_trace: contextvars.ContextVar["PerformanceTrace | None"] = (
+    contextvars.ContextVar("yakumo_performance_trace", default=None)
+)
+
+
+class PerformanceTrace:
+    """Request-scoped timing diagnostics; it never changes pipeline behavior."""
+
+    def __init__(self) -> None:
+        self.request_id = uuid.uuid4().hex[:12]
+        self.started = time.perf_counter()
+        self.provider_calls = 0
+        self.auto_repair = False
+        self._steps: set[str] = set()
+        self._durations: dict[str, float] = {}
+
+    @contextmanager
+    def measure(self, step: str, *, executed: bool = True):
+        if not executed:
+            self.skip(step)
+            yield
+            return
+        started = time.perf_counter()
+        status = "ok"
+        try:
+            yield
+        except BaseException:
+            status = "error"
+            raise
+        finally:
+            elapsed = time.perf_counter() - started
+            self._steps.add(step)
+            self._durations[step] = self._durations.get(step, 0.0) + elapsed
+            _logger.info(
+                "[PERF] request_id=%s step=%s status=%s executed=true elapsed=%.3fs",
+                self.request_id, step, status, elapsed,
+            )
+
+    def skip(self, step: str) -> None:
+        self._steps.add(step)
+        _logger.info(
+            "[PERF] request_id=%s step=%s status=not_executed executed=false elapsed=0.000s",
+            self.request_id, step,
+        )
+
+    def provider_call(self) -> None:
+        self.provider_calls += 1
+
+    def has_step(self, step: str) -> bool:
+        return step in self._steps
+
+    def finish(self, *, status: str) -> None:
+        elapsed = time.perf_counter() - self.started
+        slowest, slowest_elapsed = (
+            max(self._durations.items(), key=lambda item: item[1])
+            if self._durations else ("none", 0.0)
+        )
+        _logger.info(
+            "[PERF_SUMMARY] request_id=%s total=%.3fs slowest=%s slowest_elapsed=%.3fs provider_calls=%d auto_repair=%s status=%s",
+            self.request_id, elapsed, slowest, slowest_elapsed,
+            self.provider_calls, str(self.auto_repair).lower(), status,
+        )
+
+
+class _TimedSemanticAssessor:
+    def __init__(self, assessor: Any, trace: PerformanceTrace, count_provider: bool):
+        self._assessor = assessor
+        self._trace = trace
+        self._count_provider = count_provider
+
+    @property
+    def method(self):
+        return self._assessor.method
+
+    @property
+    def version(self):
+        return self._assessor.version
+
+    def assess(self, ai_reading, reading_context, judgment_metadata):
+        if self._count_provider:
+            self._trace.provider_call()
+        with self._trace.measure("semantic_assessment"):
+            return self._assessor.assess(
+                ai_reading, reading_context, judgment_metadata
+            )
+
+    def __getattr__(self, name: str):
+        return getattr(self._assessor, name)
+
+
+def set_performance_trace(trace: PerformanceTrace):
+    return _performance_trace.set(trace)
+
+
+def reset_performance_trace(token: contextvars.Token) -> None:
+    _performance_trace.reset(token)
+
+
+def current_performance_trace() -> PerformanceTrace | None:
+    return _performance_trace.get()
 
 PREFECTURES = (
     "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
@@ -1219,6 +1326,8 @@ def run_customer_reading(
 
     if not isinstance(value, CustomerReadingInput):
         raise TypeError("value must be CustomerReadingInput")
+    trace = current_performance_trace()
+    using_real_provider = client is None
     generated_at = reference_time or datetime.now(JST).replace(microsecond=0)
     if generated_at.tzinfo is None or generated_at.utcoffset() is None:
         raise CustomerConfigurationError(
@@ -1232,30 +1341,66 @@ def run_customer_reading(
         client=provider_client,
         model=resolved_model,
     )
+    measured_assessor = (
+        _TimedSemanticAssessor(assessor, trace, using_real_provider)
+        if trace is not None
+        else assessor
+    )
 
     chart_request = build_customer_chart_request(value)
-    chart = calculate_chart(chart_request, target_datetime=generated_at)
-    consultation_context = (
-        build_consultation_context(concern=value.consultation, desired_future="")
-        if value.consultation
-        else None
-    )
-    reading_context = build_reading_context_v2(
-        chart,
-        consultation_context=consultation_context,
-    )
-    judgment_metadata = build_common_judgment_metadata(chart)
-    prompt_request = build_ai_reading_request_v2(reading_context, judgment_metadata)
+    if trace is None:
+        chart = calculate_chart(chart_request, target_datetime=generated_at)
+    else:
+        with trace.measure("chart_calculation"):
+            chart = calculate_chart(chart_request, target_datetime=generated_at)
+    if trace is None:
+        consultation_context = (
+            build_consultation_context(concern=value.consultation, desired_future="")
+            if value.consultation
+            else None
+        )
+        reading_context = build_reading_context_v2(
+            chart,
+            consultation_context=consultation_context,
+        )
+    else:
+        with trace.measure("reading_context_build"):
+            consultation_context = (
+                build_consultation_context(concern=value.consultation, desired_future="")
+                if value.consultation
+                else None
+            )
+            reading_context = build_reading_context_v2(
+                chart,
+                consultation_context=consultation_context,
+            )
+    if trace is None:
+        judgment_metadata = build_common_judgment_metadata(chart)
+        prompt_request = build_ai_reading_request_v2(reading_context, judgment_metadata)
+    else:
+        with trace.measure("prompt_build"):
+            judgment_metadata = build_common_judgment_metadata(chart)
+            prompt_request = build_ai_reading_request_v2(reading_context, judgment_metadata)
     generation_failure: str | None = None
     generation_diagnostic_codes: tuple[str, ...] = ()
     generation_diagnostic_locations: tuple[str, ...] = ()
     generated = None
     try:
-        generated = generate_ai_reading_v2(
-            prompt_request,
-            client=provider_client,
-            model=resolved_model,
-        )
+        if trace is not None and using_real_provider:
+            trace.provider_call()
+        if trace is None:
+            generated = generate_ai_reading_v2(
+                prompt_request,
+                client=provider_client,
+                model=resolved_model,
+            )
+        else:
+            with trace.measure("ai_generation"):
+                generated = generate_ai_reading_v2(
+                    prompt_request,
+                    client=provider_client,
+                    model=resolved_model,
+                )
     except AIReadingGeneratorV2ConfigurationError:
         generation_failure = "generator_configuration_invalid"
     except AIReadingGeneratorV2RequestValidationError:
@@ -1299,12 +1444,21 @@ def run_customer_reading(
     quality_failed = False
     report: AIReadingQualityReportV2 | None = None
     try:
-        report = evaluate_ai_reading_quality_v2(
-            generated.reading,
-            reading_context,
-            judgment_metadata,
-            semantic_assessor=assessor,
-        )
+        if trace is None:
+            report = evaluate_ai_reading_quality_v2(
+                generated.reading,
+                reading_context,
+                judgment_metadata,
+                semantic_assessor=measured_assessor,
+            )
+        else:
+            with trace.measure("quality_gate_first"):
+                report = evaluate_ai_reading_quality_v2(
+                    generated.reading,
+                    reading_context,
+                    judgment_metadata,
+                    semantic_assessor=measured_assessor,
+                )
     except Exception:
         quality_failed = True
     if quality_failed or report is None:
@@ -1314,27 +1468,41 @@ def run_customer_reading(
             reason_code="quality_gate_evaluation_failed",
         )
     if report.decision == "pass":
-        return _build_publishable_product(
-            chart,
-            reading_context,
-            generated.reading,
-            report,
-            generated_at=generated_at,
-        )
+        if trace is not None:
+            if not trace.has_step("semantic_assessment"):
+                trace.skip("semantic_assessment")
+            trace.skip("auto_repair")
+            trace.skip("quality_gate_second")
+        if trace is None:
+            return _build_publishable_product(
+                chart, reading_context, generated.reading, report,
+                generated_at=generated_at,
+            )
+        with trace.measure("reading_product_build"):
+            return _build_publishable_product(
+                chart, reading_context, generated.reading, report,
+                generated_at=generated_at,
+            )
 
     if _eligible_for_auto_repair(report):
+        if trace is not None:
+            trace.auto_repair = True
         repair = None
         repair_failure: str | None = None
         try:
-            repair = repair_ai_reading_v2(
-                generated.reading,
-                report,
-                reading_context,
-                judgment_metadata,
-                semantic_assessor=assessor,
-                client=provider_client,
-                model=resolved_model,
-            )
+            if trace is not None and using_real_provider:
+                trace.provider_call()
+            if trace is None:
+                repair = repair_ai_reading_v2(
+                    generated.reading, report, reading_context, judgment_metadata,
+                    semantic_assessor=measured_assessor, client=provider_client, model=resolved_model,
+                )
+            else:
+                with trace.measure("auto_repair"):
+                    repair = repair_ai_reading_v2(
+                        generated.reading, report, reading_context, judgment_metadata,
+                        semantic_assessor=measured_assessor, client=provider_client, model=resolved_model,
+                    )
         except AIReadingRepairV2ConfigurationError:
             repair_failure = "repair_configuration_failed"
         except AIReadingRepairV2ProviderRequestError as exc:
@@ -1356,12 +1524,17 @@ def run_customer_reading(
                 blocking_codes=_blocking_codes(report),
             )
         if repair.status == "pass":
+            if trace is not None:
+                trace.skip("quality_gate_second")
+                with trace.measure("reading_product_build"):
+                    return _build_publishable_product(
+                        chart, reading_context, repair.final_ai_reading,
+                        repair.final_quality_report, generated_at=generated_at,
+                        repair_result=repair,
+                    )
             return _build_publishable_product(
-                chart,
-                reading_context,
-                repair.final_ai_reading,
-                repair.final_quality_report,
-                generated_at=generated_at,
+                chart, reading_context, repair.final_ai_reading,
+                repair.final_quality_report, generated_at=generated_at,
                 repair_result=repair,
             )
         diagnostic_codes, diagnostic_locations = _semantic_assessor_diagnostics(assessor)
@@ -1375,6 +1548,9 @@ def run_customer_reading(
             diagnostic_locations=diagnostic_locations,
         )
 
+    if trace is not None:
+        trace.skip("auto_repair")
+        trace.skip("quality_gate_second")
     reason_code = (
         "quality_gate_review"
         if report.decision == "review"
@@ -1396,6 +1572,7 @@ def run_customer_reading(
 
 __all__ = [
     "PREFECTURES",
+    "PerformanceTrace",
     "CustomerInputError",
     "CustomerConfigurationError",
     "CustomerReadingUnavailableError",
