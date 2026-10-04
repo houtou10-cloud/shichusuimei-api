@@ -147,7 +147,10 @@ EXPECTED_SYSTEM_PROMPT += (
     "use astrology with source_components containing exactly relations; relationships is a section name, "
     "not a source component. Do not mix another component into that block unless its text is explicitly "
     "grounded in that component's trusted facts. Use the existing fact code chart.pillar_sequence "
-    "as the fact reference for that branch-relation grounding; do not invent a relation fact code."
+    "as the fact reference for that branch-relation grounding; do not invent a relation fact code. "
+    "The interpretation must state an astrology observation from the branch-relation facts and then "
+    "give its astrology interpretation. Do not put generic advice or action proposals in interpretation; "
+    "put practical actions in advice."
 )
 EXPECTED_SYSTEM_PROMPT += (
     " Customer-facing prose must not expose internal labels such as 統合評価、統合運評価、"
@@ -745,6 +748,8 @@ def test_relationship_grounding_uses_relations_component_not_section_name():
     assert "relationships evidence and interpretation grounded in the trusted branch-relation facts" in AI_READING_V2_SYSTEM_PROMPT
     assert "source_components containing exactly relations" in AI_READING_V2_SYSTEM_PROMPT
     assert "relationships is a section name" in AI_READING_V2_SYSTEM_PROMPT
+    assert "interpretation must state an astrology observation" in AI_READING_V2_SYSTEM_PROMPT
+    assert "Do not put generic advice or action proposals in interpretation" in AI_READING_V2_SYSTEM_PROMPT
 
 
 def test_system_prompt_suppresses_customer_internal_evaluation_labels():

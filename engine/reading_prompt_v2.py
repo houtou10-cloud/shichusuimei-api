@@ -155,7 +155,10 @@ AI_READING_V2_SYSTEM_PROMPT += (
     "use astrology with source_components containing exactly relations; relationships is a section name, "
     "not a source component. Do not mix another component into that block unless its text is explicitly "
     "grounded in that component's trusted facts. Use the existing fact code chart.pillar_sequence "
-    "as the fact reference for that branch-relation grounding; do not invent a relation fact code."
+    "as the fact reference for that branch-relation grounding; do not invent a relation fact code. "
+    "The interpretation must state an astrology observation from the branch-relation facts and then "
+    "give its astrology interpretation. Do not put generic advice or action proposals in interpretation; "
+    "put practical actions in advice."
 )
 
 AI_READING_V2_SYSTEM_PROMPT += (

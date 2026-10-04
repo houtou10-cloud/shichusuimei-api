@@ -499,6 +499,14 @@ def test_provider_payload_and_exact_five_field_input(repair_inputs):
     assert "uniqueItems" not in json.dumps(call["text"]["format"]["schema"])
 
 
+def test_relationship_interpretation_repair_contract_preserves_astrology_grounding():
+    assert "relationships.interpretation" in AI_READING_REPAIR_V2_INSTRUCTIONS
+    assert "claim_type=astrology" in AI_READING_REPAIR_V2_INSTRUCTIONS
+    assert "source_components exactly relations" in AI_READING_REPAIR_V2_INSTRUCTIONS
+    assert "source_fact_codes exactly chart.pillar_sequence" in AI_READING_REPAIR_V2_INSTRUCTIONS
+    assert "generic advice or action proposals in interpretation" in AI_READING_REPAIR_V2_INSTRUCTIONS
+
+
 def test_openai_transport_schema_adds_only_op_string_type_without_mutation():
     canonical_before = deepcopy(repair_v2._REPAIR_PATCH_SCHEMA)
 

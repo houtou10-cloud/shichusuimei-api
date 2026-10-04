@@ -938,6 +938,47 @@ def test_pass_decision_and_report_invariants():
     )
 
 
+def test_relationship_interpretation_astrology_fixture_passes_and_generic_advice_is_rejected(
+    phase2_inputs,
+):
+    reading = deepcopy(phase2_inputs["ai_reading"])
+    relationship = reading["sections"][3]
+    relationship["interpretation"] = [{
+        "text": "命式内の支関係を根拠に、八雲式では対人関係に独自の距離感が表れやすいと解釈します。",
+        "claim_type": "astrology",
+        "source_fact_codes": ["chart.pillar_sequence"],
+        "source_components": ["relations"],
+        "warnings": [],
+        "uncertainty": [],
+    }]
+
+    valid_assessor = RecordingAssessor({"status": "completed", "findings": []})
+    valid_report = evaluate_ai_reading_quality_v2(
+        ai_reading=reading,
+        reading_context=deepcopy(phase2_inputs["reading_context"]),
+        judgment_metadata=deepcopy(phase2_inputs["judgment_metadata"]),
+        semantic_assessor=valid_assessor,
+    ).to_dict()
+    assert valid_report["decision"] == "pass"
+
+    reading["sections"][3]["interpretation"][0]["text"] = "焦らず行動しましょう。周囲と相談しましょう。"
+    invalid_assessor = RecordingAssessor({
+        "status": "completed",
+        "findings": [_semantic_declaration(
+            "claim_type_mismatch",
+            "/sections/3/interpretation/0",
+        )],
+    })
+    invalid_report = evaluate_ai_reading_quality_v2(
+        ai_reading=reading,
+        reading_context=deepcopy(phase2_inputs["reading_context"]),
+        judgment_metadata=deepcopy(phase2_inputs["judgment_metadata"]),
+        semantic_assessor=invalid_assessor,
+    ).to_dict()
+    assert invalid_report["decision"] == "fail"
+    assert invalid_report["findings"][0]["code"] == "claim_type_mismatch"
+
+
 def test_fail_decision_and_human_review_invariant():
     report = _report(
         semantic_candidates=[_candidate("fact_semantic_mismatch")]

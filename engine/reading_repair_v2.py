@@ -36,7 +36,12 @@ AI_READING_REPAIR_V2_INSTRUCTIONS = (
     "Use only op=replace and only an allowed path. "
     "Return patches in the exact order of editable_blocks. "
     "Do not invent or modify trusted facts, references, identities, catalogs, "
-    "section metadata, years, disclaimer, or validation data."
+    "section metadata, years, disclaimer, or validation data. "
+    "For a relationships.interpretation target, preserve claim_type=astrology and repair "
+    "the text as an astrology observation grounded in the trusted branch-relation facts "
+    "followed by its astrology interpretation. Keep source_components exactly relations and "
+    "source_fact_codes exactly chart.pillar_sequence. Do not put generic advice or action "
+    "proposals in interpretation; leave practical actions to advice."
 )
 
 _SUPPORTED_REASONING_EFFORTS = ("minimal", "low", "medium", "high")
