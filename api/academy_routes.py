@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from html import escape
+import re
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Request
@@ -25,6 +26,7 @@ from engine.academy_v1 import (
     pattern_options,
 )
 from engine.chart import calculate_chart
+from engine.academy_content import all_lessons, lesson_by_number, load_lesson_content, load_lesson_quiz
 
 
 router = APIRouter()
@@ -82,7 +84,7 @@ def _academy_nav() -> str:
 
 
 def _render_portal() -> str:
-    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>八雲式 四柱推命Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>八雲式 四柱推命Academy</h1><p>「覚える」から「判断できる」へ。</p><p>四柱推命の理論を学び、実際の命式を自分で読み、八雲式で答え合わせしながら鑑定力を身につける実践型Academyです。</p></header><section class="content"><div class="cards"><article class="card"><h3>講座で学ぶ</h3><p>基礎から実践鑑定まで、順番に四柱推命の判断方法を学びます。</p><a class="button" href="/academy/courses">講座を見る</a></article><article class="card"><h3>命式で練習する</h3><p>実際の命式を使って自分で判断し、八雲式エンジンで答え合わせします。</p><a class="button" href="/academy/practice">実践トレーニング</a></article></div><h2>八雲式Academyの学習サイクル</h2><ol class="step-list"><li>理論を学ぶ</li><li>自分で判断する</li><li>命式で練習する</li><li>八雲式で答え合わせ</li><li>判断根拠を確認する</li></ol></section></main></body></html>'''
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>八雲式 四柱推命Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>八雲式 四柱推命Academy</h1><p>「覚える」から「判断できる」へ。</p><p>四柱推命の理論を学び、実際の命式を自分で読み、八雲式で答え合わせしながら鑑定力を身につける実践型Academyです。</p></header><section class="content"><div class="cards"><article class="card"><h3>講座で学ぶ</h3><p>基礎から実践鑑定まで、順番に四柱推命の判断方法を学びます。</p><a class="button" href="/academy/courses">講座を見る</a><p><a href="/academy/course/1/1">第1講から学ぶ</a></p></article><article class="card"><h3>命式で練習する</h3><p>実際の命式を使って自分で判断し、八雲式エンジンで答え合わせします。</p><a class="button" href="/academy/practice">実践トレーニング</a></article></div><h2>八雲式Academyの学習サイクル</h2><ol class="step-list"><li>理論を学ぶ</li><li>自分で判断する</li><li>命式で練習する</li><li>八雲式で答え合わせ</li><li>判断根拠を確認する</li></ol></section></main></body></html>'''
 
 
 def _render_courses() -> str:
@@ -108,6 +110,22 @@ def _render_courses_with_lesson_link() -> str:
         lesson_html = "<ul>" + "".join(lesson_items) + "</ul>" if lesson_items else '<p class="note">講座準備中</p>'
         chapters.append(f'<article class="card"><h3>{escape(chapter)}</h3><h2>{escape(title)}</h2><p>{escape(description)}</p>{lesson_html}</article>')
     return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>講座一覧 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>講座一覧</h1><p>7章構成で、基礎から実践鑑定までの学びを整理しています。</p></header><section class="content"><div class="cards">{"".join(chapters)}</div></section></main></body></html>'''
+
+
+def _render_curriculum_courses() -> str:
+    curriculum = all_lessons()
+    grouped: dict[int, list[dict[str, object]]] = {}
+    for lesson in curriculum:
+        grouped.setdefault(int(lesson["chapter"]), []).append(lesson)
+    cards = []
+    for chapter, lessons in grouped.items():
+        first = lessons[0]
+        items = "".join(
+            f'<li><a href="/academy/course/{lesson["chapter"]}/{((lesson["order"] - 1) % 7) + 1}">第{lesson["order"]}講　{escape(lesson["title"])}</a></li>'
+            for lesson in lessons
+        )
+        cards.append(f'<article class="card"><h3>第{chapter}章</h3><h2>{escape(str(first["chapter_title"]).split(" ", 1)[-1])}</h2><ul>{items}</ul></article>')
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>講座一覧 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>講座一覧</h1><p>全{len(curriculum)}講を、基礎から実践まで順に学びます。すべての教材は現在draftとして管理されています。</p></header><section class="content"><div class="cards">{"".join(cards)}</div></section></main></body></html>'''
 
 
 def _render_lesson_1_1(error: str = "") -> str:
@@ -218,6 +236,120 @@ def _with_academy_nav(html: str) -> str:
     return html.replace("<body>", f"<body>{_academy_nav()}", 1)
 
 
+def _render_lesson_markdown(markdown: str) -> str:
+    blocks: list[str] = []
+    paragraph: list[str] = []
+    list_items: list[str] = []
+
+    def flush() -> None:
+        nonlocal paragraph, list_items
+        if list_items:
+            blocks.append("<ul>" + "".join(f"<li>{escape(item)}</li>" for item in list_items) + "</ul>")
+            list_items = []
+        if paragraph:
+            blocks.append("<p>" + escape(" ".join(paragraph)) + "</p>")
+            paragraph = []
+
+    for raw_line in markdown.splitlines():
+        line = raw_line.strip()
+        if not line:
+            flush()
+        elif line.startswith("### "):
+            flush(); blocks.append(f"<h3>{escape(line[4:])}</h3>")
+        elif line.startswith("## "):
+            flush(); blocks.append(f"<h2>{escape(line[3:])}</h2>")
+        elif line.startswith("# "):
+            flush(); blocks.append(f"<h1>{escape(line[2:])}</h1>")
+        elif line.startswith("- "):
+            if paragraph: flush()
+            list_items.append(line[2:])
+        elif re.match(r"^\d+\. ", line):
+            if paragraph: flush()
+            list_items.append(re.sub(r"^\d+\. ", "", line))
+        else:
+            paragraph.append(line)
+    flush()
+    return "".join(blocks)
+
+
+def _curriculum_quiz_name(lesson_id: str, question_id: str) -> str:
+    if lesson_id == "001":
+        return "lesson_" + question_id.rsplit("_", 1)[-1]
+    return f"lesson_{lesson_id}_{question_id}"
+
+
+def _render_curriculum_lesson(chapter: int, lesson_number: int, error: str = "") -> str | None:
+    lesson = lesson_by_number(chapter, lesson_number)
+    if lesson is None:
+        return None
+    quiz = load_lesson_quiz(lesson["lesson_id"]) if lesson.get("quiz") else {"questions": []}
+    lessons = all_lessons()
+    index = lesson["order"] - 1
+    previous = lessons[index - 1] if index else None
+    following = lessons[index + 1] if index + 1 < len(lessons) else None
+    questions = []
+    for question in quiz["questions"]:
+        name = _curriculum_quiz_name(lesson["lesson_id"], question["id"])
+        choices = "".join(f'<label class="choice"><input type="radio" name="{escape(name, quote=True)}" value="{index}" required>{escape(choice)}</label>' for index, choice in enumerate(question["choices"]))
+        questions.append(f'<fieldset><legend>{escape(question["prompt"])}</legend>{choices}</fieldset>')
+    error_html = f'<p class="error">{escape(error)}</p>' if error else ""
+    links = []
+    if previous:
+        links.append(f'<a class="button" href="/academy/course/{previous["chapter"]}/{((previous["order"] - 1) % 7) + 1}">前の講座</a>')
+    if following:
+        links.append(f'<a class="button" href="/academy/course/{following["chapter"]}/{((following["order"] - 1) % 7) + 1}">次の講座</a>')
+    body = _render_lesson_markdown(load_lesson_content(lesson["lesson_id"]))
+    progress = round(index * 100 / max(1, len(lessons)))
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(lesson["title"])} | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>{escape(lesson["chapter_title"])}</h1><p>第{lesson["order"]}講　{escape(lesson["title"])}</p><p>学習位置 {lesson["order"]} / 全{len(lessons)}講　進捗目安 {progress}%　目安 {lesson["estimated_minutes"]}分</p></header><section class="content"><article>{body}</article><section><h2>理解度チェック</h2><p>教材を読んでから、理解度を確認してください。</p>{error_html}<form method="post" action="/academy/course/{chapter}/{lesson_number}/check">{"".join(questions)}<button class="button" type="submit">答え合わせをする</button></form></section><p>{" ".join(links)}</p><p><a href="/academy/courses">講座一覧へ戻る</a>　<a href="/academy/practice">実践トレーニング</a></p></section></main></body></html>'''
+
+
+def _render_curriculum_result(chapter: int, lesson_number: int, values: dict[str, list[str]]) -> str | None:
+    lesson = lesson_by_number(chapter, lesson_number)
+    if lesson is None:
+        return None
+    quiz = load_lesson_quiz(lesson["lesson_id"])
+    lessons = all_lessons()
+    following = lessons[lesson["order"]] if lesson["order"] < len(lessons) else None
+    score = 0
+    total = len(quiz["questions"])
+    rows = []
+    for question in quiz["questions"]:
+        name = _curriculum_quiz_name(lesson["lesson_id"], question["id"])
+        submitted = values.get(name, [""])[0]
+        valid = submitted in {str(i) for i in range(len(question["choices"]))}
+        correct = valid and submitted == question["answer"]
+        score += int(correct)
+        answer = question["choices"][int(question["answer"])]
+        submitted_label = question["choices"][int(submitted)] if valid else "未回答"
+        rows.append(f'<article class="card"><h3 class="{"ok" if correct else "ng"}">{"○" if correct else "×"} {escape(question["prompt"])}</h3><p>あなたの回答：{escape(submitted_label)}</p><p>正解：{escape(answer)}</p><p>解説：{escape(question["explanation"])}</p></article>')
+    passed = score * 3 >= total * 2
+    status_html = '<p class="ok"><strong>この講座を修了しました。</strong></p>' if passed else '<p class="note">もう一度復習して挑戦しましょう。</p>'
+    if following:
+        next_link = f'<p><a class="button" href="/academy/course/{following["chapter"]}/{((following["order"] - 1) % 7) + 1}">次の講座：{escape(following["title"])}</a></p>'
+    elif passed:
+        next_link = '<section class="card"><h2>カリキュラム最終講を修了しました</h2><p>この端末での学習位置として第84講まで到達しました。ユーザー別の永続的な全講修了判定は、ログイン機能追加後に拡張できます。</p></section>'
+    else:
+        next_link = '<p class="note">最終講は合格後に修了扱いになります。</p>'
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>学習結果 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>学習結果</h1><p>{total}問中{score}問正解</p>{status_html}</header><section class="content"><div class="cards">{"".join(rows)}</div><p><a class="button" href="/academy/course/{chapter}/{lesson_number}">講座をもう一度読む</a></p>{next_link}<p><a class="button" href="/academy/practice">実践トレーニング</a></p><p><a href="/academy/courses">講座一覧へ戻る</a></p></section></main></body></html>'''
+
+
+def _parse_curriculum_form(body: bytes, lesson_id: str) -> dict[str, list[str]]:
+    if len(body) > _MAX_FORM_BYTES:
+        raise CustomerInputError({"_form": "入力内容が大きすぎます。"})
+    try:
+        pairs = parse_qsl(body.decode("utf-8"), keep_blank_values=True, max_num_fields=30)
+    except (UnicodeDecodeError, ValueError):
+        raise CustomerInputError({"_form": "入力を読み取れませんでした。"}) from None
+    quiz = load_lesson_quiz(lesson_id)
+    allowed = {_curriculum_quiz_name(lesson_id, q["id"]) for q in quiz["questions"]}
+    result: dict[str, list[str]] = {}
+    for key, value in pairs:
+        if key not in allowed:
+            raise CustomerInputError({"_form": "不正な入力項目があります。"})
+        result.setdefault(key, []).append(value)
+    return result
+
+
 def _radio(name: str, values: Sequence[str]) -> str:
     return "".join(f'<label class="choice"><input type="radio" name="{name}" value="{escape(value, quote=True)}" required>{escape(value)}</label>' for value in values)
 
@@ -255,22 +387,41 @@ def academy_home() -> HTMLResponse:
 
 @router.get("/academy/courses", response_class=HTMLResponse, include_in_schema=False)
 def academy_courses() -> HTMLResponse:
-    return HTMLResponse(_render_courses_with_lesson_link())
+    return HTMLResponse(_render_curriculum_courses())
 
 
 @router.get("/academy/course/1/1", response_class=HTMLResponse, include_in_schema=False)
 def academy_lesson_1_1() -> HTMLResponse:
-    return HTMLResponse(_render_lesson_1_1())
+    return HTMLResponse(_render_curriculum_lesson(1, 1) or "Not Found", status_code=200)
 
 
 @router.post("/academy/course/1/1/check", response_class=HTMLResponse, include_in_schema=False)
 async def academy_lesson_1_1_check(request: Request) -> HTMLResponse:
     try:
-        values = _parse_form(request, await request.body())
+        values = _parse_curriculum_form(await request.body(), "001")
     except CustomerInputError as exc:
         message = next(iter(exc.errors.values()))
-        return HTMLResponse(_render_lesson_1_1(message), status_code=422)
-    return HTMLResponse(_render_lesson_result(values))
+        return HTMLResponse(_render_curriculum_lesson(1, 1, message) or "Not Found", status_code=422)
+    return HTMLResponse(_render_curriculum_result(1, 1, values) or "Not Found")
+
+
+@router.get("/academy/course/{chapter}/{lesson}", response_class=HTMLResponse, include_in_schema=False)
+def academy_curriculum_lesson(chapter: int, lesson: int) -> HTMLResponse:
+    rendered = _render_curriculum_lesson(chapter, lesson)
+    return HTMLResponse(rendered or "講座が見つかりません。", status_code=200 if rendered else 404)
+
+
+@router.post("/academy/course/{chapter}/{lesson}/check", response_class=HTMLResponse, include_in_schema=False)
+async def academy_curriculum_lesson_check(chapter: int, lesson: int, request: Request) -> HTMLResponse:
+    item = lesson_by_number(chapter, lesson)
+    if item is None:
+        return HTMLResponse("講座が見つかりません。", status_code=404)
+    try:
+        values = _parse_curriculum_form(await request.body(), item["lesson_id"])
+    except CustomerInputError as exc:
+        message = next(iter(exc.errors.values()))
+        return HTMLResponse(_render_curriculum_lesson(chapter, lesson, message) or "Not Found", status_code=422)
+    return HTMLResponse(_render_curriculum_result(chapter, lesson, values) or "Not Found")
 
 
 @router.get("/academy/practice", response_class=HTMLResponse, include_in_schema=False)

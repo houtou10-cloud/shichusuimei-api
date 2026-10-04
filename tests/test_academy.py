@@ -111,10 +111,10 @@ def test_academy_portal_navigation_and_course_catalog():
 
     courses = CLIENT.get("/academy/courses")
     assert courses.status_code == 200
-    assert "四柱推命の土台" in courses.text
+    assert "四柱推命の基礎" in courses.text
     assert "四柱推命とは何を読むものか" in courses.text
     assert 'href="/academy/course/1/1"' in courses.text
-    assert 'href="/academy/course/1/2"' not in courses.text
+    assert 'href="/academy/course/1/2"' in courses.text
     assert "日主とは何か" in courses.text
     assert "第7章" in courses.text
 
@@ -149,7 +149,7 @@ def test_first_lesson_quiz_scores_on_server_and_explains_answers():
     assert "正解：年柱・月柱・日柱・時柱" in response.text
     assert 'href="/academy/course/1/1"' in response.text
     assert 'href="/academy/practice"' in response.text
-    assert "次の講座：陰陽五行（準備中）" in response.text
+    assert "次の講座：陰陽五行" in response.text or 'href="/academy/course/1/2"' in response.text
 
     response = CLIENT.post(
         "/academy/course/1/1/check",

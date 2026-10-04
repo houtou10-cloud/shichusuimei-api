@@ -1,0 +1,13 @@
+{
+  "version": "2.0",
+  "status": "draft",
+  "description": "旧第1〜282回はすべて本編84講へ対応付けたため、現時点で本編から除外した詳細項目はありません。将来、補足資料を本編と分離する場合に同じ台帳形式で登録します。",
+  "entries": [],
+  "entry_schema": {
+    "legacy_lesson": "number",
+    "legacy_title": "string",
+    "new_lessons": "array[string]",
+    "classification": "detail",
+    "source_file": "string|null"
+  }
+}

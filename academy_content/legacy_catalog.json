@@ -1,0 +1,3391 @@
+{
+  "version": "2.0",
+  "source_note": "外部提供ZIP内のTXT原典282件を確認。全回を84講へ対応付けた追跡台帳。各新講の先頭回はcore、同一テーマとして束ねた回はmerged。",
+  "lesson_count": 282,
+  "lessons": [
+    {
+      "legacy_lesson": 1,
+      "legacy_title": "四柱推命とは何か",
+      "source_file": "第1回 四柱推命とは何か.zip::第1回 四柱推命とは何か/yakumo_academy_lesson01_vrew_slide_numbers.txt",
+      "main_topics": [
+        "四柱推命とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "001"
+      ]
+    },
+    {
+      "legacy_lesson": 2,
+      "legacy_title": "四柱推命で何が分かるのか",
+      "source_file": "第2回 四柱推命で何がわかるのか？.zip::第2回 四柱推命で何がわかるのか？/第2回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "四柱推命で何が分かるのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "001"
+      ]
+    },
+    {
+      "legacy_lesson": 3,
+      "legacy_title": "四柱推命で分からないこと・断定しないこと",
+      "source_file": "第3回.zip::第3回/第3回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "四柱推命で分からないこと・断定しないこと"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "001"
+      ]
+    },
+    {
+      "legacy_lesson": 4,
+      "legacy_title": "四柱推命はなぜ生年月日を使うのか",
+      "source_file": "第4回.zip::第4回/第4回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "四柱推命はなぜ生年月日を使うのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "001"
+      ]
+    },
+    {
+      "legacy_lesson": 5,
+      "legacy_title": "「命」と「運」は何が違うのか",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第005回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "「命」と「運」は何が違うのか"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "002"
+      ]
+    },
+    {
+      "legacy_lesson": 6,
+      "legacy_title": "命式とは何か",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第006回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "命式とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "002"
+      ]
+    },
+    {
+      "legacy_lesson": 7,
+      "legacy_title": "四柱とは何か",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第007回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "四柱とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "002"
+      ]
+    },
+    {
+      "legacy_lesson": 8,
+      "legacy_title": "年柱・月柱・日柱・時柱の役割",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第008回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "年柱・月柱・日柱・時柱の役割"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "002"
+      ]
+    },
+    {
+      "legacy_lesson": 9,
+      "legacy_title": "日主とは何か",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第009回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "日主とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "003"
+      ]
+    },
+    {
+      "legacy_lesson": 10,
+      "legacy_title": "命式を「人生の設計図」として読む",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第010回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "命式を「人生の設計図」として読む"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "003"
+      ]
+    },
+    {
+      "legacy_lesson": 11,
+      "legacy_title": "陰陽とは何か",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第011回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "陰陽とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "003"
+      ]
+    },
+    {
+      "legacy_lesson": 12,
+      "legacy_title": "陽の性質",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第012回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "陽の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "003"
+      ]
+    },
+    {
+      "legacy_lesson": 13,
+      "legacy_title": "陰の性質",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第013回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "陰の性質"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "004"
+      ]
+    },
+    {
+      "legacy_lesson": 14,
+      "legacy_title": "陰と陽はどちらが良いのか",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第014回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "陰と陽はどちらが良いのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "004"
+      ]
+    },
+    {
+      "legacy_lesson": 15,
+      "legacy_title": "陰陽のバランス",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第015回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "陰陽のバランス"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "004"
+      ]
+    },
+    {
+      "legacy_lesson": 16,
+      "legacy_title": "十干と陰陽",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第016回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十干と陰陽"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "004"
+      ]
+    },
+    {
+      "legacy_lesson": 17,
+      "legacy_title": "十二支と陰陽",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第017回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十二支と陰陽"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "005"
+      ]
+    },
+    {
+      "legacy_lesson": 18,
+      "legacy_title": "命式から陰陽を見る",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第018回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "命式から陰陽を見る"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "005"
+      ]
+    },
+    {
+      "legacy_lesson": 19,
+      "legacy_title": "陰陽が偏るとどう読むのか",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第019回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "陰陽が偏るとどう読むのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "005"
+      ]
+    },
+    {
+      "legacy_lesson": 20,
+      "legacy_title": "陰陽の実践問題",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第020回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "陰陽の実践問題"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "005"
+      ]
+    },
+    {
+      "legacy_lesson": 21,
+      "legacy_title": "五行とは何か",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第021回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "五行とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "006"
+      ]
+    },
+    {
+      "legacy_lesson": 22,
+      "legacy_title": "木の性質",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第022回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "木の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "006"
+      ]
+    },
+    {
+      "legacy_lesson": 23,
+      "legacy_title": "火の性質",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第023回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "火の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "006"
+      ]
+    },
+    {
+      "legacy_lesson": 24,
+      "legacy_title": "土の性質",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第024回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "土の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "006"
+      ]
+    },
+    {
+      "legacy_lesson": 25,
+      "legacy_title": "金の性質",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第025回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "金の性質"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "007"
+      ]
+    },
+    {
+      "legacy_lesson": 26,
+      "legacy_title": "水の性質",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第026回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "水の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "007"
+      ]
+    },
+    {
+      "legacy_lesson": 27,
+      "legacy_title": "五行相生とは何か",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第027回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "五行相生とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "007"
+      ]
+    },
+    {
+      "legacy_lesson": 28,
+      "legacy_title": "五行相剋とは何か",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第028回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "五行相剋とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "007"
+      ]
+    },
+    {
+      "legacy_lesson": 29,
+      "legacy_title": "五行は多ければ良いのか",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第029回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "五行は多ければ良いのか"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "008"
+      ]
+    },
+    {
+      "legacy_lesson": 30,
+      "legacy_title": "五行バランスの基本的な読み方",
+      "source_file": "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第030回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "五行バランスの基本的な読み方"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "008"
+      ]
+    },
+    {
+      "legacy_lesson": 31,
+      "legacy_title": "十干とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第031回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十干とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "008"
+      ]
+    },
+    {
+      "legacy_lesson": 32,
+      "legacy_title": "甲とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第032回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "甲とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "008"
+      ]
+    },
+    {
+      "legacy_lesson": 33,
+      "legacy_title": "乙とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第033回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "乙とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "009"
+      ]
+    },
+    {
+      "legacy_lesson": 34,
+      "legacy_title": "丙とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第034回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "丙とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "009"
+      ]
+    },
+    {
+      "legacy_lesson": 35,
+      "legacy_title": "丁とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第035回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "丁とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "009"
+      ]
+    },
+    {
+      "legacy_lesson": 36,
+      "legacy_title": "戊とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第036回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "戊とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "009"
+      ]
+    },
+    {
+      "legacy_lesson": 37,
+      "legacy_title": "己とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第037回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "己とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "010"
+      ]
+    },
+    {
+      "legacy_lesson": 38,
+      "legacy_title": "庚とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第038回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "庚とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "010"
+      ]
+    },
+    {
+      "legacy_lesson": 39,
+      "legacy_title": "辛とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第039回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "辛とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "010"
+      ]
+    },
+    {
+      "legacy_lesson": 40,
+      "legacy_title": "壬とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第040回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "壬とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "010"
+      ]
+    },
+    {
+      "legacy_lesson": 41,
+      "legacy_title": "癸とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第041回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "癸とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "011"
+      ]
+    },
+    {
+      "legacy_lesson": 42,
+      "legacy_title": "同じ五行でも陰陽で何が違うのか",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第042回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "同じ五行でも陰陽で何が違うのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "011"
+      ]
+    },
+    {
+      "legacy_lesson": 43,
+      "legacy_title": "十干を自然界のイメージで理解する",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第043回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十干を自然界のイメージで理解する"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "011"
+      ]
+    },
+    {
+      "legacy_lesson": 44,
+      "legacy_title": "十干を人物像だけで決めつけない",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第044回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十干を人物像だけで決めつけない"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "011"
+      ]
+    },
+    {
+      "legacy_lesson": 45,
+      "legacy_title": "十干10種類の総合演習",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第045回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十干10種類の総合演習"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "012"
+      ]
+    },
+    {
+      "legacy_lesson": 46,
+      "legacy_title": "十二支とは何か",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第046回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十二支とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "012"
+      ]
+    },
+    {
+      "legacy_lesson": 47,
+      "legacy_title": "子の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第047回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "子の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "012"
+      ]
+    },
+    {
+      "legacy_lesson": 48,
+      "legacy_title": "丑の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第048回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "丑の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "012"
+      ]
+    },
+    {
+      "legacy_lesson": 49,
+      "legacy_title": "寅の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第049回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "寅の性質"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "013"
+      ]
+    },
+    {
+      "legacy_lesson": 50,
+      "legacy_title": "卯の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第050回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "卯の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "013"
+      ]
+    },
+    {
+      "legacy_lesson": 51,
+      "legacy_title": "辰の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第051回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "辰の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "013"
+      ]
+    },
+    {
+      "legacy_lesson": 52,
+      "legacy_title": "巳の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第052回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "巳の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "013"
+      ]
+    },
+    {
+      "legacy_lesson": 53,
+      "legacy_title": "午の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第053回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "午の性質"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "014"
+      ]
+    },
+    {
+      "legacy_lesson": 54,
+      "legacy_title": "未の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第054回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "未の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "014"
+      ]
+    },
+    {
+      "legacy_lesson": 55,
+      "legacy_title": "申の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第055回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "申の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "014"
+      ]
+    },
+    {
+      "legacy_lesson": 56,
+      "legacy_title": "酉の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第056回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "酉の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "014"
+      ]
+    },
+    {
+      "legacy_lesson": 57,
+      "legacy_title": "戌の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第057回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "戌の性質"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "015"
+      ]
+    },
+    {
+      "legacy_lesson": 58,
+      "legacy_title": "亥の性質",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第058回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "亥の性質"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "015"
+      ]
+    },
+    {
+      "legacy_lesson": 59,
+      "legacy_title": "十二支と季節の関係",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第059回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十二支と季節の関係"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "015"
+      ]
+    },
+    {
+      "legacy_lesson": 60,
+      "legacy_title": "十二支12種類の総合演習",
+      "source_file": "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第060回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十二支12種類の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "015"
+      ]
+    },
+    {
+      "legacy_lesson": 61,
+      "legacy_title": "干支とは何か",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第061回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "干支とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "016"
+      ]
+    },
+    {
+      "legacy_lesson": 62,
+      "legacy_title": "十干と十二支を組み合わせる",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第062回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十干と十二支を組み合わせる"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "016"
+      ]
+    },
+    {
+      "legacy_lesson": 63,
+      "legacy_title": "なぜ60種類になるのか",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第063回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "なぜ60種類になるのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "016"
+      ]
+    },
+    {
+      "legacy_lesson": 64,
+      "legacy_title": "六十干支の基本構造",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第064回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "六十干支の基本構造"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "016"
+      ]
+    },
+    {
+      "legacy_lesson": 65,
+      "legacy_title": "年柱の意味",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第065回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "年柱の意味"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "017"
+      ]
+    },
+    {
+      "legacy_lesson": 66,
+      "legacy_title": "月柱の意味",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第066回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "月柱の意味"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "017"
+      ]
+    },
+    {
+      "legacy_lesson": 67,
+      "legacy_title": "日柱の意味",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第067回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "日柱の意味"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "017"
+      ]
+    },
+    {
+      "legacy_lesson": 68,
+      "legacy_title": "時柱の意味",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第068回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "時柱の意味"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "017"
+      ]
+    },
+    {
+      "legacy_lesson": 69,
+      "legacy_title": "四柱の位置関係",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第069回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "四柱の位置関係"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "018"
+      ]
+    },
+    {
+      "legacy_lesson": 70,
+      "legacy_title": "四柱を一つの命式として見る",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第070回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "四柱を一つの命式として見る"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "018"
+      ]
+    },
+    {
+      "legacy_lesson": 71,
+      "legacy_title": "四柱はどのように決まるのか",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第071回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "四柱はどのように決まるのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "018"
+      ]
+    },
+    {
+      "legacy_lesson": 72,
+      "legacy_title": "年柱の求め方",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第072回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "年柱の求め方"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "018"
+      ]
+    },
+    {
+      "legacy_lesson": 73,
+      "legacy_title": "月柱の求め方",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第073回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "月柱の求め方"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "019"
+      ]
+    },
+    {
+      "legacy_lesson": 74,
+      "legacy_title": "日柱の求め方",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第074回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "日柱の求め方"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "019"
+      ]
+    },
+    {
+      "legacy_lesson": 75,
+      "legacy_title": "時柱の求め方",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第075回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "時柱の求め方"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "019"
+      ]
+    },
+    {
+      "legacy_lesson": 76,
+      "legacy_title": "立春と年柱",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第076回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "立春と年柱"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "019"
+      ]
+    },
+    {
+      "legacy_lesson": 77,
+      "legacy_title": "二十四節気とは何か",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第077回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "二十四節気とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "020"
+      ]
+    },
+    {
+      "legacy_lesson": 78,
+      "legacy_title": "節入りと月柱",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第078回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "節入りと月柱"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "020"
+      ]
+    },
+    {
+      "legacy_lesson": 79,
+      "legacy_title": "23時前後の扱い",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第079回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "23時前後の扱い"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "020"
+      ]
+    },
+    {
+      "legacy_lesson": 80,
+      "legacy_title": "出生時刻が分からない場合",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第080回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "出生時刻が分からない場合"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "020"
+      ]
+    },
+    {
+      "legacy_lesson": 81,
+      "legacy_title": "出生地と時刻について",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第081回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "出生地と時刻について"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "021"
+      ]
+    },
+    {
+      "legacy_lesson": 82,
+      "legacy_title": "命式作成の総合演習",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第082回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "命式作成の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "021"
+      ]
+    },
+    {
+      "legacy_lesson": 83,
+      "legacy_title": "蔵干とは何か",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第083回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "蔵干とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "021"
+      ]
+    },
+    {
+      "legacy_lesson": 84,
+      "legacy_title": "なぜ地支の中に天干があるのか",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第084回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "なぜ地支の中に天干があるのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "021"
+      ]
+    },
+    {
+      "legacy_lesson": 85,
+      "legacy_title": "本気とは何か",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第085回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "本気とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "022"
+      ]
+    },
+    {
+      "legacy_lesson": 86,
+      "legacy_title": "中気とは何か",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第086回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "中気とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "022"
+      ]
+    },
+    {
+      "legacy_lesson": 87,
+      "legacy_title": "余気とは何か",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第087回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "余気とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "022"
+      ]
+    },
+    {
+      "legacy_lesson": 88,
+      "legacy_title": "子・丑・寅の蔵干",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第088回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "子・丑・寅の蔵干"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "022"
+      ]
+    },
+    {
+      "legacy_lesson": 89,
+      "legacy_title": "卯・辰・巳の蔵干",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第089回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "卯・辰・巳の蔵干"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "023"
+      ]
+    },
+    {
+      "legacy_lesson": 90,
+      "legacy_title": "午・未・申の蔵干",
+      "source_file": "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第090回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "午・未・申の蔵干"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "023"
+      ]
+    },
+    {
+      "legacy_lesson": 91,
+      "legacy_title": "酉・戌・亥の蔵干",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第091回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "酉・戌・亥の蔵干"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "023"
+      ]
+    },
+    {
+      "legacy_lesson": 92,
+      "legacy_title": "蔵干と季節",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第092回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "蔵干と季節"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "023"
+      ]
+    },
+    {
+      "legacy_lesson": 93,
+      "legacy_title": "蔵干を命式でどう使うのか",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第093回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "蔵干を命式でどう使うのか"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "024"
+      ]
+    },
+    {
+      "legacy_lesson": 94,
+      "legacy_title": "蔵干の総合演習",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第094回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "蔵干の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "024"
+      ]
+    },
+    {
+      "legacy_lesson": 95,
+      "legacy_title": "通変星とは何か",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第095回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通変星とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "024"
+      ]
+    },
+    {
+      "legacy_lesson": 96,
+      "legacy_title": "通変星はどうやって決まるのか",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第096回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通変星はどうやって決まるのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "024"
+      ]
+    },
+    {
+      "legacy_lesson": 97,
+      "legacy_title": "日主との関係を見る",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第097回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "日主との関係を見る"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "025"
+      ]
+    },
+    {
+      "legacy_lesson": 98,
+      "legacy_title": "比肩とは何か",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第098回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "比肩とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "025"
+      ]
+    },
+    {
+      "legacy_lesson": 99,
+      "legacy_title": "劫財とは何か",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第099回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "劫財とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "025"
+      ]
+    },
+    {
+      "legacy_lesson": 100,
+      "legacy_title": "食神とは何か",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第100回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "食神とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "025"
+      ]
+    },
+    {
+      "legacy_lesson": 101,
+      "legacy_title": "傷官とは何か",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第101回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "傷官とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "026"
+      ]
+    },
+    {
+      "legacy_lesson": 102,
+      "legacy_title": "偏財とは何か",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第102回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "偏財とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "026"
+      ]
+    },
+    {
+      "legacy_lesson": 103,
+      "legacy_title": "正財とは何か",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第103回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "正財とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "026"
+      ]
+    },
+    {
+      "legacy_lesson": 104,
+      "legacy_title": "偏官とは何か",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第104回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "偏官とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "026"
+      ]
+    },
+    {
+      "legacy_lesson": 105,
+      "legacy_title": "正官とは何か",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第105回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "正官とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "027"
+      ]
+    },
+    {
+      "legacy_lesson": 106,
+      "legacy_title": "偏印とは何か",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第106回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "偏印とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "027"
+      ]
+    },
+    {
+      "legacy_lesson": 107,
+      "legacy_title": "印綬とは何か",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第107回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "印綬とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "027"
+      ]
+    },
+    {
+      "legacy_lesson": 108,
+      "legacy_title": "通変星を5グループで理解する",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第108回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通変星を5グループで理解する"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "027"
+      ]
+    },
+    {
+      "legacy_lesson": 109,
+      "legacy_title": "通変星の陰陽を理解する",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第109回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通変星の陰陽を理解する"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "028"
+      ]
+    },
+    {
+      "legacy_lesson": 110,
+      "legacy_title": "通変星10種類の総合演習",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第110回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通変星10種類の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "028"
+      ]
+    },
+    {
+      "legacy_lesson": 111,
+      "legacy_title": "比肩が強い命式",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第111回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "比肩が強い命式"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "028"
+      ]
+    },
+    {
+      "legacy_lesson": 112,
+      "legacy_title": "劫財が強い命式",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第112回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "劫財が強い命式"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "028"
+      ]
+    },
+    {
+      "legacy_lesson": 113,
+      "legacy_title": "食神が強い命式",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第113回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "食神が強い命式"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "029"
+      ]
+    },
+    {
+      "legacy_lesson": 114,
+      "legacy_title": "傷官が強い命式",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第114回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "傷官が強い命式"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "029"
+      ]
+    },
+    {
+      "legacy_lesson": 115,
+      "legacy_title": "財星が強い命式",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第115回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "財星が強い命式"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "029"
+      ]
+    },
+    {
+      "legacy_lesson": 116,
+      "legacy_title": "官星が強い命式",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第116回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "官星が強い命式"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "029"
+      ]
+    },
+    {
+      "legacy_lesson": 117,
+      "legacy_title": "印星が強い命式",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第117回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "印星が強い命式"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "030"
+      ]
+    },
+    {
+      "legacy_lesson": 118,
+      "legacy_title": "通変星がない場合",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第118回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通変星がない場合"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "030"
+      ]
+    },
+    {
+      "legacy_lesson": 119,
+      "legacy_title": "通変星を単独で判断してはいけない理由",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第119回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通変星を単独で判断してはいけない理由"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "030"
+      ]
+    },
+    {
+      "legacy_lesson": 120,
+      "legacy_title": "通変星から命式全体を読む",
+      "source_file": "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第120回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通変星から命式全体を読む"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "030"
+      ]
+    },
+    {
+      "legacy_lesson": 121,
+      "legacy_title": "十二運とは何か",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第121回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十二運とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "031"
+      ]
+    },
+    {
+      "legacy_lesson": 122,
+      "legacy_title": "長生",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第122回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "長生"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "031"
+      ]
+    },
+    {
+      "legacy_lesson": 123,
+      "legacy_title": "沐浴",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第123回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "沐浴"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "031"
+      ]
+    },
+    {
+      "legacy_lesson": 124,
+      "legacy_title": "冠帯",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第124回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "冠帯"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "032"
+      ]
+    },
+    {
+      "legacy_lesson": 125,
+      "legacy_title": "建禄",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第125回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "建禄"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "032"
+      ]
+    },
+    {
+      "legacy_lesson": 126,
+      "legacy_title": "帝旺",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第126回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "帝旺"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "032"
+      ]
+    },
+    {
+      "legacy_lesson": 127,
+      "legacy_title": "衰",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第127回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "衰"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "033"
+      ]
+    },
+    {
+      "legacy_lesson": 128,
+      "legacy_title": "病",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第128回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "病"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "033"
+      ]
+    },
+    {
+      "legacy_lesson": 129,
+      "legacy_title": "死",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第129回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "死"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "033"
+      ]
+    },
+    {
+      "legacy_lesson": 130,
+      "legacy_title": "墓",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第130回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "墓"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "034"
+      ]
+    },
+    {
+      "legacy_lesson": 131,
+      "legacy_title": "絶",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第131回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "絶"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "034"
+      ]
+    },
+    {
+      "legacy_lesson": 132,
+      "legacy_title": "胎",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第132回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "胎"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "034"
+      ]
+    },
+    {
+      "legacy_lesson": 133,
+      "legacy_title": "養",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第133回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "養"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "035"
+      ]
+    },
+    {
+      "legacy_lesson": 134,
+      "legacy_title": "十二運の強弱をどう考えるか",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第134回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十二運の強弱をどう考えるか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "035"
+      ]
+    },
+    {
+      "legacy_lesson": 135,
+      "legacy_title": "十二運の総合演習",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第135回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "十二運の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "035"
+      ]
+    },
+    {
+      "legacy_lesson": 136,
+      "legacy_title": "月令とは何か",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第136回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "月令とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "036"
+      ]
+    },
+    {
+      "legacy_lesson": 137,
+      "legacy_title": "なぜ月支が重要なのか",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第137回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "なぜ月支が重要なのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "036"
+      ]
+    },
+    {
+      "legacy_lesson": 138,
+      "legacy_title": "春の五行",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第138回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "春の五行"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "036"
+      ]
+    },
+    {
+      "legacy_lesson": 139,
+      "legacy_title": "夏の五行",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第139回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "夏の五行"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "037"
+      ]
+    },
+    {
+      "legacy_lesson": 140,
+      "legacy_title": "秋の五行",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第140回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "秋の五行"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "037"
+      ]
+    },
+    {
+      "legacy_lesson": 141,
+      "legacy_title": "冬の五行",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第141回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "冬の五行"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "037"
+      ]
+    },
+    {
+      "legacy_lesson": 142,
+      "legacy_title": "土用と季節",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第142回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "土用と季節"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "038"
+      ]
+    },
+    {
+      "legacy_lesson": 143,
+      "legacy_title": "旺とは何か",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第143回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "旺とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "038"
+      ]
+    },
+    {
+      "legacy_lesson": 144,
+      "legacy_title": "相とは何か",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第144回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "相とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "038"
+      ]
+    },
+    {
+      "legacy_lesson": 145,
+      "legacy_title": "休とは何か",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第145回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "休とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "039"
+      ]
+    },
+    {
+      "legacy_lesson": 146,
+      "legacy_title": "囚とは何か",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第146回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "囚とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "039"
+      ]
+    },
+    {
+      "legacy_lesson": 147,
+      "legacy_title": "死とは何か",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第147回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "死とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "039"
+      ]
+    },
+    {
+      "legacy_lesson": 148,
+      "legacy_title": "月令と季節評価の総合演習",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第148回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "月令と季節評価の総合演習"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "040"
+      ]
+    },
+    {
+      "legacy_lesson": 149,
+      "legacy_title": "通根とは何か",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第149回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通根とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "040"
+      ]
+    },
+    {
+      "legacy_lesson": 150,
+      "legacy_title": "根があるとはどういうことか",
+      "source_file": "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第150回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "根があるとはどういうことか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "040"
+      ]
+    },
+    {
+      "legacy_lesson": 151,
+      "legacy_title": "蔵干と通根",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第151回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "蔵干と通根"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "041"
+      ]
+    },
+    {
+      "legacy_lesson": 152,
+      "legacy_title": "月支の根",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第152回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "月支の根"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "041"
+      ]
+    },
+    {
+      "legacy_lesson": 153,
+      "legacy_title": "他支の根",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第153回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "他支の根"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "041"
+      ]
+    },
+    {
+      "legacy_lesson": 154,
+      "legacy_title": "強い根と弱い根",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第154回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "強い根と弱い根"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "042"
+      ]
+    },
+    {
+      "legacy_lesson": 155,
+      "legacy_title": "複数の根がある場合",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第155回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "複数の根がある場合"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "042"
+      ]
+    },
+    {
+      "legacy_lesson": 156,
+      "legacy_title": "根がない命式",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第156回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "根がない命式"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "042"
+      ]
+    },
+    {
+      "legacy_lesson": 157,
+      "legacy_title": "通根を過大評価しない",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第157回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通根を過大評価しない"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "043"
+      ]
+    },
+    {
+      "legacy_lesson": 158,
+      "legacy_title": "通根の総合演習",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第158回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通根の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "043"
+      ]
+    },
+    {
+      "legacy_lesson": 159,
+      "legacy_title": "身強・身弱とは何か",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第159回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "身強・身弱とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "043"
+      ]
+    },
+    {
+      "legacy_lesson": 160,
+      "legacy_title": "なぜ身強身弱を判定するのか",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第160回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "なぜ身強身弱を判定するのか"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "044"
+      ]
+    },
+    {
+      "legacy_lesson": 161,
+      "legacy_title": "日主を助ける五行",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第161回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "日主を助ける五行"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "044"
+      ]
+    },
+    {
+      "legacy_lesson": 162,
+      "legacy_title": "日主を弱める五行",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第162回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "日主を弱める五行"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "044"
+      ]
+    },
+    {
+      "legacy_lesson": 163,
+      "legacy_title": "生助と剋洩耗",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第163回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "生助と剋洩耗"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "045"
+      ]
+    },
+    {
+      "legacy_lesson": 164,
+      "legacy_title": "月令を見る",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第164回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "月令を見る"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "045"
+      ]
+    },
+    {
+      "legacy_lesson": 165,
+      "legacy_title": "通根を見る",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第165回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "通根を見る"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "045"
+      ]
+    },
+    {
+      "legacy_lesson": 166,
+      "legacy_title": "天干を見る",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第166回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "天干を見る"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "046"
+      ]
+    },
+    {
+      "legacy_lesson": 167,
+      "legacy_title": "蔵干を見る",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第167回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "蔵干を見る"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "046"
+      ]
+    },
+    {
+      "legacy_lesson": 168,
+      "legacy_title": "五行バランスを見る",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第168回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "五行バランスを見る"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "046"
+      ]
+    },
+    {
+      "legacy_lesson": 169,
+      "legacy_title": "身強とは",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第169回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "身強とは"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "047"
+      ]
+    },
+    {
+      "legacy_lesson": 170,
+      "legacy_title": "身弱とは",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第170回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "身弱とは"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "047"
+      ]
+    },
+    {
+      "legacy_lesson": 171,
+      "legacy_title": "中和とは",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第171回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "中和とは"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "047"
+      ]
+    },
+    {
+      "legacy_lesson": 172,
+      "legacy_title": "極端な身強・身弱",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第172回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "極端な身強・身弱"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "048"
+      ]
+    },
+    {
+      "legacy_lesson": 173,
+      "legacy_title": "身強身弱を点数だけで判断しない",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第173回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "身強身弱を点数だけで判断しない"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "048"
+      ]
+    },
+    {
+      "legacy_lesson": 174,
+      "legacy_title": "身強身弱の判定手順",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第174回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "身強身弱の判定手順"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "048"
+      ]
+    },
+    {
+      "legacy_lesson": 175,
+      "legacy_title": "身強身弱の総合演習",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第175回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "身強身弱の総合演習"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "049"
+      ]
+    },
+    {
+      "legacy_lesson": 176,
+      "legacy_title": "干支関係とは何か",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第176回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "干支関係とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "049"
+      ]
+    },
+    {
+      "legacy_lesson": 177,
+      "legacy_title": "天干五合とは何か",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第177回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "天干五合とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "049"
+      ]
+    },
+    {
+      "legacy_lesson": 178,
+      "legacy_title": "甲己の合",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第178回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "甲己の合"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "050"
+      ]
+    },
+    {
+      "legacy_lesson": 179,
+      "legacy_title": "乙庚の合",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第179回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "乙庚の合"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "050"
+      ]
+    },
+    {
+      "legacy_lesson": 180,
+      "legacy_title": "丙辛の合",
+      "source_file": "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第180回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "丙辛の合"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "050"
+      ]
+    },
+    {
+      "legacy_lesson": 181,
+      "legacy_title": "丁壬の合",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第181回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "丁壬の合"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "051"
+      ]
+    },
+    {
+      "legacy_lesson": 182,
+      "legacy_title": "戊癸の合",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第182回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "戊癸の合"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "051"
+      ]
+    },
+    {
+      "legacy_lesson": 183,
+      "legacy_title": "六合とは何か",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第183回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "六合とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "051"
+      ]
+    },
+    {
+      "legacy_lesson": 184,
+      "legacy_title": "三合とは何か",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第184回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "三合とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "052"
+      ]
+    },
+    {
+      "legacy_lesson": 185,
+      "legacy_title": "方合とは何か",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第185回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "方合とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "052"
+      ]
+    },
+    {
+      "legacy_lesson": 186,
+      "legacy_title": "冲とは何か",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第186回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "冲とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "052"
+      ]
+    },
+    {
+      "legacy_lesson": 187,
+      "legacy_title": "刑とは何か",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第187回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "刑とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "053"
+      ]
+    },
+    {
+      "legacy_lesson": 188,
+      "legacy_title": "害とは何か",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第188回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "害とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "053"
+      ]
+    },
+    {
+      "legacy_lesson": 189,
+      "legacy_title": "破とは何か",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第189回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "破とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "053"
+      ]
+    },
+    {
+      "legacy_lesson": 190,
+      "legacy_title": "合があれば必ず良いのか",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第190回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "合があれば必ず良いのか"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "054"
+      ]
+    },
+    {
+      "legacy_lesson": 191,
+      "legacy_title": "冲があれば必ず悪いのか",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第191回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "冲があれば必ず悪いのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "054"
+      ]
+    },
+    {
+      "legacy_lesson": 192,
+      "legacy_title": "干支関係の総合演習",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第192回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "干支関係の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "054"
+      ]
+    },
+    {
+      "legacy_lesson": 193,
+      "legacy_title": "格局とは何か",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第193回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "格局とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "055"
+      ]
+    },
+    {
+      "legacy_lesson": 194,
+      "legacy_title": "なぜ格局を見るのか",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第194回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "なぜ格局を見るのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "055"
+      ]
+    },
+    {
+      "legacy_lesson": 195,
+      "legacy_title": "格局判定と月令",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第195回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "格局判定と月令"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "055"
+      ]
+    },
+    {
+      "legacy_lesson": 196,
+      "legacy_title": "格局判定と透干",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第196回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "格局判定と透干"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "056"
+      ]
+    },
+    {
+      "legacy_lesson": 197,
+      "legacy_title": "比肩格",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第197回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "比肩格"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "056"
+      ]
+    },
+    {
+      "legacy_lesson": 198,
+      "legacy_title": "劫財格",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第198回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "劫財格"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "056"
+      ]
+    },
+    {
+      "legacy_lesson": 199,
+      "legacy_title": "食神格",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第199回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "食神格"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "057"
+      ]
+    },
+    {
+      "legacy_lesson": 200,
+      "legacy_title": "傷官格",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第200回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "傷官格"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "057"
+      ]
+    },
+    {
+      "legacy_lesson": 201,
+      "legacy_title": "偏財格",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第201回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "偏財格"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "057"
+      ]
+    },
+    {
+      "legacy_lesson": 202,
+      "legacy_title": "正財格",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第202回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "正財格"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "058"
+      ]
+    },
+    {
+      "legacy_lesson": 203,
+      "legacy_title": "偏官格",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第203回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "偏官格"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "058"
+      ]
+    },
+    {
+      "legacy_lesson": 204,
+      "legacy_title": "正官格",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第204回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "正官格"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "058"
+      ]
+    },
+    {
+      "legacy_lesson": 205,
+      "legacy_title": "偏印格",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第205回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "偏印格"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "059"
+      ]
+    },
+    {
+      "legacy_lesson": 206,
+      "legacy_title": "印綬格",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第206回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "印綬格"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "059"
+      ]
+    },
+    {
+      "legacy_lesson": 207,
+      "legacy_title": "格局候補が複数ある場合",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第207回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "格局候補が複数ある場合"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "059"
+      ]
+    },
+    {
+      "legacy_lesson": 208,
+      "legacy_title": "成格とは何か",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第208回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "成格とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "060"
+      ]
+    },
+    {
+      "legacy_lesson": 209,
+      "legacy_title": "破格とは何か",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第209回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "破格とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "060"
+      ]
+    },
+    {
+      "legacy_lesson": 210,
+      "legacy_title": "格局判定の総合演習",
+      "source_file": "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第210回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "格局判定の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "060"
+      ]
+    },
+    {
+      "legacy_lesson": 211,
+      "legacy_title": "用神とは何か",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第211回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "用神とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "061"
+      ]
+    },
+    {
+      "legacy_lesson": 212,
+      "legacy_title": "なぜ用神が必要なのか",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第212回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "なぜ用神が必要なのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "061"
+      ]
+    },
+    {
+      "legacy_lesson": 213,
+      "legacy_title": "喜神とは何か",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第213回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "喜神とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "061"
+      ]
+    },
+    {
+      "legacy_lesson": 214,
+      "legacy_title": "忌神とは何か",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第214回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "忌神とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "062"
+      ]
+    },
+    {
+      "legacy_lesson": 215,
+      "legacy_title": "扶抑とは何か",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第215回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "扶抑とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "062"
+      ]
+    },
+    {
+      "legacy_lesson": 216,
+      "legacy_title": "身強と用神",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第216回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "身強と用神"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "062"
+      ]
+    },
+    {
+      "legacy_lesson": 217,
+      "legacy_title": "身弱と用神",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第217回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "身弱と用神"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "063"
+      ]
+    },
+    {
+      "legacy_lesson": 218,
+      "legacy_title": "調候とは何か",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第218回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "調候とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "063"
+      ]
+    },
+    {
+      "legacy_lesson": 219,
+      "legacy_title": "春生まれの調候",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第219回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "春生まれの調候"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "063"
+      ]
+    },
+    {
+      "legacy_lesson": 220,
+      "legacy_title": "夏生まれの調候",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第220回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "夏生まれの調候"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "064"
+      ]
+    },
+    {
+      "legacy_lesson": 221,
+      "legacy_title": "秋生まれの調候",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第221回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "秋生まれの調候"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "064"
+      ]
+    },
+    {
+      "legacy_lesson": 222,
+      "legacy_title": "冬生まれの調候",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第222回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "冬生まれの調候"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "064"
+      ]
+    },
+    {
+      "legacy_lesson": 223,
+      "legacy_title": "格局と用神",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第223回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "格局と用神"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "065"
+      ]
+    },
+    {
+      "legacy_lesson": 224,
+      "legacy_title": "五行不足＝用神ではない",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第224回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "五行不足＝用神ではない"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "065"
+      ]
+    },
+    {
+      "legacy_lesson": 225,
+      "legacy_title": "用神候補が複数ある場合",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第225回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "用神候補が複数ある場合"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "065"
+      ]
+    },
+    {
+      "legacy_lesson": 226,
+      "legacy_title": "主用神と補助用神",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第226回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "主用神と補助用神"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "066"
+      ]
+    },
+    {
+      "legacy_lesson": 227,
+      "legacy_title": "用神を現実の助言へ変換する",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第227回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "用神を現実の助言へ変換する"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "066"
+      ]
+    },
+    {
+      "legacy_lesson": 228,
+      "legacy_title": "用神判定の総合演習",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第228回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "用神判定の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "066"
+      ]
+    },
+    {
+      "legacy_lesson": 229,
+      "legacy_title": "大運とは何か",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第229回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "大運とは何か"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "067"
+      ]
+    },
+    {
+      "legacy_lesson": 230,
+      "legacy_title": "大運はなぜ10年単位なのか",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第230回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "大運はなぜ10年単位なのか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "067"
+      ]
+    },
+    {
+      "legacy_lesson": 231,
+      "legacy_title": "大運の順行と逆行",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第231回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "大運の順行と逆行"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "067"
+      ]
+    },
+    {
+      "legacy_lesson": 232,
+      "legacy_title": "大運開始年齢",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第232回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "大運開始年齢"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "068"
+      ]
+    },
+    {
+      "legacy_lesson": 233,
+      "legacy_title": "大運干支の読み方",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第233回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "大運干支の読み方"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "068"
+      ]
+    },
+    {
+      "legacy_lesson": 234,
+      "legacy_title": "大運の通変星",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第234回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "大運の通変星"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "068"
+      ]
+    },
+    {
+      "legacy_lesson": 235,
+      "legacy_title": "大運の十二運",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第235回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "大運の十二運"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "069"
+      ]
+    },
+    {
+      "legacy_lesson": 236,
+      "legacy_title": "原命式と大運",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第236回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "原命式と大運"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "069"
+      ]
+    },
+    {
+      "legacy_lesson": 237,
+      "legacy_title": "用神と大運",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第237回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "用神と大運"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "069"
+      ]
+    },
+    {
+      "legacy_lesson": 238,
+      "legacy_title": "格局と大運",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第238回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "格局と大運"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "070"
+      ]
+    },
+    {
+      "legacy_lesson": 239,
+      "legacy_title": "大運と合・冲・刑・害",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第239回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "大運と合・冲・刑・害"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "070"
+      ]
+    },
+    {
+      "legacy_lesson": 240,
+      "legacy_title": "現在大運を読む",
+      "source_file": "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第240回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "現在大運を読む"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "070"
+      ]
+    },
+    {
+      "legacy_lesson": 241,
+      "legacy_title": "人生全体の大運を見る",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第241回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "人生全体の大運を見る"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "071"
+      ]
+    },
+    {
+      "legacy_lesson": 242,
+      "legacy_title": "大運の総合演習",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第242回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "大運の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "071"
+      ]
+    },
+    {
+      "legacy_lesson": 243,
+      "legacy_title": "歳運とは何か",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第243回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "歳運とは何か"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "071"
+      ]
+    },
+    {
+      "legacy_lesson": 244,
+      "legacy_title": "歳運干支の読み方",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第244回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "歳運干支の読み方"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "072"
+      ]
+    },
+    {
+      "legacy_lesson": 245,
+      "legacy_title": "歳運の通変星",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第245回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "歳運の通変星"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "072"
+      ]
+    },
+    {
+      "legacy_lesson": 246,
+      "legacy_title": "歳運の十二運",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第246回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "歳運の十二運"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "072"
+      ]
+    },
+    {
+      "legacy_lesson": 247,
+      "legacy_title": "原命式と歳運",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第247回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "原命式と歳運"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "073"
+      ]
+    },
+    {
+      "legacy_lesson": 248,
+      "legacy_title": "大運と歳運",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第248回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "大運と歳運"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "073"
+      ]
+    },
+    {
+      "legacy_lesson": 249,
+      "legacy_title": "用神と歳運",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第249回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "用神と歳運"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "073"
+      ]
+    },
+    {
+      "legacy_lesson": 250,
+      "legacy_title": "合・冲・刑・害と歳運",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第250回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "合・冲・刑・害と歳運"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "074"
+      ]
+    },
+    {
+      "legacy_lesson": 251,
+      "legacy_title": "良い年・悪い年という考え方",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第251回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "良い年・悪い年という考え方"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "074"
+      ]
+    },
+    {
+      "legacy_lesson": 252,
+      "legacy_title": "1年間のテーマを読む",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第252回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "1年間のテーマを読む"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "074"
+      ]
+    },
+    {
+      "legacy_lesson": 253,
+      "legacy_title": "5年間の流れを読む",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第253回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "5年間の流れを読む"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "075"
+      ]
+    },
+    {
+      "legacy_lesson": 254,
+      "legacy_title": "大運・歳運の総合演習",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第254回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "大運・歳運の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "075"
+      ]
+    },
+    {
+      "legacy_lesson": 255,
+      "legacy_title": "性格を鑑定する",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第255回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "性格を鑑定する"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "075"
+      ]
+    },
+    {
+      "legacy_lesson": 256,
+      "legacy_title": "才能・強みを鑑定する",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第256回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "才能・強みを鑑定する"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "076"
+      ]
+    },
+    {
+      "legacy_lesson": 257,
+      "legacy_title": "仕事・適職を鑑定する",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第257回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "仕事・適職を鑑定する"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "076"
+      ]
+    },
+    {
+      "legacy_lesson": 258,
+      "legacy_title": "独立・起業適性を考える",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第258回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "独立・起業適性を考える"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "076"
+      ]
+    },
+    {
+      "legacy_lesson": 259,
+      "legacy_title": "金運を鑑定する",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第259回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "金運を鑑定する"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "077"
+      ]
+    },
+    {
+      "legacy_lesson": 260,
+      "legacy_title": "恋愛を鑑定する",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第260回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "恋愛を鑑定する"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "077"
+      ]
+    },
+    {
+      "legacy_lesson": 261,
+      "legacy_title": "結婚・パートナーシップを考える",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第261回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "結婚・パートナーシップを考える"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "077"
+      ]
+    },
+    {
+      "legacy_lesson": 262,
+      "legacy_title": "人間関係を鑑定する",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第262回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "人間関係を鑑定する"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "078"
+      ]
+    },
+    {
+      "legacy_lesson": 263,
+      "legacy_title": "健康傾向を扱うときの注意",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第263回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "健康傾向を扱うときの注意"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "078"
+      ]
+    },
+    {
+      "legacy_lesson": 264,
+      "legacy_title": "転職・独立の時期を考える",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第264回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "転職・独立の時期を考える"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "078"
+      ]
+    },
+    {
+      "legacy_lesson": 265,
+      "legacy_title": "人生の転機を読む",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第265回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "人生の転機を読む"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "079"
+      ]
+    },
+    {
+      "legacy_lesson": 266,
+      "legacy_title": "テーマ別鑑定の総合演習",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第266回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "テーマ別鑑定の総合演習"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "079"
+      ]
+    },
+    {
+      "legacy_lesson": 267,
+      "legacy_title": "鑑定前に相談内容を整理する",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第267回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "鑑定前に相談内容を整理する"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "079"
+      ]
+    },
+    {
+      "legacy_lesson": 268,
+      "legacy_title": "命式を見る順番",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第268回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "命式を見る順番"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "080"
+      ]
+    },
+    {
+      "legacy_lesson": 269,
+      "legacy_title": "鑑定で「事実」と「解釈」を分ける",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第269回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "鑑定で「事実」と「解釈」を分ける"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "080"
+      ]
+    },
+    {
+      "legacy_lesson": 270,
+      "legacy_title": "鑑定結果を分かりやすく伝える",
+      "source_file": "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第270回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "鑑定結果を分かりやすく伝える"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "080"
+      ]
+    },
+    {
+      "legacy_lesson": 271,
+      "legacy_title": "不安を煽らない鑑定",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第271回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "不安を煽らない鑑定"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "081"
+      ]
+    },
+    {
+      "legacy_lesson": 272,
+      "legacy_title": "悪い結果をどう伝えるか",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第272回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "悪い結果をどう伝えるか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "081"
+      ]
+    },
+    {
+      "legacy_lesson": 273,
+      "legacy_title": "AIを鑑定にどう使うか",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第273回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "AIを鑑定にどう使うか"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "081"
+      ]
+    },
+    {
+      "legacy_lesson": 274,
+      "legacy_title": "八雲式鑑定エンジンの使い方",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第274回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "八雲式鑑定エンジンの使い方"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "082"
+      ]
+    },
+    {
+      "legacy_lesson": 275,
+      "legacy_title": "PDF鑑定書の作り方",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第275回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "PDF鑑定書の作り方"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "082"
+      ]
+    },
+    {
+      "legacy_lesson": 276,
+      "legacy_title": "鑑定後のフォローと倫理",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第276回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "鑑定後のフォローと倫理"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "082"
+      ]
+    },
+    {
+      "legacy_lesson": 277,
+      "legacy_title": "初回鑑定を最初から最後まで行う",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第277回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "初回鑑定を最初から最後まで行う"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "083"
+      ]
+    },
+    {
+      "legacy_lesson": 278,
+      "legacy_title": "ケーススタディ① 基礎命式",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第278回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "ケーススタディ① 基礎命式"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "083"
+      ]
+    },
+    {
+      "legacy_lesson": 279,
+      "legacy_title": "ケーススタディ② 身強身弱・格局・用神",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第279回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "ケーススタディ② 身強身弱・格局・用神"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "083"
+      ]
+    },
+    {
+      "legacy_lesson": 280,
+      "legacy_title": "ケーススタディ③ 大運・歳運・人生相談",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第280回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "ケーススタディ③ 大運・歳運・人生相談"
+      ],
+      "classification": "core",
+      "new_lessons": [
+        "084"
+      ]
+    },
+    {
+      "legacy_lesson": 281,
+      "legacy_title": "模擬鑑定・総合試験",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第281回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "模擬鑑定・総合試験"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "084"
+      ]
+    },
+    {
+      "legacy_lesson": 282,
+      "legacy_title": "八雲式四柱推命鑑定士として歩き始める ────────────────────",
+      "source_file": "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第282回_Vrew_AI読み上げ最適化版.txt",
+      "main_topics": [
+        "八雲式四柱推命鑑定士として歩き始める ────────────────────"
+      ],
+      "classification": "merged",
+      "new_lessons": [
+        "084"
+      ]
+    }
+  ]
+}

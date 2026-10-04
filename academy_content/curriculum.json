@@ -1,0 +1,2282 @@
+{
+  "version": "2.0",
+  "title": "八雲式 四柱推命Academy",
+  "source_note": "旧第1〜282回のTXT原典を確認し、学習上のまとまりで84講へ再編。本文はdraftとして人手レビュー前提。",
+  "lesson_count": 84,
+  "lessons": [
+    {
+      "lesson_id": "001",
+      "chapter": 1,
+      "chapter_title": "第1章 四柱推命の基礎",
+      "order": 1,
+      "title": "四柱推命とは何を読むものか",
+      "status": "draft",
+      "source_lessons": [
+        "旧第1回",
+        "旧第2回",
+        "旧第3回",
+        "旧第4回"
+      ],
+      "source_titles": [
+        "四柱推命とは何か",
+        "四柱推命で何が分かるのか",
+        "四柱推命で分からないこと・断定しないこと",
+        "四柱推命はなぜ生年月日を使うのか"
+      ],
+      "source_files": [
+        "第1回 四柱推命とは何か.zip::第1回 四柱推命とは何か/yakumo_academy_lesson01_vrew_slide_numbers.txt",
+        "第2回 四柱推命で何がわかるのか？.zip::第2回 四柱推命で何がわかるのか？/第2回_Vrew_AI読み上げ最適化版.txt",
+        "第3回.zip::第3回/第3回_Vrew_AI読み上げ最適化版.txt",
+        "第4回.zip::第4回/第4回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 26,
+      "quiz": true
+    },
+    {
+      "lesson_id": "002",
+      "chapter": 1,
+      "chapter_title": "第1章 四柱推命の基礎",
+      "order": 2,
+      "title": "「命」と「運」は何が違うのか",
+      "status": "draft",
+      "source_lessons": [
+        "旧第5回",
+        "旧第6回",
+        "旧第7回",
+        "旧第8回"
+      ],
+      "source_titles": [
+        "「命」と「運」は何が違うのか",
+        "命式とは何か",
+        "四柱とは何か",
+        "年柱・月柱・日柱・時柱の役割"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第005回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第006回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第007回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第008回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 27,
+      "quiz": true
+    },
+    {
+      "lesson_id": "003",
+      "chapter": 1,
+      "chapter_title": "第1章 四柱推命の基礎",
+      "order": 3,
+      "title": "日主とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第9回",
+        "旧第10回",
+        "旧第11回",
+        "旧第12回"
+      ],
+      "source_titles": [
+        "日主とは何か",
+        "命式を「人生の設計図」として読む",
+        "陰陽とは何か",
+        "陽の性質"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第009回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第010回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第011回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第012回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 28,
+      "quiz": true
+    },
+    {
+      "lesson_id": "004",
+      "chapter": 1,
+      "chapter_title": "第1章 四柱推命の基礎",
+      "order": 4,
+      "title": "陰の性質",
+      "status": "draft",
+      "source_lessons": [
+        "旧第13回",
+        "旧第14回",
+        "旧第15回",
+        "旧第16回"
+      ],
+      "source_titles": [
+        "陰の性質",
+        "陰と陽はどちらが良いのか",
+        "陰陽のバランス",
+        "十干と陰陽"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第013回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第014回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第015回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第016回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 29,
+      "quiz": true
+    },
+    {
+      "lesson_id": "005",
+      "chapter": 1,
+      "chapter_title": "第1章 四柱推命の基礎",
+      "order": 5,
+      "title": "十二支と陰陽",
+      "status": "draft",
+      "source_lessons": [
+        "旧第17回",
+        "旧第18回",
+        "旧第19回",
+        "旧第20回"
+      ],
+      "source_titles": [
+        "十二支と陰陽",
+        "命式から陰陽を見る",
+        "陰陽が偏るとどう読むのか",
+        "陰陽の実践問題"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第017回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第018回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第019回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第020回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 30,
+      "quiz": true
+    },
+    {
+      "lesson_id": "006",
+      "chapter": 1,
+      "chapter_title": "第1章 四柱推命の基礎",
+      "order": 6,
+      "title": "五行とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第21回",
+        "旧第22回",
+        "旧第23回",
+        "旧第24回"
+      ],
+      "source_titles": [
+        "五行とは何か",
+        "木の性質",
+        "火の性質",
+        "土の性質"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第021回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第022回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第023回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第024回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 31,
+      "quiz": true
+    },
+    {
+      "lesson_id": "007",
+      "chapter": 1,
+      "chapter_title": "第1章 四柱推命の基礎",
+      "order": 7,
+      "title": "金の性質",
+      "status": "draft",
+      "source_lessons": [
+        "旧第25回",
+        "旧第26回",
+        "旧第27回",
+        "旧第28回"
+      ],
+      "source_titles": [
+        "金の性質",
+        "水の性質",
+        "五行相生とは何か",
+        "五行相剋とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第025回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第026回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第027回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第028回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 32,
+      "quiz": true
+    },
+    {
+      "lesson_id": "008",
+      "chapter": 2,
+      "chapter_title": "第2章 陰陽五行",
+      "order": 8,
+      "title": "五行は多ければ良いのか",
+      "status": "draft",
+      "source_lessons": [
+        "旧第29回",
+        "旧第30回",
+        "旧第31回",
+        "旧第32回"
+      ],
+      "source_titles": [
+        "五行は多ければ良いのか",
+        "五行バランスの基本的な読み方",
+        "十干とは何か",
+        "甲とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第029回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第5回-第30回_スライド_Vrew一括.zip::第030回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第031回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第032回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 25,
+      "quiz": true
+    },
+    {
+      "lesson_id": "009",
+      "chapter": 2,
+      "chapter_title": "第2章 陰陽五行",
+      "order": 9,
+      "title": "乙とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第33回",
+        "旧第34回",
+        "旧第35回",
+        "旧第36回"
+      ],
+      "source_titles": [
+        "乙とは何か",
+        "丙とは何か",
+        "丁とは何か",
+        "戊とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第033回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第034回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第035回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第036回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 26,
+      "quiz": true
+    },
+    {
+      "lesson_id": "010",
+      "chapter": 2,
+      "chapter_title": "第2章 陰陽五行",
+      "order": 10,
+      "title": "己とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第37回",
+        "旧第38回",
+        "旧第39回",
+        "旧第40回"
+      ],
+      "source_titles": [
+        "己とは何か",
+        "庚とは何か",
+        "辛とは何か",
+        "壬とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第037回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第038回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第039回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第040回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 27,
+      "quiz": true
+    },
+    {
+      "lesson_id": "011",
+      "chapter": 2,
+      "chapter_title": "第2章 陰陽五行",
+      "order": 11,
+      "title": "癸とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第41回",
+        "旧第42回",
+        "旧第43回",
+        "旧第44回"
+      ],
+      "source_titles": [
+        "癸とは何か",
+        "同じ五行でも陰陽で何が違うのか",
+        "十干を自然界のイメージで理解する",
+        "十干を人物像だけで決めつけない"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第041回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第042回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第043回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第044回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 28,
+      "quiz": true
+    },
+    {
+      "lesson_id": "012",
+      "chapter": 2,
+      "chapter_title": "第2章 陰陽五行",
+      "order": 12,
+      "title": "十干10種類の総合演習",
+      "status": "draft",
+      "source_lessons": [
+        "旧第45回",
+        "旧第46回",
+        "旧第47回",
+        "旧第48回"
+      ],
+      "source_titles": [
+        "十干10種類の総合演習",
+        "十二支とは何か",
+        "子の性質",
+        "丑の性質"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第045回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第046回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第047回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第048回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 29,
+      "quiz": true
+    },
+    {
+      "lesson_id": "013",
+      "chapter": 2,
+      "chapter_title": "第2章 陰陽五行",
+      "order": 13,
+      "title": "寅の性質",
+      "status": "draft",
+      "source_lessons": [
+        "旧第49回",
+        "旧第50回",
+        "旧第51回",
+        "旧第52回"
+      ],
+      "source_titles": [
+        "寅の性質",
+        "卯の性質",
+        "辰の性質",
+        "巳の性質"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第049回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第050回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第051回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第052回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 30,
+      "quiz": true
+    },
+    {
+      "lesson_id": "014",
+      "chapter": 2,
+      "chapter_title": "第2章 陰陽五行",
+      "order": 14,
+      "title": "午の性質",
+      "status": "draft",
+      "source_lessons": [
+        "旧第53回",
+        "旧第54回",
+        "旧第55回",
+        "旧第56回"
+      ],
+      "source_titles": [
+        "午の性質",
+        "未の性質",
+        "申の性質",
+        "酉の性質"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第053回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第054回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第055回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第056回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 31,
+      "quiz": true
+    },
+    {
+      "lesson_id": "015",
+      "chapter": 3,
+      "chapter_title": "第3章 十干と十二支",
+      "order": 15,
+      "title": "戌の性質",
+      "status": "draft",
+      "source_lessons": [
+        "旧第57回",
+        "旧第58回",
+        "旧第59回",
+        "旧第60回"
+      ],
+      "source_titles": [
+        "戌の性質",
+        "亥の性質",
+        "十二支と季節の関係",
+        "十二支12種類の総合演習"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第057回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第058回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第059回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第31回-第60回_スライド_Vrew一括.zip::第060回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 32,
+      "quiz": true
+    },
+    {
+      "lesson_id": "016",
+      "chapter": 3,
+      "chapter_title": "第3章 十干と十二支",
+      "order": 16,
+      "title": "干支とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第61回",
+        "旧第62回",
+        "旧第63回",
+        "旧第64回"
+      ],
+      "source_titles": [
+        "干支とは何か",
+        "十干と十二支を組み合わせる",
+        "なぜ60種類になるのか",
+        "六十干支の基本構造"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第061回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第062回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第063回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第064回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 25,
+      "quiz": true
+    },
+    {
+      "lesson_id": "017",
+      "chapter": 3,
+      "chapter_title": "第3章 十干と十二支",
+      "order": 17,
+      "title": "年柱の意味",
+      "status": "draft",
+      "source_lessons": [
+        "旧第65回",
+        "旧第66回",
+        "旧第67回",
+        "旧第68回"
+      ],
+      "source_titles": [
+        "年柱の意味",
+        "月柱の意味",
+        "日柱の意味",
+        "時柱の意味"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第065回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第066回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第067回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第068回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 26,
+      "quiz": true
+    },
+    {
+      "lesson_id": "018",
+      "chapter": 3,
+      "chapter_title": "第3章 十干と十二支",
+      "order": 18,
+      "title": "四柱の位置関係",
+      "status": "draft",
+      "source_lessons": [
+        "旧第69回",
+        "旧第70回",
+        "旧第71回",
+        "旧第72回"
+      ],
+      "source_titles": [
+        "四柱の位置関係",
+        "四柱を一つの命式として見る",
+        "四柱はどのように決まるのか",
+        "年柱の求め方"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第069回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第070回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第071回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第072回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 27,
+      "quiz": true
+    },
+    {
+      "lesson_id": "019",
+      "chapter": 3,
+      "chapter_title": "第3章 十干と十二支",
+      "order": 19,
+      "title": "月柱の求め方",
+      "status": "draft",
+      "source_lessons": [
+        "旧第73回",
+        "旧第74回",
+        "旧第75回",
+        "旧第76回"
+      ],
+      "source_titles": [
+        "月柱の求め方",
+        "日柱の求め方",
+        "時柱の求め方",
+        "立春と年柱"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第073回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第074回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第075回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第076回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 28,
+      "quiz": true
+    },
+    {
+      "lesson_id": "020",
+      "chapter": 3,
+      "chapter_title": "第3章 十干と十二支",
+      "order": 20,
+      "title": "二十四節気とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第77回",
+        "旧第78回",
+        "旧第79回",
+        "旧第80回"
+      ],
+      "source_titles": [
+        "二十四節気とは何か",
+        "節入りと月柱",
+        "23時前後の扱い",
+        "出生時刻が分からない場合"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第077回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第078回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第079回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第080回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 29,
+      "quiz": true
+    },
+    {
+      "lesson_id": "021",
+      "chapter": 3,
+      "chapter_title": "第3章 十干と十二支",
+      "order": 21,
+      "title": "出生地と時刻について",
+      "status": "draft",
+      "source_lessons": [
+        "旧第81回",
+        "旧第82回",
+        "旧第83回",
+        "旧第84回"
+      ],
+      "source_titles": [
+        "出生地と時刻について",
+        "命式作成の総合演習",
+        "蔵干とは何か",
+        "なぜ地支の中に天干があるのか"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第081回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第082回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第083回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第084回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 30,
+      "quiz": true
+    },
+    {
+      "lesson_id": "022",
+      "chapter": 4,
+      "chapter_title": "第4章 四柱・日主・暦",
+      "order": 22,
+      "title": "本気とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第85回",
+        "旧第86回",
+        "旧第87回",
+        "旧第88回"
+      ],
+      "source_titles": [
+        "本気とは何か",
+        "中気とは何か",
+        "余気とは何か",
+        "子・丑・寅の蔵干"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第085回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第086回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第087回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第088回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 31,
+      "quiz": true
+    },
+    {
+      "lesson_id": "023",
+      "chapter": 4,
+      "chapter_title": "第4章 四柱・日主・暦",
+      "order": 23,
+      "title": "卯・辰・巳の蔵干",
+      "status": "draft",
+      "source_lessons": [
+        "旧第89回",
+        "旧第90回",
+        "旧第91回",
+        "旧第92回"
+      ],
+      "source_titles": [
+        "卯・辰・巳の蔵干",
+        "午・未・申の蔵干",
+        "酉・戌・亥の蔵干",
+        "蔵干と季節"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第089回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第61回-第90回_スライド_Vrew一括.zip::第090回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第091回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第092回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 32,
+      "quiz": true
+    },
+    {
+      "lesson_id": "024",
+      "chapter": 4,
+      "chapter_title": "第4章 四柱・日主・暦",
+      "order": 24,
+      "title": "蔵干を命式でどう使うのか",
+      "status": "draft",
+      "source_lessons": [
+        "旧第93回",
+        "旧第94回",
+        "旧第95回",
+        "旧第96回"
+      ],
+      "source_titles": [
+        "蔵干を命式でどう使うのか",
+        "蔵干の総合演習",
+        "通変星とは何か",
+        "通変星はどうやって決まるのか"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第093回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第094回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第095回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第096回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 25,
+      "quiz": true
+    },
+    {
+      "lesson_id": "025",
+      "chapter": 4,
+      "chapter_title": "第4章 四柱・日主・暦",
+      "order": 25,
+      "title": "日主との関係を見る",
+      "status": "draft",
+      "source_lessons": [
+        "旧第97回",
+        "旧第98回",
+        "旧第99回",
+        "旧第100回"
+      ],
+      "source_titles": [
+        "日主との関係を見る",
+        "比肩とは何か",
+        "劫財とは何か",
+        "食神とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第097回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第098回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第099回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第100回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 26,
+      "quiz": true
+    },
+    {
+      "lesson_id": "026",
+      "chapter": 4,
+      "chapter_title": "第4章 四柱・日主・暦",
+      "order": 26,
+      "title": "傷官とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第101回",
+        "旧第102回",
+        "旧第103回",
+        "旧第104回"
+      ],
+      "source_titles": [
+        "傷官とは何か",
+        "偏財とは何か",
+        "正財とは何か",
+        "偏官とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第101回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第102回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第103回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第104回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 27,
+      "quiz": true
+    },
+    {
+      "lesson_id": "027",
+      "chapter": 4,
+      "chapter_title": "第4章 四柱・日主・暦",
+      "order": 27,
+      "title": "正官とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第105回",
+        "旧第106回",
+        "旧第107回",
+        "旧第108回"
+      ],
+      "source_titles": [
+        "正官とは何か",
+        "偏印とは何か",
+        "印綬とは何か",
+        "通変星を5グループで理解する"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第105回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第106回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第107回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第108回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 28,
+      "quiz": true
+    },
+    {
+      "lesson_id": "028",
+      "chapter": 4,
+      "chapter_title": "第4章 四柱・日主・暦",
+      "order": 28,
+      "title": "通変星の陰陽を理解する",
+      "status": "draft",
+      "source_lessons": [
+        "旧第109回",
+        "旧第110回",
+        "旧第111回",
+        "旧第112回"
+      ],
+      "source_titles": [
+        "通変星の陰陽を理解する",
+        "通変星10種類の総合演習",
+        "比肩が強い命式",
+        "劫財が強い命式"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第109回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第110回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第111回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第112回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 29,
+      "quiz": true
+    },
+    {
+      "lesson_id": "029",
+      "chapter": 5,
+      "chapter_title": "第5章 蔵干と通変星",
+      "order": 29,
+      "title": "食神が強い命式",
+      "status": "draft",
+      "source_lessons": [
+        "旧第113回",
+        "旧第114回",
+        "旧第115回",
+        "旧第116回"
+      ],
+      "source_titles": [
+        "食神が強い命式",
+        "傷官が強い命式",
+        "財星が強い命式",
+        "官星が強い命式"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第113回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第114回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第115回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第116回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 30,
+      "quiz": true
+    },
+    {
+      "lesson_id": "030",
+      "chapter": 5,
+      "chapter_title": "第5章 蔵干と通変星",
+      "order": 30,
+      "title": "印星が強い命式",
+      "status": "draft",
+      "source_lessons": [
+        "旧第117回",
+        "旧第118回",
+        "旧第119回",
+        "旧第120回"
+      ],
+      "source_titles": [
+        "印星が強い命式",
+        "通変星がない場合",
+        "通変星を単独で判断してはいけない理由",
+        "通変星から命式全体を読む"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第117回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第118回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第119回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第91回-第120回_スライド_Vrew一括.zip::第120回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 31,
+      "quiz": true
+    },
+    {
+      "lesson_id": "031",
+      "chapter": 5,
+      "chapter_title": "第5章 蔵干と通変星",
+      "order": 31,
+      "title": "十二運とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第121回",
+        "旧第122回",
+        "旧第123回"
+      ],
+      "source_titles": [
+        "十二運とは何か",
+        "長生",
+        "沐浴"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第121回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第122回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第123回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 32,
+      "quiz": true
+    },
+    {
+      "lesson_id": "032",
+      "chapter": 5,
+      "chapter_title": "第5章 蔵干と通変星",
+      "order": 32,
+      "title": "冠帯",
+      "status": "draft",
+      "source_lessons": [
+        "旧第124回",
+        "旧第125回",
+        "旧第126回"
+      ],
+      "source_titles": [
+        "冠帯",
+        "建禄",
+        "帝旺"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第124回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第125回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第126回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 25,
+      "quiz": true
+    },
+    {
+      "lesson_id": "033",
+      "chapter": 5,
+      "chapter_title": "第5章 蔵干と通変星",
+      "order": 33,
+      "title": "衰",
+      "status": "draft",
+      "source_lessons": [
+        "旧第127回",
+        "旧第128回",
+        "旧第129回"
+      ],
+      "source_titles": [
+        "衰",
+        "病",
+        "死"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第127回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第128回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第129回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 26,
+      "quiz": true
+    },
+    {
+      "lesson_id": "034",
+      "chapter": 5,
+      "chapter_title": "第5章 蔵干と通変星",
+      "order": 34,
+      "title": "墓",
+      "status": "draft",
+      "source_lessons": [
+        "旧第130回",
+        "旧第131回",
+        "旧第132回"
+      ],
+      "source_titles": [
+        "墓",
+        "絶",
+        "胎"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第130回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第131回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第132回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 27,
+      "quiz": true
+    },
+    {
+      "lesson_id": "035",
+      "chapter": 5,
+      "chapter_title": "第5章 蔵干と通変星",
+      "order": 35,
+      "title": "養",
+      "status": "draft",
+      "source_lessons": [
+        "旧第133回",
+        "旧第134回",
+        "旧第135回"
+      ],
+      "source_titles": [
+        "養",
+        "十二運の強弱をどう考えるか",
+        "十二運の総合演習"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第133回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第134回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第135回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 28,
+      "quiz": true
+    },
+    {
+      "lesson_id": "036",
+      "chapter": 6,
+      "chapter_title": "第6章 十二運・月令・バランス",
+      "order": 36,
+      "title": "月令とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第136回",
+        "旧第137回",
+        "旧第138回"
+      ],
+      "source_titles": [
+        "月令とは何か",
+        "なぜ月支が重要なのか",
+        "春の五行"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第136回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第137回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第138回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 29,
+      "quiz": true
+    },
+    {
+      "lesson_id": "037",
+      "chapter": 6,
+      "chapter_title": "第6章 十二運・月令・バランス",
+      "order": 37,
+      "title": "夏の五行",
+      "status": "draft",
+      "source_lessons": [
+        "旧第139回",
+        "旧第140回",
+        "旧第141回"
+      ],
+      "source_titles": [
+        "夏の五行",
+        "秋の五行",
+        "冬の五行"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第139回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第140回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第141回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 30,
+      "quiz": true
+    },
+    {
+      "lesson_id": "038",
+      "chapter": 6,
+      "chapter_title": "第6章 十二運・月令・バランス",
+      "order": 38,
+      "title": "土用と季節",
+      "status": "draft",
+      "source_lessons": [
+        "旧第142回",
+        "旧第143回",
+        "旧第144回"
+      ],
+      "source_titles": [
+        "土用と季節",
+        "旺とは何か",
+        "相とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第142回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第143回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第144回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 31,
+      "quiz": true
+    },
+    {
+      "lesson_id": "039",
+      "chapter": 6,
+      "chapter_title": "第6章 十二運・月令・バランス",
+      "order": 39,
+      "title": "休とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第145回",
+        "旧第146回",
+        "旧第147回"
+      ],
+      "source_titles": [
+        "休とは何か",
+        "囚とは何か",
+        "死とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第145回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第146回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第147回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 32,
+      "quiz": true
+    },
+    {
+      "lesson_id": "040",
+      "chapter": 6,
+      "chapter_title": "第6章 十二運・月令・バランス",
+      "order": 40,
+      "title": "月令と季節評価の総合演習",
+      "status": "draft",
+      "source_lessons": [
+        "旧第148回",
+        "旧第149回",
+        "旧第150回"
+      ],
+      "source_titles": [
+        "月令と季節評価の総合演習",
+        "通根とは何か",
+        "根があるとはどういうことか"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第148回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第149回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第121回-第150回_表紙元書式修正版_スライド_Vrew一括.zip::第150回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 25,
+      "quiz": true
+    },
+    {
+      "lesson_id": "041",
+      "chapter": 6,
+      "chapter_title": "第6章 十二運・月令・バランス",
+      "order": 41,
+      "title": "蔵干と通根",
+      "status": "draft",
+      "source_lessons": [
+        "旧第151回",
+        "旧第152回",
+        "旧第153回"
+      ],
+      "source_titles": [
+        "蔵干と通根",
+        "月支の根",
+        "他支の根"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第151回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第152回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第153回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 26,
+      "quiz": true
+    },
+    {
+      "lesson_id": "042",
+      "chapter": 6,
+      "chapter_title": "第6章 十二運・月令・バランス",
+      "order": 42,
+      "title": "強い根と弱い根",
+      "status": "draft",
+      "source_lessons": [
+        "旧第154回",
+        "旧第155回",
+        "旧第156回"
+      ],
+      "source_titles": [
+        "強い根と弱い根",
+        "複数の根がある場合",
+        "根がない命式"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第154回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第155回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第156回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 27,
+      "quiz": true
+    },
+    {
+      "lesson_id": "043",
+      "chapter": 7,
+      "chapter_title": "第7章 身強身弱と干支関係",
+      "order": 43,
+      "title": "通根を過大評価しない",
+      "status": "draft",
+      "source_lessons": [
+        "旧第157回",
+        "旧第158回",
+        "旧第159回"
+      ],
+      "source_titles": [
+        "通根を過大評価しない",
+        "通根の総合演習",
+        "身強・身弱とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第157回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第158回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第159回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 28,
+      "quiz": true
+    },
+    {
+      "lesson_id": "044",
+      "chapter": 7,
+      "chapter_title": "第7章 身強身弱と干支関係",
+      "order": 44,
+      "title": "なぜ身強身弱を判定するのか",
+      "status": "draft",
+      "source_lessons": [
+        "旧第160回",
+        "旧第161回",
+        "旧第162回"
+      ],
+      "source_titles": [
+        "なぜ身強身弱を判定するのか",
+        "日主を助ける五行",
+        "日主を弱める五行"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第160回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第161回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第162回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 29,
+      "quiz": true
+    },
+    {
+      "lesson_id": "045",
+      "chapter": 7,
+      "chapter_title": "第7章 身強身弱と干支関係",
+      "order": 45,
+      "title": "生助と剋洩耗",
+      "status": "draft",
+      "source_lessons": [
+        "旧第163回",
+        "旧第164回",
+        "旧第165回"
+      ],
+      "source_titles": [
+        "生助と剋洩耗",
+        "月令を見る",
+        "通根を見る"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第163回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第164回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第165回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 30,
+      "quiz": true
+    },
+    {
+      "lesson_id": "046",
+      "chapter": 7,
+      "chapter_title": "第7章 身強身弱と干支関係",
+      "order": 46,
+      "title": "天干を見る",
+      "status": "draft",
+      "source_lessons": [
+        "旧第166回",
+        "旧第167回",
+        "旧第168回"
+      ],
+      "source_titles": [
+        "天干を見る",
+        "蔵干を見る",
+        "五行バランスを見る"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第166回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第167回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第168回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 31,
+      "quiz": true
+    },
+    {
+      "lesson_id": "047",
+      "chapter": 7,
+      "chapter_title": "第7章 身強身弱と干支関係",
+      "order": 47,
+      "title": "身強とは",
+      "status": "draft",
+      "source_lessons": [
+        "旧第169回",
+        "旧第170回",
+        "旧第171回"
+      ],
+      "source_titles": [
+        "身強とは",
+        "身弱とは",
+        "中和とは"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第169回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第170回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第171回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 32,
+      "quiz": true
+    },
+    {
+      "lesson_id": "048",
+      "chapter": 7,
+      "chapter_title": "第7章 身強身弱と干支関係",
+      "order": 48,
+      "title": "極端な身強・身弱",
+      "status": "draft",
+      "source_lessons": [
+        "旧第172回",
+        "旧第173回",
+        "旧第174回"
+      ],
+      "source_titles": [
+        "極端な身強・身弱",
+        "身強身弱を点数だけで判断しない",
+        "身強身弱の判定手順"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第172回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第173回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第174回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 25,
+      "quiz": true
+    },
+    {
+      "lesson_id": "049",
+      "chapter": 7,
+      "chapter_title": "第7章 身強身弱と干支関係",
+      "order": 49,
+      "title": "身強身弱の総合演習",
+      "status": "draft",
+      "source_lessons": [
+        "旧第175回",
+        "旧第176回",
+        "旧第177回"
+      ],
+      "source_titles": [
+        "身強身弱の総合演習",
+        "干支関係とは何か",
+        "天干五合とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第175回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第176回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第177回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 26,
+      "quiz": true
+    },
+    {
+      "lesson_id": "050",
+      "chapter": 8,
+      "chapter_title": "第8章 干支関係・格局への入口",
+      "order": 50,
+      "title": "甲己の合",
+      "status": "draft",
+      "source_lessons": [
+        "旧第178回",
+        "旧第179回",
+        "旧第180回"
+      ],
+      "source_titles": [
+        "甲己の合",
+        "乙庚の合",
+        "丙辛の合"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第178回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第179回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第151回-第180回_表紙元書式修正版_スライド_Vrew一括.zip::第180回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 27,
+      "quiz": true
+    },
+    {
+      "lesson_id": "051",
+      "chapter": 8,
+      "chapter_title": "第8章 干支関係・格局への入口",
+      "order": 51,
+      "title": "丁壬の合",
+      "status": "draft",
+      "source_lessons": [
+        "旧第181回",
+        "旧第182回",
+        "旧第183回"
+      ],
+      "source_titles": [
+        "丁壬の合",
+        "戊癸の合",
+        "六合とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第181回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第182回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第183回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 28,
+      "quiz": true
+    },
+    {
+      "lesson_id": "052",
+      "chapter": 8,
+      "chapter_title": "第8章 干支関係・格局への入口",
+      "order": 52,
+      "title": "三合とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第184回",
+        "旧第185回",
+        "旧第186回"
+      ],
+      "source_titles": [
+        "三合とは何か",
+        "方合とは何か",
+        "冲とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第184回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第185回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第186回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 29,
+      "quiz": true
+    },
+    {
+      "lesson_id": "053",
+      "chapter": 8,
+      "chapter_title": "第8章 干支関係・格局への入口",
+      "order": 53,
+      "title": "刑とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第187回",
+        "旧第188回",
+        "旧第189回"
+      ],
+      "source_titles": [
+        "刑とは何か",
+        "害とは何か",
+        "破とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第187回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第188回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第189回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 30,
+      "quiz": true
+    },
+    {
+      "lesson_id": "054",
+      "chapter": 8,
+      "chapter_title": "第8章 干支関係・格局への入口",
+      "order": 54,
+      "title": "合があれば必ず良いのか",
+      "status": "draft",
+      "source_lessons": [
+        "旧第190回",
+        "旧第191回",
+        "旧第192回"
+      ],
+      "source_titles": [
+        "合があれば必ず良いのか",
+        "冲があれば必ず悪いのか",
+        "干支関係の総合演習"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第190回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第191回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第192回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 31,
+      "quiz": true
+    },
+    {
+      "lesson_id": "055",
+      "chapter": 8,
+      "chapter_title": "第8章 干支関係・格局への入口",
+      "order": 55,
+      "title": "格局とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第193回",
+        "旧第194回",
+        "旧第195回"
+      ],
+      "source_titles": [
+        "格局とは何か",
+        "なぜ格局を見るのか",
+        "格局判定と月令"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第193回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第194回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第195回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 32,
+      "quiz": true
+    },
+    {
+      "lesson_id": "056",
+      "chapter": 8,
+      "chapter_title": "第8章 干支関係・格局への入口",
+      "order": 56,
+      "title": "格局判定と透干",
+      "status": "draft",
+      "source_lessons": [
+        "旧第196回",
+        "旧第197回",
+        "旧第198回"
+      ],
+      "source_titles": [
+        "格局判定と透干",
+        "比肩格",
+        "劫財格"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第196回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第197回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第198回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 25,
+      "quiz": true
+    },
+    {
+      "lesson_id": "057",
+      "chapter": 9,
+      "chapter_title": "第9章 格局と用神",
+      "order": 57,
+      "title": "食神格",
+      "status": "draft",
+      "source_lessons": [
+        "旧第199回",
+        "旧第200回",
+        "旧第201回"
+      ],
+      "source_titles": [
+        "食神格",
+        "傷官格",
+        "偏財格"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第199回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第200回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第201回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 26,
+      "quiz": true
+    },
+    {
+      "lesson_id": "058",
+      "chapter": 9,
+      "chapter_title": "第9章 格局と用神",
+      "order": 58,
+      "title": "正財格",
+      "status": "draft",
+      "source_lessons": [
+        "旧第202回",
+        "旧第203回",
+        "旧第204回"
+      ],
+      "source_titles": [
+        "正財格",
+        "偏官格",
+        "正官格"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第202回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第203回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第204回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 27,
+      "quiz": true
+    },
+    {
+      "lesson_id": "059",
+      "chapter": 9,
+      "chapter_title": "第9章 格局と用神",
+      "order": 59,
+      "title": "偏印格",
+      "status": "draft",
+      "source_lessons": [
+        "旧第205回",
+        "旧第206回",
+        "旧第207回"
+      ],
+      "source_titles": [
+        "偏印格",
+        "印綬格",
+        "格局候補が複数ある場合"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第205回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第206回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第207回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 28,
+      "quiz": true
+    },
+    {
+      "lesson_id": "060",
+      "chapter": 9,
+      "chapter_title": "第9章 格局と用神",
+      "order": 60,
+      "title": "成格とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第208回",
+        "旧第209回",
+        "旧第210回"
+      ],
+      "source_titles": [
+        "成格とは何か",
+        "破格とは何か",
+        "格局判定の総合演習"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第208回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第209回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第181回-第210回_元書式版_スライド_Vrew一括.zip::第210回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 29,
+      "quiz": true
+    },
+    {
+      "lesson_id": "061",
+      "chapter": 9,
+      "chapter_title": "第9章 格局と用神",
+      "order": 61,
+      "title": "用神とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第211回",
+        "旧第212回",
+        "旧第213回"
+      ],
+      "source_titles": [
+        "用神とは何か",
+        "なぜ用神が必要なのか",
+        "喜神とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第211回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第212回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第213回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 30,
+      "quiz": true
+    },
+    {
+      "lesson_id": "062",
+      "chapter": 9,
+      "chapter_title": "第9章 格局と用神",
+      "order": 62,
+      "title": "忌神とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第214回",
+        "旧第215回",
+        "旧第216回"
+      ],
+      "source_titles": [
+        "忌神とは何か",
+        "扶抑とは何か",
+        "身強と用神"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第214回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第215回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第216回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 31,
+      "quiz": true
+    },
+    {
+      "lesson_id": "063",
+      "chapter": 9,
+      "chapter_title": "第9章 格局と用神",
+      "order": 63,
+      "title": "身弱と用神",
+      "status": "draft",
+      "source_lessons": [
+        "旧第217回",
+        "旧第218回",
+        "旧第219回"
+      ],
+      "source_titles": [
+        "身弱と用神",
+        "調候とは何か",
+        "春生まれの調候"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第217回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第218回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第219回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 32,
+      "quiz": true
+    },
+    {
+      "lesson_id": "064",
+      "chapter": 10,
+      "chapter_title": "第10章 用神・大運・歳運",
+      "order": 64,
+      "title": "夏生まれの調候",
+      "status": "draft",
+      "source_lessons": [
+        "旧第220回",
+        "旧第221回",
+        "旧第222回"
+      ],
+      "source_titles": [
+        "夏生まれの調候",
+        "秋生まれの調候",
+        "冬生まれの調候"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第220回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第221回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第222回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 25,
+      "quiz": true
+    },
+    {
+      "lesson_id": "065",
+      "chapter": 10,
+      "chapter_title": "第10章 用神・大運・歳運",
+      "order": 65,
+      "title": "格局と用神",
+      "status": "draft",
+      "source_lessons": [
+        "旧第223回",
+        "旧第224回",
+        "旧第225回"
+      ],
+      "source_titles": [
+        "格局と用神",
+        "五行不足＝用神ではない",
+        "用神候補が複数ある場合"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第223回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第224回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第225回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 26,
+      "quiz": true
+    },
+    {
+      "lesson_id": "066",
+      "chapter": 10,
+      "chapter_title": "第10章 用神・大運・歳運",
+      "order": 66,
+      "title": "主用神と補助用神",
+      "status": "draft",
+      "source_lessons": [
+        "旧第226回",
+        "旧第227回",
+        "旧第228回"
+      ],
+      "source_titles": [
+        "主用神と補助用神",
+        "用神を現実の助言へ変換する",
+        "用神判定の総合演習"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第226回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第227回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第228回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 27,
+      "quiz": true
+    },
+    {
+      "lesson_id": "067",
+      "chapter": 10,
+      "chapter_title": "第10章 用神・大運・歳運",
+      "order": 67,
+      "title": "大運とは何か",
+      "status": "draft",
+      "source_lessons": [
+        "旧第229回",
+        "旧第230回",
+        "旧第231回"
+      ],
+      "source_titles": [
+        "大運とは何か",
+        "大運はなぜ10年単位なのか",
+        "大運の順行と逆行"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第229回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第230回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第231回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 28,
+      "quiz": true
+    },
+    {
+      "lesson_id": "068",
+      "chapter": 10,
+      "chapter_title": "第10章 用神・大運・歳運",
+      "order": 68,
+      "title": "大運開始年齢",
+      "status": "draft",
+      "source_lessons": [
+        "旧第232回",
+        "旧第233回",
+        "旧第234回"
+      ],
+      "source_titles": [
+        "大運開始年齢",
+        "大運干支の読み方",
+        "大運の通変星"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第232回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第233回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第234回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 29,
+      "quiz": true
+    },
+    {
+      "lesson_id": "069",
+      "chapter": 10,
+      "chapter_title": "第10章 用神・大運・歳運",
+      "order": 69,
+      "title": "大運の十二運",
+      "status": "draft",
+      "source_lessons": [
+        "旧第235回",
+        "旧第236回",
+        "旧第237回"
+      ],
+      "source_titles": [
+        "大運の十二運",
+        "原命式と大運",
+        "用神と大運"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第235回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第236回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第237回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 30,
+      "quiz": true
+    },
+    {
+      "lesson_id": "070",
+      "chapter": 10,
+      "chapter_title": "第10章 用神・大運・歳運",
+      "order": 70,
+      "title": "格局と大運",
+      "status": "draft",
+      "source_lessons": [
+        "旧第238回",
+        "旧第239回",
+        "旧第240回"
+      ],
+      "source_titles": [
+        "格局と大運",
+        "大運と合・冲・刑・害",
+        "現在大運を読む"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第238回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第239回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第211回-第240回_元書式版_スライド_Vrew一括.zip::第240回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 31,
+      "quiz": true
+    },
+    {
+      "lesson_id": "071",
+      "chapter": 11,
+      "chapter_title": "第11章 大運・歳運からテーマ別鑑定へ",
+      "order": 71,
+      "title": "人生全体の大運を見る",
+      "status": "draft",
+      "source_lessons": [
+        "旧第241回",
+        "旧第242回",
+        "旧第243回"
+      ],
+      "source_titles": [
+        "人生全体の大運を見る",
+        "大運の総合演習",
+        "歳運とは何か"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第241回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第242回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第243回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 32,
+      "quiz": true
+    },
+    {
+      "lesson_id": "072",
+      "chapter": 11,
+      "chapter_title": "第11章 大運・歳運からテーマ別鑑定へ",
+      "order": 72,
+      "title": "歳運干支の読み方",
+      "status": "draft",
+      "source_lessons": [
+        "旧第244回",
+        "旧第245回",
+        "旧第246回"
+      ],
+      "source_titles": [
+        "歳運干支の読み方",
+        "歳運の通変星",
+        "歳運の十二運"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第244回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第245回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第246回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 25,
+      "quiz": true
+    },
+    {
+      "lesson_id": "073",
+      "chapter": 11,
+      "chapter_title": "第11章 大運・歳運からテーマ別鑑定へ",
+      "order": 73,
+      "title": "原命式と歳運",
+      "status": "draft",
+      "source_lessons": [
+        "旧第247回",
+        "旧第248回",
+        "旧第249回"
+      ],
+      "source_titles": [
+        "原命式と歳運",
+        "大運と歳運",
+        "用神と歳運"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第247回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第248回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第249回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 26,
+      "quiz": true
+    },
+    {
+      "lesson_id": "074",
+      "chapter": 11,
+      "chapter_title": "第11章 大運・歳運からテーマ別鑑定へ",
+      "order": 74,
+      "title": "合・冲・刑・害と歳運",
+      "status": "draft",
+      "source_lessons": [
+        "旧第250回",
+        "旧第251回",
+        "旧第252回"
+      ],
+      "source_titles": [
+        "合・冲・刑・害と歳運",
+        "良い年・悪い年という考え方",
+        "1年間のテーマを読む"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第250回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第251回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第252回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 27,
+      "quiz": true
+    },
+    {
+      "lesson_id": "075",
+      "chapter": 11,
+      "chapter_title": "第11章 大運・歳運からテーマ別鑑定へ",
+      "order": 75,
+      "title": "5年間の流れを読む",
+      "status": "draft",
+      "source_lessons": [
+        "旧第253回",
+        "旧第254回",
+        "旧第255回"
+      ],
+      "source_titles": [
+        "5年間の流れを読む",
+        "大運・歳運の総合演習",
+        "性格を鑑定する"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第253回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第254回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第255回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 28,
+      "quiz": true
+    },
+    {
+      "lesson_id": "076",
+      "chapter": 11,
+      "chapter_title": "第11章 大運・歳運からテーマ別鑑定へ",
+      "order": 76,
+      "title": "才能・強みを鑑定する",
+      "status": "draft",
+      "source_lessons": [
+        "旧第256回",
+        "旧第257回",
+        "旧第258回"
+      ],
+      "source_titles": [
+        "才能・強みを鑑定する",
+        "仕事・適職を鑑定する",
+        "独立・起業適性を考える"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第256回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第257回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第258回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 29,
+      "quiz": true
+    },
+    {
+      "lesson_id": "077",
+      "chapter": 11,
+      "chapter_title": "第11章 大運・歳運からテーマ別鑑定へ",
+      "order": 77,
+      "title": "金運を鑑定する",
+      "status": "draft",
+      "source_lessons": [
+        "旧第259回",
+        "旧第260回",
+        "旧第261回"
+      ],
+      "source_titles": [
+        "金運を鑑定する",
+        "恋愛を鑑定する",
+        "結婚・パートナーシップを考える"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第259回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第260回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第261回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 30,
+      "quiz": true
+    },
+    {
+      "lesson_id": "078",
+      "chapter": 12,
+      "chapter_title": "第12章 実践・ケース・総合確認",
+      "order": 78,
+      "title": "人間関係を鑑定する",
+      "status": "draft",
+      "source_lessons": [
+        "旧第262回",
+        "旧第263回",
+        "旧第264回"
+      ],
+      "source_titles": [
+        "人間関係を鑑定する",
+        "健康傾向を扱うときの注意",
+        "転職・独立の時期を考える"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第262回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第263回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第264回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 31,
+      "quiz": true
+    },
+    {
+      "lesson_id": "079",
+      "chapter": 12,
+      "chapter_title": "第12章 実践・ケース・総合確認",
+      "order": 79,
+      "title": "人生の転機を読む",
+      "status": "draft",
+      "source_lessons": [
+        "旧第265回",
+        "旧第266回",
+        "旧第267回"
+      ],
+      "source_titles": [
+        "人生の転機を読む",
+        "テーマ別鑑定の総合演習",
+        "鑑定前に相談内容を整理する"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第265回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第266回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第267回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 32,
+      "quiz": true
+    },
+    {
+      "lesson_id": "080",
+      "chapter": 12,
+      "chapter_title": "第12章 実践・ケース・総合確認",
+      "order": 80,
+      "title": "命式を見る順番",
+      "status": "draft",
+      "source_lessons": [
+        "旧第268回",
+        "旧第269回",
+        "旧第270回"
+      ],
+      "source_titles": [
+        "命式を見る順番",
+        "鑑定で「事実」と「解釈」を分ける",
+        "鑑定結果を分かりやすく伝える"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第268回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第269回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第241回-第270回_元書式版_スライド_Vrew一括.zip::第270回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 25,
+      "quiz": true
+    },
+    {
+      "lesson_id": "081",
+      "chapter": 12,
+      "chapter_title": "第12章 実践・ケース・総合確認",
+      "order": 81,
+      "title": "不安を煽らない鑑定",
+      "status": "draft",
+      "source_lessons": [
+        "旧第271回",
+        "旧第272回",
+        "旧第273回"
+      ],
+      "source_titles": [
+        "不安を煽らない鑑定",
+        "悪い結果をどう伝えるか",
+        "AIを鑑定にどう使うか"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第271回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第272回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第273回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 26,
+      "quiz": true
+    },
+    {
+      "lesson_id": "082",
+      "chapter": 12,
+      "chapter_title": "第12章 実践・ケース・総合確認",
+      "order": 82,
+      "title": "八雲式鑑定エンジンの使い方",
+      "status": "draft",
+      "source_lessons": [
+        "旧第274回",
+        "旧第275回",
+        "旧第276回"
+      ],
+      "source_titles": [
+        "八雲式鑑定エンジンの使い方",
+        "PDF鑑定書の作り方",
+        "鑑定後のフォローと倫理"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第274回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第275回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第276回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 27,
+      "quiz": true
+    },
+    {
+      "lesson_id": "083",
+      "chapter": 12,
+      "chapter_title": "第12章 実践・ケース・総合確認",
+      "order": 83,
+      "title": "初回鑑定を最初から最後まで行う",
+      "status": "draft",
+      "source_lessons": [
+        "旧第277回",
+        "旧第278回",
+        "旧第279回"
+      ],
+      "source_titles": [
+        "初回鑑定を最初から最後まで行う",
+        "ケーススタディ① 基礎命式",
+        "ケーススタディ② 身強身弱・格局・用神"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第277回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第278回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第279回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 28,
+      "quiz": true
+    },
+    {
+      "lesson_id": "084",
+      "chapter": 12,
+      "chapter_title": "第12章 実践・ケース・総合確認",
+      "order": 84,
+      "title": "ケーススタディ③ 大運・歳運・人生相談",
+      "status": "draft",
+      "source_lessons": [
+        "旧第280回",
+        "旧第281回",
+        "旧第282回"
+      ],
+      "source_titles": [
+        "ケーススタディ③ 大運・歳運・人生相談",
+        "模擬鑑定・総合試験",
+        "八雲式四柱推命鑑定士として歩き始める ────────────────────"
+      ],
+      "source_files": [
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第280回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第281回_Vrew_AI読み上げ最適化版.txt",
+        "八雲式アカデミー_第271回-第282回_元書式版_スライド_Vrew一括.zip::第282回_Vrew_AI読み上げ最適化版.txt"
+      ],
+      "source_verified": true,
+      "estimated_minutes": 29,
+      "quiz": true
+    }
+  ]
+}
