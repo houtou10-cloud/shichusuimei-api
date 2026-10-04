@@ -65,7 +65,10 @@ from engine.reading_repair_v2 import (
 
 JST = ZoneInfo("Asia/Tokyo")
 
-_logger = logging.getLogger(__name__)
+# Uvicorn configures this logger at INFO with a stderr handler in production.
+# Using it keeps performance diagnostics visible in Render Application Logs
+# without changing application-wide logging configuration.
+_logger = logging.getLogger("uvicorn.error")
 _performance_trace: contextvars.ContextVar["PerformanceTrace | None"] = (
     contextvars.ContextVar("yakumo_performance_trace", default=None)
 )

@@ -147,7 +147,7 @@ def test_reading_form_is_available_at_get_reading_path():
 
 
 def test_performance_trace_logs_pipeline_steps_without_customer_data(caplog):
-    caplog.set_level("INFO", logger="api.customer_pipeline")
+    caplog.set_level("INFO", logger="uvicorn.error")
     fake = _client()
     trace = PerformanceTrace()
     token = set_performance_trace(trace)
@@ -172,6 +172,18 @@ def test_performance_trace_logs_pipeline_steps_without_customer_data(caplog):
     assert "1984" not in text
     assert "13:40" not in text
     assert "OPENAI_API_KEY" not in text
+
+
+def test_performance_trace_logs_summary_on_error(caplog):
+    caplog.set_level("INFO", logger="uvicorn.error")
+    trace = PerformanceTrace()
+    with pytest.raises(RuntimeError):
+        with trace.measure("ai_generation"):
+            raise RuntimeError("synthetic test failure")
+    trace.finish(status="error")
+    assert "step=ai_generation status=error" in caplog.text
+    assert "[PERF_SUMMARY]" in caplog.text
+    assert "synthetic test failure" not in caplog.text
 
 
 def test_known_and_unknown_time_map_to_formal_chart_request():
