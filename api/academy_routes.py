@@ -48,6 +48,34 @@ _COURSES = (
     ("第7章", "実践鑑定", "根拠を整理し、読み手に伝わる鑑定へ組み立てます。", ()),
 )
 
+_LESSON_1_1 = {
+    "title": "第1章 四柱推命の土台",
+    "lesson": "第1講 四柱推命とは何を読むものか",
+    "questions": (
+        {
+            "id": "lesson_q1",
+            "prompt": "四柱推命の「四柱」とは何を指しますか？",
+            "choices": ("年柱・月柱・日柱・時柱", "五行の五つの要素", "大運の10年区分"),
+            "answer": "0",
+            "explanation": "四柱は、年柱・月柱・日柱・時柱という四つの柱です。",
+        },
+        {
+            "id": "lesson_q2",
+            "prompt": "命式とは何ですか？",
+            "choices": ("生年月日だけを記録した一覧", "四柱など、命式を構成する情報を整理したもの", "AIが作る鑑定本文"),
+            "answer": "1",
+            "explanation": "命式は、生まれの情報から四柱などを整理した、読み取りの土台です。",
+        },
+        {
+            "id": "lesson_q3",
+            "prompt": "八雲式Academyが重視する学び方はどれですか？",
+            "choices": ("答えを暗記する", "理論を学び、自分で判断し、答え合わせで根拠を確認する", "AIにすべて判断してもらう"),
+            "answer": "1",
+            "explanation": "理論を学び、自分で考え、答え合わせで判断根拠を確認する学び方を重視します。",
+        },
+    ),
+}
+
 
 def _academy_nav() -> str:
     return '<nav class="nav"><a href="/academy">Academyトップ</a><a href="/academy/courses">講座一覧</a><a href="/academy/practice">実践トレーニング</a></nav>'
@@ -67,6 +95,54 @@ def _render_courses() -> str:
     return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>講座一覧 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>講座一覧</h1><p>7章構成で、基礎から実践鑑定までの学びを整理しています。</p></header><section class="content"><div class="cards">{chapters}</div></section></main></body></html>'''
 
 
+def _render_courses_with_lesson_link() -> str:
+    chapters = []
+    for chapter_index, (chapter, title, description, lessons) in enumerate(_COURSES):
+        lesson_items = []
+        for lesson_index, lesson in enumerate(lessons):
+            label = escape(lesson)
+            if chapter_index == 0 and lesson_index == 0:
+                lesson_items.append(f'<li><a href="/academy/course/1/1">{label}</a></li>')
+            else:
+                lesson_items.append(f"<li>{label}（準備中）</li>")
+        lesson_html = "<ul>" + "".join(lesson_items) + "</ul>" if lesson_items else '<p class="note">講座準備中</p>'
+        chapters.append(f'<article class="card"><h3>{escape(chapter)}</h3><h2>{escape(title)}</h2><p>{escape(description)}</p>{lesson_html}</article>')
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>講座一覧 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>講座一覧</h1><p>7章構成で、基礎から実践鑑定までの学びを整理しています。</p></header><section class="content"><div class="cards">{"".join(chapters)}</div></section></main></body></html>'''
+
+
+def _render_lesson_1_1(error: str = "") -> str:
+    sections = (
+        ("この講座で学ぶこと", "四柱推命とは何か、命式とは何か、四柱の意味、そして八雲式Academyで目指す学び方を整理します。"),
+        ("四柱推命の基本", "四柱推命は、生年月日や出生時刻などから命式を作り、そこに現れる構造を読みながら、性質や傾向、運の流れを考える体系です。結果を一方的に決めつけるのではなく、どの根拠からどの解釈へ進むかを学びます。"),
+        ("四柱の意味", "命式には、年柱・月柱・日柱・時柱という四つの柱があります。最初はそれぞれを一つの情報単位として捉え、細かな解釈は次の講座で段階的に確認していきます。"),
+        ("命式とは", "年柱・月柱・日柱・時柱など、生まれの情報から整理された構造全体を命式と呼びます。命式は答えそのものではなく、読み解きを始めるための地図のようなものです。"),
+        ("八雲式Academyの考え方", "理論を学ぶ、まず自分で判断する、実際の命式で練習する、八雲式で答え合わせをする、そして判断根拠を確認する。この順番を大切にします。"),
+    )
+    section_html = "".join(f"<section><h2>{escape(title)}</h2><p>{escape(body)}</p></section>" for title, body in sections)
+    important = "<ul><li>四柱は年柱・月柱・日柱・時柱の四つです。</li><li>命式は、四柱などを整理した読み解きの土台です。</li><li>四柱推命は、根拠と解釈のつながりを読む体系です。</li><li>答えを暗記するより、判断の理由を確認することを重視します。</li></ul>"
+    questions = []
+    for question in _LESSON_1_1["questions"]:
+        choices = "".join(f'<label class="choice"><input type="radio" name="{question["id"]}" value="{index}" required>{escape(choice)}</label>' for index, choice in enumerate(question["choices"]))
+        questions.append(f'<fieldset><legend>{escape(question["prompt"])}</legend>{choices}</fieldset>')
+    error_html = f'<p class="error">{escape(error)}</p>' if error else ""
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(_LESSON_1_1["lesson"])} | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>{escape(_LESSON_1_1["title"])}</h1><p>{escape(_LESSON_1_1["lesson"])}</p><p>まず教材を読み、自分の言葉で理解できたかを確認しましょう。</p></header><section class="content">{section_html}<section><h2>重要ポイント</h2>{important}</section><section><h2>理解度チェック</h2><p>教材を読んでから、3問に答えてください。</p>{error_html}<form method="post" action="/academy/course/1/1/check">{"".join(questions)}<button class="button" type="submit">答え合わせをする</button></form></section><p><a href="/academy/courses">講座一覧へ戻る</a></p></section></main></body></html>'''
+
+
+def _render_lesson_result(values: dict[str, list[str]]) -> str:
+    rows = []
+    score = 0
+    for question in _LESSON_1_1["questions"]:
+        submitted = values.get(question["id"], [""])[0]
+        valid = submitted in {str(index) for index in range(len(question["choices"]))}
+        correct = valid and submitted == question["answer"]
+        score += int(correct)
+        answer = question["choices"][int(question["answer"])]
+        status = "○" if correct else "×"
+        status_class = "ok" if correct else "ng"
+        rows.append(f'<article class="card"><h3 class="{status_class}">{status} {escape(question["prompt"])}</h3><p>正解：{escape(answer)}</p><p>{escape(question["explanation"])}</p></article>')
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>第1講の学習結果 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>第1講の学習結果</h1><p>{len(_LESSON_1_1["questions"])}問中{score}問正解</p></header><section class="content"><div class="cards">{"".join(rows)}</div><p class="note">間違えた問題は、解説を確認してからもう一度読み返してみましょう。</p><p><a class="button" href="/academy/course/1/1">第1講をもう一度読む</a></p><p><a class="button" href="/academy/practice">実際の命式を見てみる</a></p><p><strong>次の講座：陰陽五行（準備中）</strong></p><p><a href="/academy/courses">講座一覧へ戻る</a></p></section></main></body></html>'''
+
+
 def _field(name: str, value: str = "") -> str:
     return f'<input type="hidden" name="{escape(name, quote=True)}" value="{escape(value, quote=True)}">'
 
@@ -81,6 +157,7 @@ def _parse_form(request: Request, body: bytes) -> dict[str, list[str]]:
     allowed = {
         "birth_date", "birth_place", "birth_hour", "birth_minute", "birth_time_unknown", "gender",
         "q1", "q2", "q3_0", "q3_1", "q3_2", "q3_3", "q3_4", "q4", "q5", "q6",
+        "lesson_q1", "lesson_q2", "lesson_q3",
     }
     result: dict[str, list[str]] = {}
     for key, value in pairs:
@@ -167,7 +244,22 @@ def academy_home() -> HTMLResponse:
 
 @router.get("/academy/courses", response_class=HTMLResponse, include_in_schema=False)
 def academy_courses() -> HTMLResponse:
-    return HTMLResponse(_render_courses())
+    return HTMLResponse(_render_courses_with_lesson_link())
+
+
+@router.get("/academy/course/1/1", response_class=HTMLResponse, include_in_schema=False)
+def academy_lesson_1_1() -> HTMLResponse:
+    return HTMLResponse(_render_lesson_1_1())
+
+
+@router.post("/academy/course/1/1/check", response_class=HTMLResponse, include_in_schema=False)
+async def academy_lesson_1_1_check(request: Request) -> HTMLResponse:
+    try:
+        values = _parse_form(request, await request.body())
+    except CustomerInputError as exc:
+        message = next(iter(exc.errors.values()))
+        return HTMLResponse(_render_lesson_1_1(message), status_code=422)
+    return HTMLResponse(_render_lesson_result(values))
 
 
 @router.get("/academy/practice", response_class=HTMLResponse, include_in_schema=False)
@@ -197,4 +289,4 @@ async def academy_check(request: Request) -> HTMLResponse:
     return HTMLResponse(_render_result(projection, results).replace("<body>", f"<body>{_academy_nav()}", 1))
 
 
-__all__ = ["router", "academy_home", "academy_courses", "academy_practice", "academy_start", "academy_check"]
+__all__ = ["router", "academy_home", "academy_courses", "academy_lesson_1_1", "academy_lesson_1_1_check", "academy_practice", "academy_start", "academy_check"]

@@ -113,9 +113,58 @@ def test_academy_portal_navigation_and_course_catalog():
     assert courses.status_code == 200
     assert "四柱推命の土台" in courses.text
     assert "四柱推命とは何を読むものか" in courses.text
+    assert 'href="/academy/course/1/1"' in courses.text
+    assert 'href="/academy/course/1/2"' not in courses.text
     assert "日主とは何か" in courses.text
     assert "第7章" in courses.text
 
     practice = CLIENT.get("/academy/practice")
     assert practice.status_code == 200
     assert 'action="/academy/start"' in practice.text
+
+
+def test_first_lesson_contains_material_and_server_side_quiz_without_answer_payload():
+    response = CLIENT.get("/academy/course/1/1")
+    assert response.status_code == 200
+    assert "第1講 四柱推命とは何を読むものか" in response.text
+    assert "この講座で学ぶこと" in response.text
+    assert "四柱の意味" in response.text
+    assert 'action="/academy/course/1/1/check"' in response.text
+    assert 'name="lesson_q1"' in response.text
+    assert 'name="lesson_q2"' in response.text
+    assert 'name="lesson_q3"' in response.text
+    assert "correct_answer" not in response.text
+    assert "data-answer" not in response.text
+    assert "window.__" not in response.text
+    assert "<!--" not in response.text
+
+
+def test_first_lesson_quiz_scores_on_server_and_explains_answers():
+    response = CLIENT.post(
+        "/academy/course/1/1/check",
+        data={"lesson_q1": "0", "lesson_q2": "1", "lesson_q3": "1"},
+    )
+    assert response.status_code == 200
+    assert "3問中3問正解" in response.text
+    assert "正解：年柱・月柱・日柱・時柱" in response.text
+    assert 'href="/academy/course/1/1"' in response.text
+    assert 'href="/academy/practice"' in response.text
+    assert "次の講座：陰陽五行（準備中）" in response.text
+
+    response = CLIENT.post(
+        "/academy/course/1/1/check",
+        data={"lesson_q1": "9", "lesson_q2": "", "lesson_q3": "1"},
+    )
+    assert response.status_code == 200
+    assert "1問正解" in response.text
+
+
+def test_first_lesson_quiz_rejects_unknown_fields_and_handles_missing_answers():
+    response = CLIENT.post("/academy/course/1/1/check", data={"lesson_q1": "0", "unexpected": "1"})
+    assert response.status_code == 422
+    assert "不正な入力項目" in response.text
+
+    response = CLIENT.post("/academy/course/1/1/check", data={})
+    assert response.status_code == 200
+    assert "3問中0問正解" in response.text
+    assert "0問正解" in response.text
