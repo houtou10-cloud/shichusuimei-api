@@ -168,6 +168,14 @@ def test_performance_trace_logs_pipeline_steps_without_customer_data(capsys):
     ):
         assert f"step={step}" in text
     assert "[PERF_SUMMARY]" in text
+    for field in (
+        "total=", "chart=", "generator=", "semantic=", "quality_gate=",
+        "repair=", "render=", "chart_calculation=", "ai_generation=",
+        "semantic_assessment=", "quality_gate_first=", "auto_repair=",
+        "quality_gate_second=", "render=", "provider_calls=",
+        "repair_count=", "status=",
+    ):
+        assert field in text
     assert "1984" not in text
     assert "13:40" not in text
     assert "OPENAI_API_KEY" not in text
@@ -182,6 +190,7 @@ def test_performance_trace_logs_summary_on_error(capsys):
     text = capsys.readouterr().err
     assert "step=ai_generation status=error" in text
     assert "[PERF_SUMMARY]" in text
+    assert "repair_count=0" in text
     assert "synthetic test failure" not in text
 
 

@@ -85,6 +85,7 @@ class PerformanceTrace:
         self.started = time.perf_counter()
         self.provider_calls = 0
         self.auto_repair = False
+        self.repair_count = 0
         self._steps: set[str] = set()
         self._durations: dict[str, float] = {}
 
@@ -120,6 +121,17 @@ class PerformanceTrace:
     def provider_call(self) -> None:
         self.provider_calls += 1
 
+    def record_repair_attempts(self, attempts: int, *, count_provider: bool = True) -> None:
+        """Record repair provider attempts without changing repair behavior."""
+
+        if attempts < 0:
+            return
+        self.repair_count = max(self.repair_count, attempts)
+        # The caller records the first repair call before entering the repair
+        # service.  Additional attempts are made inside that service.
+        if count_provider:
+            self.provider_calls += max(0, attempts - 1)
+
     def has_step(self, step: str) -> bool:
         return step in self._steps
 
@@ -129,10 +141,39 @@ class PerformanceTrace:
             max(self._durations.items(), key=lambda item: item[1])
             if self._durations else ("none", 0.0)
         )
+        summary_steps = (
+            "chart_calculation",
+            "reading_context_build",
+            "prompt_build",
+            "ai_generation",
+            "semantic_assessment",
+            "quality_gate_first",
+            "auto_repair",
+            "quality_gate_second",
+            "reading_product_build",
+            "html_render",
+        )
+        step_values = " ".join(
+            f"{step}={self._durations.get(step, 0.0):.3f}s"
+            for step in summary_steps
+        )
+        chart_elapsed = self._durations.get("chart_calculation", 0.0)
+        generator_elapsed = self._durations.get("ai_generation", 0.0)
+        semantic_elapsed = self._durations.get("semantic_assessment", 0.0)
+        quality_gate_elapsed = (
+            self._durations.get("quality_gate_first", 0.0)
+            + self._durations.get("quality_gate_second", 0.0)
+        )
+        repair_elapsed = self._durations.get("auto_repair", 0.0)
+        render_elapsed = self._durations.get("html_render", 0.0)
         _emit_perf_log(
             f"[PERF_SUMMARY] request_id={self.request_id} total={elapsed:.3f}s "
+            f"chart={chart_elapsed:.3f}s generator={generator_elapsed:.3f}s "
+            f"semantic={semantic_elapsed:.3f}s quality_gate={quality_gate_elapsed:.3f}s "
+            f"repair={repair_elapsed:.3f}s render={render_elapsed:.3f}s "
+            f"{step_values} render={self._durations.get('html_render', 0.0):.3f}s "
             f"slowest={slowest} slowest_elapsed={slowest_elapsed:.3f}s "
-            f"provider_calls={self.provider_calls} "
+            f"provider_calls={self.provider_calls} repair_count={self.repair_count} "
             f"auto_repair={str(self.auto_repair).lower()} status={status}"
         )
 
@@ -629,6 +670,31 @@ def _semantic_claim_contract_catalog(ai_reading: Mapping[str, Any]) -> list[dict
     return contracts
 
 
+def _semantic_provider_judgment_metadata(
+    judgment_metadata: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Project metadata to the vocabulary needed by the semantic provider.
+
+    The complete judgment metadata remains the local validation authority.  Its
+    nested evidence contains repeated strength/pattern/useful-god trees (over
+    200 KB on the production fixture), while the provider only needs the
+    component vocabulary; trusted values and associations are checked locally.
+    Keeping the projection provider-only preserves the frozen owner contract.
+    """
+
+    components = judgment_metadata.get("components")
+    if not isinstance(components, Mapping):
+        # Preserve the small synthetic/test contract for malformed inputs; the
+        # normal validated metadata path uses the compact projection below.
+        return deepcopy(dict(judgment_metadata))
+    return {
+        "schema_version": judgment_metadata.get("schema_version"),
+        "components": {
+            str(name): {"component": str(name)} for name in components
+        },
+    }
+
+
 def _semantic_schema(
     ai_reading: Mapping[str, Any] | None = None,
     reading_context: Mapping[str, Any] | None = None,
@@ -983,10 +1049,13 @@ class OpenAISemanticAssessorV2(SemanticAssessorV2):
     ) -> Mapping[str, Any]:
         self._diagnostic_codes = ()
         self._diagnostic_locations = ()
+        provider_judgment_metadata = _semantic_provider_judgment_metadata(
+            judgment_metadata
+        )
         model_input = {
             "ai_reading": deepcopy(dict(ai_reading)),
             "reading_context": deepcopy(dict(reading_context)),
-            "judgment_metadata": deepcopy(dict(judgment_metadata)),
+            "judgment_metadata": provider_judgment_metadata,
         }
         content = json.dumps(
             model_input,
@@ -1031,7 +1100,10 @@ class OpenAISemanticAssessorV2(SemanticAssessorV2):
                     "type": "json_schema",
                     "name": SEMANTIC_ASSESSOR_SCHEMA_NAME,
                     "schema": _semantic_schema(
-                        ai_reading, reading_context, judgment_metadata, reference_catalog
+                        ai_reading,
+                        reading_context,
+                        provider_judgment_metadata,
+                        reference_catalog,
                     ),
                     "strict": True,
                 }
@@ -1496,6 +1568,7 @@ def run_customer_reading(
             trace.auto_repair = True
         repair = None
         repair_failure: str | None = None
+        repair_attempt: int | None = None
         try:
             if trace is not None and using_real_provider:
                 trace.provider_call()
@@ -1510,18 +1583,33 @@ def run_customer_reading(
                         generated.reading, report, reading_context, judgment_metadata,
                         semantic_assessor=measured_assessor, client=provider_client, model=resolved_model,
                     )
-        except AIReadingRepairV2ConfigurationError:
+        except AIReadingRepairV2ConfigurationError as exc:
             repair_failure = "repair_configuration_failed"
+            repair_attempt = exc.attempt
         except AIReadingRepairV2ProviderRequestError as exc:
             repair_failure = _repair_provider_reason(exc)
-        except AIReadingRepairV2ProviderResponseError:
+            repair_attempt = exc.attempt
+        except AIReadingRepairV2ProviderResponseError as exc:
             repair_failure = "repair_provider_response_invalid"
-        except AIReadingRepairV2PatchValidationError:
+            repair_attempt = exc.attempt
+        except AIReadingRepairV2PatchValidationError as exc:
             repair_failure = "repair_patch_validation_failed"
-        except AIReadingRepairV2CandidateValidationError:
+            repair_attempt = exc.attempt
+        except AIReadingRepairV2CandidateValidationError as exc:
             repair_failure = "repair_candidate_validation_failed"
         except Exception:
             repair_failure = "repair_unexpected_failure"
+        if trace is not None:
+            if repair is not None:
+                trace.record_repair_attempts(
+                    len(repair.attempts), count_provider=using_real_provider
+                )
+            elif isinstance(repair_attempt, int):
+                # Repair exceptions carry the attempt number when failure
+                # occurs after a provider request. This is diagnostics only.
+                trace.record_repair_attempts(
+                    repair_attempt, count_provider=using_real_provider
+                )
         if repair_failure is not None or repair is None:
             raise CustomerReadingUnavailableError(
                 "鑑定結果の確認処理を完了できませんでした。",

@@ -1071,6 +1071,25 @@ def test_model_input_is_separate_and_exact_deep_copy(
     assert model_input["judgment_metadata"] is not four_pillar_metadata
 
 
+def test_provider_metadata_projection_removes_repeated_useful_gods_evidence(
+    four_pillar_request,
+    four_pillar_metadata,
+):
+    """The provider projection keeps owner facts but omits duplicated trees."""
+
+    projected = four_pillar_request["model_input"]["judgment_metadata"]
+    full_size = len(json.dumps(four_pillar_metadata, ensure_ascii=False, separators=(",", ":")))
+    projected_size = len(json.dumps(projected, ensure_ascii=False, separators=(",", ":")))
+    evidence = projected["components"]["useful_gods"]["evidence"]
+    assert "final_strength_judgment" not in evidence
+    assert "pattern_judgment" not in evidence
+    assert "support_balance" not in evidence
+    assert "evidence" not in evidence["v2_baseline"]
+    assert projected["components"]["strength"]
+    assert projected["components"]["pattern"]
+    assert projected_size < full_size * 0.5
+
+
 def test_trusted_attachments_have_exact_fields(four_pillar_request):
     attachments = four_pillar_request["trusted_attachments"]
     assert tuple(attachments) == (

@@ -274,6 +274,38 @@ def _customer_prompt_judgment_metadata(judgment_metadata: Mapping[str, Any]) -> 
     return projected
 
 
+def _provider_prompt_judgment_metadata(
+    judgment_metadata: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Remove repeated evidence trees from the provider-only projection.
+
+    ``common_judgment_metadata_v1`` remains complete and is still used by
+    local validation.  The useful-gods evidence currently repeats the full
+    strength, pattern, and support-balance trees that are already present in
+    their owner components (and in the compact ReadingContext).  Keeping the
+    owner trees and the useful-gods summary preserves the trusted facts while
+    avoiding a second multi-hundred-kilobyte copy in the Generator prompt.
+    """
+
+    projected = _customer_prompt_judgment_metadata(judgment_metadata)
+    components = projected.get("components")
+    if not isinstance(components, Mapping):
+        return projected
+    useful_gods = components.get("useful_gods")
+    if not isinstance(useful_gods, dict):
+        return projected
+    evidence = useful_gods.get("evidence")
+    if not isinstance(evidence, dict):
+        return projected
+    for key in ("final_strength_judgment", "pattern_judgment", "support_balance"):
+        evidence.pop(key, None)
+    baseline = evidence.get("v2_baseline")
+    if isinstance(baseline, dict):
+        baseline.pop("evidence", None)
+        baseline.pop("support_balance", None)
+    return projected
+
+
 def _build_long_term_luck_pillars(
     reading_context: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
@@ -935,7 +967,7 @@ def build_ai_reading_request_v2(
     }
     model_input = {
         "reading_context": _customer_prompt_reading_context(reading_context),
-        "judgment_metadata": _customer_prompt_judgment_metadata(judgment_metadata),
+        "judgment_metadata": _provider_prompt_judgment_metadata(judgment_metadata),
         "trusted_catalogs": deepcopy(trusted_catalogs),
         "section_slots": deepcopy(section_slots),
         "future_flow_years": deepcopy(future_flow_years),
