@@ -11,6 +11,7 @@ from copy import deepcopy
 from hashlib import sha256
 import json
 import math
+import time
 from typing import Any
 
 from engine.judgment_metadata import validate_common_judgment_metadata
@@ -1136,6 +1137,7 @@ def repair_ai_reading_v2(
     max_output_tokens: int = 6000,
     reasoning_effort: str = "low",
     store: bool = False,
+    provider_perf_callback: Any | None = None,
 ) -> AIReadingRepairResultV2:
     """Repair eligible model-owned text with at most two provider calls."""
 
@@ -1204,10 +1206,24 @@ def repair_ai_reading_v2(
             store=store,
         )
         provider_failure_message: str | None = None
+        provider_started = time.perf_counter()
         try:
             response = create(**deepcopy(payload))
         except Exception as exc:
             provider_failure_message = _provider_request_failure_message(exc)
+        if provider_perf_callback is not None and provider_failure_message is None:
+            usage = getattr(response, "usage", None)
+            if isinstance(usage, Mapping):
+                usage = deepcopy(dict(usage))
+            else:
+                model_dump = getattr(usage, "model_dump", None)
+                usage = model_dump() if callable(model_dump) else {}
+            provider_perf_callback(
+                provider="repair",
+                model=resolved_model,
+                elapsed=time.perf_counter() - provider_started,
+                usage=usage if isinstance(usage, Mapping) else {},
+            )
         if provider_failure_message is not None:
             create = None
             payload = None

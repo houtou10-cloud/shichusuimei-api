@@ -121,6 +121,49 @@ class PerformanceTrace:
     def provider_call(self) -> None:
         self.provider_calls += 1
 
+    def provider_perf(
+        self,
+        *,
+        provider: str,
+        model: str,
+        elapsed: float,
+        usage: Mapping[str, Any] | None = None,
+        output_stats: Mapping[str, int] | None = None,
+    ) -> None:
+        """Emit provider timing/token counters without payload contents."""
+
+        usage = usage or {}
+        input_tokens = usage.get("input_tokens", "na")
+        cached_tokens = "na"
+        input_details = usage.get("input_tokens_details")
+        if isinstance(input_details, Mapping):
+            cached_tokens = input_details.get("cached_tokens", "na")
+        output_tokens = usage.get("output_tokens", "na")
+        reasoning_tokens = "na"
+        output_details = usage.get("output_tokens_details")
+        if isinstance(output_details, Mapping):
+            reasoning_tokens = output_details.get("reasoning_tokens", "na")
+        total_tokens = usage.get("total_tokens", "na")
+        stats = ""
+        if output_stats:
+            stats = " " + " ".join(
+                f"{key}={value}" for key, value in output_stats.items()
+            )
+        _emit_perf_log(
+            f"[PROVIDER_PERF] request_id={self.request_id} provider={provider} model={model} "
+            f"elapsed={elapsed:.3f}s input_tokens={input_tokens} "
+            f"cached_input_tokens={cached_tokens} output_tokens={output_tokens} "
+            f"reasoning_tokens={reasoning_tokens} total_tokens={total_tokens}{stats}"
+        )
+
+    def repair_diagnostic(
+        self, *, issue_codes: tuple[str, ...], locations: tuple[str, ...]
+    ) -> None:
+        _emit_perf_log(
+            f"[PERF_REPAIR] request_id={self.request_id} issue_codes={','.join(issue_codes) or 'none'} "
+            f"location_count={len(locations)}"
+        )
+
     def record_repair_attempts(self, attempts: int, *, count_provider: bool = True) -> None:
         """Record repair provider attempts without changing repair behavior."""
 
@@ -134,6 +177,9 @@ class PerformanceTrace:
 
     def has_step(self, step: str) -> bool:
         return step in self._steps
+
+    def duration(self, step: str) -> float:
+        return self._durations.get(step, 0.0)
 
     def finish(self, *, status: str) -> None:
         elapsed = time.perf_counter() - self.started
@@ -195,10 +241,21 @@ class _TimedSemanticAssessor:
     def assess(self, ai_reading, reading_context, judgment_metadata):
         if self._count_provider:
             self._trace.provider_call()
+        started = time.perf_counter()
         with self._trace.measure("semantic_assessment"):
-            return self._assessor.assess(
+            result = self._assessor.assess(
                 ai_reading, reading_context, judgment_metadata
             )
+        if self._count_provider:
+            usage = getattr(self._assessor, "last_usage", None)
+            self._trace.provider_perf(
+                provider="semantic_assessor",
+                model=getattr(self._assessor, "model", "configured"),
+                elapsed=time.perf_counter() - started,
+                usage=usage,
+                output_stats=getattr(self._assessor, "last_output_stats", None),
+            )
+        return result
 
     def __getattr__(self, name: str):
         return getattr(self._assessor, name)
@@ -214,6 +271,49 @@ def reset_performance_trace(token: contextvars.Token) -> None:
 
 def current_performance_trace() -> PerformanceTrace | None:
     return _performance_trace.get()
+
+
+def _reading_output_stats(reading: Mapping[str, Any]) -> dict[str, int]:
+    """Return numeric-only generation size counters for diagnostics."""
+
+    claims = 0
+    evidence = 0
+    prose_chars = 0
+    components = 0
+    references = 0
+
+    def visit(value: Any) -> None:
+        nonlocal claims, evidence, prose_chars, components, references
+        if isinstance(value, Mapping):
+            if isinstance(value.get("text"), str):
+                claims += 1
+                prose_chars += len(value["text"])
+            items = value.get("evidence")
+            if isinstance(items, list):
+                evidence += len(items)
+            source_components = value.get("source_components")
+            if isinstance(source_components, list):
+                components += len(source_components)
+            source_facts = value.get("source_fact_codes")
+            if isinstance(source_facts, list):
+                references += len(source_facts)
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+
+    visit(reading)
+    encoded = json.dumps(reading, ensure_ascii=False, separators=(",", ":"))
+    return {
+        "output_json_chars": len(encoded),
+        "output_prose_chars": prose_chars,
+        "claim_count": claims,
+        "evidence_count": evidence,
+        "component_reference_count": components,
+        "fact_reference_count": references,
+        "reference_count": components + references,
+    }
 
 PREFECTURES = (
     "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
@@ -1022,6 +1122,8 @@ class OpenAISemanticAssessorV2(SemanticAssessorV2):
             )
         self._create = create
         self._model = model.strip()
+        self._last_usage: dict[str, Any] = {}
+        self._last_output_stats: dict[str, int] = {}
         self._diagnostic_codes: tuple[str, ...] = ()
         self._diagnostic_locations: tuple[str, ...] = ()
 
@@ -1032,6 +1134,18 @@ class OpenAISemanticAssessorV2(SemanticAssessorV2):
     @property
     def version(self) -> str:
         return SEMANTIC_ASSESSOR_VERSION
+
+    @property
+    def model(self) -> str:
+        return self._model
+
+    @property
+    def last_usage(self) -> dict[str, Any]:
+        return deepcopy(self._last_usage)
+
+    @property
+    def last_output_stats(self) -> dict[str, int]:
+        return dict(self._last_output_stats)
 
     @property
     def diagnostic_codes(self) -> tuple[str, ...]:
@@ -1049,6 +1163,8 @@ class OpenAISemanticAssessorV2(SemanticAssessorV2):
     ) -> Mapping[str, Any]:
         self._diagnostic_codes = ()
         self._diagnostic_locations = ()
+        self._last_usage = {}
+        self._last_output_stats = {}
         provider_judgment_metadata = _semantic_provider_judgment_metadata(
             judgment_metadata
         )
@@ -1124,8 +1240,23 @@ class OpenAISemanticAssessorV2(SemanticAssessorV2):
         result: dict[str, Any] | None = None
         try:
             response_failure_code = _semantic_provider_response_diagnostic(response)
+            usage = getattr(response, "usage", None)
+            if isinstance(usage, Mapping):
+                self._last_usage = deepcopy(dict(usage))
+            else:
+                model_dump = getattr(usage, "model_dump", None)
+                if callable(model_dump):
+                    dumped = model_dump()
+                    if isinstance(dumped, Mapping):
+                        self._last_usage = deepcopy(dict(dumped))
             if response_failure_code is None:
                 result = _parse_semantic_result(_extract_provider_text(response))
+                self._last_output_stats = {
+                    "output_json_chars": len(
+                        json.dumps(result, ensure_ascii=False, separators=(",", ":"))
+                    ),
+                    "finding_count": len(result.get("findings", [])),
+                }
         except Exception:
             response_failure_code = "semantic_provider_response_invalid"
         response = None
@@ -1506,6 +1637,14 @@ def run_customer_reading(
         generation_failure = _generator_response_reason(exc)
     except Exception:
         generation_failure = "generator_unexpected_failure"
+    if trace is not None and generated is not None and using_real_provider:
+        trace.provider_perf(
+            provider="generator",
+            model=generated.model,
+            elapsed=trace.duration("ai_generation"),
+            usage=generated.usage,
+            output_stats=_reading_output_stats(generated.reading),
+        )
     if generation_failure == "generator_configuration_invalid":
         raise CustomerConfigurationError(
             "鑑定サービスを初期化できませんでした。",
@@ -1566,6 +1705,14 @@ def run_customer_reading(
     if _eligible_for_auto_repair(report):
         if trace is not None:
             trace.auto_repair = True
+            trace.repair_diagnostic(
+                issue_codes=_blocking_codes(report),
+                locations=tuple(
+                    finding.path
+                    for finding in report.findings
+                    if finding.path
+                ),
+            )
         repair = None
         repair_failure: str | None = None
         repair_attempt: int | None = None
@@ -1576,12 +1723,14 @@ def run_customer_reading(
                 repair = repair_ai_reading_v2(
                     generated.reading, report, reading_context, judgment_metadata,
                     semantic_assessor=measured_assessor, client=provider_client, model=resolved_model,
+                    provider_perf_callback=trace.provider_perf if trace is not None and using_real_provider else None,
                 )
             else:
                 with trace.measure("auto_repair"):
                     repair = repair_ai_reading_v2(
                         generated.reading, report, reading_context, judgment_metadata,
                         semantic_assessor=measured_assessor, client=provider_client, model=resolved_model,
+                        provider_perf_callback=trace.provider_perf if trace is not None and using_real_provider else None,
                     )
         except AIReadingRepairV2ConfigurationError as exc:
             repair_failure = "repair_configuration_failed"

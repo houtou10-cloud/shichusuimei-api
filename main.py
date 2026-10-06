@@ -1,4 +1,6 @@
 import logging
+import sys
+import time
 
 from fastapi import FastAPI
 from api.routes import router
@@ -19,13 +21,22 @@ def _warm_chart_runtime() -> None:
     existing request-time error behavior.
     """
 
+    started = time.perf_counter()
+    status = "ok"
     try:
         from engine.solar_terms import _get_ephemeris, _get_timescale
 
         _get_timescale()
         _get_ephemeris()
     except Exception:
+        status = "skipped"
         logger.debug("chart runtime warm-up skipped", exc_info=True)
+    finally:
+        sys.stderr.write(
+            f"[PERF_STARTUP] step=chart_runtime_warmup status={status} "
+            f"elapsed={time.perf_counter() - started:.3f}s\n"
+        )
+        sys.stderr.flush()
 
 
 @app.on_event("startup")
