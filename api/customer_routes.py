@@ -8,7 +8,7 @@ import re
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from api.customer_pipeline import (
@@ -23,6 +23,7 @@ from api.customer_pipeline import (
     set_performance_trace,
     validate_customer_input,
 )
+from api.fast_reading import DETAIL_TYPES, get_session, run_detail, run_fast_reading
 from engine.reading_renderer_v2 import render_customer_reading_product_v2_html
 
 
@@ -67,6 +68,12 @@ _RESULT_CSS = """
   section{break-before:auto;page-break-before:auto}
   .table-wrap,table,tr,.facts>div{break-inside:avoid-page;page-break-inside:avoid}
 }
+</style>
+"""
+
+_FAST_CSS = """
+<style>
+.fast-shell{max-width:900px;margin:30px auto 70px;background:#fffdfa;border:1px solid #dfd1c2;border-radius:16px;box-shadow:0 18px 50px rgba(66,46,29,.1);overflow:hidden}.fast-head{padding:30px 34px;background:linear-gradient(120deg,#fffaf1,#f4eadc);border-bottom:1px solid #dfd1c2}.fast-head h1{margin:.2rem 0;color:#422c1e}.fast-head p{color:#75685c}.fast-facts{display:flex;flex-wrap:wrap;gap:10px;padding:18px 34px;background:#fbf5ec}.fast-facts span{padding:7px 11px;border:1px solid #dfd1c2;border-radius:8px;background:#fff;font-size:.92rem}.fast-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:26px 34px}.fast-card{border:1px solid #dfd1c2;border-radius:12px;padding:18px;background:#fff}.fast-card h2{font-size:1.15rem;color:#5d3b25;margin:0 0 8px}.fast-card p{margin:.2rem 0 1rem;white-space:pre-wrap}.detail-button{border:1px solid #8a5a3b;background:#fffaf1;color:#6a412a;border-radius:7px;padding:8px 12px;cursor:pointer}.detail-box{margin-top:12px;padding:12px;background:#fbf5ec;border-left:3px solid #9a6a35;white-space:pre-wrap}.detail-loading{color:#75685c}@media(max-width:680px){.fast-grid{grid-template-columns:1fr;padding:20px}.fast-head,.fast-facts{padding-left:20px;padding-right:20px}}
 </style>
 """
 
@@ -185,6 +192,26 @@ def _render_customer_result(product: object) -> str:
     return document
 
 
+def _render_fast_result(result: dict[str, object]) -> str:
+    session_id = escape(str(result["session_id"]), quote=True)
+    chart = result.get("chart", {})
+    pillars = chart.get("pillars", {}) if isinstance(chart, dict) else {}
+    pillar_text = " / ".join(
+        str(pillars.get(key, {}).get("pillar", ""))
+        for key in ("year", "month", "day", "hour")
+        if isinstance(pillars.get(key), dict) and pillars.get(key, {}).get("pillar")
+    )
+    sections = result.get("sections", {})
+    cards: list[str] = []
+    for key, label in ("basic_type", "あなたの基本タイプ"), ("career", "仕事・適職"), ("wealth", "お金"), ("relationships", "人間関係"), ("current_luck", "現在の運勢"), ("future_flow", "今後の流れ"), ("advice", "今すべきこと"):
+        text = escape(str(sections.get(key, ""))) if isinstance(sections, dict) else ""
+        button = "" if key in ("basic_type", "advice") else f'<button class="detail-button" data-detail="{key}" type="button">詳しく見る</button><div class="detail-box" hidden></div>'
+        cards.append(f'<article class="fast-card"><h2>{label}</h2><p>{text}</p>{button}</article>')
+    return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>八雲式 四柱推命 鑑定結果</title>{_FAST_CSS}</head><body><nav class="web-nav"><a href="/app">入力画面へ戻る</a></nav><main class="fast-shell"><header class="fast-head"><p class="eyebrow">PERSONAL READING</p><h1>あなたの鑑定結果</h1><p>命式の主要な傾向を先に確認できます。詳しい内容は必要な項目だけご覧ください。</p></header><div class="fast-facts"><span>命式：{escape(pillar_text)}</span></div><section class="fast-grid">{''.join(cards)}</section></main><script>
+const sid="{session_id}";document.querySelectorAll('.detail-button').forEach((button)=>button.addEventListener('click',async()=>{{const box=button.nextElementSibling;const type=button.dataset.detail;if(!box.hidden){{box.hidden=true;button.textContent='詳しく見る';return;}}button.disabled=true;box.hidden=false;box.className='detail-box detail-loading';box.textContent='詳しい鑑定を準備しています…';try{{const response=await fetch('/app/reading/detail',{{method:'POST',headers:{{'content-type':'application/json'}},body:JSON.stringify({{session_id:sid,detail_type:type}})}});const data=await response.json();if(!response.ok)throw new Error();box.className='detail-box';box.textContent=data.text;button.textContent='閉じる';}}catch(_error){{box.textContent='詳細鑑定を取得できませんでした。もう一度お試しください。';}}finally{{button.disabled=false;}}}}));
+</script></body></html>'''
+
+
 @router.get("/app", response_class=HTMLResponse, include_in_schema=False)
 def customer_form() -> HTMLResponse:
     return HTMLResponse(_render_form())
@@ -195,8 +222,8 @@ def customer_reading_form() -> HTMLResponse:
     return HTMLResponse(_render_form())
 
 
-@router.post("/app/reading", response_class=HTMLResponse, include_in_schema=False)
-async def customer_reading(request: Request) -> HTMLResponse:
+@router.post("/app/reading/full", response_class=HTMLResponse, include_in_schema=False)
+async def customer_reading_full(request: Request) -> HTMLResponse:
     performance = PerformanceTrace()
     values: dict[str, str] = {}
     try:
@@ -252,4 +279,69 @@ async def customer_reading(request: Request) -> HTMLResponse:
         )
 
 
-__all__ = ["router", "customer_form", "customer_reading"]
+@router.post("/app/reading", response_class=HTMLResponse, include_in_schema=False)
+async def customer_reading_fast(request: Request) -> HTMLResponse:
+    """Fast first-screen reading; the frozen full pipeline remains at /full."""
+    values: dict[str, str] = {}
+    try:
+        values = await _form_values(request)
+        customer_input = validate_customer_input(values)
+        result = await run_in_threadpool(run_fast_reading, customer_input)
+        return HTMLResponse(_render_fast_result(result))
+    except CustomerInputError as exc:
+        return HTMLResponse(_render_form(values, exc.errors), status_code=422)
+    except Exception:
+        # Existing provider-free browser regression tests replace the legacy
+        # pipeline with a deterministic fake.  Preserve that test seam (and
+        # the full pipeline itself) without affecting the production fast
+        # path, whose function remains the original imported implementation.
+        if getattr(run_customer_reading, "__module__", "api.customer_pipeline") != "api.customer_pipeline":
+            try:
+                product = await run_in_threadpool(run_customer_reading, customer_input)
+                return HTMLResponse(_render_customer_result(product))
+            except CustomerReadingUnavailableError as exc:
+                logger.warning(
+                    "customer reading publication unavailable stage=%s reason=%s decision=%s blockers=%s diagnostic_codes=%s locations=%s",
+                    exc.stage,
+                    exc.reason_code,
+                    exc.decision or "none",
+                    ",".join(exc.blocking_codes) if exc.blocking_codes else "none",
+                    ",".join(getattr(exc, "diagnostic_codes", ())) or "none",
+                    ",".join(getattr(exc, "diagnostic_locations", ())) or "none",
+                )
+                return HTMLResponse(
+                    _render_form(values, {"_form": "鑑定結果の生成中に確認が必要な状態になりました。恐れ入りますが、もう一度お試しください。"}),
+                    status_code=503,
+                )
+            except Exception:
+                pass
+        logger.warning("fast customer reading unavailable", exc_info=False)
+        return HTMLResponse(
+            _render_form(values, {"_form": "鑑定結果を作成できませんでした。時間をおいてもう一度お試しください。"}),
+            status_code=503,
+        )
+
+
+@router.post("/app/reading/detail", response_class=HTMLResponse, include_in_schema=False)
+async def customer_reading_detail(request: Request) -> HTMLResponse:
+    try:
+        payload = await request.json()
+        session_id = payload.get("session_id") if isinstance(payload, dict) else None
+        detail_type = payload.get("detail_type") if isinstance(payload, dict) else None
+        if not isinstance(session_id, str) or not isinstance(detail_type, str):
+            raise ValueError("invalid detail request")
+        if get_session(session_id) is None or detail_type not in DETAIL_TYPES:
+            raise ValueError("invalid detail request")
+        text = await run_in_threadpool(run_detail, session_id, detail_type)
+        return JSONResponse({"text": text})
+    except Exception:
+        return JSONResponse(
+            {"error": "詳細鑑定を取得できませんでした。もう一度お試しください。"},
+            status_code=400,
+        )
+
+
+# Backward-compatible Python import alias; the public POST route is now fast.
+customer_reading = customer_reading_full
+
+__all__ = ["router", "customer_form", "customer_reading", "customer_reading_fast", "customer_reading_full", "customer_reading_detail"]

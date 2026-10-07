@@ -656,11 +656,11 @@ def test_post_repair_semantic_infrastructure_failure_has_safe_diagnostic():
                 response = super().create(**kwargs)
                 payload = json.loads(response.output_text)
                 block = payload["sections"]["core_personality"]["summary"]
-                block["text"] = (
+                block["t"] = (
                     "trusted sourceにない数値999999です。"
                 )
-                block["claim_type"] = "astrology"
-                block["source_fact_codes"] = [
+                block["k"] = "astrology"
+                block["f"] = [
                     kwargs["text"]["format"]["schema"]["$defs"]
                     ["fact_code_array"]["items"]["enum"][0]
                 ]

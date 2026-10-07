@@ -23,7 +23,9 @@ from engine.reading_prompt_v2 import (
     AI_READING_V2_LONG_TERM_LUCK_COUNT,
     AI_READING_V2_SECTION_SLOTS,
     AI_READING_REQUEST_V2_FIELDS,
+    AI_READING_V2_USER_PROMPT_PREFIX,
     build_ai_reading_request_v2,
+    build_provider_model_input_v2,
 )
 
 
@@ -278,10 +280,21 @@ def _provider_payload(
     if not isinstance(store, bool):
         raise TypeError("store must be bool")
     messages = request["messages"]
+    # The canonical request retains the complete trusted metadata for local
+    # validation.  Only the provider transport receives the compact
+    # projection, avoiding duplicated evidence trees in the prompt.
+    provider_model_input = build_provider_model_input_v2(request["model_input"])
+    provider_user_content = AI_READING_V2_USER_PROMPT_PREFIX + json.dumps(
+        provider_model_input,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=False,
+        allow_nan=False,
+    )
     return {
         "model": model,
         "instructions": messages[0]["content"],
-        "input": [{"role": "user", "content": messages[1]["content"]}],
+        "input": [{"role": "user", "content": provider_user_content}],
         "max_output_tokens": max_output_tokens,
         "reasoning": {"effort": reasoning_effort},
         "store": store,
@@ -316,9 +329,29 @@ def _transport_block_schema(
     section_id: str | None,
     field: str,
 ) -> dict[str, Any]:
-    result = deepcopy(dict(canonical_block_schema))
+    # Provider-owned blocks contain only prose and the minimum grounding
+    # association.  Warning/uncertainty IDs are trusted catalog metadata and
+    # are reconstructed locally after decode; asking the model to repeat them
+    # for every block adds substantial structured-output overhead.
+    canonical_properties = canonical_block_schema["properties"]
+    result = {
+        "type": "object",
+        "properties": {
+            "t": deepcopy(canonical_properties["text"]),
+            "k": deepcopy(canonical_properties["claim_type"]),
+            "f": deepcopy(canonical_properties["source_fact_codes"]),
+            "c": deepcopy(canonical_properties["source_components"]),
+        },
+        "required": [
+            "t",
+            "k",
+            "f",
+            "c",
+        ],
+        "additionalProperties": False,
+    }
     allowed = _allowed_claim_types(location_kind, section_id, field)
-    result["properties"]["claim_type"]["enum"] = [
+    result["properties"]["k"]["enum"] = [
         claim_type
         for claim_type in canonical_claim_types
         if claim_type in allowed
@@ -477,12 +510,37 @@ def _openai_transport_schema(canonical_schema: Mapping[str, Any]) -> dict[str, A
 
 def _decode_openai_transport_payload(
     transport_payload: Mapping[str, Any],
+    canonical_schema: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Decode only the approved fixed-key section container representation."""
 
     sections = transport_payload["sections"]
     result = deepcopy(dict(transport_payload))
     result["sections"] = [deepcopy(sections[section_id]) for section_id in _SECTION_IDS]
+
+    def restore_block_metadata(value: Any) -> Any:
+        if isinstance(value, Mapping):
+            if {"t", "k", "f", "c"}.issubset(value):
+                restored = {
+                    "text": restore_block_metadata(value["t"]),
+                    "claim_type": restore_block_metadata(value["k"]),
+                    "source_fact_codes": restore_block_metadata(value["f"]),
+                    "source_components": restore_block_metadata(value["c"]),
+                }
+                restored.setdefault("warnings", [])
+                restored.setdefault("uncertainty", [])
+                return restored
+            if {"text", "claim_type", "source_fact_codes", "source_components"}.issubset(value):
+                restored = {key: restore_block_metadata(item) for key, item in value.items()}
+                restored.setdefault("warnings", [])
+                restored.setdefault("uncertainty", [])
+                return restored
+            return {key: restore_block_metadata(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [restore_block_metadata(item) for item in value]
+        return value
+
+    result = restore_block_metadata(result)
     return result
 
 
@@ -1118,7 +1176,10 @@ def generate_ai_reading_v2(
     transport_payload = _parse_model_json(text)
     transport_schema = provider_payload["text"]["format"]["schema"]
     _validate_structure(transport_payload, transport_schema)
-    model_payload = _decode_openai_transport_payload(transport_payload)
+    model_payload = _decode_openai_transport_payload(
+        transport_payload,
+        canonical["model_output_schema"],
+    )
     _validate_structure(model_payload, canonical["model_output_schema"])
     _validate_semantics(model_payload, canonical)
     candidate = _assemble_candidate(model_payload, canonical)

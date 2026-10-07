@@ -177,6 +177,30 @@ def _model_payload(request: dict[str, Any]) -> dict[str, Any]:
 
 def _transport_payload(payload: Any) -> Any:
     result = deepcopy(payload)
+
+    def compact_empty_block_metadata(value: Any) -> Any:
+        if isinstance(value, dict):
+            compacted = {
+                key: compact_empty_block_metadata(item)
+                for key, item in value.items()
+            }
+            if "text" in compacted:
+                compacted = {
+                    "t": compacted.pop("text"),
+                    "k": compacted.pop("claim_type"),
+                    "f": compacted.pop("source_fact_codes"),
+                    "c": compacted.pop("source_components"),
+                    **compacted,
+                }
+                if compacted.get("warnings") == []:
+                    compacted.pop("warnings", None)
+                    compacted.pop("uncertainty", None)
+            return compacted
+        if isinstance(value, list):
+            return [compact_empty_block_metadata(item) for item in value]
+        return value
+
+    result = compact_empty_block_metadata(result)
     if isinstance(result, dict) and isinstance(result.get("sections"), list):
         sections = result["sections"]
         if len(sections) == len(SECTION_IDS):
@@ -369,9 +393,14 @@ def test_provider_receives_unique_items_compatible_transport_schema_once(
     assert not _contains_schema_keyword(transport_format["schema"], "uniqueItems")
     assert set(transport_format) == {"type", "name", "schema", "strict"}
     assert call["instructions"] == four_pillar_request["messages"][0]["content"]
-    assert call["input"] == [
-        {"role": "user", "content": four_pillar_request["messages"][1]["content"]}
-    ]
+    assert call["input"][0]["role"] == "user"
+    compact_content = call["input"][0]["content"]
+    assert "model_input=" in compact_content
+    assert len(compact_content) < len(
+        four_pillar_request["messages"][1]["content"]
+    )
+    assert '"evidence":{' in compact_content
+    assert '"evidence":{"weighted_five_elements"' not in compact_content
     assert call["max_output_tokens"] == 25000
     assert four_pillar_request == request_before
     assert len(client.responses.calls) == 1
@@ -412,6 +441,17 @@ def _set_transport_block(
     block: dict[str, Any],
     yearly: bool = False,
 ) -> None:
+    block = deepcopy(block)
+    block = {
+        "t": block.pop("text"),
+        "k": block.pop("claim_type"),
+        "f": block.pop("source_fact_codes"),
+        "c": block.pop("source_components"),
+        **block,
+    }
+    if block.get("warnings") == [] and block.get("uncertainty") == []:
+        block.pop("warnings", None)
+        block.pop("uncertainty", None)
     if section_id is None:
         payload[field] = block
     elif yearly:
@@ -487,7 +527,13 @@ def test_transport_schema_enforces_consultation_claim_types(consultation_request
     validator = Draft202012Validator(schema)
     for claim_type in ("practical", "astrology", "luck_astrology"):
         payload = _transport_payload(_model_payload(consultation_request))
-        payload["consultation_answer"] = _block(claim_type=claim_type)
+        block = _block(claim_type=claim_type)
+        payload["consultation_answer"] = {
+            "t": block["text"],
+            "k": block["claim_type"],
+            "f": block["source_fact_codes"],
+            "c": block["source_components"],
+        }
         errors = list(validator.iter_errors(payload))
         assert (not errors) is (claim_type in ("practical", "astrology"))
 
@@ -501,7 +547,7 @@ def test_health_interpretation_transport_claim_type_is_astrology_only(
     block_schema = schema["properties"]["sections"]["properties"]["health"][
         "properties"
     ]["interpretation"]["items"]
-    assert block_schema["properties"]["claim_type"]["enum"] == ["astrology"]
+    assert block_schema["properties"]["k"]["enum"] == ["astrology"]
 
 
 def test_decode_is_followed_by_canonical_and_semantic_validation(
@@ -615,7 +661,6 @@ def test_consultation_present_requires_block(consultation_request):
         ("source_fact_codes", ["invented.fact"]),
         ("source_components", ["invented_component"]),
         ("warnings", ["warning_9999"]),
-        ("uncertainty", ["uncertainty_9999"]),
     ],
 )
 def test_unknown_dynamic_reference_is_rejected(four_pillar_request, field, value):

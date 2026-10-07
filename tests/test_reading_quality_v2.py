@@ -317,6 +317,20 @@ def _phase2_valid_reading(request: dict, reading_context: dict) -> dict:
 
 
 def _phase2_model_payload(reading: dict) -> dict:
+    def compact_block(value):
+        result = deepcopy(value)
+        if isinstance(result, dict) and "text" in result:
+            result = {
+                "t": result.pop("text"),
+                "k": result.pop("claim_type"),
+                "f": result.pop("source_fact_codes"),
+                "c": result.pop("source_components"),
+                **result,
+            }
+            result.pop("warnings", None)
+            result.pop("uncertainty", None)
+        return result
+
     section_fields = (
         "facts",
         "summary",
@@ -328,25 +342,41 @@ def _phase2_model_payload(reading: dict) -> dict:
         "uncertainty",
     )
     return {
-        "summary": deepcopy(reading["summary"]),
+        "summary": compact_block(reading["summary"]),
         "sections": [
-            {field: deepcopy(section[field]) for field in section_fields}
+            {
+                field: (
+                    [compact_block(item) for item in section[field]]
+                    if field in {"evidence", "interpretation", "advice"}
+                    else compact_block(section[field])
+                    if field in {"summary", "detail"}
+                    else deepcopy(section[field])
+                )
+                for field in section_fields
+            }
             for section in reading["sections"]
         ],
         "future_flow_yearly": [
             {
                 **{
-                    field: deepcopy(entry.get(field, entry["detail"]))
+                    field: compact_block(entry.get(field, entry["detail"]))
                     for field in ("title", "theme", "career", "wealth", "relationships", "caution")
                 },
-                "advice": deepcopy(entry.get("advice", [entry["detail"], entry["detail"]])),
-                "summary": deepcopy(entry["summary"]),
-                "detail": deepcopy(entry["detail"]),
+                "advice": [compact_block(item) for item in entry.get("advice", [entry["detail"], entry["detail"]])],
+                "summary": compact_block(entry["summary"]),
+                "detail": compact_block(entry["detail"]),
             }
             for entry in reading["sections"][6]["yearly"]
         ],
         "long_term_luck": [
-            {field: deepcopy(item[field]) for field in ("title", "theme", "career", "wealth", "relationships", "caution", "advice")}
+            {
+                field: (
+                    [compact_block(item) for item in item[field]]
+                    if field == "advice"
+                    else compact_block(item[field])
+                )
+                for field in ("title", "theme", "career", "wealth", "relationships", "caution", "advice")
+            }
             for item in reading.get("long_term_luck", [])
         ],
         "consultation_answer": deepcopy(reading["consultation_answer"]),

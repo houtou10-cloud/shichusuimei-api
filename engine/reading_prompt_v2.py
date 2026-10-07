@@ -177,6 +177,12 @@ AI_READING_V2_SYSTEM_PROMPT += (
 )
 
 AI_READING_V2_SYSTEM_PROMPT += (
+    " The provider transport uses compact grounded-block keys: t=text, k=claim_type, "
+    "f=source_fact_codes, c=source_components. Do not emit warning or uncertainty arrays "
+    "inside grounded blocks; those catalog metadata are restored locally."
+)
+
+AI_READING_V2_SYSTEM_PROMPT += (
     " Customer-facing prose must not expose internal labels such as 統合評価、統合運評価、"
     "統合スコア、内部評価; describe the combined flow naturally in ordinary Japanese instead."
 )
@@ -306,6 +312,13 @@ def _provider_prompt_judgment_metadata(
     components = projected.get("components")
     if not isinstance(components, Mapping):
         return projected
+    # ReadingContext already carries the compact trusted fact projection used
+    # to write prose.  Repeating every judgment component's full evidence tree
+    # in the provider prompt is redundant; keep the useful-gods projection for
+    # its existing owner crosswalk and remove the other duplicated trees.
+    for component in components.values():
+        if isinstance(component, dict):
+            component["evidence"] = {}
     useful_gods = components.get("useful_gods")
     if not isinstance(useful_gods, dict):
         return projected
@@ -982,7 +995,10 @@ def build_ai_reading_request_v2(
     }
     model_input = {
         "reading_context": _customer_prompt_reading_context(reading_context),
-        "judgment_metadata": _provider_prompt_judgment_metadata(judgment_metadata),
+        # Keep the canonical judgment metadata in the trusted request.  The
+        # provider-only compact projection is applied at transport time so
+        # local canonical rebuild/validation remains lossless.
+        "judgment_metadata": _customer_prompt_judgment_metadata(judgment_metadata),
         "trusted_catalogs": deepcopy(trusted_catalogs),
         "section_slots": deepcopy(section_slots),
         "future_flow_years": deepcopy(future_flow_years),
@@ -1033,6 +1049,24 @@ def build_ai_reading_request_v2(
     }
 
 
+def build_provider_model_input_v2(model_input: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the compact, provider-only projection of canonical model input.
+
+    The canonical request remains lossless for local validation and assembly;
+    only the copy serialized into the Generator prompt drops duplicated
+    judgment evidence trees.
+    """
+    if not isinstance(model_input, Mapping):
+        raise TypeError("model_input must be a Mapping")
+    projected = deepcopy(dict(model_input))
+    judgment_metadata = projected.get("judgment_metadata")
+    if isinstance(judgment_metadata, Mapping):
+        projected["judgment_metadata"] = _provider_prompt_judgment_metadata(
+            judgment_metadata
+        )
+    return projected
+
+
 __all__ = [
     "AI_READING_REQUEST_V2_FIELDS",
     "AI_READING_REQUEST_V2_METHOD",
@@ -1048,5 +1082,6 @@ __all__ = [
     "AI_READING_V2_SYSTEM_PROMPT",
     "AI_READING_V2_USER_PROMPT_PREFIX",
     "build_ai_reading_request_v2",
+    "build_provider_model_input_v2",
     "validate_ai_reading_prompt_inputs_v2",
 ]

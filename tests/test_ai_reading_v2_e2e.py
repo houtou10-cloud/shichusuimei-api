@@ -176,6 +176,30 @@ def _model_payload(request: dict[str, Any]) -> dict[str, Any]:
 
 def _transport_payload(payload: Any) -> Any:
     result = deepcopy(payload)
+
+    def compact_empty_block_metadata(value: Any) -> Any:
+        if isinstance(value, dict):
+            compacted = {
+                key: compact_empty_block_metadata(item)
+                for key, item in value.items()
+            }
+            if "text" in compacted:
+                compacted = {
+                    "t": compacted.pop("text"),
+                    "k": compacted.pop("claim_type"),
+                    "f": compacted.pop("source_fact_codes"),
+                    "c": compacted.pop("source_components"),
+                    **compacted,
+                }
+                if compacted.get("warnings") == []:
+                    compacted.pop("warnings", None)
+                    compacted.pop("uncertainty", None)
+            return compacted
+        if isinstance(value, list):
+            return [compact_empty_block_metadata(item) for item in value]
+        return value
+
+    result = compact_empty_block_metadata(result)
     if isinstance(result, dict) and isinstance(result.get("sections"), list):
         section_ids = tuple(
             section_id for section_id, _title in AI_READING_V2_SECTION_SLOTS
