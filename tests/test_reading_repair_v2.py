@@ -313,6 +313,7 @@ def test_public_identity_signature_and_one_attempt_pass(repair_inputs):
         "max_output_tokens",
         "reasoning_effort",
         "store",
+        "provider_perf_callback",
     )
 
 

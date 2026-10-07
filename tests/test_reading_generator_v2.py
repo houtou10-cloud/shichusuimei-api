@@ -849,6 +849,47 @@ def test_candidate_validation_rechecks_model_owned_blocks(four_pillar_request):
     assert any("at least one fact ref" in error for error in report["errors"])
 
 
+def test_career_astrology_block_cannot_use_luck_component(four_pillar_request):
+    payload = _model_payload(four_pillar_request)
+    career_detail = payload["sections"][1]["detail"]
+    career_detail.update(
+        {
+            "claim_type": "astrology",
+            "source_fact_codes": [_first_fact(four_pillar_request)],
+            "source_components": ["current_luck"],
+        }
+    )
+    with pytest.raises(AIReadingGeneratorV2SemanticValidationError) as captured:
+        _generate(four_pillar_request, payload)
+    assert any(
+        "astrology blocks cannot use luck components" in issue
+        for issue in captured.value.issues
+    )
+
+
+def test_generator_perf_callback_survives_local_semantic_failure(four_pillar_request):
+    payload = _model_payload(four_pillar_request)
+    payload["sections"][1]["detail"].update(
+        {
+            "claim_type": "astrology",
+            "source_fact_codes": [_first_fact(four_pillar_request)],
+            "source_components": ["current_luck"],
+        }
+    )
+    events = []
+    with pytest.raises(AIReadingGeneratorV2SemanticValidationError):
+        generate_ai_reading_v2(
+            deepcopy(four_pillar_request),
+            client=FakeClient(payload),
+            model="test-model",
+            provider_perf_callback=lambda **kwargs: events.append(kwargs),
+        )
+    assert len(events) == 1
+    assert events[0]["provider"] == "generator"
+    assert events[0]["usage"]["output_tokens"] == 20
+    assert events[0]["output_stats"]["output_json_chars"] > 0
+
+
 def test_inputs_request_and_model_payload_are_not_mutated(four_pillar_request):
     request = deepcopy(four_pillar_request)
     payload = _model_payload(request)

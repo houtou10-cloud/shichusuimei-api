@@ -153,6 +153,15 @@ EXPECTED_SYSTEM_PROMPT += (
     "put practical actions in advice."
 )
 EXPECTED_SYSTEM_PROMPT += (
+    " Component boundary is strict. In core_personality, career, wealth, relationships, "
+    "health, and advice blocks, write only chart/natal interpretation or practical guidance. "
+    "Never cite or discuss current_luck, annual_luck, integrated_luck, or luck_pillars in those "
+    "sections, and never put any of those luck components in an astrology block there. "
+    "Career detail must describe vocational tendencies grounded in the supplied chart facts; "
+    "time-based fortune, current-year timing, or luck-pillar claims belong only in current_luck, "
+    "future_flow, future_flow_yearly, or long_term_luck. Keep concrete actions in practical advice."
+)
+EXPECTED_SYSTEM_PROMPT += (
     " Customer-facing prose must not expose internal labels such as 統合評価、統合運評価、"
     "統合スコア、内部評価; describe the combined flow naturally in ordinary Japanese instead."
 )
@@ -756,6 +765,12 @@ def test_system_prompt_suppresses_customer_internal_evaluation_labels():
     for label in ("統合評価", "統合運評価", "統合スコア", "内部評価"):
         assert label in AI_READING_V2_SYSTEM_PROMPT
     assert "describe the combined flow naturally" in AI_READING_V2_SYSTEM_PROMPT
+
+
+def test_system_prompt_keeps_career_out_of_luck_components():
+    assert "Career detail must describe vocational tendencies" in AI_READING_V2_SYSTEM_PROMPT
+    assert "time-based fortune" in AI_READING_V2_SYSTEM_PROMPT
+    assert "never put any of those luck components in an astrology block there" in AI_READING_V2_SYSTEM_PROMPT
 
 
 def test_model_input_redacts_integrated_luck_internal_evaluation_fields(four_pillar_request):

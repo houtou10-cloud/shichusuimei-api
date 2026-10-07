@@ -1595,6 +1595,14 @@ def run_customer_reading(
     generation_diagnostic_codes: tuple[str, ...] = ()
     generation_diagnostic_locations: tuple[str, ...] = ()
     generated = None
+    generator_provider_event: dict[str, Any] = {}
+
+    def _capture_generator_provider_perf(**event: Any) -> None:
+        # Keep the provider event until local validation completes so a
+        # successful result can include full output counters, while a local
+        # semantic rejection still emits the response usage and latency.
+        generator_provider_event.update(event)
+
     try:
         if trace is not None and using_real_provider:
             trace.provider_call()
@@ -1610,6 +1618,9 @@ def run_customer_reading(
                     prompt_request,
                     client=provider_client,
                     model=resolved_model,
+                    provider_perf_callback=_capture_generator_provider_perf
+                    if trace is not None and using_real_provider
+                    else None,
                 )
     except AIReadingGeneratorV2ConfigurationError:
         generation_failure = "generator_configuration_invalid"
@@ -1637,14 +1648,17 @@ def run_customer_reading(
         generation_failure = _generator_response_reason(exc)
     except Exception:
         generation_failure = "generator_unexpected_failure"
-    if trace is not None and generated is not None and using_real_provider:
-        trace.provider_perf(
-            provider="generator",
-            model=generated.model,
-            elapsed=trace.duration("ai_generation"),
-            usage=generated.usage,
-            output_stats=_reading_output_stats(generated.reading),
-        )
+    if trace is not None and using_real_provider and generator_provider_event:
+        if generated is not None:
+            trace.provider_perf(
+                provider="generator",
+                model=generated.model,
+                elapsed=float(generator_provider_event.get("elapsed", trace.duration("ai_generation"))),
+                usage=generated.usage,
+                output_stats=_reading_output_stats(generated.reading),
+            )
+        else:
+            trace.provider_perf(**generator_provider_event)
     if generation_failure == "generator_configuration_invalid":
         raise CustomerConfigurationError(
             "鑑定サービスを初期化できませんでした。",

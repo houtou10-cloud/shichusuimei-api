@@ -13,7 +13,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 import json
 import os
-from typing import Any
+import time
+from typing import Any, Callable
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
@@ -1078,6 +1079,7 @@ def generate_ai_reading_v2(
     max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
     reasoning_effort: str = DEFAULT_REASONING_EFFORT,
     store: bool = DEFAULT_STORE,
+    provider_perf_callback: Callable[..., Any] | None = None,
 ) -> AIReadingGenerationResultV2:
     """Generate one structurally and semantically validated AI Reading v2."""
 
@@ -1092,7 +1094,26 @@ def generate_ai_reading_v2(
     )
     if client is None:
         client = _create_openai_client(api_key=api_key)
+    provider_started = time.perf_counter()
     response = _call_provider(client, provider_payload)
+    # Emit provider timing immediately after the response arrives.  The
+    # generator may still reject the payload during local structural/semantic
+    # validation; callers must retain provider diagnostics in that case too.
+    if provider_perf_callback is not None:
+        try:
+            raw_usage = _normalize_usage(_get(response, "usage"))
+            provider_perf_callback(
+                provider="generator",
+                model=resolved_model,
+                elapsed=time.perf_counter() - provider_started,
+                usage=raw_usage,
+                output_stats={
+                    "output_json_chars": len(_extract_output_text(response)),
+                },
+            )
+        except Exception:
+            # Performance diagnostics must never alter the reading contract.
+            pass
     text = _extract_output_text(response)
     transport_payload = _parse_model_json(text)
     transport_schema = provider_payload["text"]["format"]["schema"]
