@@ -11,7 +11,9 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import datetime, timedelta
 import json
+import sys
 import threading
+import time
 from typing import Any, Mapping
 from uuid import uuid4
 import re
@@ -71,6 +73,42 @@ _DETAIL_SCHEMA = {
 }
 
 
+def _usage_value(usage: Any, *names: str) -> Any:
+    if isinstance(usage, Mapping):
+        for name in names:
+            if name in usage:
+                return usage[name]
+    for name in names:
+        value = getattr(usage, name, None)
+        if value is not None:
+            return value
+    details = getattr(usage, "input_tokens_details", None)
+    if details is None and isinstance(usage, Mapping):
+        details = usage.get("input_tokens_details")
+    if details is not None and "cached_input_tokens" in names:
+        value = _usage_value(details, "cached_tokens", "cached_input_tokens")
+        if value is not None:
+            return value
+    details = getattr(usage, "output_tokens_details", None)
+    if details is None and isinstance(usage, Mapping):
+        details = usage.get("output_tokens_details")
+    if details is not None and "reasoning_tokens" in names:
+        value = _usage_value(details, "reasoning_tokens")
+        if value is not None:
+            return value
+    return None
+
+
+def _emit_perf(prefix: str, values: Mapping[str, Any]) -> None:
+    rendered = " ".join(
+        f"{key}={str(value).lower() if isinstance(value, bool) else value}"
+        for key, value in values.items()
+        if value is not None
+    )
+    sys.stderr.write(f"[{prefix}] {rendered}\n")
+    sys.stderr.flush()
+
+
 def _extract_text(response: Any) -> str:
     value = getattr(response, "output_text", None)
     if isinstance(value, str) and value.strip():
@@ -90,20 +128,39 @@ def _extract_text(response: Any) -> str:
     raise ValueError("provider response has no text")
 
 
-def _provider_call(client: Any, *, model: str, instructions: str, context: Mapping[str, Any], schema: Mapping[str, Any]) -> dict[str, Any]:
+def _provider_call(client: Any, *, model: str, instructions: str, context: Mapping[str, Any], schema: Mapping[str, Any], performance: dict[str, Any] | None = None) -> dict[str, Any]:
     create = getattr(getattr(client, "responses", None), "create", None)
     if not callable(create):
         raise CustomerConfigurationError("fast provider unavailable", reason_code="responses_api_unavailable")
-    response = create(
-        model=model,
-        instructions=instructions,
-        input=[{"role": "user", "content": json.dumps(context, ensure_ascii=False, separators=(",", ":"))}],
-        max_output_tokens=2500 if schema is _FAST_SCHEMA else 1400,
-        reasoning={"effort": "low"},
-        store=False,
-        text={"format": {"type": "json_schema", "name": "fast_reading_v1", "schema": schema, "strict": True}},
-    )
-    payload = json.loads(_extract_text(response))
+    content = json.dumps(context, ensure_ascii=False, separators=(",", ":"))
+    if performance is not None:
+        performance["provider_calls"] = 1
+        performance["input_chars"] = len(content)
+        performance["schema_bytes"] = len(json.dumps(schema, ensure_ascii=False, separators=(",", ":")))
+    started = time.perf_counter()
+    try:
+        response = create(
+            model=model,
+            instructions=instructions,
+            input=[{"role": "user", "content": content}],
+            max_output_tokens=2500 if schema is _FAST_SCHEMA else 1400,
+            reasoning={"effort": "low"},
+            store=False,
+            text={"format": {"type": "json_schema", "name": "fast_reading_v1", "schema": schema, "strict": True}},
+        )
+        usage = getattr(response, "usage", None)
+        if performance is not None and usage is not None:
+            performance["input_tokens"] = _usage_value(usage, "input_tokens", "prompt_tokens")
+            performance["cached_input_tokens"] = _usage_value(usage, "cached_input_tokens", "prompt_cached_tokens")
+            performance["output_tokens"] = _usage_value(usage, "output_tokens", "completion_tokens")
+            performance["reasoning_tokens"] = _usage_value(usage, "reasoning_tokens")
+            performance["total_tokens"] = _usage_value(usage, "total_tokens")
+        payload = json.loads(_extract_text(response))
+        return_payload = payload
+    finally:
+        if performance is not None:
+            performance["provider_elapsed"] = time.perf_counter() - started
+    payload = return_payload
     errors = sorted(Draft202012Validator(schema).iter_errors(payload), key=lambda e: list(e.path))
     if errors:
         raise ValueError("fast provider payload invalid")
@@ -207,15 +264,21 @@ def _detail_projection(context: Mapping[str, Any], metadata: Mapping[str, Any], 
     }
 
 
-def _build_context(value: CustomerReadingInput, reference_time: datetime) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+def _build_context(value: CustomerReadingInput, reference_time: datetime, performance: dict[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    started = time.perf_counter()
     chart = calculate_chart(build_customer_chart_request(value), target_datetime=reference_time)
+    chart_elapsed = time.perf_counter() - started
     consultation = (
         build_consultation_context(concern=value.consultation, desired_future="")
         if value.consultation
         else None
     )
     context = build_reading_context_v2(chart, consultation_context=consultation)
+    context_elapsed = time.perf_counter() - started - chart_elapsed
     metadata = build_common_judgment_metadata(chart)
+    if performance is not None:
+        performance["chart_elapsed"] = chart_elapsed
+        performance["context_elapsed"] = context_elapsed
     return chart, context, metadata
 
 
@@ -225,11 +288,11 @@ def _fast_fallback(context: Mapping[str, Any], metadata: Mapping[str, Any]) -> d
     return {key: f"{label}は、{day_master}を中心に命式の根拠を確認しながら読み解きます。" for key, label in FAST_SECTIONS}
 
 
-def run_fast_reading(value: CustomerReadingInput, *, client: Any | None = None, model: str | None = None, reference_time: datetime | None = None) -> dict[str, Any]:
+def run_fast_reading(value: CustomerReadingInput, *, client: Any | None = None, model: str | None = None, reference_time: datetime | None = None, performance: dict[str, Any] | None = None) -> dict[str, Any]:
     if not isinstance(value, CustomerReadingInput):
         raise TypeError("value must be CustomerReadingInput")
     now = reference_time or datetime.now().astimezone()
-    chart, context, metadata = _build_context(value, now)
+    chart, context, metadata = _build_context(value, now, performance)
     if client is None:
         client = create_customer_provider_client()
     resolved_model = model.strip() if isinstance(model, str) and model.strip() else configured_model()
@@ -247,8 +310,12 @@ def run_fast_reading(value: CustomerReadingInput, *, client: Any | None = None, 
             ),
             context=projection,
             schema=_FAST_SCHEMA,
+            performance=performance,
         )
+    validation_started = time.perf_counter()
     _validate_fast_texts(sections, context)
+    if performance is not None:
+        performance["validation_elapsed"] = time.perf_counter() - validation_started
     session_id = uuid4().hex
     session = {
         "created": now,
@@ -277,13 +344,15 @@ def get_session(session_id: str) -> dict[str, Any] | None:
         return session
 
 
-def run_detail(session_id: str, detail_type: str, *, client: Any | None = None, model: str | None = None) -> str:
+def run_detail(session_id: str, detail_type: str, *, client: Any | None = None, model: str | None = None, performance: dict[str, Any] | None = None) -> str:
     if detail_type not in DETAIL_TYPES:
         raise ValueError("invalid detail_type")
     session = get_session(session_id)
     if session is None:
         raise KeyError("session expired")
     if detail_type in session["details"]:
+        if performance is not None:
+            performance["cache_hit"] = True
         return session["details"][detail_type]
     if client is None:
         client = create_customer_provider_client()
@@ -301,13 +370,17 @@ def run_detail(session_id: str, detail_type: str, *, client: Any | None = None, 
             instructions="指定された一項目だけを500〜1200文字程度で説明してください。未根拠の数値や断定を追加しないでください。",
             context=context,
             schema=_DETAIL_SCHEMA,
+            performance=performance,
         )
         text = payload["text"]
+    validation_started = time.perf_counter()
     _validate_detail_text(text, session["reading_context"])
     if detail_type in {"career", "wealth", "relationships"} and any(
         term in text for term in ("大運", "歳運", "年運", "現在の運勢", "今後の流れ")
     ):
         raise ValueError("luck-only content in non-luck detail")
+    if performance is not None:
+        performance["validation_elapsed"] = time.perf_counter() - validation_started
     with _LOCK:
         session["details"][detail_type] = text
     return text

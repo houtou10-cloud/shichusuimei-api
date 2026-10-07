@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from api.customer_pipeline import CustomerReadingInput
-from api.fast_reading import FAST_SECTIONS, _detail_projection, _validate_fast_texts, run_detail, run_fast_reading
+from api.fast_reading import FAST_SECTIONS, _detail_projection, _emit_perf, _validate_fast_texts, run_detail, run_fast_reading
 
 
 class _Responses:
@@ -76,3 +76,13 @@ def test_detail_context_is_scoped_by_detail_type():
     assert "five_year_luck" not in career
     assert "five_year_luck" in annual
     assert "current_luck" in annual
+
+
+def test_performance_log_is_numeric_only_and_flushable(capsys):
+    _emit_perf("FAST_PERF", {"request_id": "abc", "total_elapsed": 1.25, "provider_calls": 1, "status": "success"})
+    output = capsys.readouterr().err
+    assert "[FAST_PERF]" in output
+    assert "request_id=abc" in output
+    assert "total_elapsed=1.25" in output
+    assert "birth_date" not in output
+    assert "prompt" not in output

@@ -5,6 +5,8 @@ from __future__ import annotations
 from html import escape
 import logging
 import re
+import time
+from uuid import uuid4
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Request
@@ -23,7 +25,7 @@ from api.customer_pipeline import (
     set_performance_trace,
     validate_customer_input,
 )
-from api.fast_reading import DETAIL_TYPES, get_session, run_detail, run_fast_reading
+from api.fast_reading import DETAIL_TYPES, _emit_perf, get_session, run_detail, run_fast_reading
 from engine.reading_renderer_v2 import render_customer_reading_product_v2_html
 
 
@@ -283,11 +285,18 @@ async def customer_reading_full(request: Request) -> HTMLResponse:
 async def customer_reading_fast(request: Request) -> HTMLResponse:
     """Fast first-screen reading; the frozen full pipeline remains at /full."""
     values: dict[str, str] = {}
+    request_id = uuid4().hex
+    started = time.perf_counter()
+    performance: dict[str, object] = {"provider_calls": 0, "status": "error"}
     try:
         values = await _form_values(request)
         customer_input = validate_customer_input(values)
-        result = await run_in_threadpool(run_fast_reading, customer_input)
-        return HTMLResponse(_render_fast_result(result))
+        result = await run_in_threadpool(run_fast_reading, customer_input, performance=performance)
+        render_started = time.perf_counter()
+        document = _render_fast_result(result)
+        performance["render_elapsed"] = time.perf_counter() - render_started
+        performance["status"] = "success"
+        return HTMLResponse(document)
     except CustomerInputError as exc:
         return HTMLResponse(_render_form(values, exc.errors), status_code=422)
     except Exception:
@@ -322,8 +331,16 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
         )
 
 
+    finally:
+        performance["total_elapsed"] = time.perf_counter() - started
+        _emit_perf("FAST_PERF", {"request_id": request_id, **performance})
+
+
 @router.post("/app/reading/detail", response_class=HTMLResponse, include_in_schema=False)
 async def customer_reading_detail(request: Request) -> HTMLResponse:
+    request_id = uuid4().hex
+    started = time.perf_counter()
+    performance: dict[str, object] = {"provider_calls": 0, "cache_hit": False, "status": "error"}
     try:
         payload = await request.json()
         session_id = payload.get("session_id") if isinstance(payload, dict) else None
@@ -332,12 +349,20 @@ async def customer_reading_detail(request: Request) -> HTMLResponse:
             raise ValueError("invalid detail request")
         if get_session(session_id) is None or detail_type not in DETAIL_TYPES:
             raise ValueError("invalid detail request")
-        text = await run_in_threadpool(run_detail, session_id, detail_type)
+        text = await run_in_threadpool(run_detail, session_id, detail_type, performance=performance)
+        performance["provider_calls"] = 0 if performance.get("cache_hit") else 1
+        performance["status"] = "success"
         return JSONResponse({"text": text})
     except Exception:
         return JSONResponse(
             {"error": "詳細鑑定を取得できませんでした。もう一度お試しください。"},
             status_code=400,
+        )
+    finally:
+        performance["total_elapsed"] = time.perf_counter() - started
+        _emit_perf(
+            "DETAIL_PERF",
+            {"request_id": request_id, "detail_type": locals().get("detail_type"), **performance},
         )
 
 
