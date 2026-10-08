@@ -5,7 +5,7 @@ import pytest
 
 from api.customer_pipeline import CustomerReadingInput
 from api.fast_reading import FAST_SECTIONS, _detail_projection, _emit_perf, _validate_fast_texts, run_detail, run_fast_reading
-from api.customer_routes import _render_fast_result
+from api.customer_routes import _move_fast_back_link_to_header, _render_fast_result
 
 
 class _Responses:
@@ -125,3 +125,31 @@ def test_fast_result_contains_trusted_chart_luck_and_15_year_projection():
     assert " / " in document
     assert document.count("current-mark") >= 2
     assert "詳しく見る" in document
+
+
+def test_fast_back_link_is_in_header_once():
+    document = '<body><nav class="web-nav"><a href="/app">old</a></nav><main><header class="fast-head"><p class="eyebrow">PERSONAL READING</p></header></main></body>'
+    moved = _move_fast_back_link_to_header(document)
+    assert moved.count('href="/app"') == 1
+    assert 'class="fast-back"' in moved
+    assert '← 入力画面に戻る' in moved
+    assert '<nav class="web-nav">' not in moved
+    assert '<header class="fast-head"><a class="fast-back"' in moved
+
+
+def test_chart_cache_reuses_only_same_fixture_and_second():
+    from datetime import datetime
+
+    import api.fast_reading as fast
+
+    fast._CHART_CACHE.clear()
+    responses = _Responses()
+    client = SimpleNamespace(responses=responses)
+    fixed = datetime(2026, 10, 8, 12, 0, 0)
+    first_perf = {}
+    second_perf = {}
+    run_fast_reading(_value(), client=client, model="test-model", reference_time=fixed, performance=first_perf)
+    run_fast_reading(_value(), client=client, model="test-model", reference_time=fixed, performance=second_perf)
+    assert first_perf["chart_cache_hit"] is False
+    assert second_perf["chart_cache_hit"] is True
+    assert second_perf["chart_elapsed"] < first_perf["chart_elapsed"]

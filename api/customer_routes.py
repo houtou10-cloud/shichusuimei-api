@@ -79,6 +79,12 @@ _FAST_CSS = """
 </style>
 """
 
+_FAST_CSS += """
+<style>
+.fast-head{position:relative}.fast-back{display:inline-block;position:absolute;top:24px;right:30px;padding:9px 14px;border:1px solid #8a5a3b;border-radius:8px;background:#fffaf1;color:#6a412a;text-decoration:none;font-weight:700;line-height:1.3}.fast-back:hover{background:#f4eadc}.fast-back:focus-visible{outline:3px solid rgba(154,106,53,.4);outline-offset:2px}@media(max-width:680px){.fast-head{padding-top:76px}.fast-back{top:18px;left:20px;right:auto;padding:10px 14px}}
+</style>
+"""
+
 
 def _option(value: str, label: str, selected: str) -> str:
     selected_attr = " selected" if value == selected else ""
@@ -298,7 +304,17 @@ def _render_fast_result(result: dict[str, object]) -> str:
     cards.insert(0, _render_fast_chart(result))
     return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>八雲式 四柱推命 鑑定結果</title>{_FAST_CSS}</head><body><nav class="web-nav"><a href="/app">入力画面へ戻る</a></nav><main class="fast-shell"><header class="fast-head"><p class="eyebrow">PERSONAL READING</p><h1>あなたの鑑定結果</h1><p>命式の主要な傾向を先に確認できます。詳しい内容は必要な項目だけご覧ください。</p></header><div class="fast-facts"><span>命式：{escape(pillar_text)}</span></div><section class="fast-grid">{''.join(cards)}</section></main><script>
 const sid="{session_id}";document.querySelectorAll('.detail-button').forEach((button)=>button.addEventListener('click',async()=>{{const box=button.nextElementSibling;const type=button.dataset.detail;if(!box.hidden){{box.hidden=true;button.textContent='詳しく見る';return;}}button.disabled=true;box.hidden=false;box.className='detail-box detail-loading';box.textContent='詳しい鑑定を準備しています…';try{{const response=await fetch('/app/reading/detail',{{method:'POST',headers:{{'content-type':'application/json'}},body:JSON.stringify({{session_id:sid,detail_type:type}})}});const data=await response.json();if(!response.ok)throw new Error();box.className='detail-box';box.textContent=data.text;button.textContent='閉じる';}}catch(_error){{box.textContent='詳細鑑定を取得できませんでした。もう一度お試しください。';}}finally{{button.disabled=false;}}}}));
-</script></body></html>'''
+ </script></body></html>'''
+
+
+def _move_fast_back_link_to_header(document: str) -> str:
+    """Move the existing return link into the Fast Reading header."""
+    document = re.sub(r'<nav class="web-nav"><a href="/app">.*?</a></nav>', "", document, count=1)
+    return document.replace(
+        '<header class="fast-head"><p class="eyebrow">',
+        '<header class="fast-head"><a class="fast-back" href="/app">← 入力画面に戻る</a><p class="eyebrow">',
+        1,
+    )
 
 
 @router.get("/app", response_class=HTMLResponse, include_in_schema=False)
@@ -381,6 +397,7 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
         result = await run_in_threadpool(run_fast_reading, customer_input, performance=performance)
         render_started = time.perf_counter()
         document = _render_fast_result(result)
+        document = _move_fast_back_link_to_header(document)
         performance["render_elapsed"] = time.perf_counter() - render_started
         performance["status"] = "success"
         return HTMLResponse(document)
