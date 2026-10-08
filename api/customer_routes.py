@@ -75,7 +75,7 @@ _RESULT_CSS = """
 
 _FAST_CSS = """
 <style>
-.fast-shell{max-width:900px;margin:30px auto 70px;background:#fffdfa;border:1px solid #dfd1c2;border-radius:16px;box-shadow:0 18px 50px rgba(66,46,29,.1);overflow:hidden}.fast-head{padding:30px 34px;background:linear-gradient(120deg,#fffaf1,#f4eadc);border-bottom:1px solid #dfd1c2}.fast-head h1{margin:.2rem 0;color:#422c1e}.fast-head p{color:#75685c}.fast-facts{display:flex;flex-wrap:wrap;gap:10px;padding:18px 34px;background:#fbf5ec}.fast-facts span{padding:7px 11px;border:1px solid #dfd1c2;border-radius:8px;background:#fff;font-size:.92rem}.fast-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:26px 34px}.fast-card{border:1px solid #dfd1c2;border-radius:12px;padding:18px;background:#fff}.fast-card h2{font-size:1.15rem;color:#5d3b25;margin:0 0 8px}.fast-card p{margin:.2rem 0 1rem;white-space:pre-wrap}.detail-button{border:1px solid #8a5a3b;background:#fffaf1;color:#6a412a;border-radius:7px;padding:8px 12px;cursor:pointer}.detail-box{margin-top:12px;padding:12px;background:#fbf5ec;border-left:3px solid #9a6a35;white-space:pre-wrap}.detail-loading{color:#75685c}@media(max-width:680px){.fast-grid{grid-template-columns:1fr;padding:20px}.fast-head,.fast-facts{padding-left:20px;padding-right:20px}}
+.fast-shell{max-width:900px;margin:30px auto 70px;background:#fffdfa;border:1px solid #dfd1c2;border-radius:16px;box-shadow:0 18px 50px rgba(66,46,29,.1);overflow:hidden}.fast-head{padding:30px 34px;background:linear-gradient(120deg,#fffaf1,#f4eadc);border-bottom:1px solid #dfd1c2}.fast-head h1{margin:.2rem 0;color:#422c1e}.fast-head p{color:#75685c}.fast-facts{display:flex;flex-wrap:wrap;gap:10px;padding:18px 34px;background:#fbf5ec}.fast-facts span{padding:7px 11px;border:1px solid #dfd1c2;border-radius:8px;background:#fff;font-size:.92rem}.fast-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:26px 34px}.fast-card{border:1px solid #dfd1c2;border-radius:12px;padding:18px;background:#fff}.fast-card h2{font-size:1.15rem;color:#5d3b25;margin:0 0 8px}.fast-card p{margin:.2rem 0 1rem;white-space:pre-wrap}.detail-button{border:1px solid #8a5a3b;background:#fffaf1;color:#6a412a;border-radius:7px;padding:8px 12px;cursor:pointer}.detail-box{margin-top:12px;padding:12px;background:#fbf5ec;border-left:3px solid #9a6a35;white-space:pre-wrap}.detail-loading{color:#75685c}.chart-record{grid-column:1/-1;margin:0;padding:20px;border:1px solid #dfd1c2;border-radius:12px;background:#fff}.chart-record h2{margin:0 0 14px;color:#5d3b25;font-size:1.2rem}.table-wrap{overflow-x:auto}.chart-table,.luck-table{width:100%;border-collapse:collapse;min-width:620px;text-align:center}.chart-table th,.chart-table td,.luck-table th,.luck-table td{border:1px solid #dfd1c2;padding:9px 7px;vertical-align:middle}.chart-table th,.luck-table th{background:#f4eadc;color:#5d3b25;font-weight:700}.chart-table tbody tr:nth-child(even),.luck-table tbody tr:nth-child(even){background:#fbf5ec}.chart-table td:first-child,.luck-table td:first-child{font-weight:700;color:#5d3b25;background:#fffaf1}.luck-record{margin-top:22px}.current-mark{background:#ead7bd!important;box-shadow:inset 0 0 0 2px #9a6a35;font-weight:700}.annual-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;min-width:620px}.annual-cell{border:1px solid #dfd1c2;border-radius:8px;padding:10px 7px;text-align:center;background:#fff}.annual-cell:nth-child(even){background:#fbf5ec}.annual-cell strong{display:block;color:#5d3b25}.annual-cell span{display:block;margin-top:3px}.section-label{margin:24px 34px 0;color:#5d3b25;font-size:1.2rem}.section-note{margin:4px 34px 0;color:#75685c;font-size:.9rem}.fast-grid + .section-label{margin-top:0}@media(max-width:680px){.fast-grid{grid-template-columns:1fr;padding:20px}.fast-head,.fast-facts{padding-left:20px;padding-right:20px}.chart-record{margin-left:0;margin-right:0;padding:14px}.section-label{margin-left:20px;margin-right:20px}.section-note{margin-left:20px;margin-right:20px}.chart-table,.luck-table{font-size:.85rem}.chart-table th,.chart-table td,.luck-table th,.luck-table td{padding:7px 5px}.annual-grid{grid-template-columns:repeat(5,110px)}}
 </style>
 """
 
@@ -194,10 +194,81 @@ def _render_customer_result(product: object) -> str:
     return document
 
 
+def _render_fast_chart(result: dict[str, object]) -> str:
+    """Render the trusted chart/luck projection above the Fast Reading prose."""
+    chart = result.get("chart", {})
+    card = result.get("chart_card", {})
+
+    def text(value: object) -> str:
+        if value is None or value == "":
+            return "―"
+        return escape(str(value))
+
+    def pillar_value(position: str, key: str) -> str:
+        pillar = card.get(position, {}) if isinstance(card, dict) else {}
+        if not isinstance(pillar, dict):
+            return "―"
+        value = pillar.get(key)
+        if key in ("hidden_stems", "hidden_stem_ten_gods"):
+            values = value if isinstance(value, list) else []
+            return text(" / ".join(str(item) for item in values if item not in (None, "")))
+        return text(value)
+
+    positions = ("year", "month", "day", "hour")
+    headers = "".join(
+        f'<th scope="col">{label}</th>'
+        for label in ("年柱", "月柱", "日柱", "時柱")
+    )
+    rows = []
+    for label, key in (
+        ("天干", "stem"), ("地支", "branch"), ("天干通変星", "stem_ten_god"),
+        ("十二運", "twelve_stage"), ("蔵干", "hidden_stems"),
+        ("蔵干通変星", "hidden_stem_ten_gods"),
+    ):
+        cells = "".join(f"<td>{pillar_value(position, key)}</td>" for position in positions)
+        rows.append(f'<tr><th scope="row">{label}</th>{cells}</tr>')
+
+    luck = result.get("luck_pillars", [])
+    current = chart.get("current_luck", {}) if isinstance(chart, dict) else {}
+    current_pillar = current.get("current_luck_pillar", {}) if isinstance(current, dict) else {}
+    current_index = current_pillar.get("index") if isinstance(current_pillar, dict) else None
+    luck_rows = []
+    if isinstance(luck, list):
+        for item in luck:
+            if not isinstance(item, dict):
+                continue
+            mark = " current-mark" if current_index is not None and item.get("index") == current_index else ""
+            age = f'{text(item.get("start_age"))}〜{text(item.get("end_age"))}歳'
+            extras = " / ".join(str(item.get(key)) for key in ("stem_ten_god", "stem_element", "branch_element") if item.get(key))
+            luck_rows.append(f'<tr class="{mark.strip()}"><td>{age}</td><td>{text(item.get("ganzhi"))}</td><td>{text(extras)}</td></tr>')
+
+    annual = result.get("annual_luck_15", [])
+    current_year = result.get("current_year")
+    annual_cells = []
+    if isinstance(annual, list):
+        for item in annual:
+            if not isinstance(item, dict):
+                continue
+            mark = " current-mark" if item.get("year") == current_year else ""
+            annual_cells.append(f'<div class="annual-cell{mark}"><strong>{text(item.get("year"))}年</strong><span>{text(item.get("ganzhi"))}</span></div>')
+
+    return (
+        '<section class="chart-record"><h2>鑑定カルテ</h2>'
+        '<div class="table-wrap"><table class="chart-table"><thead><tr>'
+        f'<th scope="col">項目名</th>{headers}'
+        '</tr></thead><tbody>' + "".join(rows) + '</tbody></table></div>'
+        '<div class="luck-record"><h3>大運</h3><p class="section-note">算出された全期間を表示しています。</p>'
+        '<div class="table-wrap"><table class="luck-table"><thead><tr><th>開始〜終了年齢</th><th>干支</th><th>対応情報</th></tr></thead><tbody>'
+        + "".join(luck_rows) + '</tbody></table></div></div>'
+        '<div class="luck-record"><h3>年運</h3><p class="section-note">現在年から15年分</p>'
+        '<div class="table-wrap"><div class="annual-grid">' + "".join(annual_cells) + '</div></div></div></section>'
+    )
+
+
 def _render_fast_result(result: dict[str, object]) -> str:
     session_id = escape(str(result["session_id"]), quote=True)
     chart = result.get("chart", {})
-    pillars = chart.get("pillars", {}) if isinstance(chart, dict) else {}
+    pillars = chart.get("chart", {}) if isinstance(chart, dict) else {}
     pillar_text = " / ".join(
         str(pillars.get(key, {}).get("pillar", ""))
         for key in ("year", "month", "day", "hour")
@@ -209,6 +280,9 @@ def _render_fast_result(result: dict[str, object]) -> str:
         text = escape(str(sections.get(key, ""))) if isinstance(sections, dict) else ""
         button = "" if key in ("basic_type", "advice") else f'<button class="detail-button" data-detail="{key}" type="button">詳しく見る</button><div class="detail-box" hidden></div>'
         cards.append(f'<article class="fast-card"><h2>{label}</h2><p>{text}</p>{button}</article>')
+    # The chart is rendered from server-owned projections before the existing
+    # Fast Reading cards; provider contracts and detail behavior stay intact.
+    cards.insert(0, _render_fast_chart(result))
     return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>八雲式 四柱推命 鑑定結果</title>{_FAST_CSS}</head><body><nav class="web-nav"><a href="/app">入力画面へ戻る</a></nav><main class="fast-shell"><header class="fast-head"><p class="eyebrow">PERSONAL READING</p><h1>あなたの鑑定結果</h1><p>命式の主要な傾向を先に確認できます。詳しい内容は必要な項目だけご覧ください。</p></header><div class="fast-facts"><span>命式：{escape(pillar_text)}</span></div><section class="fast-grid">{''.join(cards)}</section></main><script>
 const sid="{session_id}";document.querySelectorAll('.detail-button').forEach((button)=>button.addEventListener('click',async()=>{{const box=button.nextElementSibling;const type=button.dataset.detail;if(!box.hidden){{box.hidden=true;button.textContent='詳しく見る';return;}}button.disabled=true;box.hidden=false;box.className='detail-box detail-loading';box.textContent='詳しい鑑定を準備しています…';try{{const response=await fetch('/app/reading/detail',{{method:'POST',headers:{{'content-type':'application/json'}},body:JSON.stringify({{session_id:sid,detail_type:type}})}});const data=await response.json();if(!response.ok)throw new Error();box.className='detail-box';box.textContent=data.text;button.textContent='閉じる';}}catch(_error){{box.textContent='詳細鑑定を取得できませんでした。もう一度お試しください。';}}finally{{button.disabled=false;}}}}));
 </script></body></html>'''

@@ -28,6 +28,7 @@ from api.customer_pipeline import (
     create_customer_provider_client,
 )
 from engine.chart import calculate_chart
+from engine.annual_luck import calculate_annual_luck_range
 from engine.consultation_context import build_consultation_context
 from engine.judgment_metadata import build_common_judgment_metadata
 from engine.reading_context_v2 import build_reading_context_v2
@@ -288,6 +289,43 @@ def _fast_fallback(context: Mapping[str, Any], metadata: Mapping[str, Any]) -> d
     return {key: f"{label}は、{day_master}を中心に命式の根拠を確認しながら読み解きます。" for key, label in FAST_SECTIONS}
 
 
+def _chart_card(chart: Mapping[str, Any]) -> dict[str, Any]:
+    pillars = chart.get("chart", {})
+    result: dict[str, Any] = {}
+    for position in ("year", "month", "day", "hour"):
+        pillar = pillars.get(position, {}) if isinstance(pillars, Mapping) else {}
+        hidden = pillar.get("hidden_stem_ten_gods", [])
+        result[position] = {
+            "stem": pillar.get("stem"),
+            "branch": pillar.get("branch"),
+            "stem_ten_god": "―" if position == "day" else pillar.get("stem_ten_god"),
+            "twelve_stage": pillar.get("twelve_stage"),
+            "hidden_stems": list(pillar.get("hidden_stems", [])),
+            "hidden_stem_ten_gods": [
+                item.get("ten_god") for item in hidden if isinstance(item, Mapping)
+            ],
+        }
+    return result
+
+
+def _annual_card(chart: Mapping[str, Any]) -> list[dict[str, Any]]:
+    current = chart.get("annual_luck", {})
+    start_year = current.get("year") if isinstance(current, Mapping) else None
+    day_master = chart.get("day_master", {})
+    if not isinstance(start_year, int) or not isinstance(day_master, Mapping):
+        return []
+    try:
+        return calculate_annual_luck_range(
+            start_year=start_year,
+            end_year=start_year + 14,
+            day_master_stem=day_master.get("stem"),
+            useful_gods=chart.get("useful_gods"),
+            current_luck=chart.get("current_luck"),
+        )
+    except (TypeError, ValueError, KeyError):
+        return []
+
+
 def run_fast_reading(value: CustomerReadingInput, *, client: Any | None = None, model: str | None = None, reference_time: datetime | None = None, performance: dict[str, Any] | None = None) -> dict[str, Any]:
     if not isinstance(value, CustomerReadingInput):
         raise TypeError("value must be CustomerReadingInput")
@@ -328,7 +366,20 @@ def run_fast_reading(value: CustomerReadingInput, *, client: Any | None = None, 
     }
     with _LOCK:
         _SESSIONS[session_id] = session
-    return {"session_id": session_id, "chart": deepcopy(chart), "reading_context": deepcopy(context), "sections": deepcopy(sections)}
+    luck_data = chart.get("luck_pillars", {})
+    luck_pillars = luck_data.get("pillars", []) if isinstance(luck_data, Mapping) else []
+    annual_data = chart.get("annual_luck", {})
+    current_year = annual_data.get("year") if isinstance(annual_data, Mapping) else None
+    return {
+        "session_id": session_id,
+        "chart": deepcopy(chart),
+        "chart_card": _chart_card(chart),
+        "luck_pillars": deepcopy(luck_pillars),
+        "annual_luck_15": _annual_card(chart),
+        "current_year": current_year,
+        "reading_context": deepcopy(context),
+        "sections": deepcopy(sections),
+    }
 
 
 def get_session(session_id: str) -> dict[str, Any] | None:
