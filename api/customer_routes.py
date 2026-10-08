@@ -75,7 +75,7 @@ _RESULT_CSS = """
 
 _FAST_CSS = """
 <style>
-.fast-shell{max-width:900px;margin:30px auto 70px;background:#fffdfa;border:1px solid #dfd1c2;border-radius:16px;box-shadow:0 18px 50px rgba(66,46,29,.1);overflow:hidden}.fast-head{padding:30px 34px;background:linear-gradient(120deg,#fffaf1,#f4eadc);border-bottom:1px solid #dfd1c2}.fast-head h1{margin:.2rem 0;color:#422c1e}.fast-head p{color:#75685c}.fast-facts{display:flex;flex-wrap:wrap;gap:10px;padding:18px 34px;background:#fbf5ec}.fast-facts span{padding:7px 11px;border:1px solid #dfd1c2;border-radius:8px;background:#fff;font-size:.92rem}.fast-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:26px 34px}.fast-card{border:1px solid #dfd1c2;border-radius:12px;padding:18px;background:#fff}.fast-card h2{font-size:1.15rem;color:#5d3b25;margin:0 0 8px}.fast-card p{margin:.2rem 0 1rem;white-space:pre-wrap}.detail-button{border:1px solid #8a5a3b;background:#fffaf1;color:#6a412a;border-radius:7px;padding:8px 12px;cursor:pointer}.detail-box{margin-top:12px;padding:12px;background:#fbf5ec;border-left:3px solid #9a6a35;white-space:pre-wrap}.detail-loading{color:#75685c}.chart-record{grid-column:1/-1;margin:0;padding:20px;border:1px solid #dfd1c2;border-radius:12px;background:#fff}.chart-record h2{margin:0 0 14px;color:#5d3b25;font-size:1.2rem}.table-wrap{overflow-x:auto}.chart-table,.luck-table{width:100%;border-collapse:collapse;min-width:620px;text-align:center}.chart-table th,.chart-table td,.luck-table th,.luck-table td{border:1px solid #dfd1c2;padding:9px 7px;vertical-align:middle}.chart-table th,.luck-table th{background:#f4eadc;color:#5d3b25;font-weight:700}.chart-table tbody tr:nth-child(even),.luck-table tbody tr:nth-child(even){background:#fbf5ec}.chart-table td:first-child,.luck-table td:first-child{font-weight:700;color:#5d3b25;background:#fffaf1}.luck-record{margin-top:22px}.current-mark{background:#ead7bd!important;box-shadow:inset 0 0 0 2px #9a6a35;font-weight:700}.annual-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;min-width:620px}.annual-cell{border:1px solid #dfd1c2;border-radius:8px;padding:10px 7px;text-align:center;background:#fff}.annual-cell:nth-child(even){background:#fbf5ec}.annual-cell strong{display:block;color:#5d3b25}.annual-cell span{display:block;margin-top:3px}.section-label{margin:24px 34px 0;color:#5d3b25;font-size:1.2rem}.section-note{margin:4px 34px 0;color:#75685c;font-size:.9rem}.fast-grid + .section-label{margin-top:0}@media(max-width:680px){.fast-grid{grid-template-columns:1fr;padding:20px}.fast-head,.fast-facts{padding-left:20px;padding-right:20px}.chart-record{margin-left:0;margin-right:0;padding:14px}.section-label{margin-left:20px;margin-right:20px}.section-note{margin-left:20px;margin-right:20px}.chart-table,.luck-table{font-size:.85rem}.chart-table th,.chart-table td,.luck-table th,.luck-table td{padding:7px 5px}.annual-grid{grid-template-columns:repeat(5,110px)}}
+.fast-shell{max-width:900px;margin:30px auto 70px;background:#fffdfa;border:1px solid #dfd1c2;border-radius:16px;box-shadow:0 18px 50px rgba(66,46,29,.1);overflow:hidden}.fast-head{padding:30px 34px;background:linear-gradient(120deg,#fffaf1,#f4eadc);border-bottom:1px solid #dfd1c2}.fast-head h1{margin:.2rem 0;color:#422c1e}.fast-head p{color:#75685c}.fast-facts{display:flex;flex-wrap:wrap;gap:10px;padding:18px 34px;background:#fbf5ec}.fast-facts span{padding:7px 11px;border:1px solid #dfd1c2;border-radius:8px;background:#fff;font-size:.92rem}.fast-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:26px 34px}.fast-card{border:1px solid #dfd1c2;border-radius:12px;padding:18px;background:#fff}.fast-card h2{font-size:1.15rem;color:#5d3b25;margin:0 0 8px}.fast-card p{margin:.2rem 0 1rem;white-space:pre-wrap}.detail-button{border:1px solid #8a5a3b;background:#fffaf1;color:#6a412a;border-radius:7px;padding:8px 12px;cursor:pointer}.detail-box{margin-top:12px;padding:12px;background:#fbf5ec;border-left:3px solid #9a6a35;white-space:pre-wrap}.detail-loading{color:#75685c}.chart-record{grid-column:1/-1;margin:0;padding:20px;border:1px solid #dfd1c2;border-radius:12px;background:#fff}.chart-record h2,.chart-record h3{color:#5d3b25}.chart-record h2{margin:0 0 14px;font-size:1.2rem}.table-wrap{overflow-x:auto;max-width:100%}.chart-table,.luck-table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:620px;text-align:center}.chart-table col{width:20%}.chart-table th,.chart-table td,.luck-table th,.luck-table td{border:1px solid #dfd1c2;padding:9px 7px;vertical-align:middle;overflow-wrap:anywhere;word-break:break-word}.chart-table th,.luck-table th{background:#f4eadc;color:#5d3b25;font-weight:700}.chart-table tbody tr:nth-child(even),.luck-table tbody tr:nth-child(even){background:#fbf5ec}.chart-table td:first-child,.luck-table td:first-child{font-weight:700;color:#5d3b25;background:#fffaf1}.luck-record{margin-top:22px}.current-mark{background:#ead7bd!important;box-shadow:inset 0 0 0 2px #9a6a35;font-weight:700}.annual-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;min-width:620px}.annual-cell{border:1px solid #dfd1c2;border-radius:8px;padding:10px 7px;text-align:center;background:#fff}.annual-cell:nth-child(even){background:#fbf5ec}.annual-cell strong{display:block;color:#5d3b25}.annual-cell span{display:block;margin-top:3px}.annual-cell small{display:block;margin-top:3px;color:#75685c}.section-label{margin:24px 34px 0;color:#5d3b25;font-size:1.2rem}.section-note{margin:4px 34px 0;color:#75685c;font-size:.9rem}.fast-grid + .section-label{margin-top:0}@media(max-width:680px){.fast-grid{grid-template-columns:1fr;padding:20px}.fast-head,.fast-facts{padding-left:20px;padding-right:20px}.chart-record{margin-left:0;margin-right:0;padding:14px}.section-label{margin-left:20px;margin-right:20px}.section-note{margin-left:20px;margin-right:20px}.chart-table,.luck-table{font-size:.85rem}.chart-table th,.chart-table td,.luck-table th,.luck-table td{padding:7px 5px}.annual-grid{grid-template-columns:repeat(5,110px)}}
 </style>
 """
 
@@ -204,6 +204,16 @@ def _render_fast_chart(result: dict[str, object]) -> str:
             return "―"
         return escape(str(value))
 
+    def integer_age(item: dict[str, object], key: str) -> str:
+        detail_key = "start_age_detail" if key == "start_age" else "end_age_detail"
+        detail = item.get(detail_key)
+        if isinstance(detail, dict) and isinstance(detail.get("years"), int):
+            return str(detail["years"])
+        value = item.get(key)
+        if isinstance(value, (int, float)):
+            return str(int(value))
+        return "―"
+
     def pillar_value(position: str, key: str) -> str:
         pillar = card.get(position, {}) if isinstance(card, dict) else {}
         if not isinstance(pillar, dict):
@@ -238,7 +248,7 @@ def _render_fast_chart(result: dict[str, object]) -> str:
             if not isinstance(item, dict):
                 continue
             mark = " current-mark" if current_index is not None and item.get("index") == current_index else ""
-            age = f'{text(item.get("start_age"))}〜{text(item.get("end_age"))}歳'
+            age = f'{integer_age(item, "start_age")}〜{integer_age(item, "end_age")}歳'
             extras = " / ".join(str(item.get(key)) for key in ("stem_ten_god", "stem_element", "branch_element") if item.get(key))
             luck_rows.append(f'<tr class="{mark.strip()}"><td>{age}</td><td>{text(item.get("ganzhi"))}</td><td>{text(extras)}</td></tr>')
 
@@ -250,17 +260,20 @@ def _render_fast_chart(result: dict[str, object]) -> str:
             if not isinstance(item, dict):
                 continue
             mark = " current-mark" if item.get("year") == current_year else ""
-            annual_cells.append(f'<div class="annual-cell{mark}"><strong>{text(item.get("year"))}年</strong><span>{text(item.get("ganzhi"))}</span></div>')
+            stem_element = item.get("stem_element")
+            branch_element = item.get("branch_element")
+            elements = "―" if not stem_element or not branch_element else f"{escape(str(stem_element))} / {escape(str(branch_element))}"
+            annual_cells.append(f'<div class="annual-cell{mark}"><strong>{text(item.get("year"))}年</strong><span>{text(item.get("ganzhi"))}</span><small>{elements}</small></div>')
 
     return (
         '<section class="chart-record"><h2>鑑定カルテ</h2>'
-        '<div class="table-wrap"><table class="chart-table"><thead><tr>'
+        '<div class="table-wrap"><table class="chart-table"><colgroup><col><col><col><col><col></colgroup><thead><tr>'
         f'<th scope="col">項目名</th>{headers}'
         '</tr></thead><tbody>' + "".join(rows) + '</tbody></table></div>'
         '<div class="luck-record"><h3>大運</h3><p class="section-note">算出された全期間を表示しています。</p>'
         '<div class="table-wrap"><table class="luck-table"><thead><tr><th>開始〜終了年齢</th><th>干支</th><th>対応情報</th></tr></thead><tbody>'
         + "".join(luck_rows) + '</tbody></table></div></div>'
-        '<div class="luck-record"><h3>年運</h3><p class="section-note">現在年から15年分</p>'
+        '<div class="luck-record"><h3>年運</h3><p class="section-note">現在年から10年分（五行：天干 / 地支）</p>'
         '<div class="table-wrap"><div class="annual-grid">' + "".join(annual_cells) + '</div></div></div></section>'
     )
 

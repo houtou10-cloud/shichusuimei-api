@@ -317,7 +317,7 @@ def _annual_card(chart: Mapping[str, Any]) -> list[dict[str, Any]]:
     try:
         return calculate_annual_luck_range(
             start_year=start_year,
-            end_year=start_year + 14,
+            end_year=start_year + 9,
             day_master_stem=day_master.get("stem"),
             useful_gods=chart.get("useful_gods"),
             current_luck=chart.get("current_luck"),
