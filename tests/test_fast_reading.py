@@ -5,7 +5,7 @@ import pytest
 
 from api.customer_pipeline import CustomerReadingInput
 from api.fast_reading import FAST_SECTIONS, _build_context, _detail_projection, _emit_perf, _validate_fast_texts, run_detail, run_fast_reading
-from api.customer_routes import _move_fast_back_link_to_header, _render_fast_result
+from api.customer_routes import _move_fast_back_link_to_header, _render_fast_prose, _render_fast_result, _split_fast_prose
 
 
 class _Responses:
@@ -135,6 +135,27 @@ def test_fast_back_link_is_in_header_once():
     assert '← 入力画面に戻る' in moved
     assert '<nav class="web-nav">' not in moved
     assert '<header class="fast-head"><a class="fast-back"' in moved
+
+
+def test_fast_prose_preserves_authored_breaks_and_escapes_html():
+    rendered = _render_fast_prose("第一文。\n第二文。\n\n第三文。<script>alert(1)</script>")
+    assert rendered.count("<p>") == 2
+    assert "第一文。<br>\n第二文。" in rendered
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in rendered
+    assert "<script>" not in rendered
+
+
+def test_fast_prose_splits_long_text_without_splitting_parenthetical_sentences():
+    blocks = _split_fast_prose("第一文（ここで終わらない。続きです）。第二文。第三文。第四文。")
+    assert len(blocks) == 2
+    assert "第一文（ここで終わらない。続きです）。第二文。第三文。" in blocks[0]
+
+
+def test_fast_result_uses_safe_detail_prose_renderer():
+    document = _render_fast_result({"session_id": "a" * 32, "chart": {}, "sections": {key: "本文" for key, _ in FAST_SECTIONS}})
+    assert "function renderFastProse" in document
+    assert "renderFastProse(box,data.text);" in document
+    assert "box.textContent=data.text;" not in document
 
 
 def test_chart_cache_reuses_only_same_fixture_and_second():

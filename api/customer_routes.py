@@ -81,7 +81,13 @@ _FAST_CSS = """
 
 _FAST_CSS += """
 <style>
-.fast-head{position:relative}.fast-back{display:inline-block;position:absolute;top:24px;right:30px;padding:9px 14px;border:1px solid #8a5a3b;border-radius:8px;background:#fffaf1;color:#6a412a;text-decoration:none;font-weight:700;line-height:1.3}.fast-back:hover{background:#f4eadc}.fast-back:focus-visible{outline:3px solid rgba(154,106,53,.4);outline-offset:2px}@media(max-width:680px){.fast-head{padding-top:76px}.fast-back{top:18px;left:20px;right:auto;padding:10px 14px}}
+.fast-head{position:relative}.fast-back{display:inline-block;position:absolute;top:24px;right:30px;padding:9px 14px;border:1px solid #8a5a3b;border-radius:8px;background:#fffaf1;color:#6a412a;text-decoration:none;font-weight:700;line-height:1.3}.fast-back:hover{background:#f4eadc}.fast-back:focus-visible{outline:3px solid rgba(154,106,53,.4);outline-offset:2px}.fast-prose{font-size:16.5px;line-height:1.88;overflow-wrap:anywhere}.fast-prose p{margin:0 0 16px}.fast-prose p:last-child{margin-bottom:0}.detail-box{font-size:16.5px;line-height:1.88;overflow-wrap:anywhere}.detail-loading{line-height:1.6}@media(max-width:680px){.fast-head{padding-top:76px}.fast-back{top:18px;left:20px;right:auto;padding:10px 14px}.fast-prose,.detail-box{font-size:16px;line-height:1.9}}
+</style>
+"""
+
+_FAST_CSS += """
+<style>
+.detail-box p{margin:0 0 16px}.detail-box p:last-child{margin-bottom:0}
 </style>
 """
 
@@ -284,7 +290,94 @@ def _render_fast_chart(result: dict[str, object]) -> str:
     )
 
 
-def _render_fast_result(result: dict[str, object]) -> str:
+def _split_fast_prose(value: object) -> list[str]:
+    """Create display-only paragraphs without rewriting provider prose."""
+    text = "" if value is None else str(value)
+    if not text.strip():
+        return ["―"]
+    blocks = re.split(r"\n\s*\n+", text.strip())
+    result: list[str] = []
+    opening = set("（「『【［〈《")
+    closing = set("）」』】］〉》")
+    for block in blocks:
+        if "\n" in block:
+            result.append(block)
+            continue
+        current: list[str] = []
+        sentences = 0
+        depth = 0
+        quote: str | None = None
+        for char in block:
+            current.append(char)
+            if char in opening:
+                depth += 1
+            elif char in closing:
+                depth = max(0, depth - 1)
+            elif char in {'"', "'"} and depth == 0:
+                quote = None if quote == char else (quote or char)
+            elif depth == 0 and quote is None and char in "。！？!?":
+                sentences += 1
+                if sentences >= 3:
+                    result.append("".join(current))
+                    current = []
+                    sentences = 0
+        if current:
+            result.append("".join(current))
+    return result
+
+
+def _render_fast_prose(value: object) -> str:
+    """Render provider prose while preserving its authored line breaks safely."""
+    text = "" if value is None else str(value)
+    if not text.strip():
+        return "<p>―</p>"
+    rendered: list[str] = []
+    for block in _split_fast_prose(text):
+        safe = escape(block).replace("\n", "<br>\n")
+        rendered.append(f"<p>{safe}</p>")
+    return "".join(rendered)
+
+
+_FAST_DETAIL_PROSE_SCRIPT = r'''<script>
+function splitFastProse(value) {
+  const text = String(value ?? "");
+  if (!text.trim()) return ["―"];
+  const blocks = text.trim().split(/\n\s*\n+/);
+  const result = [];
+  const opening = new Set(["（", "「", "『", "【", "［", "〈", "《"]);
+  const closing = new Set(["）", "」", "』", "】", "］", "〉", "》"]);
+  for (const block of blocks) {
+    if (block.includes("\n")) { result.push(block); continue; }
+    let current = "", sentences = 0, depth = 0, quote = null;
+    for (const char of block) {
+      current += char;
+      if (opening.has(char)) depth += 1;
+      else if (closing.has(char)) depth = Math.max(0, depth - 1);
+      else if ((char === '"' || char === "'") && depth === 0) quote = quote === char ? null : (quote || char);
+      else if (depth === 0 && !quote && "。！？!?".includes(char)) {
+        sentences += 1;
+        if (sentences >= 3) { result.push(current); current = ""; sentences = 0; }
+      }
+    }
+    if (current) result.push(current);
+  }
+  return result;
+}
+function renderFastProse(box, value) {
+  box.replaceChildren();
+  for (const block of splitFastProse(value)) {
+    const paragraph = document.createElement("p");
+    block.split("\n").forEach((line, index) => {
+      if (index) paragraph.append(document.createElement("br"));
+      paragraph.append(document.createTextNode(line));
+    });
+    box.append(paragraph);
+  }
+}
+</script>'''
+
+
+def _render_fast_result_raw(result: dict[str, object]) -> str:
     session_id = escape(str(result["session_id"]), quote=True)
     chart = result.get("chart", {})
     pillars = chart.get("chart", {}) if isinstance(chart, dict) else {}
@@ -296,15 +389,26 @@ def _render_fast_result(result: dict[str, object]) -> str:
     sections = result.get("sections", {})
     cards: list[str] = []
     for key, label in ("basic_type", "あなたの基本タイプ"), ("career", "仕事・適職"), ("wealth", "お金"), ("relationships", "人間関係"), ("current_luck", "現在の運勢"), ("future_flow", "今後の流れ"), ("advice", "今すべきこと"):
-        text = escape(str(sections.get(key, ""))) if isinstance(sections, dict) else ""
+        prose = _render_fast_prose(sections.get(key, "") if isinstance(sections, dict) else "")
         button = "" if key in ("basic_type", "advice") else f'<button class="detail-button" data-detail="{key}" type="button">詳しく見る</button><div class="detail-box" hidden></div>'
-        cards.append(f'<article class="fast-card"><h2>{label}</h2><p>{text}</p>{button}</article>')
+        cards.append(f'<article class="fast-card"><h2>{label}</h2><div class="fast-prose">{prose}</div>{button}</article>')
     # The chart is rendered from server-owned projections before the existing
     # Fast Reading cards; provider contracts and detail behavior stay intact.
     cards.insert(0, _render_fast_chart(result))
     return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>八雲式 四柱推命 鑑定結果</title>{_FAST_CSS}</head><body><nav class="web-nav"><a href="/app">入力画面へ戻る</a></nav><main class="fast-shell"><header class="fast-head"><p class="eyebrow">PERSONAL READING</p><h1>あなたの鑑定結果</h1><p>命式の主要な傾向を先に確認できます。詳しい内容は必要な項目だけご覧ください。</p></header><div class="fast-facts"><span>命式：{escape(pillar_text)}</span></div><section class="fast-grid">{''.join(cards)}</section></main><script>
 const sid="{session_id}";document.querySelectorAll('.detail-button').forEach((button)=>button.addEventListener('click',async()=>{{const box=button.nextElementSibling;const type=button.dataset.detail;if(!box.hidden){{box.hidden=true;button.textContent='詳しく見る';return;}}button.disabled=true;box.hidden=false;box.className='detail-box detail-loading';box.textContent='詳しい鑑定を準備しています…';try{{const response=await fetch('/app/reading/detail',{{method:'POST',headers:{{'content-type':'application/json'}},body:JSON.stringify({{session_id:sid,detail_type:type}})}});const data=await response.json();if(!response.ok)throw new Error();box.className='detail-box';box.textContent=data.text;button.textContent='閉じる';}}catch(_error){{box.textContent='詳細鑑定を取得できませんでした。もう一度お試しください。';}}finally{{button.disabled=false;}}}}));
  </script></body></html>'''
+
+
+def _render_fast_result(result: dict[str, object]) -> str:
+    """Add safe client-side paragraph rendering to the existing result shell."""
+    document = _render_fast_result_raw(result)
+    document = document.replace(
+        "<script>\nconst sid=",
+        _FAST_DETAIL_PROSE_SCRIPT + "\nconst sid=",
+        1,
+    )
+    return document.replace("box.textContent=data.text;", "renderFastProse(box,data.text);")
 
 
 def _move_fast_back_link_to_header(document: str) -> str:
