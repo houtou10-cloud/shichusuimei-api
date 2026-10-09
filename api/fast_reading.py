@@ -79,6 +79,7 @@ _DETAIL_SCHEMA = {
     "required": ["text"],
     "additionalProperties": False,
 }
+_FAST_MAX_OUTPUT_TOKENS = 4000
 
 
 def _usage_value(usage: Any, *names: str) -> Any:
@@ -151,11 +152,28 @@ def _provider_call(client: Any, *, model: str, instructions: str, context: Mappi
             model=model,
             instructions=instructions,
             input=[{"role": "user", "content": content}],
-            max_output_tokens=2500 if schema is _FAST_SCHEMA else 1400,
+            # Production logs showed repeated output_tokens=2500 responses;
+            # that is the former Fast schema ceiling and can truncate JSON.
+            max_output_tokens=_FAST_MAX_OUTPUT_TOKENS if schema is _FAST_SCHEMA else 1400,
             reasoning={"effort": "low"},
             store=False,
             text={"format": {"type": "json_schema", "name": "fast_reading_v1", "schema": schema, "strict": True}},
         )
+        status = getattr(response, "status", None)
+        if performance is not None and status is not None:
+            performance["provider_status"] = status
+        if status == "incomplete":
+            if performance is not None:
+                performance["failure_stage"] = "provider_response"
+            details = getattr(response, "incomplete_details", None)
+            reason = getattr(details, "reason", None) if details is not None else None
+            if performance is not None and reason is not None:
+                performance["incomplete_reason"] = reason
+            raise ValueError("fast provider response incomplete")
+        if isinstance(status, str) and status != "completed":
+            if performance is not None:
+                performance["failure_stage"] = "provider_response"
+            raise ValueError("fast provider response not completed")
         usage = getattr(response, "usage", None)
         if performance is not None and usage is not None:
             performance["input_tokens"] = _usage_value(usage, "input_tokens", "prompt_tokens")
@@ -163,7 +181,15 @@ def _provider_call(client: Any, *, model: str, instructions: str, context: Mappi
             performance["output_tokens"] = _usage_value(usage, "output_tokens", "completion_tokens")
             performance["reasoning_tokens"] = _usage_value(usage, "reasoning_tokens")
             performance["total_tokens"] = _usage_value(usage, "total_tokens")
-        payload = json.loads(_extract_text(response))
+        raw_text = _extract_text(response)
+        if performance is not None:
+            performance["output_json_chars"] = len(raw_text)
+        try:
+            payload = json.loads(raw_text)
+        except (TypeError, json.JSONDecodeError) as exc:
+            if performance is not None:
+                performance["failure_stage"] = "provider_json"
+            raise ValueError("fast provider response invalid JSON") from exc
         return_payload = payload
     finally:
         if performance is not None:
@@ -171,6 +197,8 @@ def _provider_call(client: Any, *, model: str, instructions: str, context: Mappi
     payload = return_payload
     errors = sorted(Draft202012Validator(schema).iter_errors(payload), key=lambda e: list(e.path))
     if errors:
+        if performance is not None:
+            performance["failure_stage"] = "provider_schema"
         raise ValueError("fast provider payload invalid")
     return payload
 

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from api.customer_pipeline import CustomerReadingInput
-from api.fast_reading import FAST_SECTIONS, _build_context, _detail_projection, _emit_perf, _validate_fast_texts, run_detail, run_fast_reading
+from api.fast_reading import FAST_SECTIONS, _FAST_SCHEMA, _build_context, _detail_projection, _emit_perf, _provider_call, _validate_fast_texts, run_detail, run_fast_reading
 from api.customer_routes import _move_fast_back_link_to_header, _render_fast_prose, _render_fast_result, _split_fast_prose
 
 
@@ -20,6 +20,59 @@ class _Responses:
         else:
             value = {key: "短い結論を、命式の根拠に沿って説明します。" for key in schema["properties"]}
         return SimpleNamespace(output_text=json.dumps(value, ensure_ascii=False))
+
+
+class _IncompleteResponses:
+    def __init__(self):
+        self.calls = []
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        return SimpleNamespace(status="incomplete", incomplete_details=SimpleNamespace(reason="max_output_tokens"))
+
+
+class _TextResponses:
+    def __init__(self, text):
+        self.text = text
+
+    def create(self, **kwargs):
+        return SimpleNamespace(status="completed", output_text=self.text)
+
+
+def test_fast_provider_incomplete_is_classified_without_accepting_partial_json():
+    responses = _IncompleteResponses()
+    performance = {}
+    with pytest.raises(ValueError, match="incomplete"):
+        _provider_call(
+            SimpleNamespace(responses=responses),
+            model="test-model",
+            instructions="test",
+            context={},
+            schema=_FAST_SCHEMA,
+            performance=performance,
+        )
+    assert performance["provider_status"] == "incomplete"
+    assert performance["incomplete_reason"] == "max_output_tokens"
+    assert performance["failure_stage"] == "provider_response"
+    assert responses.calls[0]["max_output_tokens"] == 4000
+
+
+@pytest.mark.parametrize(
+    ("text", "stage"),
+    [("{", "provider_json"), ("{}", "provider_schema")],
+)
+def test_fast_provider_invalid_payload_is_classified(text, stage):
+    performance = {}
+    with pytest.raises(ValueError):
+        _provider_call(
+            SimpleNamespace(responses=_TextResponses(text)),
+            model="test-model",
+            instructions="test",
+            context={},
+            schema=_FAST_SCHEMA,
+            performance=performance,
+        )
+    assert performance["failure_stage"] == stage
 
 
 def _value():

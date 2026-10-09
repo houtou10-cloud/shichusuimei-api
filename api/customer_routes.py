@@ -507,7 +507,15 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
         return HTMLResponse(document)
     except CustomerInputError as exc:
         return HTMLResponse(_render_form(values, exc.errors), status_code=422)
-    except Exception:
+    except Exception as exc:
+        performance["failure_type"] = type(exc).__name__
+        performance["failure_stage"] = "provider" if "provider" in str(exc).lower() else "fast_reading"
+        logger.warning(
+            "fast customer reading unavailable error_type=%s stage=%s",
+            type(exc).__name__,
+            performance["failure_stage"],
+            exc_info=False,
+        )
         # Existing provider-free browser regression tests replace the legacy
         # pipeline with a deterministic fake.  Preserve that test seam (and
         # the full pipeline itself) without affecting the production fast
