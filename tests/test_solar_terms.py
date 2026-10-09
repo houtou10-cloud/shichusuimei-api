@@ -555,6 +555,23 @@ def test_get_year_solar_terms_dict():
     )
 
 
+def test_precomputed_year_terms_match_skyfield_fallback(monkeypatch):
+    import engine.solar_terms as solar_terms
+
+    precomputed = [
+        solar_term_to_dict(term)
+        for term in get_year_solar_terms(1984)
+    ]
+    monkeypatch.setattr(solar_terms, "_load_precomputed_solar_terms", lambda: {})
+    solar_terms._get_year_solar_terms_cached.cache_clear()
+    fallback = [
+        solar_term_to_dict(term)
+        for term in get_year_solar_terms(1984)
+    ]
+    assert precomputed == fallback
+    solar_terms._get_year_solar_terms_cached.cache_clear()
+
+
 # =========================================================
 # Serialization
 # =========================================================

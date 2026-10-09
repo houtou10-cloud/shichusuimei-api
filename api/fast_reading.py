@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timedelta
+from collections import OrderedDict
 import json
 import sys
 import threading
@@ -55,6 +56,12 @@ DETAIL_TYPES = {
 }
 _SESSION_TTL = timedelta(minutes=30)
 _SESSIONS: dict[str, dict[str, Any]] = {}
+_CHART_CACHE_TTL = timedelta(minutes=5)
+_CHART_CACHE_MAX = 16
+_CHART_WAIT_TIMEOUT = 60.0
+_CHART_CACHE: OrderedDict[tuple[str, ...], tuple[datetime, dict[str, Any]]] = OrderedDict()
+_CHART_INFLIGHT: dict[tuple[str, ...], threading.Event] = {}
+_CHART_INFLIGHT_ERRORS: dict[tuple[str, ...], BaseException] = {}
 _LOCK = threading.Lock()
 
 _FAST_SCHEMA = {
@@ -267,7 +274,72 @@ def _detail_projection(context: Mapping[str, Any], metadata: Mapping[str, Any], 
 
 def _build_context(value: CustomerReadingInput, reference_time: datetime, performance: dict[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     started = time.perf_counter()
-    chart = calculate_chart(build_customer_chart_request(value), target_datetime=reference_time)
+    # Reuse only an exact-input, exact-second chart for a short bounded period.
+    # This is a Fast Reading optimization; the astrology engine remains the
+    # sole calculator and current-luck boundaries cannot be crossed by reuse.
+    cache_key = (
+        "fast-chart-v1",
+        str(value.birth_date),
+        str(value.birth_time),
+        str(value.birth_place),
+        str(value.gender),
+        reference_time.replace(microsecond=0).isoformat(),
+    )
+    now = datetime.now().astimezone()
+    cache_hit = False
+    with _LOCK:
+        cached = _CHART_CACHE.get(cache_key)
+        if cached is not None and now - cached[0] <= _CHART_CACHE_TTL:
+            _CHART_CACHE.move_to_end(cache_key)
+            chart = deepcopy(cached[1])
+            wait_for = None
+            owner = False
+            waited = False
+            cache_hit = True
+        else:
+            chart = None
+            wait_for = _CHART_INFLIGHT.get(cache_key)
+            owner = wait_for is None
+            waited = not owner
+            if owner:
+                _CHART_INFLIGHT_ERRORS.pop(cache_key, None)
+                wait_for = threading.Event()
+                _CHART_INFLIGHT[cache_key] = wait_for
+    if chart is None and not owner:
+        # Another request is already calculating this exact chart.  Waiting
+        # avoids duplicate Skyfield work without sharing mutable results.
+        assert wait_for is not None
+        if not wait_for.wait(_CHART_WAIT_TIMEOUT):
+            raise TimeoutError("timed out waiting for identical chart calculation")
+        with _LOCK:
+            error = _CHART_INFLIGHT_ERRORS.get(cache_key)
+            cached = _CHART_CACHE.get(cache_key)
+            if error is not None:
+                raise error
+            if cached is None:
+                raise RuntimeError("chart calculation completed without a result")
+            _CHART_CACHE.move_to_end(cache_key)
+            chart = deepcopy(cached[1])
+    elif chart is None:
+        try:
+            chart = calculate_chart(build_customer_chart_request(value), target_datetime=reference_time)
+            with _LOCK:
+                _CHART_CACHE[cache_key] = (now, deepcopy(chart))
+                _CHART_CACHE.move_to_end(cache_key)
+                while len(_CHART_CACHE) > _CHART_CACHE_MAX:
+                    _CHART_CACHE.popitem(last=False)
+        except BaseException as exc:
+            with _LOCK:
+                _CHART_INFLIGHT_ERRORS[cache_key] = exc
+            raise
+        finally:
+            with _LOCK:
+                event = _CHART_INFLIGHT.pop(cache_key, None)
+                if event is not None:
+                    event.set()
+    if performance is not None:
+        performance["chart_cache_hit"] = cache_hit
+        performance["chart_cache_wait"] = waited
     chart_elapsed = time.perf_counter() - started
     consultation = (
         build_consultation_context(concern=value.consultation, desired_future="")

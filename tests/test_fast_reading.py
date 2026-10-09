@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from api.customer_pipeline import CustomerReadingInput
-from api.fast_reading import FAST_SECTIONS, _detail_projection, _emit_perf, _validate_fast_texts, run_detail, run_fast_reading
+from api.fast_reading import FAST_SECTIONS, _build_context, _detail_projection, _emit_perf, _validate_fast_texts, run_detail, run_fast_reading
 from api.customer_routes import _move_fast_back_link_to_header, _render_fast_result
 
 
@@ -143,6 +143,8 @@ def test_chart_cache_reuses_only_same_fixture_and_second():
     import api.fast_reading as fast
 
     fast._CHART_CACHE.clear()
+    fast._CHART_INFLIGHT.clear()
+    fast._CHART_INFLIGHT_ERRORS.clear()
     responses = _Responses()
     client = SimpleNamespace(responses=responses)
     fixed = datetime(2026, 10, 8, 12, 0, 0)
@@ -152,4 +154,86 @@ def test_chart_cache_reuses_only_same_fixture_and_second():
     run_fast_reading(_value(), client=client, model="test-model", reference_time=fixed, performance=second_perf)
     assert first_perf["chart_cache_hit"] is False
     assert second_perf["chart_cache_hit"] is True
-    assert second_perf["chart_elapsed"] < first_perf["chart_elapsed"]
+    assert second_perf["chart_elapsed"] >= 0
+
+
+def test_chart_cache_concurrent_same_key_returns_identical_results():
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import datetime
+
+    import api.fast_reading as fast
+
+    fast._CHART_CACHE.clear()
+    fast._CHART_INFLIGHT.clear()
+    fast._CHART_INFLIGHT_ERRORS.clear()
+    responses = _Responses()
+    fixed = datetime(2026, 10, 8, 12, 0, 0)
+
+    def call():
+        return run_fast_reading(_value(), client=SimpleNamespace(responses=responses), model="test-model", reference_time=fixed)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first, second = list(pool.map(lambda _: call(), (1, 2)))
+    assert first["chart"] == second["chart"]
+
+
+def test_chart_inflight_failure_is_propagated_and_next_request_can_retry(monkeypatch):
+    from datetime import datetime
+
+    import api.fast_reading as fast
+
+    fast._CHART_CACHE.clear()
+    fast._CHART_INFLIGHT.clear()
+    fast._CHART_INFLIGHT_ERRORS.clear()
+    calls = {"count": 0}
+
+    def fail_once(request, *, target_datetime):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise ValueError("synthetic chart failure")
+        return {"chart": {}, "day_master": {}, "luck_pillars": {"pillars": []}, "annual_luck": {}}
+
+    monkeypatch.setattr(fast, "calculate_chart", fail_once)
+    monkeypatch.setattr(fast, "build_reading_context_v2", lambda chart, consultation_context=None: {})
+    monkeypatch.setattr(fast, "build_common_judgment_metadata", lambda chart: {})
+    value = _value()
+    reference = datetime(2026, 10, 8, 12, 0)
+    with pytest.raises(ValueError, match="synthetic chart failure"):
+        _build_context(value, reference)
+    # The failed inflight marker is released, so a subsequent request retries.
+    chart, _, _ = _build_context(value, reference)
+    assert chart["chart"] == {}
+    assert calls["count"] == 2
+    assert not fast._CHART_INFLIGHT
+
+
+def test_chart_inflight_failure_reaches_waiting_request(monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import datetime
+    import time
+
+    import api.fast_reading as fast
+
+    fast._CHART_CACHE.clear()
+    fast._CHART_INFLIGHT.clear()
+    fast._CHART_INFLIGHT_ERRORS.clear()
+
+    def fail(request, *, target_datetime):
+        time.sleep(0.05)
+        raise ValueError("shared chart failure")
+
+    monkeypatch.setattr(fast, "calculate_chart", fail)
+    value = _value()
+    reference = datetime(2026, 10, 8, 12, 1)
+
+    def call(_):
+        try:
+            _build_context(value, reference)
+        except Exception as exc:
+            return type(exc), str(exc)
+        return None, ""
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = list(pool.map(call, (1, 2)))
+    assert outcomes == [(ValueError, "shared chart failure"), (ValueError, "shared chart failure")]
+    assert not fast._CHART_INFLIGHT

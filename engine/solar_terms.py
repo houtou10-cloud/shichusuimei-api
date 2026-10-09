@@ -49,6 +49,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
+import json
 from pathlib import Path
 from typing import Dict, List
 
@@ -64,6 +65,7 @@ from skyfield.framelib import ecliptic_frame
 SOLAR_TERM_METHOD = "skyfield_solar_longitude_v3"
 
 SOLAR_TERM_STATUS = "astronomical"
+PRECOMPUTED_SOLAR_TERM_FILE = Path(__file__).with_name("solar_terms_precomputed.json")
 
 
 JST = timezone(
@@ -835,6 +837,48 @@ def build_solar_term(
 # =========================================================
 
 
+@lru_cache(maxsize=1)
+def _load_precomputed_solar_terms() -> dict:
+    """Load build-time Skyfield results, returning an empty mapping if unusable."""
+    try:
+        payload = json.loads(PRECOMPUTED_SOLAR_TERM_FILE.read_text(encoding="utf-8"))
+        if (
+            payload.get("format_version") != 1
+            or payload.get("calculation_rule_version") != SOLAR_TERM_METHOD
+            or payload.get("ephemeris") != "JPL DE421"
+            or payload.get("timezone") != "Asia/Tokyo"
+            or not isinstance(payload.get("years"), dict)
+        ):
+            return {}
+        return payload["years"]
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def _get_precomputed_year_solar_terms(year: int) -> tuple[SolarTerm, ...] | None:
+    raw_terms = _load_precomputed_solar_terms().get(str(year))
+    if not isinstance(raw_terms, list) or len(raw_terms) != 12:
+        return None
+    try:
+        terms = tuple(
+            SolarTerm(
+                name=item["name"],
+                datetime=datetime.fromisoformat(item["datetime"]),
+                month_branch=item["month_branch"],
+                month_number=int(item["month_number"]),
+                longitude=float(item["longitude"]),
+                method=item["method"],
+                status=item["status"],
+            )
+            for item in raw_terms
+        )
+        if any(term.method != SOLAR_TERM_METHOD or term.status != SOLAR_TERM_STATUS for term in terms):
+            return None
+        return tuple(sorted(terms, key=lambda item: item.datetime))
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return None
+
+
 @lru_cache(
     maxsize=128
 )
@@ -848,6 +892,10 @@ def _get_year_solar_terms_cached(
     _validate_year(
         year
     )
+
+    precomputed = _get_precomputed_year_solar_terms(year)
+    if precomputed is not None:
+        return precomputed
 
     terms = [
         build_solar_term(
