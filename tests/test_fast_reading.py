@@ -75,7 +75,7 @@ def test_fast_provider_invalid_payload_is_classified(text, stage):
     assert performance["failure_stage"] == stage
 
 
-def test_chart_card_preserves_mapping_like_pillars_and_rejects_invalid_shape():
+def test_chart_card_preserves_mapping_like_pillars_and_rejects_invalid_shape(capsys):
     pillar = SimpleNamespace(
         stem="乙", branch="巳", stem_ten_god="比肩", twelve_stage="沐浴",
         hidden_stems=["丙"], hidden_stem_ten_gods=[{"ten_god": "傷官"}],
@@ -85,6 +85,12 @@ def test_chart_card_preserves_mapping_like_pillars_and_rejects_invalid_shape():
     assert card["year"]["hidden_stem_ten_gods"] == ["傷官"]
     with pytest.raises(TypeError, match="chart pillar year"):
         _chart_card({"chart": {"year": None}})
+    diagnostic = capsys.readouterr().err
+    assert "[FAST_CHART_DIAG]" in diagnostic
+    assert "position=year" in diagnostic
+    assert "pillar_type=NoneType" in diagnostic
+    assert "pillar_none=true" in diagnostic
+    assert "hidden_stem" not in diagnostic
 
 
 def test_annual_card_handles_optional_current_luck_attribute_error(monkeypatch):

@@ -401,13 +401,35 @@ def _chart_mapping(value: Any) -> Mapping[str, Any] | None:
     return attrs if isinstance(attrs, Mapping) else None
 
 
+def _chart_structure_diagnostic(chart: Any, pillars: Any, position: str, raw_pillar: Any) -> None:
+    """Emit type/key metadata only when the display boundary is malformed."""
+    chart_keys = list(pillars.keys()) if isinstance(pillars, Mapping) else None
+    top_keys = list(chart.keys()) if isinstance(chart, Mapping) else None
+    _emit_perf(
+        "FAST_CHART_DIAG",
+        {
+            "position": position,
+            "chart_type": type(chart).__name__,
+            "chart_chart_type": type(pillars).__name__,
+            "pillar_type": type(raw_pillar).__name__,
+            "pillar_none": raw_pillar is None,
+            "top_keys": ",".join(str(key) for key in top_keys) if top_keys is not None else None,
+            "chart_keys": ",".join(str(key) for key in chart_keys) if chart_keys is not None else None,
+        },
+    )
+
+
 def _chart_card(chart: Mapping[str, Any]) -> dict[str, Any]:
-    pillars = chart.get("chart", {})
+    pillars = chart.get("chart", {}) if isinstance(chart, Mapping) else None
+    if not isinstance(chart, Mapping):
+        _chart_structure_diagnostic(chart, pillars, "chart", chart)
+        raise TypeError("chart payload is not mapping-like")
     result: dict[str, Any] = {}
     for position in ("year", "month", "day", "hour"):
         raw_pillar = pillars.get(position, {}) if isinstance(pillars, Mapping) else {}
         pillar = _chart_mapping(raw_pillar)
         if pillar is None:
+            _chart_structure_diagnostic(chart, pillars, position, raw_pillar)
             raise TypeError(f"chart pillar {position} is not mapping-like")
         hidden = pillar.get("hidden_stem_ten_gods", [])
         result[position] = {
