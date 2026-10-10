@@ -438,6 +438,17 @@ def _chart_card(chart: Mapping[str, Any]) -> dict[str, Any]:
         raw_pillar = pillars.get(position, {}) if isinstance(pillars, Mapping) else {}
         pillar = _chart_mapping(raw_pillar)
         if pillar is None:
+            if position == "hour" and raw_pillar is None:
+                result[position] = {
+                    "stem": None,
+                    "branch": None,
+                    "stem_ten_god": None,
+                    "twelve_stage": None,
+                    "hidden_stems": [],
+                    "hidden_stem_ten_gods": [],
+                    "unavailable": "出生時刻不明",
+                }
+                continue
             _chart_structure_diagnostic(chart, pillars, position, raw_pillar)
             raise TypeError(f"chart pillar {position} is not mapping-like")
         hidden = pillar.get("hidden_stem_ten_gods", [])

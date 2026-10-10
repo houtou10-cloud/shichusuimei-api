@@ -232,6 +232,8 @@ def _render_fast_chart(result: dict[str, object]) -> str:
         pillar = card.get(position, {}) if isinstance(card, dict) else {}
         if not isinstance(pillar, dict):
             return "―"
+        if position == "hour" and pillar.get("unavailable"):
+            return text(pillar["unavailable"])
         value = pillar.get(key)
         if key in ("hidden_stems", "hidden_stem_ten_gods"):
             values = value if isinstance(value, list) else []

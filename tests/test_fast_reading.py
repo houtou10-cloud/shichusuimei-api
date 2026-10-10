@@ -83,6 +83,9 @@ def test_chart_card_preserves_mapping_like_pillars_and_rejects_invalid_shape(cap
     card = _chart_card({"chart": {position: pillar for position in ("year", "month", "day", "hour")}})
     assert card["year"]["stem"] == "乙"
     assert card["year"]["hidden_stem_ten_gods"] == ["傷官"]
+    unknown_card = _chart_card({"chart": {"year": pillar, "month": pillar, "day": pillar, "hour": None}})
+    assert unknown_card["hour"]["unavailable"] == "出生時刻不明"
+    assert unknown_card["hour"]["stem"] is None
     with pytest.raises(TypeError, match="chart pillar year"):
         _chart_card({"chart": {"year": None}})
     diagnostic = capsys.readouterr().err
@@ -194,11 +197,15 @@ def test_detail_context_is_scoped_by_detail_type():
 
 
 def test_performance_log_is_numeric_only_and_flushable(capsys):
-    _emit_perf("FAST_PERF", {"request_id": "abc", "total_elapsed": 1.25, "provider_calls": 1, "status": "success"})
+    _emit_perf("FAST_PERF", {"request_id": "abc", "total_elapsed": 1.25, "provider_calls": 1, "birth_time_known": True, "birth_time_type": "str", "chart_hour_none": False, "chart_time_scope": "four_pillars", "status": "success"})
     output = capsys.readouterr().err
     assert "[FAST_PERF]" in output
     assert "request_id=abc" in output
     assert "total_elapsed=1.25" in output
+    assert "birth_time_known=true" in output
+    assert "birth_time_type=str" in output
+    assert "chart_hour_none=false" in output
+    assert "chart_time_scope=four_pillars" in output
     assert "birth_date" not in output
     assert "prompt" not in output
 

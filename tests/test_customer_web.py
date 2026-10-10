@@ -180,6 +180,30 @@ def test_fast_reading_fixture_e2e_renders_chart_luck_and_all_sections_without_pr
     assert response.text.count('class="fast-prose"') == 7
 
 
+def test_fast_reading_unknown_birth_time_returns_200_without_hour_values(monkeypatch):
+    value = validate_customer_input({
+        "birth_date": "1984-07-10", "birth_hour": "", "birth_minute": "",
+        "birth_time_unknown": "1", "birth_place": "愛知県", "gender": "male", "consultation": "",
+    })
+    result = run_fast_reading(
+        value,
+        client=SimpleNamespace(responses=FastResponses()),
+        model="test-model",
+        reference_time=FIXED,
+    )
+    assert result["chart"]["chart"]["hour"] is None
+    assert result["chart_card"]["hour"]["unavailable"] == "出生時刻不明"
+    monkeypatch.setattr(customer_routes, "run_fast_reading", lambda *args, **kwargs: result)
+    response = _post(TestClient(app), {
+        "birth_date": "1984-07-10", "birth_hour": "", "birth_minute": "",
+        "birth_time_unknown": "1", "birth_place": "愛知県", "gender": "male", "consultation": "",
+    })
+    assert response.status_code == 200
+    assert "出生時刻不明" in response.text
+    assert response.text.count('class="annual-cell') == 10
+    assert response.text.count('class="fast-prose"') == 7
+
+
 def test_performance_trace_logs_pipeline_steps_without_customer_data(capsys):
     fake = _client()
     trace = PerformanceTrace()
