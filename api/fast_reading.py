@@ -480,7 +480,7 @@ def _detail_projection(context: Mapping[str, Any], metadata: Mapping[str, Any], 
             "chart": base["chart"],
             "facts": base["facts"],
             "current_luck": base["current_luck"],
-            "five_year_luck": base["five_year_luck"],
+            "five_year_luck": _compact_future_luck(base["five_year_luck"]),
         }
     return {
         "chart": base["chart"],
@@ -489,6 +489,44 @@ def _detail_projection(context: Mapping[str, Any], metadata: Mapping[str, Any], 
         "strength": base["strength"],
         "pattern": base["pattern"],
     }
+
+
+def _compact_future_luck(entries: Any) -> list[dict[str, Any]]:
+    """Retain annual decision facts and omit verbose diagnostic metadata."""
+    if not isinstance(entries, list):
+        return []
+    annual_keys = (
+        "year", "calendar_year", "effective_year", "ganzhi", "stem", "branch",
+        "stem_element", "branch_element", "stem_ten_god", "twelve_stage",
+        "stem_useful_relation", "branch_useful_relation", "current_luck_relation",
+        "year_boundary_applied",
+    )
+    integrated_keys = (
+        "current_luck_ganzhi", "annual_luck_ganzhi", "current_luck_elements",
+        "annual_luck_elements", "element_interactions", "current_luck_useful",
+        "annual_luck_useful", "agreement_level", "overall_level", "confidence",
+        "annual_ten_god", "annual_twelve_stage", "timing_is_estimated",
+    )
+    current_keys = (
+        "has_current_luck", "phase", "current_pillar", "previous_pillar",
+        "next_pillar", "timing_precision", "timing_is_estimated",
+    )
+    compacted: list[dict[str, Any]] = []
+    for entry in entries:
+        if not isinstance(entry, Mapping):
+            continue
+        item: dict[str, Any] = {"year": entry.get("year")}
+        annual = entry.get("annual_luck")
+        integrated = entry.get("integrated_luck")
+        current = entry.get("current_luck")
+        if isinstance(annual, Mapping):
+            item["annual_luck"] = {key: deepcopy(annual.get(key)) for key in annual_keys if key in annual}
+        if isinstance(integrated, Mapping):
+            item["integrated_luck"] = {key: deepcopy(integrated.get(key)) for key in integrated_keys if key in integrated}
+        if isinstance(current, Mapping):
+            item["current_luck"] = {key: deepcopy(current.get(key)) for key in current_keys if key in current}
+        compacted.append(item)
+    return compacted
 
 
 def _build_context(value: CustomerReadingInput, reference_time: datetime, performance: dict[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
@@ -795,10 +833,18 @@ def run_detail(session_id: str, detail_type: str, *, client: Any | None = None, 
             context=context,
             schema=_DETAIL_SCHEMA,
             performance=performance,
+            max_output_tokens=2400,
         )
         text = payload["text"]
     validation_started = time.perf_counter()
-    _validate_detail_text(text, session["reading_context"])
+    try:
+        _validate_detail_text(text, session["reading_context"])
+    except Exception as exc:
+        if performance is not None:
+            performance["validation_failed"] = True
+            performance["validation_code"] = _validation_code(exc)
+            performance["failure_stage"] = "detail_validation"
+        raise
     if detail_type in {"career", "wealth", "relationships"} and any(
         term in text for term in ("大運", "歳運", "年運", "現在の運勢", "今後の流れ")
     ):
@@ -886,6 +932,8 @@ def run_concern_answer(session_id: str, *, client: Any | None = None, model: str
                 _concern_instructions(strict_numeric=True, allowed_years=allowed_years)
                 + " "
                 + _concern_quality_instructions(session["reading_context"])
+                + " The previous draft made an unsupported consequential ranking. "
+                + "Describe only a supported tendency and practical options; never call a year the best, first choice, main candidate, or a target year for a consequential decision."
             ),
             context=provider_context,
             schema=_DETAIL_SCHEMA,

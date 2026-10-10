@@ -189,11 +189,11 @@ def test_concern_answer_provider_and_validation_failures_are_separate():
     assert invalid_perf["validation_code"] == "unsupported_numeric_claim"
 
 
-def test_concern_answer_uses_larger_budget_without_changing_detail_budget():
+def test_detail_and_concern_use_safe_output_budget():
     responses = _Responses()
     result = run_fast_reading(_value(), client=SimpleNamespace(responses=responses), model="test-model")
     run_detail(result["session_id"], "career", client=SimpleNamespace(responses=responses), model="test-model")
-    assert responses.calls[-1]["max_output_tokens"] == 1400
+    assert responses.calls[-1]["max_output_tokens"] == 2400
     run_concern_answer(result["session_id"], client=SimpleNamespace(responses=responses), model="test-model")
     assert responses.calls[-1]["max_output_tokens"] == 2400
 

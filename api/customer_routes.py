@@ -661,7 +661,7 @@ async def customer_reading_detail(request: Request) -> HTMLResponse:
         return JSONResponse({"text": text})
     except Exception as exc:
         performance["failure_type"] = type(exc).__name__
-        performance["failure_stage"] = (
+        performance["failure_stage"] = performance.get("failure_stage") or (
             "request_parse" if "payload_valid" not in performance else
             "session_or_detail_validation" if not performance.get("session_present", False) or not performance.get("detail_type_allowed", False) else
             "detail_generation"
