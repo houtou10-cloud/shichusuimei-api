@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from api.customer_pipeline import CustomerReadingInput
-from api.fast_reading import FAST_SECTIONS, _FAST_SCHEMA, _build_context, _chart_card, _detail_projection, _emit_perf, _normalize_concern_text, _provider_call, _validate_concern_semantics, _validate_fast_texts, run_concern_answer, run_detail, run_fast_reading
+from api.fast_reading import FAST_SECTIONS, _FAST_SCHEMA, _build_context, _chart_card, _detail_projection, _emit_perf, _normalize_concern_text, _provider_call, _trusted_projection, _validate_concern_semantics, _validate_detail_text, _validate_fast_texts, run_concern_answer, run_detail, run_fast_reading
 from api.customer_routes import _move_fast_back_link_to_header, _render_fast_prose, _render_fast_result, _split_fast_prose
 
 
@@ -590,6 +590,46 @@ def test_concern_semantics_allows_qualified_unknown_time_guidance():
         "\u51fa\u751f\u6642\u523b\u304c\u4e0d\u660e\u306e\u305f\u3081\u66ab\u5b9a\u7684\u306a\u5224\u65ad\u3067\u3059\u304c\u3001\u8eab\u5f37\u5bc4\u308a\u306e\u50be\u5411\u304c\u3042\u308a\u307e\u3059\u3002",
         context,
     )
+
+
+def test_fast_projection_exposes_birth_scope_and_provisional_components():
+    context = {
+        "birth_time_status": {
+            "known": False,
+            "calculation_scope": "three_pillars",
+            "interpretation_scope": "known_pillars_only",
+            "is_provisional_due_to_unknown_birth_time": True,
+        },
+        "uncertainty": [{"code": "birth_time_unknown"}],
+        "chart": {"pillars": {"year": {}, "month": {}, "day": {}, "hour": None}},
+        "facts": [],
+        "luck": {},
+        "strength": {"status": "provisional", "confidence": "medium", "scope": "known_pillars_only"},
+        "pattern": {"status": "provisional_pattern_judgment_v2", "confidence": "high", "scope": "known_pillars_only"},
+        "useful_gods": {"status": "provisional_useful_gods_v3", "confidence": "medium", "scope": "known_pillars_only"},
+    }
+    projection = _trusted_projection(context, {"components": {}})
+    status = projection["analysis_status"]
+    assert status["birth_time_known"] is False
+    assert status["calculation_scope"] == "three_pillars"
+    assert status["provisional_due_to_unknown_birth_time"] is True
+    assert status["components"]["strength"]["provisional"] is True
+
+
+def test_fast_and_detail_reject_unqualified_unknown_time_claims():
+    context = {"birth_time_status": {"known": False}}
+    sections = {key: "あなたは身強です。" for key, _ in FAST_SECTIONS}
+    with pytest.raises(ValueError, match="provisional astrology claim"):
+        _validate_fast_texts(sections, context)
+    with pytest.raises(ValueError, match="provisional astrology claim"):
+        _validate_detail_text("身強です。", context, detail_type="career")
+    _validate_detail_text("出生時刻が不明なため、三柱では身強寄りの傾向として見ます。", context, detail_type="career")
+
+
+def test_fast_and_detail_reject_uncomputed_consequential_ranking():
+    known = {"birth_time_status": {"known": True}, "luck": {"five_year_luck": [{"year": 2026}]}}
+    with pytest.raises(ValueError, match="consequential ranking"):
+        _validate_detail_text("2026年が転職の第一候補です。", known, detail_type="future_flow")
 
 
 def test_concern_semantics_rejects_year_targeting_language():

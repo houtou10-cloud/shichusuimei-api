@@ -143,6 +143,17 @@ def _provider_call(client: Any, *, model: str, instructions: str, context: Mappi
         raise CustomerConfigurationError("fast provider unavailable", reason_code="responses_api_unavailable")
     content = json.dumps(context, ensure_ascii=False, separators=(",", ":"))
     provider_instructions = instructions
+    analysis_status = context.get("analysis_status") if isinstance(context, Mapping) else None
+    if not isinstance(analysis_status, Mapping) and isinstance(context, Mapping):
+        trusted_context = context.get("trusted")
+        if isinstance(trusted_context, Mapping):
+            analysis_status = trusted_context.get("analysis_status")
+    if isinstance(analysis_status, Mapping) and analysis_status.get("birth_time_known") is False:
+        provider_instructions += (
+            " Birth time is unknown and only three pillars are available. "
+            "Do not infer an hour pillar. Treat strength, pattern, and useful-element results "
+            "as provisional tendencies or candidates, not definitive facts."
+        )
     permitted_years = context.get("permitted_years") if isinstance(context, Mapping) else None
     if isinstance(permitted_years, list):
         provider_instructions += (
@@ -232,7 +243,37 @@ def _trusted_projection(context: Mapping[str, Any], metadata: Mapping[str, Any])
             return [compact(item) for item in value]
         return deepcopy(value)
 
+    birth_status = context.get("birth_time_status", {})
+    if not isinstance(birth_status, Mapping):
+        birth_status = {}
+    component_status: dict[str, Any] = {}
+    for name in ("strength", "pattern", "useful_gods"):
+        value = context.get(name)
+        meta_value = metadata.get("components", {}).get(name, {}) if isinstance(metadata.get("components", {}), Mapping) else {}
+        value = value if isinstance(value, Mapping) else {}
+        meta_value = meta_value if isinstance(meta_value, Mapping) else {}
+        component_status[name] = {
+            "status": value.get("status", meta_value.get("status")),
+            "confidence": value.get("confidence"),
+            "scope": value.get("scope"),
+            "provisional": bool(
+                value.get("provisional_due_to_unknown_birth_time")
+                or str(value.get("status", "")).startswith("provisional")
+                or str(meta_value.get("status", "")).startswith("provisional")
+            ),
+        }
+
     return {
+        "analysis_status": {
+            "birth_time_known": birth_status.get("known"),
+            "calculation_scope": birth_status.get("calculation_scope"),
+            "interpretation_scope": birth_status.get("interpretation_scope"),
+            "provisional_due_to_unknown_birth_time": bool(
+                birth_status.get("is_provisional_due_to_unknown_birth_time")
+            ),
+            "uncertainty": compact(context.get("uncertainty", [])),
+            "components": component_status,
+        },
         "chart": {
             "pillars": deepcopy(chart.get("pillars", {})),
             "day_master": chart.get("day_master"),
@@ -260,6 +301,62 @@ def _validate_fast_texts(sections: Mapping[str, Any], context: Mapping[str, Any]
         for number in re.findall(r"(?<![A-Za-z])\d+(?:\.\d+)?", text):
             if number not in allowed_numbers:
                 raise ValueError("unsupported numeric claim in fast prose")
+        _validate_provisional_claims(text, context)
+        _validate_unsupported_consequential_claims(text)
+
+
+def _context_birth_time_unknown(context: Mapping[str, Any]) -> bool:
+    status = context.get("birth_time_status", {})
+    return isinstance(status, Mapping) and status.get("known") is False
+
+
+def _fast_safety_instructions(context: Mapping[str, Any]) -> str:
+    """Keep provider wording aligned with the engine's uncertainty contract."""
+    lines = [
+        "Use only trusted calculated facts in the supplied context; do not calculate astrology yourself.",
+        "Do not invent year rankings, success probabilities, scores, percentages, or other numeric evaluations.",
+        "A supportive annual-luck tendency is not a best-year or first-choice ranking for a real-life decision.",
+    ]
+    if _context_birth_time_unknown(context):
+        lines.append(
+            "Birth time is unknown and only three pillars are available. Do not infer an hour pillar. "
+            "Describe strength, pattern, and useful-element results as provisional tendencies or candidates, not definitive facts."
+        )
+    return " " + " ".join(lines)
+
+
+def _validate_provisional_claims(text: str, context: Mapping[str, Any]) -> None:
+    """Keep three-pillar results from being presented as complete facts."""
+    if not _context_birth_time_unknown(context):
+        return
+    # These are deliberately narrow: qualified phrases such as 身強寄り or
+    # 用神候補 are allowed, while an unqualified definitive label is not.
+    definitive = re.compile(
+        r"(?:身強|身弱)(?:です|だと(?:判定|判断)されます|と判定されます)|"
+        r"用神(?:は|が)[^。\n]{0,16}(?:です|となります)|"
+        r"格局(?:は|が)[^。\n]{0,16}(?:です|となります)"
+    )
+    for match in definitive.finditer(text):
+        nearby = text[max(0, match.start() - 48):match.end() + 48]
+        if not re.search(r"(?:暫定|傾向|可能性|候補|三柱|出生時刻が不明|推定)", nearby):
+            raise ValueError("provisional astrology claim")
+
+
+def _validate_unsupported_consequential_claims(text: str) -> None:
+    """Reject rankings/guarantees not calculated by the astrology engine."""
+    year = "\u5e74"
+    ranking_terms = ("\u7b2c\u4e00\u5019\u88dc", "\u6700\u9069", "\u30d9\u30b9\u30c8", "\u7167\u6e96\u3092\u7f6e\u304f", "\u672c\u547d")
+    ranking = re.compile(r"(?:20\d{2}" + year + r"|\u4eca\u5e74|\u6765\u5e74).{0,24}(?:" + "|".join(ranking_terms) + r")")
+    consequential_terms = ("\u8ee2\u8077", "\u9000\u8077", "\u72ec\u7acb", "\u6295\u8cc7", "\u7d50\u5a5a")
+    actions = ("\u3059\u3079\u304d", "\u5fc5\u305a", "\u6210\u529f\u3059\u308b", "\u6700\u9069")
+    consequential = re.compile(r"(?:" + "|".join(consequential_terms) + r").{0,18}(?:" + "|".join(actions) + r")")
+    for match in list(ranking.finditer(text)) + list(consequential.finditer(text)):
+        # Explanatory negation (for example, “第一候補ではありません”) is
+        # a safety statement, not an unsupported ranking claim.
+        following = text[match.end():match.end() + 8]
+        if re.search(r"(?:ではありません|とは限りません|と断定しません)", following):
+            continue
+        raise ValueError("unsupported consequential ranking")
 
 
 def _validate_detail_text(text: str, context: Mapping[str, Any], *, performance: dict[str, Any] | None = None, detail_type: str | None = None) -> None:
@@ -274,6 +371,8 @@ def _validate_detail_text(text: str, context: Mapping[str, Any], *, performance:
                 performance["validation_detail_type"] = detail_type
                 performance["validation_reason"] = "numeric_not_in_trusted_facts"
             raise ValueError("unsupported numeric claim in detail prose")
+    _validate_provisional_claims(text, context)
+    _validate_unsupported_consequential_claims(text)
 
 
 def _numeric_kind(text: str, token: str) -> str:
@@ -508,6 +607,7 @@ def _detail_projection(context: Mapping[str, Any], metadata: Mapping[str, Any], 
     base = _trusted_projection(context, metadata)
     if detail_type in {"career", "wealth", "relationships", "chart_explanation"}:
         return {
+            "analysis_status": base["analysis_status"],
             "chart": base["chart"],
             "facts": base["facts"],
             "strength": base["strength"],
@@ -516,18 +616,21 @@ def _detail_projection(context: Mapping[str, Any], metadata: Mapping[str, Any], 
         }
     if detail_type == "current_luck":
         return {
+            "analysis_status": base["analysis_status"],
             "chart": base["chart"],
             "facts": base["facts"],
             "current_luck": base["current_luck"],
         }
     if detail_type in {"future_flow", "annual_luck"}:
         return {
+            "analysis_status": base["analysis_status"],
             "chart": base["chart"],
             "facts": base["facts"],
             "current_luck": base["current_luck"],
             "five_year_luck": _compact_future_luck(base["five_year_luck"]),
         }
     return {
+        "analysis_status": base["analysis_status"],
         "chart": base["chart"],
         "facts": base["facts"],
         "current_luck": base["current_luck"],
