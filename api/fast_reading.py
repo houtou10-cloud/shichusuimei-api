@@ -137,7 +137,7 @@ def _extract_text(response: Any) -> str:
     raise ValueError("provider response has no text")
 
 
-def _provider_call(client: Any, *, model: str, instructions: str, context: Mapping[str, Any], schema: Mapping[str, Any], performance: dict[str, Any] | None = None) -> dict[str, Any]:
+def _provider_call(client: Any, *, model: str, instructions: str, context: Mapping[str, Any], schema: Mapping[str, Any], performance: dict[str, Any] | None = None, max_output_tokens: int | None = None) -> dict[str, Any]:
     create = getattr(getattr(client, "responses", None), "create", None)
     if not callable(create):
         raise CustomerConfigurationError("fast provider unavailable", reason_code="responses_api_unavailable")
@@ -154,7 +154,11 @@ def _provider_call(client: Any, *, model: str, instructions: str, context: Mappi
             input=[{"role": "user", "content": content}],
             # Production logs showed repeated output_tokens=2500 responses;
             # that is the former Fast schema ceiling and can truncate JSON.
-            max_output_tokens=_FAST_MAX_OUTPUT_TOKENS if schema is _FAST_SCHEMA else 1400,
+            max_output_tokens=(
+                max_output_tokens
+                if isinstance(max_output_tokens, int) and max_output_tokens > 0
+                else (_FAST_MAX_OUTPUT_TOKENS if schema is _FAST_SCHEMA else 1400)
+            ),
             reasoning={"effort": "low"},
             store=False,
             text={"format": {"type": "json_schema", "name": "fast_reading_v1", "schema": schema, "strict": True}},
@@ -266,6 +270,18 @@ def _validate_detail_text(text: str, context: Mapping[str, Any]) -> None:
     for number in re.findall(r"(?<![A-Za-z])\d+(?:\.\d+)?", text):
         if number not in allowed_numbers:
             raise ValueError("unsupported numeric claim in detail prose")
+
+
+def _validation_code(exc: Exception) -> str:
+    """Return a non-sensitive validation category for performance diagnostics."""
+    message = str(exc)
+    if "unsupported numeric claim" in message:
+        return "unsupported_numeric_claim"
+    if "prose missing" in message:
+        return "prose_missing"
+    if "luck-only content" in message:
+        return "luck_only_content"
+    return "validation_failed"
 
 
 def _detail_projection(context: Mapping[str, Any], metadata: Mapping[str, Any], detail_type: str) -> dict[str, Any]:
@@ -659,13 +675,19 @@ def run_concern_answer(session_id: str, *, client: Any | None = None, model: str
         context=provider_context,
         schema=_DETAIL_SCHEMA,
         performance=performance,
+        # Concern answers are longer than a one-topic detail and may include
+        # the user's situation plus practical guidance.  Keep the existing
+        # Detail API ceiling unchanged; only this optional endpoint gets a
+        # larger structured-output budget.
+        max_output_tokens=2400,
     )
     answer = payload["text"]
     try:
         _validate_detail_text(answer, session["reading_context"])
-    except Exception:
+    except Exception as exc:
         if performance is not None:
             performance["validation_failed"] = True
+            performance["validation_code"] = _validation_code(exc)
         raise
     with _LOCK:
         session["concern_answer"] = answer

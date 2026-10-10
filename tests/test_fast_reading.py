@@ -186,6 +186,33 @@ def test_concern_answer_provider_and_validation_failures_are_separate():
             performance=invalid_perf,
         )
     assert invalid_perf["validation_failed"] is True
+    assert invalid_perf["validation_code"] == "unsupported_numeric_claim"
+
+
+def test_concern_answer_uses_larger_budget_without_changing_detail_budget():
+    responses = _Responses()
+    result = run_fast_reading(_value(), client=SimpleNamespace(responses=responses), model="test-model")
+    run_detail(result["session_id"], "career", client=SimpleNamespace(responses=responses), model="test-model")
+    assert responses.calls[-1]["max_output_tokens"] == 1400
+    run_concern_answer(result["session_id"], client=SimpleNamespace(responses=responses), model="test-model")
+    assert responses.calls[-1]["max_output_tokens"] == 2400
+
+
+def test_concern_answer_incomplete_provider_is_rejected_safely():
+    import api.fast_reading as fast
+
+    result = run_fast_reading(_value(), client=SimpleNamespace(responses=_Responses()), model="test-model")
+    performance = {}
+    with pytest.raises(ValueError, match="incomplete"):
+        run_concern_answer(
+            result["session_id"],
+            client=SimpleNamespace(responses=_IncompleteResponses()),
+            model="test-model",
+            performance=performance,
+        )
+    assert performance["provider_status"] == "incomplete"
+    assert performance["incomplete_reason"] == "max_output_tokens"
+    assert "concern_answer" not in fast._SESSIONS[result["session_id"]]
 
 
 def test_fast_result_renders_optional_concern_card_without_leaking_when_empty():
