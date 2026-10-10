@@ -277,6 +277,11 @@ def test_fast_result_uses_safe_detail_prose_renderer():
     assert "function renderFastProse" in document
     assert "renderFastProse(box,data.text);" in document
     assert "box.textContent=data.text;" not in document
+    sid_position = document.index('const sid="')
+    script_start = document.rfind("<script>", 0, sid_position)
+    script_end = document.find("</script>", script_start)
+    assert script_start >= 0
+    assert script_end > sid_position
 
 
 def test_chart_cache_reuses_only_same_fixture_and_second():

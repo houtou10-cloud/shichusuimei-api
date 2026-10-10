@@ -407,9 +407,16 @@ const sid="{session_id}";document.querySelectorAll('.detail-button').forEach((bu
 def _render_fast_result(result: dict[str, object]) -> str:
     """Add safe client-side paragraph rendering to the existing result shell."""
     document = _render_fast_result_raw(result)
+    # Keep the detail-button handler inside the existing script element.  The
+    # prose helper is a complete script fragment for standalone rendering, but
+    # inserting its closing tag here would leave `const sid` outside executable
+    # JavaScript and prevent all detail-button listeners from being registered.
+    detail_script = _FAST_DETAIL_PROSE_SCRIPT
+    if detail_script.rstrip().endswith("</script>"):
+        detail_script = detail_script.rstrip()[:-len("</script>")]
     document = document.replace(
         "<script>\nconst sid=",
-        _FAST_DETAIL_PROSE_SCRIPT + "\nconst sid=",
+        detail_script.rstrip() + "\nconst sid=",
         1,
     )
     return document.replace("box.textContent=data.text;", "renderFastProse(box,data.text);")
