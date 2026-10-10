@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from api.customer_pipeline import CustomerReadingInput
-from api.fast_reading import FAST_SECTIONS, _FAST_SCHEMA, _build_context, _chart_card, _detail_projection, _emit_perf, _normalize_concern_text, _provider_call, _validate_fast_texts, run_concern_answer, run_detail, run_fast_reading
+from api.fast_reading import FAST_SECTIONS, _FAST_SCHEMA, _build_context, _chart_card, _detail_projection, _emit_perf, _normalize_concern_text, _provider_call, _validate_concern_semantics, _validate_fast_texts, run_concern_answer, run_detail, run_fast_reading
 from api.customer_routes import _move_fast_back_link_to_header, _render_fast_prose, _render_fast_result, _split_fast_prose
 
 
@@ -570,3 +570,23 @@ def test_chart_inflight_failure_reaches_waiting_request(monkeypatch):
         outcomes = list(pool.map(call, (1, 2)))
     assert outcomes == [(ValueError, "shared chart failure"), (ValueError, "shared chart failure")]
     assert not fast._CHART_INFLIGHT
+
+
+def test_concern_semantics_rejects_uncomputed_career_ranking():
+    context = {"birth_time_status": {"known": False}}
+    with pytest.raises(ValueError, match="consequential ranking"):
+        _validate_concern_semantics("2026\u5e74\u304c\u8ee2\u8077\u306e\u7b2c\u4e00\u5019\u88dc\u3067\u3059\u3002", context)
+
+
+def test_concern_semantics_rejects_definitive_unknown_time_label():
+    context = {"birth_time_status": {"known": False}}
+    with pytest.raises(ValueError, match="provisional astrology claim"):
+        _validate_concern_semantics("\u3042\u306a\u305f\u306f\u8eab\u5f37\u3067\u3059\u3002", context)
+
+
+def test_concern_semantics_allows_qualified_unknown_time_guidance():
+    context = {"birth_time_status": {"known": False}}
+    _validate_concern_semantics(
+        "\u51fa\u751f\u6642\u523b\u304c\u4e0d\u660e\u306e\u305f\u3081\u66ab\u5b9a\u7684\u306a\u5224\u65ad\u3067\u3059\u304c\u3001\u8eab\u5f37\u5bc4\u308a\u306e\u50be\u5411\u304c\u3042\u308a\u307e\u3059\u3002",
+        context,
+    )
