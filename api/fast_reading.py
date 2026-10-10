@@ -265,7 +265,7 @@ def _validate_fast_texts(sections: Mapping[str, Any], context: Mapping[str, Any]
 def _validate_detail_text(text: str, context: Mapping[str, Any], *, performance: dict[str, Any] | None = None, detail_type: str | None = None) -> None:
     if not isinstance(text, str) or not text.strip():
         raise ValueError("detail prose missing")
-    allowed_numbers = {str(year) for year in _trusted_luck_years(context)}
+    allowed_numbers = _trusted_detail_numbers(context, detail_type)
     for number in re.findall(r"(?<![A-Za-z])\d+(?:\.\d+)?", text):
         if number not in allowed_numbers:
             if performance is not None:
@@ -289,6 +289,31 @@ def _numeric_kind(text: str, token: str) -> str:
     if any(mark in nearby for mark in ("点", "割合", "%", "％", "スコア")):
         return "score"
     return "other"
+
+
+def _trusted_detail_numbers(context: Mapping[str, Any], detail_type: str | None) -> set[str]:
+    """Return only numeric values explicitly supplied for this detail."""
+    numbers = {str(year) for year in _trusted_luck_years(context)}
+    if detail_type not in {"current_luck", "future_flow", "annual_luck"}:
+        return numbers
+    luck = context.get("luck", {})
+    current = luck.get("current_luck", {}) if isinstance(luck, Mapping) else {}
+    numeric_keys = {"exact_age", "calendar_age", "years_until_next_luck"}
+    if isinstance(current, Mapping):
+        for key in numeric_keys:
+            value = current.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                numbers.add(str(value))
+                if isinstance(value, float) and value.is_integer():
+                    numbers.add(str(int(value)))
+        for pillar_key in ("current_pillar", "previous_pillar", "next_pillar"):
+            pillar = current.get(pillar_key)
+            if isinstance(pillar, Mapping):
+                for key in ("start_age", "end_age"):
+                    value = pillar.get(key)
+                    if isinstance(value, (int, float)) and not isinstance(value, bool):
+                        numbers.add(str(value))
+    return numbers
 
 
 def _trusted_luck_years(context: Mapping[str, Any]) -> set[int]:

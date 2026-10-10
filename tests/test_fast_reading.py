@@ -631,6 +631,34 @@ def test_detail_numeric_failure_is_diagnosed_without_exposing_value():
     assert performance["validation_reason"] == "numeric_not_in_trusted_facts"
 
 
+def test_detail_luck_numbers_use_detail_specific_trusted_facts():
+    from api.fast_reading import _validate_detail_text
+
+    context = {
+        "luck": {
+            "current_luck": {
+                "exact_age": 41,
+                "current_pillar": {"start_age": 39.2, "end_age": 49.2},
+            },
+            "five_year_luck": [{"annual_luck": {"year": 2026}}],
+        }
+    }
+    _validate_detail_text("41歳時点では2026年の流れを確認します。", context, detail_type="current_luck")
+    with pytest.raises(ValueError, match="unsupported numeric claim"):
+        _validate_detail_text("42歳が最適な時期です。", context, detail_type="current_luck")
+
+
+def test_numeric_kind_distinguishes_score_from_trusted_time_values():
+    from api.fast_reading import _numeric_kind
+
+    assert _numeric_kind("2028年の流れ", "2028") == "year"
+    assert _numeric_kind("41歳時点", "41") == "age"
+    assert _numeric_kind("10年間の流れ", "10") == "duration"
+    assert _numeric_kind("50%の評価", "50") == "score"
+    assert _numeric_kind("3点の評価", "3") == "score"
+    assert _numeric_kind("3個の要素", "3") == "other"
+
+
 def test_detail_numeric_failure_retries_once_and_caches_only_valid_text():
     class _Sequence:
         def __init__(self):
