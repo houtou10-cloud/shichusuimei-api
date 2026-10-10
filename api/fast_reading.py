@@ -262,13 +262,33 @@ def _validate_fast_texts(sections: Mapping[str, Any], context: Mapping[str, Any]
                 raise ValueError("unsupported numeric claim in fast prose")
 
 
-def _validate_detail_text(text: str, context: Mapping[str, Any]) -> None:
+def _validate_detail_text(text: str, context: Mapping[str, Any], *, performance: dict[str, Any] | None = None, detail_type: str | None = None) -> None:
     if not isinstance(text, str) or not text.strip():
         raise ValueError("detail prose missing")
     allowed_numbers = {str(year) for year in _trusted_luck_years(context)}
     for number in re.findall(r"(?<![A-Za-z])\d+(?:\.\d+)?", text):
         if number not in allowed_numbers:
+            if performance is not None:
+                performance["validation_numeric_kind"] = _numeric_kind(text, number)
+                performance["validation_numeric_trusted"] = False
+                performance["validation_detail_type"] = detail_type
+                performance["validation_reason"] = "numeric_not_in_trusted_facts"
             raise ValueError("unsupported numeric claim in detail prose")
+
+
+def _numeric_kind(text: str, token: str) -> str:
+    """Classify a rejected numeric token without logging its value or prose."""
+    position = text.find(token)
+    nearby = text[max(0, position - 12):position + len(token) + 12]
+    if len(token) == 4 and token.startswith(("19", "20")) and "年" in nearby:
+        return "year"
+    if any(mark in nearby for mark in ("歳", "才", "年齢")):
+        return "age"
+    if any(mark in nearby for mark in ("期間", "年間", "年単位", "か月")):
+        return "duration"
+    if any(mark in nearby for mark in ("点", "割合", "%", "％", "スコア")):
+        return "score"
+    return "other"
 
 
 def _trusted_luck_years(context: Mapping[str, Any]) -> set[int]:
@@ -838,13 +858,46 @@ def run_detail(session_id: str, detail_type: str, *, client: Any | None = None, 
         text = payload["text"]
     validation_started = time.perf_counter()
     try:
-        _validate_detail_text(text, session["reading_context"])
+        _validate_detail_text(
+            text,
+            session["reading_context"],
+            performance=performance,
+            detail_type=detail_type,
+        )
+        if performance is not None:
+            performance["validation_failed"] = False
+            performance["validation_code"] = None
     except Exception as exc:
         if performance is not None:
             performance["validation_failed"] = True
             performance["validation_code"] = _validation_code(exc)
             performance["failure_stage"] = "detail_validation"
-        raise
+        if _validation_code(exc) != "unsupported_numeric_claim" or client is None:
+            raise
+        if performance is not None:
+            performance["repair_count"] = 1
+        retry_payload = _provider_call(
+            client,
+            model=resolved_model,
+            instructions=(
+                "Regenerate only this detail. Remove every untrusted numeric claim; use only trusted years, ages, durations, and scores supplied in the context. "
+                "Do not invent numbers, and preserve supported qualitative facts."
+            ),
+            context=context,
+            schema=_DETAIL_SCHEMA,
+            performance=performance,
+            max_output_tokens=2400,
+        )
+        text = retry_payload["text"]
+        _validate_detail_text(
+            text,
+            session["reading_context"],
+            performance=performance,
+            detail_type=detail_type,
+        )
+        if performance is not None:
+            performance["validation_failed"] = False
+            performance["validation_code"] = None
     if detail_type in {"career", "wealth", "relationships"} and any(
         term in text for term in ("大運", "歳運", "年運", "現在の運勢", "今後の流れ")
     ):

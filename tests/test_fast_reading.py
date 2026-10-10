@@ -612,3 +612,40 @@ def test_detail_allows_years_in_nested_annual_luck_projection():
     _validate_detail_text("2026\u5e74\u306e\u50be\u5411\u30682027\u5e74\u306e\u6d41\u308c\u3092\u78ba\u8a8d\u3057\u307e\u3059\u3002", context)
     with pytest.raises(ValueError, match="unsupported numeric claim"):
         _validate_detail_text("2028\u5e74\u306e\u65ad\u5b9a\u3092\u8ffd\u52a0\u3057\u307e\u3059\u3002", context)
+
+
+def test_detail_numeric_failure_is_diagnosed_without_exposing_value():
+    from api.fast_reading import _validate_detail_text
+
+    performance = {}
+    with pytest.raises(ValueError, match="unsupported numeric claim"):
+        _validate_detail_text(
+            "2028\u5e74\u306e\u50be\u5411\u3067\u3059\u3002",
+            {"luck": {"five_year_luck": [{"annual_luck": {"year": 2026}}]}},
+            performance=performance,
+            detail_type="future_flow",
+        )
+    assert performance["validation_numeric_kind"] == "year"
+    assert performance["validation_numeric_trusted"] is False
+    assert performance["validation_detail_type"] == "future_flow"
+    assert performance["validation_reason"] == "numeric_not_in_trusted_facts"
+
+
+def test_detail_numeric_failure_retries_once_and_caches_only_valid_text():
+    class _Sequence:
+        def __init__(self):
+            self.calls = []
+
+        def create(self, **kwargs):
+            self.calls.append(kwargs)
+            text = "9999\u5e74\u306e\u65ad\u5b9a\u3067\u3059\u3002" if len(self.calls) == 1 else "\u547d\u5f0f\u306e\u50be\u5411\u3092\u78ba\u8a8d\u3057\u3001\u73fe\u5b9f\u7684\u306a\u9078\u629e\u80a2\u3092\u6574\u7406\u3057\u307e\u3059\u3002"
+            return SimpleNamespace(output_text=json.dumps({"text": text}, ensure_ascii=False))
+
+    sequence = _Sequence()
+    result = run_fast_reading(_value(), client=SimpleNamespace(responses=_Responses()), model="test-model")
+    performance = {}
+    text = run_detail(result["session_id"], "future_flow", client=SimpleNamespace(responses=sequence), model="test-model", performance=performance)
+    assert text
+    assert len(sequence.calls) == 2
+    assert performance["repair_count"] == 1
+    assert result["session_id"]
