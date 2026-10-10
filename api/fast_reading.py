@@ -389,11 +389,26 @@ def _fast_fallback(context: Mapping[str, Any], metadata: Mapping[str, Any]) -> d
     return {key: f"{label}は、{day_master}を中心に命式の根拠を確認しながら読み解きます。" for key, label in FAST_SECTIONS}
 
 
+def _chart_mapping(value: Any) -> Mapping[str, Any] | None:
+    """Normalize mapping-like chart objects at the display boundary."""
+    if isinstance(value, Mapping):
+        return value
+    dumper = getattr(value, "model_dump", None)
+    if callable(dumper):
+        dumped = dumper()
+        return dumped if isinstance(dumped, Mapping) else None
+    attrs = getattr(value, "__dict__", None)
+    return attrs if isinstance(attrs, Mapping) else None
+
+
 def _chart_card(chart: Mapping[str, Any]) -> dict[str, Any]:
     pillars = chart.get("chart", {})
     result: dict[str, Any] = {}
     for position in ("year", "month", "day", "hour"):
-        pillar = pillars.get(position, {}) if isinstance(pillars, Mapping) else {}
+        raw_pillar = pillars.get(position, {}) if isinstance(pillars, Mapping) else {}
+        pillar = _chart_mapping(raw_pillar)
+        if pillar is None:
+            raise TypeError(f"chart pillar {position} is not mapping-like")
         hidden = pillar.get("hidden_stem_ten_gods", [])
         result[position] = {
             "stem": pillar.get("stem"),

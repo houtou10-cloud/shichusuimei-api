@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from api.customer_pipeline import CustomerReadingInput
-from api.fast_reading import FAST_SECTIONS, _FAST_SCHEMA, _build_context, _detail_projection, _emit_perf, _provider_call, _validate_fast_texts, run_detail, run_fast_reading
+from api.fast_reading import FAST_SECTIONS, _FAST_SCHEMA, _build_context, _chart_card, _detail_projection, _emit_perf, _provider_call, _validate_fast_texts, run_detail, run_fast_reading
 from api.customer_routes import _move_fast_back_link_to_header, _render_fast_prose, _render_fast_result, _split_fast_prose
 
 
@@ -73,6 +73,18 @@ def test_fast_provider_invalid_payload_is_classified(text, stage):
             performance=performance,
         )
     assert performance["failure_stage"] == stage
+
+
+def test_chart_card_preserves_mapping_like_pillars_and_rejects_invalid_shape():
+    pillar = SimpleNamespace(
+        stem="乙", branch="巳", stem_ten_god="比肩", twelve_stage="沐浴",
+        hidden_stems=["丙"], hidden_stem_ten_gods=[{"ten_god": "傷官"}],
+    )
+    card = _chart_card({"chart": {position: pillar for position in ("year", "month", "day", "hour")}})
+    assert card["year"]["stem"] == "乙"
+    assert card["year"]["hidden_stem_ten_gods"] == ["傷官"]
+    with pytest.raises(TypeError, match="chart pillar year"):
+        _chart_card({"chart": {"year": None}})
 
 
 def test_annual_card_handles_optional_current_luck_attribute_error(monkeypatch):
