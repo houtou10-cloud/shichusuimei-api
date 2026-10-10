@@ -1,4 +1,5 @@
 import json
+from html.parser import HTMLParser
 from types import SimpleNamespace
 
 import pytest
@@ -282,6 +283,31 @@ def test_fast_result_uses_safe_detail_prose_renderer():
     script_end = document.find("</script>", script_start)
     assert script_start >= 0
     assert script_end > sid_position
+
+    class _ScriptParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.in_script = False
+            self.script_text = []
+            self.body_text = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "script":
+                self.in_script = True
+
+        def handle_endtag(self, tag):
+            if tag == "script":
+                self.in_script = False
+
+        def handle_data(self, data):
+            (self.script_text if self.in_script else self.body_text).append(data)
+
+    parser = _ScriptParser()
+    parser.feed(document)
+    assert any('const sid="' in text for text in parser.script_text)
+    assert not any('const sid="' in text for text in parser.body_text)
+    assert document.count('class="detail-button"') == 5
+    assert "fetch('/app/reading/detail'" in document
 
 
 def test_chart_cache_reuses_only_same_fixture_and_second():
