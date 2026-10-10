@@ -93,6 +93,26 @@ _FAST_CSS += """
 </style>
 """
 
+# Keep responsive constraints local to the Fast Reading components.  Tables
+# intentionally retain their readable minimum width inside ``.table-wrap``;
+# prose/cards must instead be allowed to shrink so they cannot widen the page.
+_FAST_RESPONSIVE_CSS = """
+<style>
+.fast-shell,.fast-grid,.fast-card,.chart-record{min-width:0;max-width:100%;}
+.fast-grid>*{min-width:0;}
+.fast-card p,.fast-prose,.detail-box{max-width:100%;overflow-wrap:anywhere;word-break:break-word;}
+.fast-facts{min-width:0;max-width:100%;}
+.fast-facts span{min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;}
+.table-wrap{width:100%;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;}
+.detail-button,.concern-answer-button{max-width:100%;white-space:normal;}
+@media(max-width:680px){
+  .fast-shell{width:100%;}
+  .fast-card,.chart-record{width:auto;}
+  .fast-head h1,.fast-head p{max-width:100%;overflow-wrap:anywhere;word-break:break-word;}
+}
+</style>
+"""
+
 
 def _option(value: str, label: str, selected: str) -> str:
     selected_attr = " selected" if value == selected else ""
@@ -417,7 +437,7 @@ def _render_fast_result(result: dict[str, object]) -> str:
     if concern_card:
         document = replace_once(
             "</head>",
-            "<style>.concern-card{grid-column:1/-1;border:1px solid #dfd1c2;border-radius:12px;padding:18px;background:#fffaf1}.concern-card h2{color:#5d3b25}.concern-label{font-weight:700;color:#75685c}.concern-text{white-space:pre-wrap;margin:8px 0 14px}.concern-answer-button{border:1px solid #8a5a3b;background:#fff;color:#6a412a;border-radius:7px;padding:8px 12px;cursor:pointer}.concern-answer-button:disabled{opacity:.65;cursor:wait}</style></head>",
+            "<style>.concern-card{grid-column:1/-1;min-width:0;max-width:100%;border:1px solid #dfd1c2;border-radius:12px;padding:18px;background:#fffaf1}.concern-card h2{color:#5d3b25}.concern-label{font-weight:700;color:#75685c}.concern-text{white-space:pre-wrap;max-width:100%;overflow-wrap:anywhere;word-break:break-word;margin:8px 0 14px}.concern-answer-button{border:1px solid #8a5a3b;background:#fff;color:#6a412a;border-radius:7px;padding:8px 12px;cursor:pointer;max-width:100%;white-space:normal}.concern-answer-button:disabled{opacity:.65;cursor:wait}</style></head>",
             label="concern_css_head",
         )
         document = replace_once(
@@ -425,6 +445,11 @@ def _render_fast_result(result: dict[str, object]) -> str:
             f"</section>{concern_card}</main><script>",
             label="concern_card",
         )
+    document = replace_once(
+        "</head>",
+        _FAST_RESPONSIVE_CSS + "</head>",
+        label="responsive_css_head",
+    )
     # Keep the detail-button handler inside the existing script element.  The
     # prose helper is a complete script fragment for standalone rendering, but
     # inserting its closing tag here would leave `const sid` outside executable

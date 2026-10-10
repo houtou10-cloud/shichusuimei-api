@@ -201,6 +201,22 @@ def test_fast_result_renders_optional_concern_card_without_leaking_when_empty():
     assert "button.disabled=false" in document
 
 
+def test_fast_result_scopes_mobile_overflow_to_tables_and_shrinks_cards():
+    document = _render_fast_result({
+        "session_id": "a" * 32,
+        "chart": {},
+        "sections": {key: "本文" for key, _ in FAST_SECTIONS},
+        "consultation": "x" * 500,
+    })
+    assert 'name="viewport" content="width=device-width,initial-scale=1"' in document
+    assert ".fast-shell,.fast-grid,.fast-card,.chart-record{min-width:0" in document
+    assert ".table-wrap{width:100%;min-width:0;max-width:100%;overflow-x:auto" in document
+    assert ".concern-text{" in document and "max-width:100%;overflow-wrap:anywhere" in document
+    # No page-wide overflow suppression is used as a workaround; only table
+    # regions are allowed to scroll horizontally.
+    assert "body{overflow-x:hidden" not in document
+
+
 def test_fast_result_does_not_silently_drop_concern_markup_when_marker_missing(monkeypatch):
     import api.customer_routes as routes
 
