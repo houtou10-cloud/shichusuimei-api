@@ -249,11 +249,7 @@ def _trusted_projection(context: Mapping[str, Any], metadata: Mapping[str, Any])
 def _validate_fast_texts(sections: Mapping[str, Any], context: Mapping[str, Any]) -> None:
     if set(sections) != {key for key, _ in FAST_SECTIONS}:
         raise ValueError("fast sections incomplete")
-    allowed_numbers = {
-        str(item.get("year"))
-        for item in context.get("luck", {}).get("five_year_luck", [])
-        if isinstance(item, Mapping) and isinstance(item.get("year"), int)
-    }
+    allowed_numbers = {str(year) for year in _trusted_luck_years(context)}
     for key, text in sections.items():
         if not isinstance(text, str) or not text.strip():
             raise ValueError("fast prose missing")
@@ -269,14 +265,33 @@ def _validate_fast_texts(sections: Mapping[str, Any], context: Mapping[str, Any]
 def _validate_detail_text(text: str, context: Mapping[str, Any]) -> None:
     if not isinstance(text, str) or not text.strip():
         raise ValueError("detail prose missing")
-    allowed_numbers = {
-        str(item.get("year"))
-        for item in context.get("luck", {}).get("five_year_luck", [])
-        if isinstance(item, Mapping) and isinstance(item.get("year"), int)
-    }
+    allowed_numbers = {str(year) for year in _trusted_luck_years(context)}
     for number in re.findall(r"(?<![A-Za-z])\d+(?:\.\d+)?", text):
         if number not in allowed_numbers:
             raise ValueError("unsupported numeric claim in detail prose")
+
+
+def _trusted_luck_years(context: Mapping[str, Any]) -> set[int]:
+    """Collect trusted annual years from both current and legacy shapes."""
+    years: set[int] = set()
+    luck = context.get("luck", {})
+    entries = luck.get("five_year_luck", []) if isinstance(luck, Mapping) else []
+    for item in entries:
+        if not isinstance(item, Mapping):
+            continue
+        year = item.get("year")
+        if isinstance(year, int):
+            years.add(year)
+        annual = item.get("annual_luck")
+        if isinstance(annual, Mapping):
+            nested_year = annual.get("year")
+            if isinstance(nested_year, int):
+                years.add(nested_year)
+        elif isinstance(annual, list):
+            for annual_item in annual:
+                if isinstance(annual_item, Mapping) and isinstance(annual_item.get("year"), int):
+                    years.add(annual_item["year"])
+    return years
 
 
 def _validation_code(exc: Exception) -> str:
@@ -332,6 +347,8 @@ def _concern_quality_instructions(context: Mapping[str, Any]) -> str:
         "State the direct answer first, then explain the relevant chart tendency, then practical advice.",
         "When natural for the consultation, organize the answer as: direct answer, tendency from the Four Pillars, and practical advice; do not add unrelated boilerplate headings.",
         "Clearly separate trusted calculated facts, astrological interpretation, and real-world advice.",
+        "Use plain Japanese for customers. If using terms such as day master, strong/weak, pattern, useful element, major luck, or annual luck, explain each briefly and only when supported by trusted facts.",
+        "Keep paragraphs short: one topic per paragraph, normally two to four sentences. Give concrete steps when suggesting a two-stage approach.",
         "Do not rank years as the best or first choice for a consequential decision unless the trusted data explicitly provides that ranking.",
         "Do not state success, failure, certainty, probability, or an instruction to change jobs as a fact.",
     ]
@@ -356,7 +373,18 @@ def _validate_concern_semantics(text: str, context: Mapping[str, Any]) -> None:
     # ranking.  Keep the trusted-year numeric validation separate from this
     # semantic check.
     year = chr(0x5e74)
-    ranking = re.compile(r"(?:20\d{2}" + year + "|" + chr(0x4eca) + year + "|" + chr(0x6765) + year + ").{0,24}(?:" + chr(0x7b2c) + chr(0x4e00) + chr(0x5019) + chr(0x88dc) + "|" + chr(0x6700) + chr(0x9069) + "|" + chr(0x30d9) + chr(0x30b9) + chr(0x30c8) + ")")
+    ranking_terms = (
+        "".join(map(chr, (0x7b2c, 0x4e00, 0x5019, 0x88dc))),
+        "".join(map(chr, (0x6700, 0x9069))),
+        "".join(map(chr, (0x30d9, 0x30b9, 0x30c8))),
+        "".join(map(chr, (0x7167, 0x6e96, 0x3092, 0x7f6e, 0x304f))),
+        "".join(map(chr, (0x672c, 0x547d))),
+    )
+    ranking = re.compile(
+        r"(?:20\d{2}" + year + "|" + chr(0x4eca) + year + "|" + chr(0x6765) + year + ").{0,24}(?:"
+        + "|".join(ranking_terms)
+        + ")"
+    )
     consequential_terms = (
         "".join(map(chr, (0x8ee2, 0x8077))),
         "".join(map(chr, (0x9000, 0x8077))),
@@ -386,11 +414,7 @@ def _validate_concern_semantics(text: str, context: Mapping[str, Any]) -> None:
 
 
 def _allowed_concern_years(context: Mapping[str, Any]) -> set[int]:
-    return {
-        item["year"]
-        for item in context.get("luck", {}).get("five_year_luck", [])
-        if isinstance(item, Mapping) and isinstance(item.get("year"), int)
-    }
+    return _trusted_luck_years(context)
 
 
 def _concern_heading(consultation: str) -> str:

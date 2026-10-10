@@ -590,3 +590,25 @@ def test_concern_semantics_allows_qualified_unknown_time_guidance():
         "\u51fa\u751f\u6642\u523b\u304c\u4e0d\u660e\u306e\u305f\u3081\u66ab\u5b9a\u7684\u306a\u5224\u65ad\u3067\u3059\u304c\u3001\u8eab\u5f37\u5bc4\u308a\u306e\u50be\u5411\u304c\u3042\u308a\u307e\u3059\u3002",
         context,
     )
+
+
+def test_concern_semantics_rejects_year_targeting_language():
+    context = {"birth_time_status": {"known": True}}
+    with pytest.raises(ValueError, match="consequential ranking"):
+        _validate_concern_semantics("2026\u5e74\u306b\u8ee2\u8077\u306e\u672c\u547d\u3068\u3057\u3066\u7167\u6e96\u3092\u7f6e\u304d\u307e\u3057\u3087\u3046\u3002", context)
+
+
+def test_detail_allows_years_in_nested_annual_luck_projection():
+    context = {
+        "luck": {
+            "five_year_luck": [
+                {"annual_luck": {"year": 2026}},
+                {"annual_luck": {"year": 2027}},
+            ]
+        }
+    }
+    from api.fast_reading import _validate_detail_text
+
+    _validate_detail_text("2026\u5e74\u306e\u50be\u5411\u30682027\u5e74\u306e\u6d41\u308c\u3092\u78ba\u8a8d\u3057\u307e\u3059\u3002", context)
+    with pytest.raises(ValueError, match="unsupported numeric claim"):
+        _validate_detail_text("2028\u5e74\u306e\u65ad\u5b9a\u3092\u8ffd\u52a0\u3057\u307e\u3059\u3002", context)
