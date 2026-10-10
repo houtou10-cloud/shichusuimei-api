@@ -619,7 +619,7 @@ def run_detail(session_id: str, detail_type: str, *, client: Any | None = None, 
     return text
 
 
-def run_concern_answer(session_id: str, *, client: Any | None = None, model: str | None = None) -> dict[str, str]:
+def run_concern_answer(session_id: str, *, client: Any | None = None, model: str | None = None, performance: dict[str, Any] | None = None) -> dict[str, str]:
     """Generate and cache a server-owned answer to the submitted consultation."""
     session = get_session(session_id)
     if session is None:
@@ -630,6 +630,8 @@ def run_concern_answer(session_id: str, *, client: Any | None = None, model: str
         raise ValueError("consultation is empty")
     cached = session.get("concern_answer")
     if isinstance(cached, str) and cached:
+        if performance is not None:
+            performance["cache_hit"] = True
         return {"consultation": consultation, "answer": cached}
     context = _detail_projection(
         session["reading_context"], session["judgment_metadata"], "future_flow"
@@ -642,6 +644,8 @@ def run_concern_answer(session_id: str, *, client: Any | None = None, model: str
         client = create_customer_provider_client()
     if client is None:
         raise CustomerConfigurationError("fast provider unavailable", reason_code="responses_api_unavailable")
+    if performance is not None:
+        performance["provider_call_attempted"] = True
     resolved_model = model.strip() if isinstance(model, str) and model.strip() else configured_model()
     payload = _provider_call(
         client,
@@ -654,9 +658,15 @@ def run_concern_answer(session_id: str, *, client: Any | None = None, model: str
         ),
         context=provider_context,
         schema=_DETAIL_SCHEMA,
+        performance=performance,
     )
     answer = payload["text"]
-    _validate_detail_text(answer, session["reading_context"])
+    try:
+        _validate_detail_text(answer, session["reading_context"])
+    except Exception:
+        if performance is not None:
+            performance["validation_failed"] = True
+        raise
     with _LOCK:
         session["concern_answer"] = answer
     return {"consultation": consultation, "answer": answer}

@@ -664,18 +664,48 @@ async def customer_reading_detail(request: Request) -> HTMLResponse:
 @router.post("/app/reading/concern", response_class=JSONResponse, include_in_schema=False)
 async def customer_reading_concern(request: Request) -> JSONResponse:
     """Generate the optional consultation answer without affecting Fast Reading."""
+    request_id = uuid4().hex
+    started = time.perf_counter()
+    performance: dict[str, object] = {
+        "provider_call_attempted": False,
+        "validation_failed": False,
+        "cache_hit": False,
+        "status": "error",
+    }
+    session_present = False
     try:
         payload = await request.json()
         session_id = payload.get("session_id") if isinstance(payload, dict) else None
-        if not isinstance(session_id, str) or get_session(session_id) is None:
+        session_present = isinstance(session_id, str) and get_session(session_id) is not None
+        performance["session_present"] = session_present
+        if not isinstance(session_id, str) or not session_present:
             raise ValueError("invalid concern request")
-        result = await run_in_threadpool(run_concern_answer, session_id)
+        result = await run_in_threadpool(run_concern_answer, session_id, performance=performance)
+        performance["status"] = "success"
         return JSONResponse(result)
-    except Exception:
+    except Exception as exc:
+        performance["failure_type"] = type(exc).__name__
+        performance["failure_stage"] = (
+            "request_parse" if "payload" not in locals() else
+            "session_validation" if not session_present else
+            "concern_generation"
+        )
+        logger.warning(
+            "fast concern unavailable error_type=%s stage=%s session_present=%s provider_call_attempted=%s validation_failed=%s",
+            performance["failure_type"],
+            performance["failure_stage"],
+            session_present,
+            performance["provider_call_attempted"],
+            performance["validation_failed"],
+            exc_info=False,
+        )
         return JSONResponse(
             {"error": "個別回答を取得できませんでした。もう一度お試しください。"},
             status_code=400,
         )
+    finally:
+        performance["total_elapsed"] = time.perf_counter() - started
+        _emit_perf("CONCERN_PERF", {"request_id": request_id, **performance})
 
 
 # Backward-compatible Python import alias; the public POST route is now fast.

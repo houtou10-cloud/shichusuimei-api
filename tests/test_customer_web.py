@@ -165,7 +165,7 @@ def test_concern_answer_endpoint_is_optional_and_does_not_change_detail_contract
     monkeypatch.setattr(
         customer_routes,
         "run_concern_answer",
-        lambda value: {"consultation": "転職するか迷っています。", "answer": "相談内容に沿った回答です。"},
+        lambda value, **kwargs: {"consultation": "転職するか迷っています。", "answer": "相談内容に沿った回答です。"},
     )
     response = TestClient(app).post("/app/reading/concern", json={"session_id": session_id})
     assert response.status_code == 200

@@ -166,6 +166,28 @@ def test_concern_answer_uses_submitted_consultation_and_is_cached():
     assert len(responses.calls) == 2
 
 
+def test_concern_answer_provider_and_validation_failures_are_separate():
+    result = run_fast_reading(_value(), client=SimpleNamespace(responses=_Responses()), model="test-model")
+
+    class _Failing:
+        def create(self, **kwargs):
+            raise RuntimeError("provider failure")
+
+    provider_perf = {}
+    with pytest.raises(RuntimeError):
+        run_concern_answer(result["session_id"], client=SimpleNamespace(responses=_Failing()), performance=provider_perf)
+    assert provider_perf["provider_call_attempted"] is True
+
+    invalid_perf = {}
+    with pytest.raises(ValueError):
+        run_concern_answer(
+            result["session_id"],
+            client=SimpleNamespace(responses=_TextResponses(json.dumps({"text": "9999年の断定"}, ensure_ascii=False))),
+            performance=invalid_perf,
+        )
+    assert invalid_perf["validation_failed"] is True
+
+
 def test_fast_result_renders_optional_concern_card_without_leaking_when_empty():
     base = {"session_id": "a" * 32, "chart": {}, "sections": {key: "本文" for key, _ in FAST_SECTIONS}}
     assert "concern-card" not in _render_fast_result(base)
