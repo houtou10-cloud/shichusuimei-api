@@ -93,6 +93,29 @@ def test_chart_card_preserves_mapping_like_pillars_and_rejects_invalid_shape(cap
     assert "hidden_stem" not in diagnostic
 
 
+def test_known_and_unknown_birth_time_keep_distinct_chart_semantics():
+    import api.fast_reading as fast
+    from datetime import datetime
+
+    fast._CHART_CACHE.clear()
+    known = _value()
+    unknown = CustomerReadingInput(
+        birth_date=known.birth_date, birth_time=None, birth_place=known.birth_place,
+        gender=known.gender, consultation=known.consultation,
+    )
+    known_perf, unknown_perf = {}, {}
+    known_chart, _, _ = _build_context(known, datetime(2026, 10, 8), known_perf)
+    unknown_chart, _, _ = _build_context(unknown, datetime(2026, 10, 8), unknown_perf)
+    assert known_chart["chart"]["hour"] is not None
+    assert unknown_chart["chart"]["hour"] is None
+    assert known_perf["birth_time_known"] is True
+    assert known_perf["chart_hour_none"] is False
+    assert unknown_perf["birth_time_known"] is False
+    assert unknown_perf["chart_hour_none"] is True
+    assert known_perf["chart_cache_hit"] is False
+    assert unknown_perf["chart_cache_hit"] is False
+
+
 def test_annual_card_handles_optional_current_luck_attribute_error(monkeypatch):
     import api.fast_reading as fast
 

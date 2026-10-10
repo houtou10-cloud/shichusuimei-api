@@ -366,6 +366,15 @@ def _build_context(value: CustomerReadingInput, reference_time: datetime, perfor
                 if event is not None:
                     event.set()
     if performance is not None:
+        chart_status = chart.get("birth_time_status") if isinstance(chart, Mapping) else None
+        chart_pillars = chart.get("chart") if isinstance(chart, Mapping) else None
+        hour_pillar = chart_pillars.get("hour") if isinstance(chart_pillars, Mapping) else None
+        performance["birth_time_known"] = value.birth_time is not None
+        performance["birth_time_type"] = type(value.birth_time).__name__
+        performance["chart_hour_none"] = hour_pillar is None
+        if isinstance(chart_status, Mapping):
+            performance["chart_time_scope"] = chart_status.get("calculation_scope")
+    if performance is not None:
         performance["chart_cache_hit"] = cache_hit
         performance["chart_cache_wait"] = waited
     chart_elapsed = time.perf_counter() - started
