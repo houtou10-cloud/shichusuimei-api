@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from html import escape
 import logging
+import os
 import re
 import time
+import traceback
 from uuid import uuid4
 from urllib.parse import parse_qsl
 
@@ -508,12 +510,21 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
     except CustomerInputError as exc:
         return HTMLResponse(_render_form(values, exc.errors), status_code=422)
     except Exception as exc:
+        frames = traceback.extract_tb(exc.__traceback__) if exc.__traceback__ else []
+        frame = frames[-1] if frames else None
         performance["failure_type"] = type(exc).__name__
-        performance["failure_stage"] = "provider" if "provider" in str(exc).lower() else "fast_reading"
+        performance["failure_stage"] = performance.get("fast_stage") or ("provider" if "provider" in str(exc).lower() else "fast_reading")
+        if frame is not None:
+            performance["failure_file"] = os.path.basename(frame.filename)
+            performance["failure_function"] = frame.name
+            performance["failure_line"] = frame.lineno
         logger.warning(
-            "fast customer reading unavailable error_type=%s stage=%s",
+            "fast customer reading unavailable error_type=%s stage=%s file=%s function=%s line=%s",
             type(exc).__name__,
             performance["failure_stage"],
+            performance.get("failure_file", "unknown"),
+            performance.get("failure_function", "unknown"),
+            performance.get("failure_line", "unknown"),
             exc_info=False,
         )
         # Existing provider-free browser regression tests replace the legacy

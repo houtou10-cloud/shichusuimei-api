@@ -14,6 +14,8 @@ from fastapi.testclient import TestClient
 import pytest
 
 import api.customer_routes as customer_routes
+from api.fast_reading import FAST_SECTIONS, run_fast_reading
+from tests.test_fast_reading import _Responses as FastResponses
 import engine.reading_renderer_v2 as renderer_v2
 from api.customer_pipeline import (
     MAX_CONCERN_CHARS,
@@ -144,6 +146,38 @@ def test_reading_form_is_available_at_get_reading_path():
     assert response.status_code == 200
     assert 'id="reading-form"' in response.text
     assert 'action="/app/reading"' in response.text
+
+
+def test_fast_reading_post_returns_200_after_completed_provider_response(monkeypatch):
+    sections = {key: "第一文。第二文。第三文。" for key, _ in FAST_SECTIONS}
+    result = {"session_id": "a" * 32, "chart": {}, "sections": sections}
+    monkeypatch.setattr(customer_routes, "run_fast_reading", lambda *args, **kwargs: result)
+    response = _post(TestClient(app), _values())
+    assert response.status_code == 200
+    assert "fast-prose" in response.text
+
+
+def test_fast_reading_fixture_e2e_renders_chart_luck_and_all_sections_without_provider(monkeypatch):
+    value = validate_customer_input({
+        "birth_date": "1984-07-10",
+        "birth_hour": "22",
+        "birth_minute": "45",
+        "birth_place": "愛知県",
+        "gender": "male",
+        "consultation": "転職するか迷っています。",
+    })
+    fake = SimpleNamespace(responses=FastResponses())
+    result = run_fast_reading(value, client=fake, model="test-model", reference_time=FIXED)
+    monkeypatch.setattr(customer_routes, "run_fast_reading", lambda *args, **kwargs: result)
+    response = _post(TestClient(app), {
+        "birth_date": "1984-07-10", "birth_hour": "22", "birth_minute": "45",
+        "birth_place": "愛知県", "gender": "male", "consultation": "転職するか迷っています。",
+    })
+    assert response.status_code == 200
+    assert response.text.count('class="annual-cell') == 10
+    assert response.text.count('class="fast-card') == 7
+    assert response.text.count("current-mark") >= 2
+    assert response.text.count('class="fast-prose"') == 7
 
 
 def test_performance_trace_logs_pipeline_steps_without_customer_data(capsys):

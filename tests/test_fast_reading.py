@@ -75,6 +75,26 @@ def test_fast_provider_invalid_payload_is_classified(text, stage):
     assert performance["failure_stage"] == stage
 
 
+def test_annual_card_handles_optional_current_luck_attribute_error(monkeypatch):
+    import api.fast_reading as fast
+
+    calls = []
+
+    def fake_annual(**kwargs):
+        calls.append(kwargs["current_luck"])
+        if len(calls) == 1:
+            raise AttributeError("optional current luck field")
+        return [{"year": 2026, "ganzhi": "丙午"}]
+
+    monkeypatch.setattr(fast, "calculate_annual_luck_range", fake_annual)
+    result = fast._annual_card(
+        {"annual_luck": {"year": 2026}, "day_master": {"stem": "乙"}, "useful_gods": {}, "current_luck": object()}
+    )
+    assert result == [{"year": 2026, "ganzhi": "丙午"}]
+    assert calls[0] is not None
+    assert calls[1] is None
+
+
 def _value():
     return CustomerReadingInput(birth_date="1984-07-10", birth_time="22:45", birth_place="愛知県", gender="male", consultation="転職するか迷っています。")
 

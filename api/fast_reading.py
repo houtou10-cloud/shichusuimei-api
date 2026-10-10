@@ -422,6 +422,20 @@ def _annual_card(chart: Mapping[str, Any]) -> list[dict[str, Any]]:
             useful_gods=chart.get("useful_gods"),
             current_luck=chart.get("current_luck"),
         )
+    except AttributeError:
+        # Some legacy/current-luck payloads may lack optional mapping fields.
+        # Annual year/ganzhi cards remain calculable without that optional
+        # relation; do not turn a completed Fast Reading into a 503.
+        try:
+            return calculate_annual_luck_range(
+                start_year=start_year,
+                end_year=start_year + 9,
+                day_master_stem=day_master.get("stem"),
+                useful_gods=chart.get("useful_gods"),
+                current_luck=None,
+            )
+        except (AttributeError, TypeError, ValueError, KeyError):
+            return []
     except (TypeError, ValueError, KeyError):
         return []
 
@@ -454,6 +468,8 @@ def run_fast_reading(value: CustomerReadingInput, *, client: Any | None = None, 
     _validate_fast_texts(sections, context)
     if performance is not None:
         performance["validation_elapsed"] = time.perf_counter() - validation_started
+    if performance is not None:
+        performance["fast_stage"] = "session_assembly"
     session_id = uuid4().hex
     session = {
         "created": now,
@@ -470,12 +486,20 @@ def run_fast_reading(value: CustomerReadingInput, *, client: Any | None = None, 
     luck_pillars = luck_data.get("pillars", []) if isinstance(luck_data, Mapping) else []
     annual_data = chart.get("annual_luck", {})
     current_year = annual_data.get("year") if isinstance(annual_data, Mapping) else None
+    if performance is not None:
+        performance["fast_stage"] = "chart_card"
+    chart_card = _chart_card(chart)
+    if performance is not None:
+        performance["fast_stage"] = "annual_card"
+    annual_card = _annual_card(chart)
+    if performance is not None:
+        performance["fast_stage"] = "result_assembly"
     return {
         "session_id": session_id,
         "chart": deepcopy(chart),
-        "chart_card": _chart_card(chart),
+        "chart_card": chart_card,
         "luck_pillars": deepcopy(luck_pillars),
-        "annual_luck_15": _annual_card(chart),
+        "annual_luck_15": annual_card,
         "current_year": current_year,
         "reading_context": deepcopy(context),
         "sections": deepcopy(sections),
