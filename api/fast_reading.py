@@ -143,7 +143,7 @@ def _provider_call(client: Any, *, model: str, instructions: str, context: Mappi
         raise CustomerConfigurationError("fast provider unavailable", reason_code="responses_api_unavailable")
     content = json.dumps(context, ensure_ascii=False, separators=(",", ":"))
     if performance is not None:
-        performance["provider_calls"] = 1
+        performance["provider_calls"] = int(performance.get("provider_calls", 0)) + 1
         performance["input_chars"] = len(content)
         performance["schema_bytes"] = len(json.dumps(schema, ensure_ascii=False, separators=(",", ":")))
     started = time.perf_counter()
@@ -282,6 +282,21 @@ def _validation_code(exc: Exception) -> str:
     if "luck-only content" in message:
         return "luck_only_content"
     return "validation_failed"
+
+
+def _concern_instructions(*, strict_numeric: bool = False) -> str:
+    base = (
+        "Create a Japanese answer directly addressing the submitted consultation. "
+        "Use only the chart and trusted data provided; do not calculate or invent astrology facts. "
+        "Do not infer an unknown birth-time pillar. Separate astrological interpretation from practical advice. "
+        "Write 500-1200 Japanese characters without making consequential decisions absolute."
+    )
+    if strict_numeric:
+        base += (
+            " On this retry, do not use Arabic numerals except for years explicitly present in trusted data. "
+            "Do not add scores, percentages, ages, rankings, or counts; use words instead."
+        )
+    return base
 
 
 def _detail_projection(context: Mapping[str, Any], metadata: Mapping[str, Any], detail_type: str) -> dict[str, Any]:
@@ -685,10 +700,37 @@ def run_concern_answer(session_id: str, *, client: Any | None = None, model: str
     try:
         _validate_detail_text(answer, session["reading_context"])
     except Exception as exc:
+        code = _validation_code(exc)
+        if code != "unsupported_numeric_claim":
+            if performance is not None:
+                performance["validation_failed"] = True
+                performance["validation_code"] = code
+            raise
         if performance is not None:
             performance["validation_failed"] = True
-            performance["validation_code"] = _validation_code(exc)
-        raise
+            performance["validation_code"] = code
+            performance["repair_count"] = 1
+        # Regenerate once with an explicit numeric constraint.  The same
+        # validator remains authoritative; a second failure is still an error.
+        retry_payload = _provider_call(
+            client,
+            model=resolved_model,
+            instructions=_concern_instructions(strict_numeric=True),
+            context=provider_context,
+            schema=_DETAIL_SCHEMA,
+            performance=performance,
+            max_output_tokens=2400,
+        )
+        answer = retry_payload["text"]
+        try:
+            _validate_detail_text(answer, session["reading_context"])
+        except Exception as retry_exc:
+            if performance is not None:
+                performance["validation_code"] = _validation_code(retry_exc)
+            raise
+        if performance is not None:
+            performance["validation_failed"] = False
+            performance["validation_code"] = None
     with _LOCK:
         session["concern_answer"] = answer
     return {"consultation": consultation, "answer": answer}

@@ -215,6 +215,48 @@ def test_concern_answer_incomplete_provider_is_rejected_safely():
     assert "concern_answer" not in fast._SESSIONS[result["session_id"]]
 
 
+def test_concern_answer_retries_numeric_claim_once_then_succeeds():
+    class _SequenceResponses:
+        def __init__(self):
+            self.calls = []
+
+        def create(self, **kwargs):
+            self.calls.append(kwargs)
+            if len(self.calls) == 1:
+                value = {"text": "2025年の運勢について、相談内容を確認しました。"}
+            else:
+                value = {"text": "相談内容を確認しました。命式の根拠を踏まえ、現実的な選択肢を整理して考えることが大切です。"}
+            return SimpleNamespace(output_text=json.dumps(value, ensure_ascii=False))
+
+    responses = _SequenceResponses()
+    result = run_fast_reading(_value(), client=SimpleNamespace(responses=_Responses()), model="test-model")
+    performance = {}
+    answer = run_concern_answer(
+        result["session_id"],
+        client=SimpleNamespace(responses=responses),
+        model="test-model",
+        performance=performance,
+    )
+    assert answer["answer"]
+    assert len(responses.calls) == 2
+    assert performance["repair_count"] == 1
+    assert performance["validation_failed"] is False
+    assert performance["provider_calls"] == 2
+
+
+def test_concern_digits_are_not_validated_as_answer_claims():
+    from dataclasses import replace
+
+    value = replace(_value(), consultation="2026年の転職について相談しています。")
+    result = run_fast_reading(value, client=SimpleNamespace(responses=_Responses()), model="test-model")
+    answer = run_concern_answer(
+        result["session_id"],
+        client=SimpleNamespace(responses=_Responses()),
+        model="test-model",
+    )
+    assert answer["consultation"] == value.consultation
+
+
 def test_fast_result_renders_optional_concern_card_without_leaking_when_empty():
     base = {"session_id": "a" * 32, "chart": {}, "sections": {key: "本文" for key, _ in FAST_SECTIONS}}
     assert "concern-card" not in _render_fast_result(base)
