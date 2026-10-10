@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from api.customer_pipeline import CustomerReadingInput
-from api.fast_reading import FAST_SECTIONS, _FAST_SCHEMA, _build_context, _chart_card, _detail_projection, _emit_perf, _provider_call, _validate_fast_texts, run_concern_answer, run_detail, run_fast_reading
+from api.fast_reading import FAST_SECTIONS, _FAST_SCHEMA, _build_context, _chart_card, _detail_projection, _emit_perf, _normalize_concern_text, _provider_call, _validate_fast_texts, run_concern_answer, run_detail, run_fast_reading
 from api.customer_routes import _move_fast_back_link_to_header, _render_fast_prose, _render_fast_result, _split_fast_prose
 
 
@@ -255,6 +255,26 @@ def test_concern_digits_are_not_validated_as_answer_claims():
         model="test-model",
     )
     assert answer["consultation"] == value.consultation
+
+
+def test_concern_years_are_four_digit_and_heading_is_customer_facing():
+    context = {"luck": {"five_year_luck": [{"year": 2026}]}}
+    normalized = _normalize_concern_text(
+        "【星理の所見】二〇二六年の流れを確認します。",
+        context,
+        "転職すべきか相談したい",
+    )
+    assert "2026年" in normalized
+    assert "二〇二六年" not in normalized
+    assert "星理の所見" not in normalized
+    assert "四柱推命から見た仕事運" in normalized
+    assert _normalize_concern_text("二千二十六年の流れです。", context, "相談") == "2026年の流れです。"
+
+
+def test_concern_untrusted_kanji_year_is_rejected():
+    context = {"luck": {"five_year_luck": [{"year": 2026}]}}
+    with pytest.raises(ValueError, match="unsupported numeric claim"):
+        _normalize_concern_text("二〇二七年の見通しです。", context, "相談")
 
 
 def test_fast_result_renders_optional_concern_card_without_leaking_when_empty():

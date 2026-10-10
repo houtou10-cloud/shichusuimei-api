@@ -142,6 +142,13 @@ def _provider_call(client: Any, *, model: str, instructions: str, context: Mappi
     if not callable(create):
         raise CustomerConfigurationError("fast provider unavailable", reason_code="responses_api_unavailable")
     content = json.dumps(context, ensure_ascii=False, separators=(",", ":"))
+    provider_instructions = instructions
+    permitted_years = context.get("permitted_years") if isinstance(context, Mapping) else None
+    if isinstance(permitted_years, list):
+        provider_instructions += (
+            " Use plain Japanese for customers, explain unavoidable specialist terms briefly, "
+            "and use only these trusted Gregorian years: " + ", ".join(str(year) for year in permitted_years) + "."
+        )
     if performance is not None:
         performance["provider_calls"] = int(performance.get("provider_calls", 0)) + 1
         performance["input_chars"] = len(content)
@@ -150,7 +157,7 @@ def _provider_call(client: Any, *, model: str, instructions: str, context: Mappi
     try:
         response = create(
             model=model,
-            instructions=instructions,
+            instructions=provider_instructions,
             input=[{"role": "user", "content": content}],
             # Production logs showed repeated output_tokens=2500 responses;
             # that is the former Fast schema ceiling and can truncate JSON.
@@ -284,19 +291,74 @@ def _validation_code(exc: Exception) -> str:
     return "validation_failed"
 
 
-def _concern_instructions(*, strict_numeric: bool = False) -> str:
+def _concern_instructions(*, strict_numeric: bool = False, allowed_years: list[int] | None = None) -> str:
+    years = sorted({year for year in (allowed_years or []) if isinstance(year, int)})
     base = (
         "Create a Japanese answer directly addressing the submitted consultation. "
         "Use only the chart and trusted data provided; do not calculate or invent astrology facts. "
         "Do not infer an unknown birth-time pillar. Separate astrological interpretation from practical advice. "
-        "Write 500-1200 Japanese characters without making consequential decisions absolute."
+        "Write 500-1200 Japanese characters without making consequential decisions absolute. "
+        "Prefer plain language; when a specialist term is necessary, explain it briefly and do not list terms. "
+        "Use Gregorian four-digit notation such as 2026年 only for trusted years."
     )
+    if years:
+        base += " Permitted trusted years are: " + ", ".join(f"{year}年" for year in years) + "."
     if strict_numeric:
         base += (
-            " On this retry, do not use Arabic numerals except for years explicitly present in trusted data. "
+            " On this retry, do not use Arabic numerals except for the permitted trusted years. "
             "Do not add scores, percentages, ages, rankings, or counts; use words instead."
         )
     return base
+
+
+def _allowed_concern_years(context: Mapping[str, Any]) -> set[int]:
+    return {
+        item["year"]
+        for item in context.get("luck", {}).get("five_year_luck", [])
+        if isinstance(item, Mapping) and isinstance(item.get("year"), int)
+    }
+
+
+def _concern_heading(consultation: str) -> str:
+    if any(term in consultation for term in ("転職", "退職", "仕事", "職場", "独立")):
+        return "【四柱推命から見た仕事運】"
+    if any(term in consultation for term in ("お金", "金運", "投資", "収入", "貯金")):
+        return "【四柱推命から見た金運】"
+    if any(term in consultation for term in ("恋愛", "結婚", "人間関係", "家族", "夫婦")):
+        return "【四柱推命から見た人間関係】"
+    return "【四柱推命から見た現在の傾向】"
+
+
+def _normalize_concern_text(text: str, context: Mapping[str, Any], consultation: str) -> str:
+    """Validate concern prose and normalize only trusted year presentation."""
+    _validate_detail_text(text, context)
+    allowed_years = _allowed_concern_years(context)
+    kanji_digits = {"〇": 0, "零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+    kanji_units = {"十": 10, "百": 100, "千": 1000, "万": 10000}
+
+    def replace_kanji_year(match: re.Match[str]) -> str:
+        token = match.group(1)
+        if all(char in kanji_digits for char in token):
+            value = int("".join(str(kanji_digits[char]) for char in token))
+        else:
+            total = 0
+            current = 0
+            for char in token:
+                if char in kanji_digits:
+                    current = kanji_digits[char]
+                elif char in kanji_units:
+                    current = current or 1
+                    total += current * kanji_units[char]
+                    current = 0
+            value = total + current
+        if value not in allowed_years:
+            raise ValueError("unsupported numeric claim in concern prose")
+        return f"{value}年"
+
+    normalized = re.sub(r"([〇零一二三四五六七八九十百千万]{4,8})年", replace_kanji_year, text)
+    heading = _concern_heading(consultation)
+    normalized = normalized.replace("【星理の所見】", heading).replace("星理の所見", heading.strip("【】"))
+    return normalized
 
 
 def _detail_projection(context: Mapping[str, Any], metadata: Mapping[str, Any], detail_type: str) -> dict[str, Any]:
@@ -671,6 +733,8 @@ def run_concern_answer(session_id: str, *, client: Any | None = None, model: str
         "consultation": consultation,
         "trusted": context,
     }
+    allowed_years = sorted(_allowed_concern_years(session["reading_context"]))
+    provider_context["permitted_years"] = [f"{year}年" for year in allowed_years]
     if client is None:
         client = create_customer_provider_client()
     if client is None:
@@ -698,7 +762,7 @@ def run_concern_answer(session_id: str, *, client: Any | None = None, model: str
     )
     answer = payload["text"]
     try:
-        _validate_detail_text(answer, session["reading_context"])
+        answer = _normalize_concern_text(answer, session["reading_context"], consultation)
     except Exception as exc:
         code = _validation_code(exc)
         if code != "unsupported_numeric_claim":
@@ -715,7 +779,7 @@ def run_concern_answer(session_id: str, *, client: Any | None = None, model: str
         retry_payload = _provider_call(
             client,
             model=resolved_model,
-            instructions=_concern_instructions(strict_numeric=True),
+            instructions=_concern_instructions(strict_numeric=True, allowed_years=allowed_years),
             context=provider_context,
             schema=_DETAIL_SCHEMA,
             performance=performance,
@@ -723,7 +787,7 @@ def run_concern_answer(session_id: str, *, client: Any | None = None, model: str
         )
         answer = retry_payload["text"]
         try:
-            _validate_detail_text(answer, session["reading_context"])
+            answer = _normalize_concern_text(answer, session["reading_context"], consultation)
         except Exception as retry_exc:
             if performance is not None:
                 performance["validation_code"] = _validation_code(retry_exc)
