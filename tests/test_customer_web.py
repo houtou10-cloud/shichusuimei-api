@@ -157,6 +157,24 @@ def test_fast_reading_post_returns_200_after_completed_provider_response(monkeyp
     assert "fast-prose" in response.text
 
 
+def test_concern_answer_endpoint_is_optional_and_does_not_change_detail_contract(monkeypatch):
+    import api.fast_reading as fast
+
+    session_id = "c" * 32
+    fast._SESSIONS[session_id] = {"created": datetime.now().astimezone(), "details": {}}
+    monkeypatch.setattr(
+        customer_routes,
+        "run_concern_answer",
+        lambda value: {"consultation": "転職するか迷っています。", "answer": "相談内容に沿った回答です。"},
+    )
+    response = TestClient(app).post("/app/reading/concern", json={"session_id": session_id})
+    assert response.status_code == 200
+    assert response.json()["answer"] == "相談内容に沿った回答です。"
+    missing = TestClient(app).post("/app/reading/concern", json={"session_id": "d" * 32})
+    assert missing.status_code == 400
+    fast._SESSIONS.pop(session_id, None)
+
+
 def test_fast_reading_fixture_e2e_renders_chart_luck_and_all_sections_without_provider(monkeypatch):
     value = validate_customer_input({
         "birth_date": "1984-07-10",

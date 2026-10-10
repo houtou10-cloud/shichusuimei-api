@@ -27,7 +27,7 @@ from api.customer_pipeline import (
     set_performance_trace,
     validate_customer_input,
 )
-from api.fast_reading import DETAIL_TYPES, _emit_perf, get_session, run_detail, run_fast_reading
+from api.fast_reading import DETAIL_TYPES, _emit_perf, get_session, run_concern_answer, run_detail, run_fast_reading
 from engine.reading_renderer_v2 import render_customer_reading_product_v2_html
 
 
@@ -407,6 +407,24 @@ const sid="{session_id}";document.querySelectorAll('.detail-button').forEach((bu
 def _render_fast_result(result: dict[str, object]) -> str:
     """Add safe client-side paragraph rendering to the existing result shell."""
     document = _render_fast_result_raw(result)
+
+    def replace_once(marker: str, replacement: str, *, label: str) -> str:
+        if document.count(marker) != 1:
+            raise RuntimeError(f"fast result render marker missing or duplicated: {label}")
+        return document.replace(marker, replacement, 1)
+
+    concern_card = _render_concern_card(result)
+    if concern_card:
+        document = replace_once(
+            "</head>",
+            "<style>.concern-card{grid-column:1/-1;border:1px solid #dfd1c2;border-radius:12px;padding:18px;background:#fffaf1}.concern-card h2{color:#5d3b25}.concern-label{font-weight:700;color:#75685c}.concern-text{white-space:pre-wrap;margin:8px 0 14px}.concern-answer-button{border:1px solid #8a5a3b;background:#fff;color:#6a412a;border-radius:7px;padding:8px 12px;cursor:pointer}.concern-answer-button:disabled{opacity:.65;cursor:wait}</style></head>",
+            label="concern_css_head",
+        )
+        document = replace_once(
+            "</section></main><script>",
+            f"</section>{concern_card}</main><script>",
+            label="concern_card",
+        )
     # Keep the detail-button handler inside the existing script element.  The
     # prose helper is a complete script fragment for standalone rendering, but
     # inserting its closing tag here would leave `const sid` outside executable
@@ -414,12 +432,19 @@ def _render_fast_result(result: dict[str, object]) -> str:
     detail_script = _FAST_DETAIL_PROSE_SCRIPT
     if detail_script.rstrip().endswith("</script>"):
         detail_script = detail_script.rstrip()[:-len("</script>")]
-    document = document.replace(
+    document = replace_once(
         "<script>\nconst sid=",
         detail_script.rstrip() + "\nconst sid=",
-        1,
+        label="detail_script",
     )
-    return document.replace("box.textContent=data.text;", "renderFastProse(box,data.text);")
+    document = document.replace("box.textContent=data.text;", "renderFastProse(box,data.text);")
+    if concern_card:
+        document = replace_once(
+            "</script></body></html>",
+            """document.querySelectorAll('.concern-answer-button').forEach((button)=>button.addEventListener('click',async()=>{const box=button.nextElementSibling;button.disabled=true;box.hidden=false;box.className='detail-box detail-loading';box.textContent='回答を準備しています…';try{const response=await fetch('/app/reading/concern',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({session_id:sid})});const data=await response.json();if(!response.ok)throw new Error();box.className='detail-box';renderFastProse(box,data.answer);button.textContent='回答を表示中';}catch(_error){box.textContent='個別回答を取得できませんでした。もう一度お試しください。';}finally{button.disabled=false;}}));</script></body></html>""",
+            label="concern_script",
+        )
+    return document
 
 
 def _move_fast_back_link_to_header(document: str) -> str:
@@ -429,6 +454,22 @@ def _move_fast_back_link_to_header(document: str) -> str:
         '<header class="fast-head"><p class="eyebrow">',
         '<header class="fast-head"><a class="fast-back" href="/app">← 入力画面に戻る</a><p class="eyebrow">',
         1,
+    )
+
+
+def _render_concern_card(result: dict[str, object]) -> str:
+    consultation = result.get("consultation")
+    if not isinstance(consultation, str) or not consultation.strip():
+        return ""
+    safe = escape(consultation, quote=True)
+    return (
+        '<section class="concern-card">'
+        '<h2>あなたのお悩みへの個別回答</h2>'
+        '<p class="concern-label">ご相談内容</p>'
+        f'<div class="concern-text">{safe}</div>'
+        '<button class="concern-answer-button" type="button">八雲からの回答を見る</button>'
+        '<div class="concern-answer-box" hidden></div>'
+        '</section>'
     )
 
 
@@ -617,6 +658,23 @@ async def customer_reading_detail(request: Request) -> HTMLResponse:
         _emit_perf(
             "DETAIL_PERF",
             {"request_id": request_id, "detail_type": locals().get("detail_type"), **performance},
+        )
+
+
+@router.post("/app/reading/concern", response_class=JSONResponse, include_in_schema=False)
+async def customer_reading_concern(request: Request) -> JSONResponse:
+    """Generate the optional consultation answer without affecting Fast Reading."""
+    try:
+        payload = await request.json()
+        session_id = payload.get("session_id") if isinstance(payload, dict) else None
+        if not isinstance(session_id, str) or get_session(session_id) is None:
+            raise ValueError("invalid concern request")
+        result = await run_in_threadpool(run_concern_answer, session_id)
+        return JSONResponse(result)
+    except Exception:
+        return JSONResponse(
+            {"error": "個別回答を取得できませんでした。もう一度お試しください。"},
+            status_code=400,
         )
 
 

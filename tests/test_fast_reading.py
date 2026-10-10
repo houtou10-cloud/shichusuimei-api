@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from api.customer_pipeline import CustomerReadingInput
-from api.fast_reading import FAST_SECTIONS, _FAST_SCHEMA, _build_context, _chart_card, _detail_projection, _emit_perf, _provider_call, _validate_fast_texts, run_detail, run_fast_reading
+from api.fast_reading import FAST_SECTIONS, _FAST_SCHEMA, _build_context, _chart_card, _detail_projection, _emit_perf, _provider_call, _validate_fast_texts, run_concern_answer, run_detail, run_fast_reading
 from api.customer_routes import _move_fast_back_link_to_header, _render_fast_prose, _render_fast_result, _split_fast_prose
 
 
@@ -152,6 +152,39 @@ def test_fast_reading_and_detail_are_server_owned_and_cached():
     first = run_detail(result["session_id"], "career", client=client, model="test-model")
     assert run_detail(result["session_id"], "career", client=client, model="test-model") == first
     assert len(responses.calls) == 2
+
+
+def test_concern_answer_uses_submitted_consultation_and_is_cached():
+    responses = _Responses()
+    client = SimpleNamespace(responses=responses)
+    result = run_fast_reading(_value(), client=client, model="test-model")
+    first = run_concern_answer(result["session_id"], client=client, model="test-model")
+    second = run_concern_answer(result["session_id"], client=client, model="test-model")
+    assert first == second
+    assert first["consultation"] == _value().consultation
+    assert first["answer"]
+    assert len(responses.calls) == 2
+
+
+def test_fast_result_renders_optional_concern_card_without_leaking_when_empty():
+    base = {"session_id": "a" * 32, "chart": {}, "sections": {key: "本文" for key, _ in FAST_SECTIONS}}
+    assert "concern-card" not in _render_fast_result(base)
+    document = _render_fast_result({**base, "consultation": "転職 <script>alert(1)</script>"})
+    assert "concern-card" in document
+    assert "転職 &lt;script&gt;alert(1)&lt;/script&gt;" in document
+    assert "fetch('/app/reading/concern'" in document
+    assert document.index('class="concern-card"') > document.rindex('class="fast-card"')
+    assert document.count("<script") == document.count("</script>")
+    assert "個別回答を取得できませんでした" in document
+    assert "button.disabled=false" in document
+
+
+def test_fast_result_does_not_silently_drop_concern_markup_when_marker_missing(monkeypatch):
+    import api.customer_routes as routes
+
+    monkeypatch.setattr(routes, "_render_fast_result_raw", lambda _result: "<html></html>")
+    with pytest.raises(RuntimeError, match="concern_css"):
+        routes._render_fast_result({"session_id": "a" * 32, "consultation": "相談"})
 
 
 def test_invalid_detail_type_and_session_are_rejected():
