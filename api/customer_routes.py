@@ -581,15 +581,33 @@ async def customer_reading_detail(request: Request) -> HTMLResponse:
         payload = await request.json()
         session_id = payload.get("session_id") if isinstance(payload, dict) else None
         detail_type = payload.get("detail_type") if isinstance(payload, dict) else None
+        performance["payload_valid"] = isinstance(payload, dict)
+        performance["detail_type_allowed"] = isinstance(detail_type, str) and detail_type in DETAIL_TYPES
+        session = get_session(session_id) if isinstance(session_id, str) else None
+        performance["session_present"] = session is not None
         if not isinstance(session_id, str) or not isinstance(detail_type, str):
             raise ValueError("invalid detail request")
-        if get_session(session_id) is None or detail_type not in DETAIL_TYPES:
+        if session is None or detail_type not in DETAIL_TYPES:
             raise ValueError("invalid detail request")
         text = await run_in_threadpool(run_detail, session_id, detail_type, performance=performance)
         performance["provider_calls"] = 0 if performance.get("cache_hit") else 1
         performance["status"] = "success"
         return JSONResponse({"text": text})
-    except Exception:
+    except Exception as exc:
+        performance["failure_type"] = type(exc).__name__
+        performance["failure_stage"] = (
+            "request_parse" if "payload_valid" not in performance else
+            "session_or_detail_validation" if not performance.get("session_present", False) or not performance.get("detail_type_allowed", False) else
+            "detail_generation"
+        )
+        logger.warning(
+            "fast detail unavailable error_type=%s stage=%s session_present=%s detail_type_allowed=%s",
+            performance["failure_type"],
+            performance["failure_stage"],
+            performance.get("session_present", False),
+            performance.get("detail_type_allowed", False),
+            exc_info=False,
+        )
         return JSONResponse(
             {"error": "詳細鑑定を取得できませんでした。もう一度お試しください。"},
             status_code=400,
