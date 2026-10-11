@@ -57,6 +57,13 @@ textarea{min-height:150px;resize:vertical}.actions{grid-column:1/-1;margin-top:8
 </style>
 """
 
+_FORM_CSS += """
+<style>
+.processing{display:none;text-align:center;margin:.75rem 0 0;padding:10px 12px;border:1px solid rgba(154,106,53,.35);border-radius:8px;background:#fffaf1;color:var(--deep);font-size:1rem;font-weight:700}
+.processing.active{display:block}
+</style>
+"""
+
 _RESULT_CSS = """
 <style>
 @media screen{
@@ -174,6 +181,7 @@ def _render_form(values: dict[str, str] | None = None, errors: dict[str, str] | 
 const unknown=document.getElementById('birth_time_unknown');const hour=document.getElementById('birth_hour');const minute=document.getElementById('birth_minute');
 function syncTime(){{hour.disabled=unknown.checked;minute.disabled=unknown.checked;if(unknown.checked){{hour.value='';minute.value='';}}}}unknown.addEventListener('change',syncTime);syncTime();
 document.getElementById('reading-form').addEventListener('submit',function(){{const button=document.getElementById('submit-button');button.disabled=true;button.textContent='鑑定中…';document.getElementById('processing').classList.add('active');}});
+const readingForm=document.getElementById('reading-form');readingForm.addEventListener('submit',function(event){{if(this.dataset.submitting==='1'){{event.preventDefault();return;}}event.preventDefault();this.dataset.submitting='1';const button=document.getElementById('submit-button');const processing=document.getElementById('processing');button.disabled=true;button.setAttribute('aria-busy','true');button.textContent='鑑定中…';processing.textContent='鑑定中です。しばらくお待ちください。';processing.classList.add('active');const form=this;requestAnimationFrame(function(){{requestAnimationFrame(function(){{HTMLFormElement.prototype.submit.call(form);}});}});}},true);
 </script></body></html>"""
 
 

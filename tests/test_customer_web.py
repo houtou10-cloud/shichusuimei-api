@@ -148,6 +148,21 @@ def test_reading_form_is_available_at_get_reading_path():
     assert 'action="/app/reading"' in response.text
 
 
+def test_reading_form_shows_painted_loading_state_before_navigation():
+    response = TestClient(app).get("/app/reading")
+    assert response.status_code == 200
+    html = response.text
+    assert 'id="processing"' in html
+    assert 'role="status"' in html
+    assert 'aria-live="polite"' in html
+    assert "鑑定中です。しばらくお待ちください。" in html
+    assert "requestAnimationFrame" in html
+    assert "HTMLFormElement.prototype.submit.call(form)" in html
+    assert "dataset.submitting" in html
+    assert ".processing.active{display:block}" in html
+    assert "font-size:1rem" in html
+
+
 def test_fast_reading_post_returns_200_after_completed_provider_response(monkeypatch):
     sections = {key: "第一文。第二文。第三文。" for key, _ in FAST_SECTIONS}
     result = {"session_id": "a" * 32, "chart": {}, "sections": sections}
