@@ -1,0 +1,31 @@
+{
+  "name": "八雲式 四柱推命鑑定",
+  "short_name": "八雲式鑑定",
+  "description": "通信して命式計算とAI鑑定を行う顧客向けアプリ",
+  "lang": "ja",
+  "start_url": "/app",
+  "scope": "/app",
+  "display": "standalone",
+  "background_color": "#fffdfa",
+  "theme_color": "#5d3b25",
+  "icons": [
+    {
+      "src": "/app/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/app/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/app/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

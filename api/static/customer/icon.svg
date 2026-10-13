@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="八雲式">
+  <rect width="512" height="512" rx="96" fill="#5d3b25"/>
+  <circle cx="256" cy="256" r="176" fill="#fffdfa" stroke="#d7b987" stroke-width="16"/>
+  <path d="M154 204h204M154 308h204M204 154v204M308 154v204" stroke="#9a6a35" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="39" fill="#5d3b25"/>
+</svg>

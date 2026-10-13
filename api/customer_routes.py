@@ -5,6 +5,7 @@ from __future__ import annotations
 from html import escape
 import logging
 import os
+from pathlib import Path
 import re
 import time
 import traceback
@@ -12,7 +13,7 @@ from uuid import uuid4
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from api.customer_pipeline import (
@@ -28,11 +29,14 @@ from api.customer_pipeline import (
     validate_customer_input,
 )
 from api.fast_reading import DETAIL_TYPES, _emit_perf, get_session, run_concern_answer, run_detail, run_fast_reading
+from api.symbol_judgment_reference import append_product_reference_sidecar, append_reference_sidecar
 from engine.reading_renderer_v2 import render_customer_reading_product_v2_html
 
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+_CUSTOMER_STATIC = Path(__file__).resolve().parent / "static" / "customer"
 
 _MAX_FORM_BYTES = 12_000
 _NAMED_META = re.compile(r'<meta name="[^"]+" content="[^"]*">')
@@ -51,9 +55,9 @@ body{margin:0;background:linear-gradient(145deg,#f6f1eb,#eee5da);min-height:100v
 label,.label{display:block;font-weight:700;margin-bottom:7px}.required{font-size:.75rem;color:#fff;background:var(--deep);padding:.08rem .38rem;border-radius:3px;margin-left:.45rem}
 input,select,textarea{width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid #cdbdad;border-radius:8px;padding:11px 12px;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(154,106,53,.13)}
 .time-row{display:grid;grid-template-columns:1fr auto 1fr auto;gap:8px;align-items:center}.unknown-row{display:flex;align-items:center;gap:9px;margin-top:11px;font-weight:400}.unknown-row input{width:auto;accent-color:var(--deep)}
-.hint{margin:.4rem 0 0;color:var(--muted);font-size:.86rem}.field-error{margin:.35rem 0 0;color:var(--danger);font-size:.88rem}.error-box{grid-column:1/-1;border-left:4px solid var(--danger);background:#fff1ef;padding:12px 14px;color:#772a27}.error-box p{margin:0}
+.hint{margin:.4rem 0 0;color:var(--muted);font-size:.86rem}.field-error{margin:.35rem 0 0;color:var(--danger);font-size:.88rem}.error-box{grid-column:1/-1;border-left:4px solid var(--danger);background:#fff1ef;padding:12px 14px;color:#772a27}.error-box p{margin:0}.install-panel{padding:0 42px 30px}.install-note{margin:0;color:var(--muted);font-size:.88rem}.install-button{display:none;margin-top:10px;border:1px solid var(--gold);border-radius:7px;background:#fffaf1;color:var(--deep);padding:9px 12px;font:inherit;font-weight:700}.install-button.available{display:inline-block}
 textarea{min-height:150px;resize:vertical}.actions{grid-column:1/-1;margin-top:8px}.submit{width:100%;border:0;border-radius:9px;padding:14px 20px;background:linear-gradient(120deg,#6b4328,#9a6a35);color:#fff;font:700 1.06rem inherit;letter-spacing:.1em;cursor:pointer}.submit:hover{filter:brightness(1.05)}.submit:disabled{cursor:wait;opacity:.68}.processing{display:none;text-align:center;margin:.75rem 0 0;color:var(--muted)}.processing.active{display:block}
-@media(max-width:680px){.form-shell{margin-top:18px;width:min(100% - 18px,900px)}.form-intro,.reading-form{padding-left:20px;padding-right:20px}.grid{grid-template-columns:1fr}.field.full,.error-box,.actions{grid-column:1}.site-header{padding:14px 15px}}
+@media(max-width:680px){.form-shell{margin-top:18px;width:min(100% - 18px,900px)}.form-intro,.reading-form,.install-panel{padding-left:20px;padding-right:20px}.grid{grid-template-columns:1fr}.field.full,.error-box,.actions{grid-column:1}.site-header{padding:14px 15px}.time-row{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto}input,select,textarea{font-size:16px}.submit{min-height:48px}}
 </style>
 """
 
@@ -116,14 +120,39 @@ _FAST_RESPONSIVE_CSS = """
   .fast-shell{width:100%;}
   .fast-card,.chart-record{width:auto;}
   .fast-head h1,.fast-head p{max-width:100%;overflow-wrap:anywhere;word-break:break-word;}
+  .table-wrap{overflow-x:hidden;}
+  .chart-table,.luck-table{min-width:0;table-layout:fixed;font-size:.76rem;}
+  .chart-table th,.chart-table td,.luck-table th,.luck-table td{padding:6px 3px;}
+  .annual-grid{min-width:0;grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 </style>
 """
+
+_PWA_HEAD = (
+    '<meta name="theme-color" content="#5d3b25">'
+    '<meta name="apple-mobile-web-app-capable" content="yes">'
+    '<meta name="apple-mobile-web-app-status-bar-style" content="default">'
+    '<link rel="manifest" href="/app/manifest.webmanifest">'
+    '<link rel="icon" href="/app/icon.svg" type="image/svg+xml">'
+    '<link rel="apple-touch-icon" sizes="180x180" href="/app/apple-touch-icon.png">'
+)
 
 
 def _option(value: str, label: str, selected: str) -> str:
     selected_attr = " selected" if value == selected else ""
     return f'<option value="{escape(value, quote=True)}"{selected_attr}>{escape(label)}</option>'
+
+
+def _is_timeout_failure(exc: BaseException) -> bool:
+    """Classify timeouts without exposing provider details to the customer."""
+    reason = str(getattr(exc, "reason_code", "")).lower()
+    return isinstance(exc, TimeoutError) or "timeout" in reason or "timed_out" in reason
+
+
+def _generation_error_message(exc: BaseException) -> str:
+    if _is_timeout_failure(exc):
+        return "鑑定の生成が時間内に完了しませんでした。入力内容は下に保持されています。もう一度お試しください。"
+    return "AI鑑定の生成中に確認が必要な状態になりました。入力内容は下に保持されています。時間をおいてもう一度お試しください。"
 
 
 def _render_form(values: dict[str, str] | None = None, errors: dict[str, str] | None = None) -> str:
@@ -163,25 +192,25 @@ def _render_form(values: dict[str, str] | None = None, errors: dict[str, str] | 
     checked = " checked" if unknown else ""
     disabled = " disabled" if unknown else ""
     return f"""<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">{_PWA_HEAD}
 <title>八雲式四柱推命 鑑定</title>{_FORM_CSS}</head><body>
 <header class="site-header"><div class="brand">八雲式 四柱推命</div></header>
 <main class="form-shell"><div class="form-intro"><p class="eyebrow">PERSONAL READING</p><h1>四柱推命鑑定</h1><p class="lead">生年月日などをご入力ください。命式を算出し、あなただけの鑑定結果をお届けします。</p></div>
 <form id="reading-form" class="reading-form" method="post" action="/app/reading" novalidate><div class="grid">
 {summary}
-<div class="field"><label for="birth_date">生年月日<span class="required">必須</span></label><input id="birth_date" name="birth_date" type="date" value="{escape(values.get('birth_date',''), quote=True)}" required>{field_error('birth_date')}</div>
-<div class="field"><label for="birth_place">出生地<span class="required">必須</span></label><select id="birth_place" name="birth_place" required>{places}</select>{field_error('birth_place')}</div>
+<div class="field"><label for="birth_date">生年月日<span class="required">必須</span></label><input id="birth_date" name="birth_date" type="date" value="{escape(values.get('birth_date',''), quote=True)}" required aria-describedby="birth-date-hint"><p id="birth-date-hint" class="hint">例：1984年7月22日</p>{field_error('birth_date')}</div>
+<div class="field"><label for="birth_place">出生地<span class="required">必須</span></label><select id="birth_place" name="birth_place" required aria-describedby="birth-place-hint">{places}</select><p id="birth-place-hint" class="hint">出生した都道府県を選択してください。</p>{field_error('birth_place')}</div>
 <div class="field full"><span class="label">出生時刻</span><div class="time-row"><select id="birth_hour" name="birth_hour" aria-label="出生時刻（時）"{disabled}>{hours}</select><span>時</span><select id="birth_minute" name="birth_minute" aria-label="出生時刻（分）"{disabled}>{minutes}</select><span>分</span></div>
 <label class="unknown-row" for="birth_time_unknown"><input id="birth_time_unknown" name="birth_time_unknown" type="checkbox" value="1"{checked}>出生時刻が分からない</label>{field_error('birth_time')}<p class="hint">分からない場合は時刻を推測せず、チェックを入れてください。</p></div>
-<div class="field"><label for="gender">性別<span class="required">必須</span></label><select id="gender" name="gender" required>{genders}</select>{field_error('gender')}</div>
+<div class="field"><label for="gender">性別<span class="required">必須</span></label><select id="gender" name="gender" required aria-describedby="gender-hint">{genders}</select><p id="gender-hint" class="hint">大運の順逆計算に使用します。</p>{field_error('gender')}</div>
 <div class="field full"><label for="consultation">現在のお悩み・相談したいこと（任意）</label><textarea id="consultation" name="consultation" maxlength="{MAX_CONCERN_CHARS}" placeholder="仕事、恋愛、これからの方向性など、鑑定で特に知りたいことをご記入ください。">{escape(values.get('consultation',''))}</textarea><p class="hint">{MAX_CONCERN_CHARS}文字以内。入力内容は鑑定の焦点として使用します。</p>{field_error('consultation')}</div>
-<div class="actions"><button id="submit-button" class="submit" type="submit">鑑定する</button><p id="processing" class="processing" role="status" aria-live="polite">鑑定結果を作成しています。画面を閉じずにお待ちください…</p></div>
-</div></form></main>
+<div class="actions"><button id="submit-button" class="submit" type="submit">鑑定する</button><p id="processing" class="processing" role="status" aria-live="polite">鑑定結果を作成しています。鑑定中です。しばらくお待ちください。命式計算とAI鑑定を実行しています。</p></div>
+</div></form><section class="install-panel" aria-labelledby="install-title"><p id="install-title" class="install-note">この鑑定には通信が必要です。入力内容や結果を、このアプリが端末へ保存することはありません。</p><p id="install-guidance" class="install-note"></p><button id="install-button" class="install-button" type="button">ホーム画面に追加</button></section></main>
 <script>
 const unknown=document.getElementById('birth_time_unknown');const hour=document.getElementById('birth_hour');const minute=document.getElementById('birth_minute');
 function syncTime(){{hour.disabled=unknown.checked;minute.disabled=unknown.checked;if(unknown.checked){{hour.value='';minute.value='';}}}}unknown.addEventListener('change',syncTime);syncTime();
-document.getElementById('reading-form').addEventListener('submit',function(){{const button=document.getElementById('submit-button');button.disabled=true;button.textContent='鑑定中…';document.getElementById('processing').classList.add('active');}});
-const readingForm=document.getElementById('reading-form');readingForm.addEventListener('submit',function(event){{if(this.dataset.submitting==='1'){{event.preventDefault();return;}}event.preventDefault();this.dataset.submitting='1';const button=document.getElementById('submit-button');const processing=document.getElementById('processing');button.disabled=true;button.setAttribute('aria-busy','true');button.textContent='鑑定中…';processing.textContent='鑑定中です。しばらくお待ちください。';processing.classList.add('active');const form=this;requestAnimationFrame(function(){{requestAnimationFrame(function(){{HTMLFormElement.prototype.submit.call(form);}});}});}},true);
+const readingForm=document.getElementById('reading-form');const submitButton=document.getElementById('submit-button');const processing=document.getElementById('processing');readingForm.addEventListener('submit',function(event){{if(this.dataset.submitting==='1'){{event.preventDefault();return;}}event.preventDefault();this.dataset.submitting='1';const button=submitButton;button.disabled=true;button.setAttribute('aria-busy','true');button.textContent='鑑定中…';processing.textContent='鑑定中です。しばらくお待ちください。命式を計算し、AI鑑定を生成しています。';processing.classList.add('active');const form=this;requestAnimationFrame(function(){{requestAnimationFrame(function(){{HTMLFormElement.prototype.submit.call(form);}});}});}},true);window.addEventListener('pageshow',function(){{delete readingForm.dataset.submitting;submitButton.disabled=false;submitButton.removeAttribute('aria-busy');submitButton.textContent='鑑定する';processing.classList.remove('active');}});
+const installButton=document.getElementById('install-button');const installGuidance=document.getElementById('install-guidance');let installPrompt=null;const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;if(standalone){{installGuidance.textContent='ホーム画面から起動しています。鑑定には通信が必要です。';}}else if(ios){{installGuidance.textContent='iPhone／iPadでは共有メニューから「ホーム画面に追加」を選べます。';}}else{{installGuidance.textContent='対応ブラウザでは、利用可能になるとホーム画面へ追加できます。';}}window.addEventListener('beforeinstallprompt',function(event){{event.preventDefault();installPrompt=event;installButton.classList.add('available');}});installButton.addEventListener('click',async function(){{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;installButton.classList.remove('available');}});if('serviceWorker' in navigator){{window.addEventListener('load',function(){{navigator.serviceWorker.register('/app/sw.js',{{scope:'/app'}}).catch(function(){{installGuidance.textContent+=' インストール準備を完了できませんでした。';}});}});}}
 </script></body></html>"""
 
 
@@ -225,7 +254,7 @@ def _render_customer_result(product: object) -> str:
     document = document.replace(
         "</head>",
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<meta name="robots" content="noindex,nofollow">' + _RESULT_CSS + "</head>",
+        '<meta name="robots" content="noindex,nofollow">' + _PWA_HEAD + _RESULT_CSS + "</head>",
         1,
     )
     document = document.replace(
@@ -233,7 +262,7 @@ def _render_customer_result(product: object) -> str:
         '<body><nav class="web-nav"><a href="/app">入力画面へ戻る</a></nav>',
         1,
     )
-    return document
+    return append_product_reference_sidecar(document, product)
 
 
 def _render_fast_chart(result: dict[str, object]) -> str:
@@ -427,7 +456,7 @@ def _render_fast_result_raw(result: dict[str, object]) -> str:
     # The chart is rendered from server-owned projections before the existing
     # Fast Reading cards; provider contracts and detail behavior stay intact.
     cards.insert(0, _render_fast_chart(result))
-    return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>八雲式 四柱推命 鑑定結果</title>{_FAST_CSS}</head><body><nav class="web-nav"><a href="/app">入力画面へ戻る</a></nav><main class="fast-shell"><header class="fast-head"><p class="eyebrow">PERSONAL READING</p><h1>あなたの鑑定結果</h1><p>命式の主要な傾向を先に確認できます。詳しい内容は必要な項目だけご覧ください。</p></header><div class="fast-facts"><span>命式：{escape(pillar_text)}</span></div><section class="fast-grid">{''.join(cards)}</section></main><script>
+    return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">{_PWA_HEAD}<title>八雲式 四柱推命 鑑定結果</title>{_FAST_CSS}</head><body><nav class="web-nav"><a href="/app">入力画面へ戻る</a></nav><main class="fast-shell"><header class="fast-head"><p class="eyebrow">PERSONAL READING</p><h1>あなたの鑑定結果</h1><p>命式の主要な傾向を先に確認できます。詳しい内容は必要な項目だけご覧ください。</p></header><div class="fast-facts"><span>命式：{escape(pillar_text)}</span></div><section class="fast-grid">{''.join(cards)}</section></main><script>
 const sid="{session_id}";document.querySelectorAll('.detail-button').forEach((button)=>button.addEventListener('click',async()=>{{const box=button.nextElementSibling;const type=button.dataset.detail;if(!box.hidden){{box.hidden=true;button.textContent='詳しく見る';return;}}button.disabled=true;box.hidden=false;box.className='detail-box detail-loading';box.textContent='詳しい鑑定を準備しています…';try{{const response=await fetch('/app/reading/detail',{{method:'POST',headers:{{'content-type':'application/json'}},body:JSON.stringify({{session_id:sid,detail_type:type}})}});const data=await response.json();if(!response.ok)throw new Error();box.className='detail-box';box.textContent=data.text;button.textContent='閉じる';}}catch(_error){{box.textContent='詳細鑑定を取得できませんでした。もう一度お試しください。';}}finally{{button.disabled=false;}}}}));
  </script></body></html>'''
 
@@ -477,7 +506,7 @@ def _render_fast_result(result: dict[str, object]) -> str:
             """document.querySelectorAll('.concern-answer-button').forEach((button)=>button.addEventListener('click',async()=>{const box=button.nextElementSibling;button.disabled=true;box.hidden=false;box.className='detail-box detail-loading';box.textContent='回答を準備しています…';try{const response=await fetch('/app/reading/concern',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({session_id:sid})});const data=await response.json();if(!response.ok)throw new Error();box.className='detail-box';renderFastProse(box,data.answer);button.textContent='回答を表示中';}catch(_error){box.textContent='個別回答を取得できませんでした。もう一度お試しください。';}finally{button.disabled=false;}}));</script></body></html>""",
             label="concern_script",
         )
-    return document
+    return append_reference_sidecar(document, result.get("chart"))
 
 
 def _move_fast_back_link_to_header(document: str) -> str:
@@ -509,6 +538,56 @@ def _render_concern_card(result: dict[str, object]) -> str:
 @router.get("/app", response_class=HTMLResponse, include_in_schema=False)
 def customer_form() -> HTMLResponse:
     return HTMLResponse(_render_form())
+
+
+@router.get("/app/manifest.webmanifest", include_in_schema=False)
+def customer_manifest() -> FileResponse:
+    return FileResponse(
+        _CUSTOMER_STATIC / "manifest.webmanifest",
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
+@router.get("/app/icon.svg", include_in_schema=False)
+def customer_icon() -> FileResponse:
+    return FileResponse(
+        _CUSTOMER_STATIC / "icon.svg",
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+def _customer_png_icon(filename: str) -> FileResponse:
+    return FileResponse(
+        _CUSTOMER_STATIC / filename,
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@router.get("/app/apple-touch-icon.png", include_in_schema=False)
+def customer_apple_touch_icon() -> FileResponse:
+    return _customer_png_icon("apple-touch-icon.png")
+
+
+@router.get("/app/icon-192.png", include_in_schema=False)
+def customer_icon_192() -> FileResponse:
+    return _customer_png_icon("icon-192.png")
+
+
+@router.get("/app/icon-512.png", include_in_schema=False)
+def customer_icon_512() -> FileResponse:
+    return _customer_png_icon("icon-512.png")
+
+
+@router.get("/app/sw.js", include_in_schema=False)
+def customer_service_worker() -> FileResponse:
+    return FileResponse(
+        _CUSTOMER_STATIC / "sw.js",
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-store", "Service-Worker-Allowed": "/app"},
+    )
 
 
 @router.get("/app/reading", response_class=HTMLResponse, include_in_schema=False)
@@ -561,14 +640,14 @@ async def customer_reading_full(request: Request) -> HTMLResponse:
             ",".join(getattr(exc, "diagnostic_locations", ())) or "none",
         )
         return HTMLResponse(
-            _render_form(values, {"_form": "鑑定結果の生成中に確認が必要な状態になりました。恐れ入りますが、もう一度お試しください。"}),
+            _render_form(values, {"_form": _generation_error_message(exc)}),
             status_code=503,
         )
     except Exception as exc:
         performance.finish(status="error")
         logger.error("customer reading unexpected failure: %s", type(exc).__name__)
         return HTMLResponse(
-            _render_form(values, {"_form": "鑑定結果を作成できませんでした。時間をおいてもう一度お試しください。"}),
+            _render_form(values, {"_form": _generation_error_message(exc)}),
             status_code=500,
         )
 
@@ -629,14 +708,14 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
                     ",".join(getattr(exc, "diagnostic_locations", ())) or "none",
                 )
                 return HTMLResponse(
-                    _render_form(values, {"_form": "鑑定結果の生成中に確認が必要な状態になりました。恐れ入りますが、もう一度お試しください。"}),
+                    _render_form(values, {"_form": _generation_error_message(exc)}),
                     status_code=503,
                 )
             except Exception:
                 pass
         logger.warning("fast customer reading unavailable", exc_info=False)
         return HTMLResponse(
-            _render_form(values, {"_form": "鑑定結果を作成できませんでした。時間をおいてもう一度お試しください。"}),
+            _render_form(values, {"_form": _generation_error_message(exc)}),
             status_code=503,
         )
 
