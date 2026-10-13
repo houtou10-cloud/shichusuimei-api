@@ -55,6 +55,55 @@ def test_mobile_form_has_accessible_inputs_truthful_status_and_single_submit_han
     assert "font-size:16px" in html
 
 
+def test_access_code_is_optional_until_configured(monkeypatch):
+    monkeypatch.delenv("CUSTOMER_ACCESS_CODE", raising=False)
+    html = TestClient(app).get("/app").text
+    assert 'name="access_code"' not in html
+
+
+def test_access_code_rejects_before_provider_and_never_echoes_secret(monkeypatch):
+    _reset_guard()
+    monkeypatch.setenv("CUSTOMER_ACCESS_CODE", "synthetic-secret-code")
+    calls = []
+    monkeypatch.setattr(customer_routes, "run_fast_reading", lambda *_args, **_kwargs: calls.append(1))
+
+    form = TestClient(app).get("/app")
+    assert form.status_code == 200
+    assert 'name="access_code" type="password"' in form.text
+    assert "synthetic-secret-code" not in form.text
+
+    denied = _post(_values(access_code="wrong-code", consultation="保持対象の相談"))
+    assert denied.status_code == 403
+    assert denied.headers["cache-control"] == "no-store"
+    assert "アクセスコードを確認してください" in denied.text
+    assert "保持対象の相談" in denied.text
+    assert "wrong-code" not in denied.text
+    assert "synthetic-secret-code" not in denied.text
+    assert calls == []
+
+
+def test_access_code_allows_provider_without_leaking_code(monkeypatch):
+    _reset_guard()
+    monkeypatch.setenv("CUSTOMER_ACCESS_CODE", "synthetic-secret-code")
+    result = {
+        "session_id": "a" * 32,
+        "chart": {},
+        "sections": {key: "合成応答" for key, _ in FAST_SECTIONS},
+    }
+    calls = []
+
+    def reading(*_args, **_kwargs):
+        calls.append(1)
+        return result
+
+    monkeypatch.setattr(customer_routes, "run_fast_reading", reading)
+    response = _post(_values(access_code="synthetic-secret-code"))
+    assert response.status_code == 200
+    assert "あなたの鑑定結果" in response.text
+    assert "synthetic-secret-code" not in response.text
+    assert calls == [1]
+
+
 def test_pwa_assets_are_installable_but_never_cache_customer_data():
     client = TestClient(app)
     form = client.get("/app")

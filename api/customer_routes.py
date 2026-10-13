@@ -6,6 +6,7 @@ import asyncio
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from html import escape
+import hmac
 import logging
 import os
 from pathlib import Path
@@ -135,6 +136,19 @@ def _rate_limit_headers(exc: _CustomerRateLimitExceeded) -> dict[str, str]:
 
 def _rate_limit_message() -> str:
     return "短時間に鑑定が集中しています。入力内容は保持されています。少し時間をおいてからお試しください。"
+
+
+def _access_code_required() -> bool:
+    return bool(os.getenv("CUSTOMER_ACCESS_CODE", ""))
+
+
+def _consume_access_code(values: dict[str, str]) -> bool:
+    """Remove and verify the staging access code without retaining it."""
+    supplied = values.pop("access_code", "")
+    expected = os.getenv("CUSTOMER_ACCESS_CODE", "")
+    if not expected:
+        return True
+    return hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8"))
 
 _FORM_CSS = """
 <style>
@@ -286,6 +300,17 @@ def _render_form(values: dict[str, str] | None = None, errors: dict[str, str] | 
         )
     checked = " checked" if unknown else ""
     disabled = " disabled" if unknown else ""
+    access_code_field = ""
+    if _access_code_required():
+        access_code_field = (
+            '<div class="field full"><label for="access_code">アクセスコード'
+            '<span class="required">必須</span></label>'
+            '<input id="access_code" name="access_code" type="password" required '
+            'autocomplete="one-time-code" inputmode="text" '
+            'aria-describedby="access-code-hint">'
+            '<p id="access-code-hint" class="hint">ご案内したアクセスコードを入力してください。</p>'
+            f'{field_error("access_code")}</div>'
+        )
     return f"""<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">{_PWA_HEAD}
 <title>八雲式四柱推命 鑑定</title>{_FORM_CSS}</head><body>
@@ -293,6 +318,7 @@ def _render_form(values: dict[str, str] | None = None, errors: dict[str, str] | 
 <main class="form-shell"><div class="form-intro"><p class="eyebrow">PERSONAL READING</p><h1>四柱推命鑑定</h1><p class="lead">生年月日などをご入力ください。命式を算出し、あなただけの鑑定結果をお届けします。</p></div>
 <form id="reading-form" class="reading-form" method="post" action="/app/reading" novalidate><div class="grid">
 {summary}
+{access_code_field}
 <div class="field"><label for="birth_date">生年月日<span class="required">必須</span></label><input id="birth_date" name="birth_date" type="date" value="{escape(values.get('birth_date',''), quote=True)}" required aria-describedby="birth-date-hint"><p id="birth-date-hint" class="hint">例：1984年7月22日</p>{field_error('birth_date')}</div>
 <div class="field"><label for="birth_place">出生地<span class="required">必須</span></label><select id="birth_place" name="birth_place" required aria-describedby="birth-place-hint">{places}</select><p id="birth-place-hint" class="hint">出生した都道府県を選択してください。</p>{field_error('birth_place')}</div>
 <div class="field full"><span class="label">出生時刻</span><div class="time-row"><select id="birth_hour" name="birth_hour" aria-label="出生時刻（時）"{disabled}>{hours}</select><span>時</span><select id="birth_minute" name="birth_minute" aria-label="出生時刻（分）"{disabled}>{minutes}</select><span>分</span></div>
@@ -334,7 +360,7 @@ async def _form_values(request: Request) -> dict[str, str]:
     result: dict[str, str] = {}
     allowed = {
         "birth_date", "birth_place", "birth_hour", "birth_minute",
-        "birth_time_unknown", "gender", "consultation",
+        "birth_time_unknown", "gender", "consultation", "access_code",
     }
     for key, value in pairs:
         if key not in allowed or key in result:
@@ -699,6 +725,12 @@ async def customer_reading_full(request: Request) -> HTMLResponse:
     try:
         with performance.measure("request_parse"):
             values = await _form_values(request)
+            if not _consume_access_code(values):
+                return HTMLResponse(
+                    _render_form(values, {"access_code": "アクセスコードを確認してください。"}),
+                    status_code=403,
+                    headers={"Cache-Control": "no-store"},
+                )
             customer_input = validate_customer_input(values)
     except CustomerInputError as exc:
         performance.finish(status="error")
@@ -766,6 +798,14 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
     performance: dict[str, object] = {"provider_calls": 0, "status": "error"}
     try:
         values = await _form_values(request)
+        if not _consume_access_code(values):
+            performance["status"] = "access_denied"
+            performance["failure_stage"] = "access_control"
+            return HTMLResponse(
+                _render_form(values, {"access_code": "アクセスコードを確認してください。"}),
+                status_code=403,
+                headers={"Cache-Control": "no-store"},
+            )
         customer_input = validate_customer_input(values)
         async with _CUSTOMER_REQUEST_GUARD.limit(request):
             result = await run_in_threadpool(run_fast_reading, customer_input, performance=performance)
