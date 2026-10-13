@@ -41,7 +41,8 @@ def test_mobile_form_has_accessible_inputs_truthful_status_and_single_submit_han
     assert 'aria-describedby="birth-place-hint"' in html
     assert 'aria-describedby="gender-hint"' in html
     assert "大運の順逆計算に使用します" in html
-    assert "命式を計算し、AI鑑定を生成しています" in html
+    assert "命式を計算し、鑑定を生成しています" in html
+    assert "AI鑑定" not in html
     assert "進捗率" not in html and "残り時間" not in html
     assert html.count("readingForm.addEventListener('submit'") == 1
     assert "dataset.submitting" in html and "pageshow" in html
@@ -54,6 +55,7 @@ def test_pwa_assets_are_installable_but_never_cache_customer_data():
     assert 'rel="manifest" href="/app/manifest.webmanifest"' in form.text
     assert 'rel="apple-touch-icon" sizes="180x180" href="/app/apple-touch-icon.png"' in form.text
     assert "この鑑定には通信が必要です" in form.text
+    assert form.text.count("鑑定には通信が必要です") == 1
     assert "端末へ保存することはありません" in form.text
     assert "beforeinstallprompt" in form.text
     assert "iPhone／iPadでは共有メニュー" in form.text
@@ -117,7 +119,8 @@ def test_timeout_and_ai_failure_are_distinct_and_retain_input(monkeypatch):
     monkeypatch.setattr(customer_routes, "run_fast_reading", failed)
     failed_response = _post(_values())
     assert failed_response.status_code == 503
-    assert "AI鑑定の生成中に確認が必要な状態" in failed_response.text
+    assert "鑑定の生成中に確認が必要な状態" in failed_response.text
+    assert "AI鑑定" not in failed_response.text
     assert "時間内に完了しませんでした" not in failed_response.text
 
 
