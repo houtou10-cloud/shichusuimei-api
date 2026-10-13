@@ -4,6 +4,8 @@ The provider result is replaced at the HTTP boundary; these are not source-text
 cases and do not assert divination accuracy.
 """
 
+import asyncio
+from types import SimpleNamespace
 from urllib.parse import urlencode
 
 from fastapi.testclient import TestClient
@@ -32,6 +34,10 @@ def _post(values):
         content=urlencode(values),
         headers={"content-type": "application/x-www-form-urlencoded"},
     )
+
+
+def _reset_guard():
+    asyncio.run(customer_routes._CUSTOMER_REQUEST_GUARD.reset())
 
 
 def test_mobile_form_has_accessible_inputs_truthful_status_and_single_submit_handler():
@@ -125,6 +131,7 @@ def test_timeout_and_ai_failure_are_distinct_and_retain_input(monkeypatch):
 
 
 def test_synthetic_input_reaches_mobile_result_without_page_wide_overflow(monkeypatch):
+    _reset_guard()
     result = {
         "session_id": "a" * 32,
         "chart": {},
@@ -139,3 +146,73 @@ def test_synthetic_input_reaches_mobile_result_without_page_wide_overflow(monkey
     assert ".chart-table,.luck-table{min-width:0" in response.text
     assert ".annual-grid{min-width:0;grid-template-columns:repeat(2" in response.text
     assert 'rel="manifest" href="/app/manifest.webmanifest"' in response.text
+
+
+def test_rate_limit_returns_429_retains_input_and_skips_provider(monkeypatch):
+    _reset_guard()
+    monkeypatch.setenv("CUSTOMER_RATE_LIMIT_ENABLED", "1")
+    monkeypatch.setenv("CUSTOMER_RATE_LIMIT_MAX_REQUESTS", "1")
+    calls = []
+
+    def reading(*_args, **_kwargs):
+        calls.append(1)
+        return {
+            "session_id": "a" * 32,
+            "chart": {},
+            "sections": {key: "合成応答" for key, _ in FAST_SECTIONS},
+        }
+
+    monkeypatch.setattr(customer_routes, "run_fast_reading", reading)
+    assert _post(_values()).status_code == 200
+    limited = _post(_values(consultation="保持される相談内容"))
+    assert limited.status_code == 429
+    assert limited.headers["retry-after"]
+    assert limited.headers["cache-control"] == "no-store"
+    assert "短時間に鑑定が集中しています" in limited.text
+    assert "保持される相談内容" in limited.text
+    assert len(calls) == 1
+
+
+def test_invalid_input_does_not_consume_rate_limit(monkeypatch):
+    _reset_guard()
+    monkeypatch.setenv("CUSTOMER_RATE_LIMIT_ENABLED", "1")
+    monkeypatch.setenv("CUSTOMER_RATE_LIMIT_MAX_REQUESTS", "1")
+    result = {
+        "session_id": "a" * 32,
+        "chart": {},
+        "sections": {key: "合成応答" for key, _ in FAST_SECTIONS},
+    }
+    monkeypatch.setattr(customer_routes, "run_fast_reading", lambda *_args, **_kwargs: result)
+    assert _post(_values(birth_date="invalid")).status_code == 422
+    assert _post(_values()).status_code == 200
+
+
+def test_rate_limit_can_be_disabled_for_controlled_recovery(monkeypatch):
+    _reset_guard()
+    monkeypatch.setenv("CUSTOMER_RATE_LIMIT_ENABLED", "0")
+    monkeypatch.setenv("CUSTOMER_RATE_LIMIT_MAX_REQUESTS", "1")
+    result = {
+        "session_id": "a" * 32,
+        "chart": {},
+        "sections": {key: "合成応答" for key, _ in FAST_SECTIONS},
+    }
+    monkeypatch.setattr(customer_routes, "run_fast_reading", lambda *_args, **_kwargs: result)
+    assert _post(_values()).status_code == 200
+    assert _post(_values()).status_code == 200
+
+
+def test_concurrent_guard_rejects_extra_request(monkeypatch):
+    monkeypatch.setenv("CUSTOMER_RATE_LIMIT_ENABLED", "1")
+    monkeypatch.setenv("CUSTOMER_RATE_LIMIT_MAX_CONCURRENT", "1")
+
+    async def scenario():
+        await customer_routes._CUSTOMER_REQUEST_GUARD.reset()
+        request = SimpleNamespace(client=SimpleNamespace(host="synthetic-client"))
+        async with customer_routes._CUSTOMER_REQUEST_GUARD.limit(request):
+            try:
+                async with customer_routes._CUSTOMER_REQUEST_GUARD.limit(request):
+                    raise AssertionError("second request should not enter")
+            except customer_routes._CustomerRateLimitExceeded as exc:
+                assert exc.retry_after == 5
+
+    asyncio.run(scenario())

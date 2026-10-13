@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+from collections import defaultdict, deque
+from contextlib import asynccontextmanager
 from html import escape
 import logging
 import os
@@ -40,6 +43,98 @@ _CUSTOMER_STATIC = Path(__file__).resolve().parent / "static" / "customer"
 
 _MAX_FORM_BYTES = 12_000
 _NAMED_META = re.compile(r'<meta name="[^"]+" content="[^"]*">')
+
+
+class _CustomerRateLimitExceeded(RuntimeError):
+    def __init__(self, retry_after: int) -> None:
+        super().__init__("customer request rate limited")
+        self.retry_after = max(1, retry_after)
+
+
+class _CustomerRequestGuard:
+    """Process-local protection for the isolated customer web service.
+
+    Only transient client network identifiers are held in memory. They are
+    neither logged nor persisted. Horizontal scaling requires a shared store.
+    """
+
+    def __init__(self) -> None:
+        self._lock = asyncio.Lock()
+        self._recent: dict[str, deque[float]] = defaultdict(deque)
+        self._daily: dict[str, deque[float]] = defaultdict(deque)
+        self._active = 0
+
+    @staticmethod
+    def _enabled() -> bool:
+        configured = os.getenv("CUSTOMER_RATE_LIMIT_ENABLED")
+        if configured is None:
+            return bool(os.getenv("OPENAI_API_KEY"))
+        return configured.strip().lower() not in {
+            "0", "false", "no", "off",
+        }
+
+    @staticmethod
+    def _positive_int(name: str, default: int) -> int:
+        try:
+            return max(1, int(os.getenv(name, str(default))))
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _client_key(request: Request) -> str:
+        return request.client.host if request.client is not None else "unknown"
+
+    async def reset(self) -> None:
+        async with self._lock:
+            self._recent.clear()
+            self._daily.clear()
+            self._active = 0
+
+    @asynccontextmanager
+    async def limit(self, request: Request):
+        if not self._enabled():
+            yield
+            return
+
+        now = time.monotonic()
+        key = self._client_key(request)
+        window_seconds = self._positive_int("CUSTOMER_RATE_LIMIT_WINDOW_SECONDS", 600)
+        window_max = self._positive_int("CUSTOMER_RATE_LIMIT_MAX_REQUESTS", 5)
+        daily_max = self._positive_int("CUSTOMER_RATE_LIMIT_DAILY_MAX", 20)
+        concurrent_max = self._positive_int("CUSTOMER_RATE_LIMIT_MAX_CONCURRENT", 2)
+
+        async with self._lock:
+            recent = self._recent[key]
+            daily = self._daily[key]
+            while recent and now - recent[0] >= window_seconds:
+                recent.popleft()
+            while daily and now - daily[0] >= 86_400:
+                daily.popleft()
+            if self._active >= concurrent_max:
+                raise _CustomerRateLimitExceeded(5)
+            if len(recent) >= window_max:
+                raise _CustomerRateLimitExceeded(int(window_seconds - (now - recent[0])) + 1)
+            if len(daily) >= daily_max:
+                raise _CustomerRateLimitExceeded(int(86_400 - (now - daily[0])) + 1)
+            recent.append(now)
+            daily.append(now)
+            self._active += 1
+        try:
+            yield
+        finally:
+            async with self._lock:
+                self._active = max(0, self._active - 1)
+
+
+_CUSTOMER_REQUEST_GUARD = _CustomerRequestGuard()
+
+
+def _rate_limit_headers(exc: _CustomerRateLimitExceeded) -> dict[str, str]:
+    return {"Retry-After": str(exc.retry_after), "Cache-Control": "no-store"}
+
+
+def _rate_limit_message() -> str:
+    return "短時間に鑑定が集中しています。入力内容は保持されています。少し時間をおいてからお試しください。"
 
 _FORM_CSS = """
 <style>
@@ -611,7 +706,8 @@ async def customer_reading_full(request: Request) -> HTMLResponse:
     try:
         token = set_performance_trace(performance)
         try:
-            product = await run_in_threadpool(run_customer_reading, customer_input)
+            async with _CUSTOMER_REQUEST_GUARD.limit(request):
+                product = await run_in_threadpool(run_customer_reading, customer_input)
         finally:
             reset_performance_trace(token)
         with performance.measure("html_render"):
@@ -619,6 +715,13 @@ async def customer_reading_full(request: Request) -> HTMLResponse:
         performance.skip("pdf_generation")
         performance.finish(status="success")
         return HTMLResponse(document)
+    except _CustomerRateLimitExceeded as exc:
+        performance.finish(status="rate_limited")
+        return HTMLResponse(
+            _render_form(values, {"_form": _rate_limit_message()}),
+            status_code=429,
+            headers=_rate_limit_headers(exc),
+        )
     except CustomerConfigurationError as exc:
         performance.finish(status="error")
         logger.error(
@@ -664,7 +767,8 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
     try:
         values = await _form_values(request)
         customer_input = validate_customer_input(values)
-        result = await run_in_threadpool(run_fast_reading, customer_input, performance=performance)
+        async with _CUSTOMER_REQUEST_GUARD.limit(request):
+            result = await run_in_threadpool(run_fast_reading, customer_input, performance=performance)
         render_started = time.perf_counter()
         document = _render_fast_result(result)
         document = _move_fast_back_link_to_header(document)
@@ -673,6 +777,14 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
         return HTMLResponse(document)
     except CustomerInputError as exc:
         return HTMLResponse(_render_form(values, exc.errors), status_code=422)
+    except _CustomerRateLimitExceeded as exc:
+        performance["status"] = "rate_limited"
+        performance["failure_stage"] = "request_guard"
+        return HTMLResponse(
+            _render_form(values, {"_form": _rate_limit_message()}),
+            status_code=429,
+            headers=_rate_limit_headers(exc),
+        )
     except Exception as exc:
         frames = traceback.extract_tb(exc.__traceback__) if exc.__traceback__ else []
         frame = frames[-1] if frames else None
@@ -744,10 +856,19 @@ async def customer_reading_detail(request: Request) -> HTMLResponse:
             raise ValueError("invalid detail request")
         if session is None or detail_type not in DETAIL_TYPES:
             raise ValueError("invalid detail request")
-        text = await run_in_threadpool(run_detail, session_id, detail_type, performance=performance)
+        async with _CUSTOMER_REQUEST_GUARD.limit(request):
+            text = await run_in_threadpool(run_detail, session_id, detail_type, performance=performance)
         performance["provider_calls"] = 0 if performance.get("cache_hit") else 1
         performance["status"] = "success"
         return JSONResponse({"text": text})
+    except _CustomerRateLimitExceeded as exc:
+        performance["status"] = "rate_limited"
+        performance["failure_stage"] = "request_guard"
+        return JSONResponse(
+            {"error": "短時間に鑑定が集中しています。少し時間をおいてからお試しください。"},
+            status_code=429,
+            headers=_rate_limit_headers(exc),
+        )
     except Exception as exc:
         performance["failure_type"] = type(exc).__name__
         performance["failure_stage"] = performance.get("failure_stage") or (
@@ -794,9 +915,18 @@ async def customer_reading_concern(request: Request) -> JSONResponse:
         performance["session_present"] = session_present
         if not isinstance(session_id, str) or not session_present:
             raise ValueError("invalid concern request")
-        result = await run_in_threadpool(run_concern_answer, session_id, performance=performance)
+        async with _CUSTOMER_REQUEST_GUARD.limit(request):
+            result = await run_in_threadpool(run_concern_answer, session_id, performance=performance)
         performance["status"] = "success"
         return JSONResponse(result)
+    except _CustomerRateLimitExceeded as exc:
+        performance["status"] = "rate_limited"
+        performance["failure_stage"] = "request_guard"
+        return JSONResponse(
+            {"error": "短時間に鑑定が集中しています。少し時間をおいてからお試しください。"},
+            status_code=429,
+            headers=_rate_limit_headers(exc),
+        )
     except Exception as exc:
         performance["failure_type"] = type(exc).__name__
         performance["failure_stage"] = (
