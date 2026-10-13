@@ -514,7 +514,9 @@ def _move_fast_back_link_to_header(document: str) -> str:
     document = re.sub(r'<nav class="web-nav"><a href="/app">.*?</a></nav>', "", document, count=1)
     return document.replace(
         '<header class="fast-head"><p class="eyebrow">',
-        '<header class="fast-head"><a class="fast-back" href="/app">← 入力画面に戻る</a><p class="eyebrow">',
+        '<header class="fast-head"><a class="fast-back" href="/app" '
+        'onclick="if(window.history.length>1){window.history.back();return false;}">'
+        '← 入力画面に戻る</a><p class="eyebrow">',
         1,
     )
 

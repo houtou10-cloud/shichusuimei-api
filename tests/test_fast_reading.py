@@ -417,6 +417,9 @@ def test_fast_back_link_is_in_header_once():
     assert '← 入力画面に戻る' in moved
     assert '<nav class="web-nav">' not in moved
     assert '<header class="fast-head"><a class="fast-back"' in moved
+    assert "window.history.back()" in moved
+    assert "window.history.length>1" in moved
+    assert "return false" in moved
 
 
 def test_fast_prose_preserves_authored_breaks_and_escapes_html():
