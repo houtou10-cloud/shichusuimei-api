@@ -293,8 +293,59 @@ def _render_sales_page() -> str:
 <details><summary>AIを使っていますか？</summary><p>命式計算結果に基づく鑑定文の生成にAIを使用します。入力情報の取扱いはプライバシーポリシーへ明記します。</p></details>
 <details><summary>鑑定だけで転職や独立を決めてもよいですか？</summary><p>鑑定は意思決定の参考情報です。生活費、雇用条件、事業計画なども確認し、最終的にはご自身で判断してください。</p></details>
 </section></main>
-<footer class="sales-footer"><p>18歳以上対象・インターネット通信が必要です</p><p class="legal-pending">利用規約・プライバシーポリシー・特定商取引法表示は公開前に正式情報を反映します。</p></footer>
+<footer class="sales-footer"><p>18歳以上対象・インターネット通信が必要です</p><p class="legal-pending"><a href="/terms">利用規約</a> ｜ <a href="/privacy">プライバシーポリシー</a> ｜ <a href="/legal">特定商取引法に基づく表記</a></p></footer>
 </body></html>"""
+
+
+_LEGAL_CSS = """
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4ede4;color:#302820;font-family:"Yu Mincho","Hiragino Mincho ProN","Noto Serif JP",serif;line-height:1.8}.legal-head{padding:16px 22px;background:#fffdfa;border-bottom:1px solid #dfd1c2}.legal-head a{text-decoration:none;color:#5d3b25;font-weight:700}.legal-main{width:min(880px,calc(100% - 24px));margin:28px auto 60px;padding:34px 42px;background:#fffdfa;border:1px solid #dfd1c2;border-radius:14px}.legal-main h1,.legal-main h2{color:#4d3322}.legal-main h1{line-height:1.35}.legal-main table{width:100%;border-collapse:collapse}.legal-main th,.legal-main td{border:1px solid #dfd1c2;padding:10px;text-align:left;vertical-align:top}.legal-main th{width:30%;background:#f5efe7}.pending{border-left:5px solid #a33a35;padding:12px 14px;background:#fff1ef}.legal-nav a{margin-right:1rem}@media(max-width:680px){.legal-main{padding:24px 18px}.legal-main table,.legal-main tbody,.legal-main tr,.legal-main th,.legal-main td{display:block}.legal-main th{width:100%}}
+</style>
+"""
+
+
+def _legal_document(title: str, body: str) -> str:
+    return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>{title}</title>{_LEGAL_CSS}</head><body><header class="legal-head"><a href="/career-reading">← 八雲式 キャリア鑑定</a></header><main class="legal-main"><h1>{title}</h1>{body}<nav class="legal-nav"><a href="/terms">利用規約</a><a href="/privacy">プライバシーポリシー</a><a href="/legal">特商法表示</a></nav></main></body></html>'''
+
+
+def _render_terms_page() -> str:
+    return _legal_document("利用規約（公開前案）", '''
+<p class="pending"><strong>公開前案：</strong>正式な事業者情報と専門家確認の完了前は、Stripe審査や一般販売に使用できません。</p>
+<h2>1. サービスの内容</h2><p>本サービスは、転職、独立およびキャリア形成を主なテーマとして、四柱推命による参考情報を提供します。鑑定文の一部は、命式計算結果に基づきAIで生成されます。</p>
+<h2>2. 鑑定の位置づけ</h2><p>鑑定は意思決定の参考情報です。転職、退職、開業、借入、投資等を指示せず、採用、収入、事業成果または利益を保証しません。重要な判断は現実的な条件を確認し、必要に応じて専門家へ相談してください。</p>
+<h2>3. 料金と提供</h2><p>1鑑定1,980円（税込）、Stripeによるクレジットカード決済、買い切りです。自動更新・継続課金はありません。決済後に必要事項を入力すると、通常数分以内に結果を表示します。</p>
+<h2>4. キャンセル・返金</h2><p>鑑定生成開始後の利用者都合によるキャンセル・返金は原則として受け付けません。重複決済、当方の障害により結果を提供できなかった場合、その他法令上必要な場合は確認後に返金します。</p>
+<h2>5. 利用条件</h2><p>18歳以上の方が利用できます。第三者の情報を入力する場合は、適法な権限または本人の同意を得てください。不正アクセス、大量アクセス、認証情報の無断共有等を禁止します。</p>
+<h2>6. 責任</h2><p>法令上許されない範囲まで当方の責任を免除するものではありません。当方の故意または重大な過失がある場合に、不当な責任制限は適用しません。</p>
+<h2>7. 準拠法</h2><p>日本法を準拠法とします。問い合わせ先および管轄は正式な事業者情報確定後に追記します。</p>''')
+
+
+def _render_privacy_page() -> str:
+    return _legal_document("プライバシーポリシー（公開前案）", '''
+<p class="pending"><strong>公開前案：</strong>事業者名、問い合わせ窓口、外部事業者の処理条件等の最終確認が必要です。</p>
+<h2>1. 取得する情報</h2><p>生年月日、出生時刻または不明であること、出生地、性別、任意の相談内容、セッション識別子、アクセス日時、IPアドレス、処理時間、エラー分類等を取得します。</p>
+<h2>2. 利用目的</h2><p>命式計算、鑑定結果の生成・表示、相談への回答、不正利用防止、障害対応、品質改善、問い合わせ対応および法令上必要な対応に利用します。</p>
+<h2>3. 外部サービス</h2><p>鑑定文生成にはOpenAI API、Webサービス運用にはRenderを利用します。鑑定に必要な入力情報と相談内容が、これらの委託先で処理されます。カード情報はStripeの決済画面で取り扱い、本サービスのサーバーでは保持しない設計とします。</p>
+<h2>4. 保存期間</h2><p>現行システムでは、詳細表示用のサーバー内セッションを原則30分、命式計算の一時キャッシュを原則5分保持します。ログ、問い合わせ、決済・会計記録の保存期間は公開前に確定します。</p>
+<h2>5. 安全管理</h2><p>通信の暗号化、アクセス制御、秘密情報の環境変数管理、不正利用防止、入力本文や秘密情報の過剰なログ記録防止等を行います。顧客入力、鑑定結果、認証情報をService Workerへキャッシュしません。</p>
+<h2>6. 開示等の請求</h2><p>法令に基づく開示、訂正、利用停止等の受付方法は、正式な問い合わせ窓口と本人確認手順の確定後に追記します。</p>''')
+
+
+def _render_commerce_page() -> str:
+    rows = (
+        ("販売事業者", "正式名称の確定待ち"), ("運営責任者", "確定待ち"),
+        ("所在地", "確定待ち"), ("電話番号", "確定待ち"),
+        ("問い合わせ先", "専用問い合わせフォームの作成待ち"),
+        ("販売価格", "1鑑定1,980円（税込）"),
+        ("価格以外の負担", "インターネット接続に必要な通信料金"),
+        ("支払方法・時期", "Stripeによるクレジットカード決済。注文時に支払い"),
+        ("提供時期", "決済後、必要事項を入力してから通常数分以内"),
+        ("キャンセル・返金", "生成開始後の利用者都合による返金は原則不可。重複決済、当方の障害で提供不能、法令上必要な場合は確認後に返金"),
+        ("課金方式", "1鑑定ごとの買い切り。自動更新・継続課金なし"),
+        ("動作環境", "最新版SafariまたはGoogle Chrome。HTTPS通信とJavaScriptが必要。オフライン非対応"),
+    )
+    table = "".join(f"<tr><th>{escape(key)}</th><td>{escape(value)}</td></tr>" for key, value in rows)
+    return _legal_document("特定商取引法に基づく表記（公開準備中）", f'''<p class="pending"><strong>Stripe審査へ未提出：</strong>販売事業者、運営責任者、所在地、電話番号、問い合わせ先が未確定です。確定前の一般販売およびStripe審査には使用できません。</p><table><tbody>{table}</tbody></table>''')
 
 
 def _option(value: str, label: str, selected: str) -> str:
@@ -713,6 +764,21 @@ def customer_sales_page() -> HTMLResponse:
     return HTMLResponse(_render_sales_page(), headers={"Cache-Control": "no-store"})
 
 
+@router.get("/terms", response_class=HTMLResponse, include_in_schema=False)
+def customer_terms_page() -> HTMLResponse:
+    return HTMLResponse(_render_terms_page(), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/privacy", response_class=HTMLResponse, include_in_schema=False)
+def customer_privacy_page() -> HTMLResponse:
+    return HTMLResponse(_render_privacy_page(), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/legal", response_class=HTMLResponse, include_in_schema=False)
+def customer_commerce_page() -> HTMLResponse:
+    return HTMLResponse(_render_commerce_page(), headers={"Cache-Control": "no-store"})
+
+
 @router.get("/app", response_class=HTMLResponse, include_in_schema=False)
 def customer_form() -> HTMLResponse:
     return HTMLResponse(_render_form())
@@ -1050,4 +1116,4 @@ async def customer_reading_concern(request: Request) -> JSONResponse:
 # Backward-compatible Python import alias; the public POST route is now fast.
 customer_reading = customer_reading_full
 
-__all__ = ["router", "customer_sales_page", "customer_form", "customer_reading", "customer_reading_fast", "customer_reading_full", "customer_reading_detail"]
+__all__ = ["router", "customer_sales_page", "customer_terms_page", "customer_privacy_page", "customer_commerce_page", "customer_form", "customer_reading", "customer_reading_fast", "customer_reading_full", "customer_reading_detail"]

@@ -70,6 +70,24 @@ def test_career_sales_page_is_mobile_ready_and_truthful_before_payment_connectio
     assert "@media(max-width:700px)" in html
 
 
+def test_prelaunch_legal_pages_are_linked_mobile_ready_and_marked_incomplete():
+    client = TestClient(app)
+    sales = client.get("/career-reading").text
+    for path, label in (("/terms", "利用規約"), ("/privacy", "プライバシーポリシー"), ("/legal", "特定商取引法に基づく表記")):
+        assert f'href="{path}"' in sales
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-store"
+        assert 'name="viewport" content="width=device-width,initial-scale=1"' in response.text
+        assert label in response.text
+        assert "公開前" in response.text or "公開準備中" in response.text
+    legal = client.get("/legal").text
+    assert "Stripe審査へ未提出" in legal
+    assert "正式名称の確定待ち" in legal
+    assert "1鑑定1,980円（税込）" in legal
+    assert "自動更新・継続課金なし" in legal
+
+
 def test_access_code_is_optional_until_configured(monkeypatch):
     monkeypatch.delenv("CUSTOMER_ACCESS_CODE", raising=False)
     html = TestClient(app).get("/app").text
