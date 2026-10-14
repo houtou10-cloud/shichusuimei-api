@@ -207,7 +207,17 @@ def test_legal_pages_are_linked_mobile_ready_and_disclosure_image_is_served():
         assert 'name="viewport" content="width=device-width,initial-scale=1"' in response.text
         assert label in response.text
         if path != "/legal":
-            assert "公開前" in response.text
+            assert "公開前案" not in response.text
+            assert "2026年10月15日" in response.text
+    assert "決済へ進むことで、利用規約とプライバシーポリシーを確認し、同意したものとします。" in sales
+    terms = client.get("/terms").text
+    assert "特定商取引法に基づく表記" in terms
+    assert "自動更新・継続課金はありません" in terms
+    privacy = client.get("/privacy").text
+    assert "OpenAI API" in privacy
+    assert "Render" in privacy
+    assert "Stripe" in privacy
+    assert 'href="https://form.os7.biz/f/be4d264a/"' in privacy
     legal = client.get("/legal").text
     assert 'src="/legal/disclosure.png"' in legal
     assert 'href="https://form.os7.biz/f/be4d264a/"' in legal
