@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 import api.customer_routes as customer_routes
 from api.fast_reading import FAST_SECTIONS
 from main import app
+from api.stripe_checkout import ENTITLEMENT_COOKIE, StripeCheckoutError
 
 
 def _values(**changes):
@@ -38,6 +39,17 @@ def _post(values):
 
 def _reset_guard():
     asyncio.run(customer_routes._CUSTOMER_REQUEST_GUARD.reset())
+    customer_routes._reset_entitlements()
+
+
+def _enable_test_checkout(monkeypatch):
+    monkeypatch.setenv("STRIPE_TEST_CHECKOUT_ENABLED", "1")
+    monkeypatch.setenv("STRIPE_TEST_SECRET_KEY", "sk_test_synthetic")
+    monkeypatch.setenv("STRIPE_TEST_PRICE_ID", "price_synthetic")
+    monkeypatch.setenv("STRIPE_TEST_WEBHOOK_SECRET", "whsec_synthetic")
+    monkeypatch.setenv("CUSTOMER_ENTITLEMENT_SECRET", "synthetic-entitlement-secret-at-least-32-bytes")
+    monkeypatch.setenv("CUSTOMER_PUBLIC_BASE_URL", "https://example.test")
+    monkeypatch.delenv("CUSTOMER_ACCESS_CODE", raising=False)
 
 
 def test_mobile_form_has_accessible_inputs_truthful_status_and_single_submit_handler():
@@ -68,6 +80,120 @@ def test_career_sales_page_is_mobile_ready_and_truthful_before_payment_connectio
     assert 'href="/app"' in html
     assert "残り" not in html and "今だけ" not in html
     assert "@media(max-width:700px)" in html
+
+
+def test_test_checkout_start_is_disabled_by_default_and_uses_redirect_only_when_enabled(monkeypatch):
+    client = TestClient(app)
+    disabled = client.post("/checkout/start")
+    assert disabled.status_code == 404
+    assert "テスト決済は無効です" in disabled.text
+
+    _enable_test_checkout(monkeypatch)
+    monkeypatch.setattr(customer_routes, "create_checkout_session", lambda: "https://checkout.stripe.com/c/pay/synthetic")
+    enabled_sales = client.get("/career-reading")
+    assert 'action="/checkout/start"' in enabled_sales.text
+    assert "Stripeテストモードです" in enabled_sales.text
+    started = client.post("/checkout/start", follow_redirects=False)
+    assert started.status_code == 303
+    assert started.headers["location"] == "https://checkout.stripe.com/c/pay/synthetic"
+
+
+def test_paid_test_session_issues_secure_entitlement_and_blocks_direct_access(monkeypatch):
+    _reset_guard()
+    _enable_test_checkout(monkeypatch)
+    client = TestClient(app)
+    denied = client.get("/app")
+    assert denied.status_code == 402
+    assert "お支払いの確認が必要です" in denied.text
+
+    calls = []
+    monkeypatch.setattr(customer_routes, "verify_paid_session", lambda session_id: calls.append(session_id) or {})
+    monkeypatch.setattr(customer_routes, "issue_entitlement", lambda _session_id: "signed-entitlement")
+    success = client.get("/checkout/success?session_id=cs_test_paid", follow_redirects=False)
+    assert success.status_code == 303
+    assert success.headers["location"] == "/app?payment=success"
+    cookie = success.headers["set-cookie"]
+    assert f"{ENTITLEMENT_COOKIE}=signed-entitlement" in cookie
+    assert "HttpOnly" in cookie and "Secure" in cookie and "SameSite=lax" in cookie
+    assert calls == ["cs_test_paid"]
+
+
+def test_entitlement_is_consumed_only_after_successful_reading(monkeypatch):
+    _reset_guard()
+    _enable_test_checkout(monkeypatch)
+    monkeypatch.setattr(customer_routes, "read_entitlement", lambda token: "cs_test_paid" if token == "signed-entitlement" else None)
+    result = {
+        "session_id": "b" * 32,
+        "chart": {},
+        "sections": {key: "合成応答" for key, _ in FAST_SECTIONS},
+    }
+    calls = []
+    monkeypatch.setattr(customer_routes, "run_fast_reading", lambda *_args, **_kwargs: calls.append(1) or result)
+    headers = {"cookie": f"{ENTITLEMENT_COOKIE}=signed-entitlement"}
+    client = TestClient(app)
+    form = client.get("/app", headers=headers)
+    assert form.status_code == 200
+    first = client.post(
+        "/app/reading",
+        content=urlencode(_values()),
+        headers={"content-type": "application/x-www-form-urlencoded", **headers},
+    )
+    assert first.status_code == 200
+    assert calls == [1]
+    second = client.post(
+        "/app/reading",
+        content=urlencode(_values()),
+        headers={"content-type": "application/x-www-form-urlencoded", **headers},
+    )
+    assert second.status_code == 402
+    assert calls == [1]
+
+
+def test_generation_failure_keeps_entitlement_available_for_retry(monkeypatch):
+    _reset_guard()
+    _enable_test_checkout(monkeypatch)
+    monkeypatch.setattr(customer_routes, "read_entitlement", lambda token: "cs_test_retry" if token == "signed-entitlement" else None)
+    attempts = []
+
+    def reading(*_args, **_kwargs):
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise RuntimeError("synthetic provider failure")
+        return {
+            "session_id": "c" * 32,
+            "chart": {},
+            "sections": {key: "再試行成功" for key, _ in FAST_SECTIONS},
+        }
+
+    monkeypatch.setattr(customer_routes, "run_fast_reading", reading)
+    headers = {
+        "content-type": "application/x-www-form-urlencoded",
+        "cookie": f"{ENTITLEMENT_COOKIE}=signed-entitlement",
+    }
+    client = TestClient(app)
+    first = client.post("/app/reading", content=urlencode(_values()), headers=headers)
+    assert first.status_code == 503
+    assert "もう一度お試しください" in first.text
+    second = client.post("/app/reading", content=urlencode(_values()), headers=headers)
+    assert second.status_code == 200
+    assert "再試行成功" in second.text
+    assert attempts == [1, 1]
+
+
+def test_test_checkout_failure_and_webhook_duplicates_are_explicit(monkeypatch):
+    _reset_guard()
+    _enable_test_checkout(monkeypatch)
+    monkeypatch.setattr(customer_routes, "create_checkout_session", lambda: (_ for _ in ()).throw(StripeCheckoutError("synthetic_failure")))
+    failed = TestClient(app).post("/checkout/start")
+    assert failed.status_code == 503
+    assert "決済を開始できませんでした" in failed.text
+
+    monkeypatch.setattr(customer_routes, "verify_webhook", lambda *_args: {"id": "evt_test_1", "type": "checkout.session.completed"})
+    client = TestClient(app)
+    first = client.post("/stripe/webhook", content=b"{}")
+    second = client.post("/stripe/webhook", content=b"{}")
+    assert first.json() == {"received": True, "duplicate": False}
+    assert second.json() == {"received": True, "duplicate": True}
 
 
 def test_legal_pages_are_linked_mobile_ready_and_disclosure_image_is_served():

@@ -11,13 +11,14 @@ import logging
 import os
 from pathlib import Path
 import re
+import threading
 import time
 import traceback
 from uuid import uuid4
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
 from api.customer_pipeline import (
@@ -34,6 +35,16 @@ from api.customer_pipeline import (
 )
 from api.fast_reading import DETAIL_TYPES, _emit_perf, get_session, run_concern_answer, run_detail, run_fast_reading
 from api.symbol_judgment_reference import append_product_reference_sidecar, append_reference_sidecar
+from api.stripe_checkout import (
+    ENTITLEMENT_COOKIE,
+    StripeCheckoutError,
+    create_checkout_session,
+    issue_entitlement,
+    read_entitlement,
+    test_checkout_enabled,
+    verify_paid_session,
+    verify_webhook,
+)
 from engine.reading_renderer_v2 import render_customer_reading_product_v2_html
 
 
@@ -128,6 +139,9 @@ class _CustomerRequestGuard:
 
 
 _CUSTOMER_REQUEST_GUARD = _CustomerRequestGuard()
+_USED_ENTITLEMENTS: set[str] = set()
+_PROCESSED_STRIPE_EVENTS: set[str] = set()
+_ENTITLEMENT_LOCK = threading.Lock()
 
 
 def _rate_limit_headers(exc: _CustomerRateLimitExceeded) -> dict[str, str]:
@@ -149,6 +163,45 @@ def _consume_access_code(values: dict[str, str]) -> bool:
     if not expected:
         return True
     return hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8"))
+
+
+def _entitlement_session(request: Request) -> str | None:
+    if not test_checkout_enabled():
+        return None
+    session_id = read_entitlement(request.cookies.get(ENTITLEMENT_COOKIE, ""))
+    if session_id is None:
+        return None
+    with _ENTITLEMENT_LOCK:
+        return None if session_id in _USED_ENTITLEMENTS else session_id
+
+
+def _mark_entitlement_used(session_id: str | None) -> None:
+    if session_id is not None:
+        with _ENTITLEMENT_LOCK:
+            _USED_ENTITLEMENTS.add(session_id)
+
+
+def _reset_entitlements() -> None:
+    with _ENTITLEMENT_LOCK:
+        _USED_ENTITLEMENTS.clear()
+        _PROCESSED_STRIPE_EVENTS.clear()
+
+
+def _payment_status_document(title: str, message: str, link_text: str, href: str) -> str:
+    return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>{escape(title)}</title>{_LEGAL_CSS}</head><body><main class="legal-main"><h1>{escape(title)}</h1><p>{escape(message)}</p><p><a class="contact-link" href="{escape(href, quote=True)}">{escape(link_text)}</a></p></main></body></html>'''
+
+
+def _payment_required_response() -> HTMLResponse:
+    return HTMLResponse(
+        _payment_status_document(
+            "お支払いの確認が必要です",
+            "鑑定画面を開くには、販売ページからテスト決済を完了してください。決済済みの場合は成功画面からもう一度お進みください。",
+            "販売ページへ戻る",
+            "/career-reading",
+        ),
+        status_code=402,
+        headers={"Cache-Control": "no-store"},
+    )
 
 _FORM_CSS = """
 <style>
@@ -252,7 +305,7 @@ _SALES_CSS = """
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);background:#f4ede4;font-family:"Yu Mincho","Hiragino Mincho ProN","Noto Serif JP",serif;line-height:1.8}
 a{color:inherit}.sales-head{padding:16px 22px;background:#fffdfa;border-bottom:1px solid var(--line)}.sales-brand{max-width:1040px;margin:auto;color:var(--deep);font-weight:700;letter-spacing:.14em}
 .hero{padding:72px 24px;background:linear-gradient(135deg,#fffaf2,#eadbc9)}.hero-inner,.sales-section{max-width:960px;margin:auto}.eyebrow{color:var(--gold);font-weight:700;letter-spacing:.18em}.hero h1{max-width:780px;margin:.2rem 0 1rem;color:#422c1e;font-size:clamp(2rem,6vw,4rem);line-height:1.3}.hero-lead{max-width:720px;font-size:1.08rem}.price{font-size:1.5rem;font-weight:700;color:var(--deep);margin:1.6rem 0 .2rem}.subprice{margin:0 0 1.3rem;color:var(--muted)}
-.cta{display:inline-block;border-radius:9px;padding:14px 24px;background:linear-gradient(120deg,#6b4328,#9a6a35);color:#fff;text-decoration:none;font-weight:700;letter-spacing:.06em}.cta:focus-visible{outline:3px solid #d4a15f;outline-offset:3px}.stage-note{display:block;margin-top:.7rem;color:var(--muted);font-size:.88rem}
+.cta{display:inline-block;border:0;border-radius:9px;padding:14px 24px;background:linear-gradient(120deg,#6b4328,#9a6a35);color:#fff;text-decoration:none;font:700 1rem inherit;letter-spacing:.06em;cursor:pointer}.cta:focus-visible{outline:3px solid #d4a15f;outline-offset:3px}.checkout-form{margin:0}.stage-note{display:block;margin-top:.7rem;color:var(--muted);font-size:.88rem}
 .sales-section{padding:58px 24px}.sales-section h2{font-size:clamp(1.5rem,4vw,2.2rem);color:#4d3322}.alt{max-width:none;background:#fffdfa}.alt>*{max-width:960px;margin-left:auto;margin-right:auto}.audience{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0;list-style:none}.audience li,.card,.step,.faq details{border:1px solid var(--line);border-radius:12px;background:#fff;padding:18px}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.card h3{color:var(--deep);margin-top:0}.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.step strong{display:block;color:var(--gold);font-size:.82rem}.notice{border-left:5px solid var(--gold);background:#fffaf1;padding:20px}.faq details{margin-bottom:10px}.faq summary{cursor:pointer;font-weight:700}.sales-footer{padding:28px 24px;background:#35251c;color:#f8efe5;text-align:center}.legal-pending{font-size:.85rem;color:#d9c9b9}
 @media(max-width:700px){.hero{padding:46px 18px}.sales-section{padding:42px 18px}.audience,.cards,.steps{grid-template-columns:1fr}.cta{display:block;text-align:center;min-height:52px}.hero h1{font-size:2.15rem}}
 </style>
@@ -260,6 +313,10 @@ a{color:inherit}.sales-head{padding:16px 22px;background:#fffdfa;border-bottom:1
 
 
 def _render_sales_page() -> str:
+    if test_checkout_enabled():
+        purchase_action = '''<form class="checkout-form" method="post" action="/checkout/start"><button class="cta" type="submit" onclick="this.disabled=true;this.form.submit()">テスト決済へ進む（1,980円）</button></form><small class="stage-note">Stripeテストモードです。実際の料金は請求されません。</small>'''
+    else:
+        purchase_action = '''<a class="cta" href="/app">ステージングで鑑定画面を確認</a><small class="stage-note">現在は公開前の確認用です。Stripe決済はまだ接続されておらず、料金は請求されません。</small>'''
     return f"""<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>八雲式四柱推命 キャリア鑑定</title>{_SALES_CSS}</head><body>
@@ -268,7 +325,7 @@ def _render_sales_page() -> str:
 <h1>転職すべきか、<br>独立へ進むべきか。</h1>
 <p class="hero-lead">生まれ持った仕事の傾向と運気の流れから、これからのキャリアを整理する四柱推命鑑定。答えを決めつけず、強みと現在の流れを読み解き、次の一歩を考える材料をお届けします。</p>
 <p class="price">1鑑定 1,980円（税込）</p><p class="subprice">買い切り・自動更新や継続課金はありません</p>
-<a class="cta" href="/app">ステージングで鑑定画面を確認</a><small class="stage-note">現在は公開前の確認用です。Stripe決済はまだ接続されておらず、料金は請求されません。</small>
+{purchase_action}
 </div></section>
 <section class="sales-section"><h2>このような方へ</h2><ul class="audience">
 <li>今の会社に残るか、転職するか迷っている</li><li>自分に合う仕事や働き方を整理したい</li>
@@ -750,6 +807,82 @@ def _render_concern_card(result: dict[str, object]) -> str:
     )
 
 
+@router.post("/checkout/start", include_in_schema=False)
+async def customer_checkout_start() -> HTMLResponse:
+    if not test_checkout_enabled():
+        return HTMLResponse(
+            _payment_status_document("テスト決済は無効です", "現在、決済機能は有効化されていません。", "販売ページへ戻る", "/career-reading"),
+            status_code=404,
+            headers={"Cache-Control": "no-store"},
+        )
+    try:
+        checkout_url = await run_in_threadpool(create_checkout_session)
+    except StripeCheckoutError as exc:
+        logger.error("stripe test checkout start failed reason=%s", str(exc))
+        return HTMLResponse(
+            _payment_status_document("決済を開始できませんでした", "決済画面を準備できませんでした。時間をおいてもう一度お試しください。", "販売ページへ戻る", "/career-reading"),
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+    return RedirectResponse(checkout_url, status_code=303, headers={"Cache-Control": "no-store"})
+
+
+@router.get("/checkout/success", include_in_schema=False)
+async def customer_checkout_success(session_id: str = "") -> HTMLResponse:
+    if not test_checkout_enabled():
+        return _payment_required_response()
+    try:
+        await run_in_threadpool(verify_paid_session, session_id)
+        entitlement = issue_entitlement(session_id)
+    except StripeCheckoutError as exc:
+        logger.warning("stripe test checkout verification failed reason=%s", str(exc))
+        return HTMLResponse(
+            _payment_status_document("決済を確認できませんでした", "決済状態を確認できませんでした。再度の支払いはせず、問い合わせフォームからご連絡ください。", "問い合わせフォームを開く", "https://form.os7.biz/f/be4d264a/"),
+            status_code=400,
+            headers={"Cache-Control": "no-store"},
+        )
+    response = RedirectResponse("/app?payment=success", status_code=303, headers={"Cache-Control": "no-store"})
+    response.set_cookie(
+        ENTITLEMENT_COOKIE,
+        entitlement,
+        max_age=1800,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/app",
+    )
+    return response
+
+
+@router.get("/checkout/cancel", response_class=HTMLResponse, include_in_schema=False)
+def customer_checkout_cancel() -> HTMLResponse:
+    return HTMLResponse(
+        _payment_status_document("お支払いは完了していません", "決済はキャンセルされました。料金は請求されていません。販売ページからやり直せます。", "販売ページへ戻る", "/career-reading"),
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@router.post("/stripe/webhook", include_in_schema=False)
+async def customer_stripe_webhook(request: Request) -> JSONResponse:
+    if not test_checkout_enabled():
+        return JSONResponse({"error": "disabled"}, status_code=404)
+    payload = await request.body()
+    try:
+        event = verify_webhook(payload, request.headers.get("stripe-signature", ""))
+    except StripeCheckoutError as exc:
+        logger.warning("stripe test webhook rejected reason=%s", str(exc))
+        return JSONResponse({"error": "invalid_webhook"}, status_code=400)
+    event_id = event.get("id")
+    event_type = event.get("type")
+    if not isinstance(event_id, str) or not isinstance(event_type, str):
+        return JSONResponse({"error": "invalid_event"}, status_code=400)
+    with _ENTITLEMENT_LOCK:
+        duplicate = event_id in _PROCESSED_STRIPE_EVENTS
+        _PROCESSED_STRIPE_EVENTS.add(event_id)
+    logger.info("stripe test webhook accepted type=%s duplicate=%s", event_type, duplicate)
+    return JSONResponse({"received": True, "duplicate": duplicate})
+
+
 @router.get("/career-reading", response_class=HTMLResponse, include_in_schema=False)
 def customer_sales_page() -> HTMLResponse:
     return HTMLResponse(_render_sales_page(), headers={"Cache-Control": "no-store"})
@@ -780,7 +913,9 @@ def customer_commerce_image() -> FileResponse:
 
 
 @router.get("/app", response_class=HTMLResponse, include_in_schema=False)
-def customer_form() -> HTMLResponse:
+def customer_form(request: Request) -> HTMLResponse:
+    if test_checkout_enabled() and _entitlement_session(request) is None:
+        return _payment_required_response()
     return HTMLResponse(_render_form())
 
 
@@ -835,7 +970,9 @@ def customer_service_worker() -> FileResponse:
 
 
 @router.get("/app/reading", response_class=HTMLResponse, include_in_schema=False)
-def customer_reading_form() -> HTMLResponse:
+def customer_reading_form(request: Request) -> HTMLResponse:
+    if test_checkout_enabled() and _entitlement_session(request) is None:
+        return _payment_required_response()
     return HTMLResponse(_render_form())
 
 
@@ -843,6 +980,9 @@ def customer_reading_form() -> HTMLResponse:
 async def customer_reading_full(request: Request) -> HTMLResponse:
     performance = PerformanceTrace()
     values: dict[str, str] = {}
+    entitlement_session = _entitlement_session(request)
+    if test_checkout_enabled() and entitlement_session is None:
+        return _payment_required_response()
     try:
         with performance.measure("request_parse"):
             values = await _form_values(request)
@@ -867,6 +1007,7 @@ async def customer_reading_full(request: Request) -> HTMLResponse:
             document = _render_customer_result(product)
         performance.skip("pdf_generation")
         performance.finish(status="success")
+        _mark_entitlement_used(entitlement_session)
         return HTMLResponse(document)
     except _CustomerRateLimitExceeded as exc:
         performance.finish(status="rate_limited")
@@ -917,6 +1058,9 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
     request_id = uuid4().hex
     started = time.perf_counter()
     performance: dict[str, object] = {"provider_calls": 0, "status": "error"}
+    entitlement_session = _entitlement_session(request)
+    if test_checkout_enabled() and entitlement_session is None:
+        return _payment_required_response()
     try:
         values = await _form_values(request)
         if not _consume_access_code(values):
@@ -935,6 +1079,7 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
         document = _move_fast_back_link_to_header(document)
         performance["render_elapsed"] = time.perf_counter() - render_started
         performance["status"] = "success"
+        _mark_entitlement_used(entitlement_session)
         return HTMLResponse(document)
     except CustomerInputError as exc:
         return HTMLResponse(_render_form(values, exc.errors), status_code=422)
