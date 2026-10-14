@@ -43,7 +43,7 @@ def _config() -> StripeTestConfig:
     values = {
         "secret_key": os.getenv("STRIPE_TEST_SECRET_KEY", ""),
         "price_id": os.getenv("STRIPE_TEST_PRICE_ID", ""),
-        "webhook_secret": os.getenv("STRIPE_TEST_WEBHOOK_SECRET", ""),
+        "webhook_secret": os.getenv("STRIPE_TEST_WEBHOOK_SECRET", "").strip(),
         "entitlement_secret": os.getenv("CUSTOMER_ENTITLEMENT_SECRET", ""),
         "public_base_url": os.getenv("CUSTOMER_PUBLIC_BASE_URL", "").rstrip("/"),
     }

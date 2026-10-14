@@ -42,6 +42,17 @@ def test_webhook_signature_and_timestamp_are_verified(monkeypatch):
         stripe_checkout.verify_webhook(payload, f"t=1000,v1={signature}", now=1301)
 
 
+def test_webhook_secret_ignores_surrounding_whitespace(monkeypatch):
+    _config(monkeypatch)
+    monkeypatch.setenv("STRIPE_TEST_WEBHOOK_SECRET", "  whsec_synthetic\r\n")
+    payload = json.dumps({"id": "evt_test_whitespace", "type": "checkout.session.completed"}).encode()
+    signature = hmac.new(b"whsec_synthetic", b"1000." + payload, hashlib.sha256).hexdigest()
+
+    event = stripe_checkout.verify_webhook(payload, f"t=1000,v1={signature}", now=1000)
+
+    assert event["id"] == "evt_test_whitespace"
+
+
 def test_paid_session_requires_expected_amount_currency_and_product(monkeypatch):
     _config(monkeypatch)
 
