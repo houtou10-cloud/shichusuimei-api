@@ -299,7 +299,7 @@ def _render_sales_page() -> str:
 
 _LEGAL_CSS = """
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f4ede4;color:#302820;font-family:"Yu Mincho","Hiragino Mincho ProN","Noto Serif JP",serif;line-height:1.8}.legal-head{padding:16px 22px;background:#fffdfa;border-bottom:1px solid #dfd1c2}.legal-head a{text-decoration:none;color:#5d3b25;font-weight:700}.legal-main{width:min(880px,calc(100% - 24px));margin:28px auto 60px;padding:34px 42px;background:#fffdfa;border:1px solid #dfd1c2;border-radius:14px}.legal-main h1,.legal-main h2{color:#4d3322}.legal-main h1{line-height:1.35}.legal-main table{width:100%;border-collapse:collapse}.legal-main th,.legal-main td{border:1px solid #dfd1c2;padding:10px;text-align:left;vertical-align:top}.legal-main th{width:30%;background:#f5efe7}.pending{border-left:5px solid #a33a35;padding:12px 14px;background:#fff1ef}.legal-nav a{margin-right:1rem}@media(max-width:680px){.legal-main{padding:24px 18px}.legal-main table,.legal-main tbody,.legal-main tr,.legal-main th,.legal-main td{display:block}.legal-main th{width:100%}}
+*{box-sizing:border-box}body{margin:0;background:#f4ede4;color:#302820;font-family:"Yu Mincho","Hiragino Mincho ProN","Noto Serif JP",serif;line-height:1.8}.legal-head{padding:16px 22px;background:#fffdfa;border-bottom:1px solid #dfd1c2}.legal-head a{text-decoration:none;color:#5d3b25;font-weight:700}.legal-main{width:min(880px,calc(100% - 24px));margin:28px auto 60px;padding:34px 42px;background:#fffdfa;border:1px solid #dfd1c2;border-radius:14px}.legal-main h1,.legal-main h2{color:#4d3322}.legal-main h1{line-height:1.35}.legal-main table{width:100%;border-collapse:collapse}.legal-main th,.legal-main td{border:1px solid #dfd1c2;padding:10px;text-align:left;vertical-align:top}.legal-main th{width:30%;background:#f5efe7}.pending{border-left:5px solid #a33a35;padding:12px 14px;background:#fff1ef}.legal-image{display:block;width:100%;height:auto;border:1px solid #dfd1c2}.contact-box{margin:24px 0;padding:18px;background:#f5efe7;border-radius:10px}.contact-link{display:inline-block;padding:11px 18px;border-radius:8px;background:#5d3b25;color:#fff;text-decoration:none;font-weight:700}.legal-nav a{margin-right:1rem}@media(max-width:680px){.legal-main{padding:24px 18px}.legal-main table,.legal-main tbody,.legal-main tr,.legal-main th,.legal-main td{display:block}.legal-main th{width:100%}}
 </style>
 """
 
@@ -332,20 +332,11 @@ def _render_privacy_page() -> str:
 
 
 def _render_commerce_page() -> str:
-    rows = (
-        ("販売事業者", "正式名称の確定待ち"), ("運営責任者", "確定待ち"),
-        ("所在地", "確定待ち"), ("電話番号", "確定待ち"),
-        ("問い合わせ先", "専用問い合わせフォームの作成待ち"),
-        ("販売価格", "1鑑定1,980円（税込）"),
-        ("価格以外の負担", "インターネット接続に必要な通信料金"),
-        ("支払方法・時期", "Stripeによるクレジットカード決済。注文時に支払い"),
-        ("提供時期", "決済後、必要事項を入力してから通常数分以内"),
-        ("キャンセル・返金", "生成開始後の利用者都合による返金は原則不可。重複決済、当方の障害で提供不能、法令上必要な場合は確認後に返金"),
-        ("課金方式", "1鑑定ごとの買い切り。自動更新・継続課金なし"),
-        ("動作環境", "最新版SafariまたはGoogle Chrome。HTTPS通信とJavaScriptが必要。オフライン非対応"),
-    )
-    table = "".join(f"<tr><th>{escape(key)}</th><td>{escape(value)}</td></tr>" for key, value in rows)
-    return _legal_document("特定商取引法に基づく表記（公開準備中）", f'''<p class="pending"><strong>Stripe審査へ未提出：</strong>販売事業者、運営責任者、所在地、電話番号、問い合わせ先が未確定です。確定前の一般販売およびStripe審査には使用できません。</p><table><tbody>{table}</tbody></table>''')
+    return _legal_document("特定商取引法に基づく表記", '''
+<img class="legal-image" src="/legal/disclosure.png" alt="特定商取引法に基づく表記。販売業者・運営統括責任者、販売価格、支払方法、提供時期、キャンセル・返金条件等を記載しています。">
+<section class="contact-box" aria-labelledby="legal-contact-title"><h2 id="legal-contact-title">お問い合わせ</h2>
+<p>住所・電話番号の開示請求、商品・決済・返金に関するお問い合わせは、次のフォームからご連絡ください。</p>
+<a class="contact-link" href="https://form.os7.biz/f/be4d264a/" target="_blank" rel="noopener noreferrer">お問い合わせフォームを開く</a></section>''')
 
 
 def _option(value: str, label: str, selected: str) -> str:
@@ -777,6 +768,15 @@ def customer_privacy_page() -> HTMLResponse:
 @router.get("/legal", response_class=HTMLResponse, include_in_schema=False)
 def customer_commerce_page() -> HTMLResponse:
     return HTMLResponse(_render_commerce_page(), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/legal/disclosure.png", include_in_schema=False)
+def customer_commerce_image() -> FileResponse:
+    return FileResponse(
+        _CUSTOMER_STATIC / "legal-disclosure.png",
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
 
 
 @router.get("/app", response_class=HTMLResponse, include_in_schema=False)

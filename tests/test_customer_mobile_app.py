@@ -70,7 +70,7 @@ def test_career_sales_page_is_mobile_ready_and_truthful_before_payment_connectio
     assert "@media(max-width:700px)" in html
 
 
-def test_prelaunch_legal_pages_are_linked_mobile_ready_and_marked_incomplete():
+def test_legal_pages_are_linked_mobile_ready_and_disclosure_image_is_served():
     client = TestClient(app)
     sales = client.get("/career-reading").text
     for path, label in (("/terms", "利用規約"), ("/privacy", "プライバシーポリシー"), ("/legal", "特定商取引法に基づく表記")):
@@ -80,12 +80,16 @@ def test_prelaunch_legal_pages_are_linked_mobile_ready_and_marked_incomplete():
         assert response.headers["cache-control"] == "no-store"
         assert 'name="viewport" content="width=device-width,initial-scale=1"' in response.text
         assert label in response.text
-        assert "公開前" in response.text or "公開準備中" in response.text
+        if path != "/legal":
+            assert "公開前" in response.text
     legal = client.get("/legal").text
-    assert "Stripe審査へ未提出" in legal
-    assert "正式名称の確定待ち" in legal
-    assert "1鑑定1,980円（税込）" in legal
-    assert "自動更新・継続課金なし" in legal
+    assert 'src="/legal/disclosure.png"' in legal
+    assert 'href="https://form.os7.biz/f/be4d264a/"' in legal
+    assert 'rel="noopener noreferrer"' in legal
+    image = client.get("/legal/disclosure.png")
+    assert image.status_code == 200
+    assert image.headers["content-type"] == "image/png"
+    assert image.content.startswith(b"\x89PNG\r\n\x1a\n")
 
 
 def test_access_code_is_optional_until_configured(monkeypatch):
