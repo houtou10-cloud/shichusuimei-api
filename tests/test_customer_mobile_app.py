@@ -55,6 +55,21 @@ def test_mobile_form_has_accessible_inputs_truthful_status_and_single_submit_han
     assert "font-size:16px" in html
 
 
+def test_career_sales_page_is_mobile_ready_and_truthful_before_payment_connection():
+    response = TestClient(app).get("/career-reading")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    html = response.text
+    assert 'name="viewport" content="width=device-width,initial-scale=1"' in html
+    assert "転職すべきか" in html and "独立へ進むべきか" in html
+    assert "1鑑定 1,980円（税込）" in html
+    assert "買い切り" in html and "継続課金はありません" in html
+    assert "Stripe決済はまだ接続されておらず" in html
+    assert 'href="/app"' in html
+    assert "残り" not in html and "今だけ" not in html
+    assert "@media(max-width:700px)" in html
+
+
 def test_access_code_is_optional_until_configured(monkeypatch):
     monkeypatch.delenv("CUSTOMER_ACCESS_CODE", raising=False)
     html = TestClient(app).get("/app").text

@@ -246,6 +246,56 @@ _PWA_HEAD = (
     '<link rel="apple-touch-icon" sizes="180x180" href="/app/apple-touch-icon.png">'
 )
 
+_SALES_CSS = """
+<style>
+:root{--ink:#302820;--muted:#75685c;--paper:#fffdfa;--line:#dfd1c2;--gold:#9a6a35;--deep:#5d3b25}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);background:#f4ede4;font-family:"Yu Mincho","Hiragino Mincho ProN","Noto Serif JP",serif;line-height:1.8}
+a{color:inherit}.sales-head{padding:16px 22px;background:#fffdfa;border-bottom:1px solid var(--line)}.sales-brand{max-width:1040px;margin:auto;color:var(--deep);font-weight:700;letter-spacing:.14em}
+.hero{padding:72px 24px;background:linear-gradient(135deg,#fffaf2,#eadbc9)}.hero-inner,.sales-section{max-width:960px;margin:auto}.eyebrow{color:var(--gold);font-weight:700;letter-spacing:.18em}.hero h1{max-width:780px;margin:.2rem 0 1rem;color:#422c1e;font-size:clamp(2rem,6vw,4rem);line-height:1.3}.hero-lead{max-width:720px;font-size:1.08rem}.price{font-size:1.5rem;font-weight:700;color:var(--deep);margin:1.6rem 0 .2rem}.subprice{margin:0 0 1.3rem;color:var(--muted)}
+.cta{display:inline-block;border-radius:9px;padding:14px 24px;background:linear-gradient(120deg,#6b4328,#9a6a35);color:#fff;text-decoration:none;font-weight:700;letter-spacing:.06em}.cta:focus-visible{outline:3px solid #d4a15f;outline-offset:3px}.stage-note{display:block;margin-top:.7rem;color:var(--muted);font-size:.88rem}
+.sales-section{padding:58px 24px}.sales-section h2{font-size:clamp(1.5rem,4vw,2.2rem);color:#4d3322}.alt{max-width:none;background:#fffdfa}.alt>*{max-width:960px;margin-left:auto;margin-right:auto}.audience{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0;list-style:none}.audience li,.card,.step,.faq details{border:1px solid var(--line);border-radius:12px;background:#fff;padding:18px}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.card h3{color:var(--deep);margin-top:0}.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.step strong{display:block;color:var(--gold);font-size:.82rem}.notice{border-left:5px solid var(--gold);background:#fffaf1;padding:20px}.faq details{margin-bottom:10px}.faq summary{cursor:pointer;font-weight:700}.sales-footer{padding:28px 24px;background:#35251c;color:#f8efe5;text-align:center}.legal-pending{font-size:.85rem;color:#d9c9b9}
+@media(max-width:700px){.hero{padding:46px 18px}.sales-section{padding:42px 18px}.audience,.cards,.steps{grid-template-columns:1fr}.cta{display:block;text-align:center;min-height:52px}.hero h1{font-size:2.15rem}}
+</style>
+"""
+
+
+def _render_sales_page() -> str:
+    return f"""<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>八雲式四柱推命 キャリア鑑定</title>{_SALES_CSS}</head><body>
+<header class="sales-head"><div class="sales-brand">八雲式 四柱推命</div></header>
+<main><section class="hero"><div class="hero-inner"><p class="eyebrow">CAREER READING</p>
+<h1>転職すべきか、<br>独立へ進むべきか。</h1>
+<p class="hero-lead">生まれ持った仕事の傾向と運気の流れから、これからのキャリアを整理する四柱推命鑑定。答えを決めつけず、強みと現在の流れを読み解き、次の一歩を考える材料をお届けします。</p>
+<p class="price">1鑑定 1,980円（税込）</p><p class="subprice">買い切り・自動更新や継続課金はありません</p>
+<a class="cta" href="/app">ステージングで鑑定画面を確認</a><small class="stage-note">現在は公開前の確認用です。Stripe決済はまだ接続されておらず、料金は請求されません。</small>
+</div></section>
+<section class="sales-section"><h2>このような方へ</h2><ul class="audience">
+<li>今の会社に残るか、転職するか迷っている</li><li>自分に合う仕事や働き方を整理したい</li>
+<li>独立・副業へ踏み出す時期に迷っている</li><li>経験を今後のキャリアへどう活かすか考えたい</li>
+</ul></section>
+<section class="sales-section alt"><h2>鑑定で分かること</h2><div class="cards">
+<article class="card"><h3>仕事上の強み</h3><p>仕事で発揮しやすい資質、判断の傾向、人との関わり方を読み解きます。</p></article>
+<article class="card"><h3>向いている働き方</h3><p>組織、裁量の大きい環境など、力を発揮しやすい働き方を考えます。</p></article>
+<article class="card"><h3>転職・独立の注意点</h3><p>勢いだけで決めず、事前に確認したい条件や準備を整理します。</p></article>
+<article class="card"><h3>現在と今後の流れ</h3><p>大運・年運を基に、現在の状況とこれからの流れを確認します。</p></article>
+<article class="card"><h3>お悩みへの個別回答</h3><p>入力した相談内容を焦点として、状況に沿った回答を生成します。</p></article>
+<article class="card"><h3>今からできる行動</h3><p>キャリア形成へ向けて、現実的に準備できることをお伝えします。</p></article>
+</div></section>
+<section class="sales-section"><h2>ご利用の流れ</h2><div class="steps">
+<div class="step"><strong>STEP 1</strong>内容・規約を確認</div><div class="step"><strong>STEP 2</strong>Stripeでお支払い</div>
+<div class="step"><strong>STEP 3</strong>必要事項を入力</div><div class="step"><strong>STEP 4</strong>通常数分で結果表示</div>
+</div></section>
+<section class="sales-section alt"><h2>大切にしていること</h2><div class="notice"><p>「今すぐ退職すべき」「独立すれば成功する」と決めつける鑑定ではありません。</p><p>運気の流れを、雇用条件、資金、家族状況、市場環境などの現実的な条件と一緒に考えるための参考情報として提供します。採用、収入、事業成果または利益を保証するものではありません。</p></div></section>
+<section class="sales-section faq"><h2>よくある質問</h2>
+<details><summary>出生時刻が分からなくても利用できますか？</summary><p>利用できます。「出生時刻が分からない」を選択してください。時刻を推測する必要はありません。</p></details>
+<details><summary>継続課金はありますか？</summary><p>ありません。1鑑定ごとの買い切りです。</p></details>
+<details><summary>AIを使っていますか？</summary><p>命式計算結果に基づく鑑定文の生成にAIを使用します。入力情報の取扱いはプライバシーポリシーへ明記します。</p></details>
+<details><summary>鑑定だけで転職や独立を決めてもよいですか？</summary><p>鑑定は意思決定の参考情報です。生活費、雇用条件、事業計画なども確認し、最終的にはご自身で判断してください。</p></details>
+</section></main>
+<footer class="sales-footer"><p>18歳以上対象・インターネット通信が必要です</p><p class="legal-pending">利用規約・プライバシーポリシー・特定商取引法表示は公開前に正式情報を反映します。</p></footer>
+</body></html>"""
+
 
 def _option(value: str, label: str, selected: str) -> str:
     selected_attr = " selected" if value == selected else ""
@@ -658,6 +708,11 @@ def _render_concern_card(result: dict[str, object]) -> str:
     )
 
 
+@router.get("/career-reading", response_class=HTMLResponse, include_in_schema=False)
+def customer_sales_page() -> HTMLResponse:
+    return HTMLResponse(_render_sales_page(), headers={"Cache-Control": "no-store"})
+
+
 @router.get("/app", response_class=HTMLResponse, include_in_schema=False)
 def customer_form() -> HTMLResponse:
     return HTMLResponse(_render_form())
@@ -995,4 +1050,4 @@ async def customer_reading_concern(request: Request) -> JSONResponse:
 # Backward-compatible Python import alias; the public POST route is now fast.
 customer_reading = customer_reading_full
 
-__all__ = ["router", "customer_form", "customer_reading", "customer_reading_fast", "customer_reading_full", "customer_reading_detail"]
+__all__ = ["router", "customer_sales_page", "customer_form", "customer_reading", "customer_reading_fast", "customer_reading_full", "customer_reading_detail"]
