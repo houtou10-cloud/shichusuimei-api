@@ -43,6 +43,7 @@ def _reset_guard():
 
 
 def _enable_test_checkout(monkeypatch):
+    monkeypatch.delenv("STRIPE_CHECKOUT_MODE", raising=False)
     monkeypatch.setenv("STRIPE_TEST_CHECKOUT_ENABLED", "1")
     monkeypatch.setenv("STRIPE_TEST_SECRET_KEY", "sk_test_synthetic")
     monkeypatch.setenv("STRIPE_TEST_PRICE_ID", "price_synthetic")
@@ -86,7 +87,7 @@ def test_test_checkout_start_is_disabled_by_default_and_uses_redirect_only_when_
     client = TestClient(app)
     disabled = client.post("/checkout/start")
     assert disabled.status_code == 404
-    assert "テスト決済は無効です" in disabled.text
+    assert "決済は無効です" in disabled.text
 
     _enable_test_checkout(monkeypatch)
     monkeypatch.setattr(customer_routes, "create_checkout_session", lambda: "https://checkout.stripe.com/c/pay/synthetic")
@@ -96,6 +97,20 @@ def test_test_checkout_start_is_disabled_by_default_and_uses_redirect_only_when_
     started = client.post("/checkout/start", follow_redirects=False)
     assert started.status_code == 303
     assert started.headers["location"] == "https://checkout.stripe.com/c/pay/synthetic"
+
+
+def test_live_checkout_requires_two_flags_and_has_no_test_copy(monkeypatch):
+    monkeypatch.setenv("STRIPE_CHECKOUT_MODE", "live")
+    monkeypatch.delenv("STRIPE_LIVE_CHECKOUT_ENABLED", raising=False)
+    disabled = TestClient(app).get("/career-reading").text
+    assert "鑑定を購入する" not in disabled
+    assert "Stripe決済はまだ接続されておらず" in disabled
+
+    monkeypatch.setenv("STRIPE_LIVE_CHECKOUT_ENABLED", "1")
+    enabled = TestClient(app).get("/career-reading").text
+    assert "鑑定を購入する（1,980円）" in enabled
+    assert "Stripeの安全な決済画面へ移動します" in enabled
+    assert "テスト決済" not in enabled
 
 
 def test_paid_test_session_issues_secure_entitlement_and_blocks_direct_access(monkeypatch):

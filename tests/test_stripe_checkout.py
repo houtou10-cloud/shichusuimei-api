@@ -10,6 +10,8 @@ from api import stripe_checkout
 
 
 def _config(monkeypatch):
+    monkeypatch.delenv("STRIPE_CHECKOUT_MODE", raising=False)
+    monkeypatch.setenv("STRIPE_TEST_CHECKOUT_ENABLED", "1")
     monkeypatch.setenv("STRIPE_TEST_SECRET_KEY", "sk_test_synthetic")
     monkeypatch.setenv("STRIPE_TEST_PRICE_ID", "price_synthetic")
     monkeypatch.setenv("STRIPE_TEST_WEBHOOK_SECRET", "whsec_synthetic")
@@ -22,6 +24,69 @@ def test_live_secret_key_is_rejected(monkeypatch):
     monkeypatch.setenv("STRIPE_TEST_SECRET_KEY", "sk_live_must_not_be_used")
     with pytest.raises(stripe_checkout.StripeCheckoutError, match="stripe_test_key_missing"):
         stripe_checkout.issue_entitlement("cs_test_123")
+
+
+def test_live_mode_requires_explicit_mode_and_separate_enable_flag(monkeypatch):
+    _config(monkeypatch)
+    monkeypatch.setenv("STRIPE_LIVE_SECRET_KEY", "sk_live_synthetic")
+    monkeypatch.setenv("STRIPE_LIVE_PRICE_ID", "price_live_synthetic")
+    monkeypatch.setenv("STRIPE_LIVE_WEBHOOK_SECRET", "whsec_live_synthetic")
+
+    monkeypatch.setenv("STRIPE_LIVE_CHECKOUT_ENABLED", "1")
+    assert stripe_checkout.checkout_mode() == "test"
+
+    monkeypatch.setenv("STRIPE_CHECKOUT_MODE", "live")
+    assert stripe_checkout.checkout_mode() == "live"
+
+    monkeypatch.delenv("STRIPE_LIVE_CHECKOUT_ENABLED")
+    assert stripe_checkout.checkout_mode() == "disabled"
+    with pytest.raises(stripe_checkout.StripeCheckoutError, match="stripe_checkout_disabled"):
+        stripe_checkout.issue_entitlement("cs_live_123")
+
+
+def test_live_mode_rejects_test_key_and_test_session(monkeypatch):
+    _config(monkeypatch)
+    monkeypatch.setenv("STRIPE_CHECKOUT_MODE", "live")
+    monkeypatch.setenv("STRIPE_LIVE_CHECKOUT_ENABLED", "1")
+    monkeypatch.setenv("STRIPE_LIVE_SECRET_KEY", "sk_test_wrong_environment")
+    monkeypatch.setenv("STRIPE_LIVE_PRICE_ID", "price_live_synthetic")
+    monkeypatch.setenv("STRIPE_LIVE_WEBHOOK_SECRET", "whsec_live_synthetic")
+    with pytest.raises(stripe_checkout.StripeCheckoutError, match="stripe_live_key_missing"):
+        stripe_checkout.issue_entitlement("cs_live_123")
+
+    monkeypatch.setenv("STRIPE_LIVE_SECRET_KEY", "sk_live_synthetic")
+    with pytest.raises(stripe_checkout.StripeCheckoutError, match="checkout_session_id_invalid"):
+        stripe_checkout.issue_entitlement("cs_test_123")
+
+    token = stripe_checkout.issue_entitlement("cs_live_123", now=1000)
+    assert stripe_checkout.read_entitlement(token, now=1001) == "cs_live_123"
+
+
+def test_live_mode_uses_only_live_checkout_configuration(monkeypatch):
+    _config(monkeypatch)
+    monkeypatch.setenv("STRIPE_CHECKOUT_MODE", "live")
+    monkeypatch.setenv("STRIPE_LIVE_CHECKOUT_ENABLED", "1")
+    monkeypatch.setenv("STRIPE_LIVE_SECRET_KEY", "sk_live_synthetic")
+    monkeypatch.setenv("STRIPE_LIVE_PRICE_ID", "price_live_synthetic")
+    monkeypatch.setenv("STRIPE_LIVE_WEBHOOK_SECRET", "whsec_live_synthetic")
+    calls = []
+
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"url": "https://checkout.stripe.com/c/pay/live-synthetic"}
+
+    def post(url, *, data, headers, timeout):
+        calls.append((url, data, headers, timeout))
+        return Response()
+
+    monkeypatch.setattr(stripe_checkout.httpx, "post", post)
+    assert stripe_checkout.create_checkout_session() == "https://checkout.stripe.com/c/pay/live-synthetic"
+    assert calls[0][1]["line_items[0][price]"] == "price_live_synthetic"
+    assert calls[0][2]["Authorization"] == "Bearer sk_live_synthetic"
+    assert "sk_test_synthetic" not in str(calls)
 
 
 def test_entitlement_is_signed_tamper_evident_and_expires(monkeypatch):

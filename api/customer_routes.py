@@ -38,6 +38,8 @@ from api.symbol_judgment_reference import append_product_reference_sidecar, appe
 from api.stripe_checkout import (
     ENTITLEMENT_COOKIE,
     StripeCheckoutError,
+    checkout_enabled,
+    checkout_mode,
     create_checkout_session,
     issue_entitlement,
     read_entitlement,
@@ -313,8 +315,11 @@ a{color:inherit}.sales-head{padding:16px 22px;background:#fffdfa;border-bottom:1
 
 
 def _render_sales_page() -> str:
-    if test_checkout_enabled():
+    mode = checkout_mode()
+    if mode == "test":
         purchase_action = '''<form class="checkout-form" method="post" action="/checkout/start"><button class="cta" type="submit" onclick="this.disabled=true;this.form.submit()">テスト決済へ進む（1,980円）</button></form><small class="stage-note">Stripeテストモードです。実際の料金は請求されません。</small>'''
+    elif mode == "live":
+        purchase_action = '''<form class="checkout-form" method="post" action="/checkout/start"><button class="cta" type="submit" onclick="this.disabled=true;this.form.submit()">鑑定を購入する（1,980円）</button></form><small class="stage-note">Stripeの安全な決済画面へ移動します。</small>'''
     else:
         purchase_action = '''<a class="cta" href="/app">ステージングで鑑定画面を確認</a><small class="stage-note">現在は公開前の確認用です。Stripe決済はまだ接続されておらず、料金は請求されません。</small>'''
     return f"""<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
@@ -815,16 +820,16 @@ def _render_concern_card(result: dict[str, object]) -> str:
 
 @router.post("/checkout/start", include_in_schema=False)
 async def customer_checkout_start() -> HTMLResponse:
-    if not test_checkout_enabled():
+    if not checkout_enabled():
         return HTMLResponse(
-            _payment_status_document("テスト決済は無効です", "現在、決済機能は有効化されていません。", "販売ページへ戻る", "/career-reading"),
+            _payment_status_document("決済は無効です", "現在、決済機能は有効化されていません。", "販売ページへ戻る", "/career-reading"),
             status_code=404,
             headers={"Cache-Control": "no-store"},
         )
     try:
         checkout_url = await run_in_threadpool(create_checkout_session)
     except StripeCheckoutError as exc:
-        logger.error("stripe test checkout start failed reason=%s", str(exc))
+        logger.error("stripe checkout start failed mode=%s reason=%s", checkout_mode(), str(exc))
         return HTMLResponse(
             _payment_status_document("決済を開始できませんでした", "決済画面を準備できませんでした。時間をおいてもう一度お試しください。", "販売ページへ戻る", "/career-reading"),
             status_code=503,
@@ -835,13 +840,13 @@ async def customer_checkout_start() -> HTMLResponse:
 
 @router.get("/checkout/success", include_in_schema=False)
 async def customer_checkout_success(session_id: str = "") -> HTMLResponse:
-    if not test_checkout_enabled():
+    if not checkout_enabled():
         return _payment_required_response()
     try:
         await run_in_threadpool(verify_paid_session, session_id)
         entitlement = issue_entitlement(session_id)
     except StripeCheckoutError as exc:
-        logger.warning("stripe test checkout verification failed reason=%s", str(exc))
+        logger.warning("stripe checkout verification failed mode=%s reason=%s", checkout_mode(), str(exc))
         return HTMLResponse(
             _payment_status_document("決済を確認できませんでした", "決済状態を確認できませんでした。再度の支払いはせず、問い合わせフォームからご連絡ください。", "問い合わせフォームを開く", "https://form.os7.biz/f/be4d264a/"),
             status_code=400,
@@ -870,13 +875,13 @@ def customer_checkout_cancel() -> HTMLResponse:
 
 @router.post("/stripe/webhook", include_in_schema=False)
 async def customer_stripe_webhook(request: Request) -> JSONResponse:
-    if not test_checkout_enabled():
+    if not checkout_enabled():
         return JSONResponse({"error": "disabled"}, status_code=404)
     payload = await request.body()
     try:
         event = verify_webhook(payload, request.headers.get("stripe-signature", ""))
     except StripeCheckoutError as exc:
-        logger.warning("stripe test webhook rejected reason=%s", str(exc))
+        logger.warning("stripe webhook rejected mode=%s reason=%s", checkout_mode(), str(exc))
         return JSONResponse({"error": "invalid_webhook"}, status_code=400)
     event_id = event.get("id")
     event_type = event.get("type")
@@ -885,7 +890,7 @@ async def customer_stripe_webhook(request: Request) -> JSONResponse:
     with _ENTITLEMENT_LOCK:
         duplicate = event_id in _PROCESSED_STRIPE_EVENTS
         _PROCESSED_STRIPE_EVENTS.add(event_id)
-    logger.info("stripe test webhook accepted type=%s duplicate=%s", event_type, duplicate)
+    logger.info("stripe webhook accepted mode=%s type=%s duplicate=%s", checkout_mode(), event_type, duplicate)
     return JSONResponse({"received": True, "duplicate": duplicate})
 
 

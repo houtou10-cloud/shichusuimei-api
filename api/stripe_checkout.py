@@ -1,4 +1,4 @@
-"""Stripe test-mode Checkout boundary for the isolated customer web service."""
+"""Stripe Checkout boundary with explicit, isolated test/live configuration."""
 
 from __future__ import annotations
 
@@ -25,7 +25,8 @@ class StripeCheckoutError(RuntimeError):
 
 
 @dataclass(frozen=True)
-class StripeTestConfig:
+class StripeConfig:
+    mode: str
     secret_key: str
     price_id: str
     webhook_secret: str
@@ -33,31 +34,61 @@ class StripeTestConfig:
     public_base_url: str
 
 
-def test_checkout_enabled() -> bool:
-    return os.getenv("STRIPE_TEST_CHECKOUT_ENABLED", "").strip().lower() in {
+def _enabled(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {
         "1", "true", "yes", "on",
     }
 
 
-def _config() -> StripeTestConfig:
+def checkout_mode() -> str:
+    """Return disabled/test/live without enabling live mode implicitly.
+
+    The legacy test flag remains supported for the isolated staging service.
+    Live mode requires both an explicit mode and a separate live enable flag.
+    """
+    requested = os.getenv("STRIPE_CHECKOUT_MODE", "").strip().lower()
+    if requested == "live":
+        return "live" if _enabled("STRIPE_LIVE_CHECKOUT_ENABLED") else "disabled"
+    if requested == "test":
+        return "test" if _enabled("STRIPE_TEST_CHECKOUT_ENABLED") else "disabled"
+    if requested:
+        return "disabled"
+    return "test" if _enabled("STRIPE_TEST_CHECKOUT_ENABLED") else "disabled"
+
+
+def checkout_enabled() -> bool:
+    return checkout_mode() in {"test", "live"}
+
+
+def test_checkout_enabled() -> bool:
+    return checkout_mode() == "test"
+
+
+def _config() -> StripeConfig:
+    mode = checkout_mode()
+    if mode == "disabled":
+        raise StripeCheckoutError("stripe_checkout_disabled")
+    prefix = "STRIPE_TEST" if mode == "test" else "STRIPE_LIVE"
     values = {
-        "secret_key": os.getenv("STRIPE_TEST_SECRET_KEY", ""),
-        "price_id": os.getenv("STRIPE_TEST_PRICE_ID", ""),
-        "webhook_secret": os.getenv("STRIPE_TEST_WEBHOOK_SECRET", "").strip(),
+        "mode": mode,
+        "secret_key": os.getenv(f"{prefix}_SECRET_KEY", "").strip(),
+        "price_id": os.getenv(f"{prefix}_PRICE_ID", "").strip(),
+        "webhook_secret": os.getenv(f"{prefix}_WEBHOOK_SECRET", "").strip(),
         "entitlement_secret": os.getenv("CUSTOMER_ENTITLEMENT_SECRET", ""),
         "public_base_url": os.getenv("CUSTOMER_PUBLIC_BASE_URL", "").rstrip("/"),
     }
-    if not values["secret_key"].startswith("sk_test_"):
-        raise StripeCheckoutError("stripe_test_key_missing")
+    expected_key_prefix = "sk_test_" if mode == "test" else "sk_live_"
+    if not values["secret_key"].startswith(expected_key_prefix):
+        raise StripeCheckoutError(f"stripe_{mode}_key_missing")
     if not values["price_id"].startswith("price_"):
-        raise StripeCheckoutError("stripe_test_price_missing")
+        raise StripeCheckoutError(f"stripe_{mode}_price_missing")
     if not values["webhook_secret"].startswith("whsec_"):
-        raise StripeCheckoutError("stripe_test_webhook_missing")
+        raise StripeCheckoutError(f"stripe_{mode}_webhook_missing")
     if len(values["entitlement_secret"]) < 32:
         raise StripeCheckoutError("entitlement_secret_missing")
     if not values["public_base_url"].startswith("https://"):
         raise StripeCheckoutError("public_base_url_invalid")
-    return StripeTestConfig(**values)
+    return StripeConfig(**values)
 
 
 def create_checkout_session() -> str:
@@ -92,7 +123,8 @@ def create_checkout_session() -> str:
 
 def verify_paid_session(session_id: str) -> dict[str, object]:
     config = _config()
-    if not session_id.startswith("cs_test_") or len(session_id) > 200:
+    expected_session_prefix = "cs_test_" if config.mode == "test" else "cs_live_"
+    if not session_id.startswith(expected_session_prefix) or len(session_id) > 200:
         raise StripeCheckoutError("checkout_session_id_invalid")
     try:
         response = httpx.get(
@@ -151,7 +183,10 @@ def verify_webhook(payload: bytes, signature_header: str, *, now: int | None = N
 def issue_entitlement(session_id: str, *, now: int | None = None, lifetime_seconds: int = 1800) -> str:
     config = _config()
     current = int(time.time()) if now is None else now
-    payload = {"sid": session_id, "exp": current + lifetime_seconds, "nonce": uuid4().hex}
+    expected_session_prefix = "cs_test_" if config.mode == "test" else "cs_live_"
+    if not session_id.startswith(expected_session_prefix):
+        raise StripeCheckoutError("checkout_session_id_invalid")
+    payload = {"sid": session_id, "mode": config.mode, "exp": current + lifetime_seconds, "nonce": uuid4().hex}
     encoded = base64.urlsafe_b64encode(
         json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
     ).decode("ascii").rstrip("=")
@@ -170,8 +205,12 @@ def read_entitlement(token: str, *, now: int | None = None) -> str | None:
         payload = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8"))
         current = int(time.time()) if now is None else now
         session_id = payload.get("sid") if isinstance(payload, dict) else None
+        token_mode = payload.get("mode", "test") if isinstance(payload, dict) else None
         expires = payload.get("exp") if isinstance(payload, dict) else None
-        if not isinstance(session_id, str) or not session_id.startswith("cs_test_"):
+        expected_session_prefix = "cs_test_" if config.mode == "test" else "cs_live_"
+        if token_mode != config.mode:
+            return None
+        if not isinstance(session_id, str) or not session_id.startswith(expected_session_prefix):
             return None
         if not isinstance(expires, int) or expires < current:
             return None
