@@ -35,6 +35,7 @@ from api.customer_pipeline import (
 )
 from api.fast_reading import DETAIL_TYPES, _emit_perf, get_session, run_concern_answer, run_detail, run_fast_reading
 from api.symbol_judgment_reference import append_product_reference_sidecar, append_reference_sidecar
+from api import stripe_checkout
 from api.stripe_checkout import (
     ENTITLEMENT_COOKIE,
     StripeCheckoutError,
@@ -43,7 +44,6 @@ from api.stripe_checkout import (
     create_checkout_session,
     issue_entitlement,
     read_entitlement,
-    test_checkout_enabled,
     verify_paid_session,
     verify_webhook,
 )
@@ -168,7 +168,7 @@ def _consume_access_code(values: dict[str, str]) -> bool:
 
 
 def _entitlement_session(request: Request) -> str | None:
-    if not test_checkout_enabled():
+    if not checkout_enabled():
         return None
     session_id = read_entitlement(request.cookies.get(ENTITLEMENT_COOKIE, ""))
     if session_id is None:
@@ -181,6 +181,37 @@ def _mark_entitlement_used(session_id: str | None) -> None:
     if session_id is not None:
         with _ENTITLEMENT_LOCK:
             _USED_ENTITLEMENTS.add(session_id)
+
+
+async def _confirm_entitlement_unused(session_id: str | None) -> HTMLResponse | None:
+    """Ask Stripe whether the paid session was already used (survives restarts)."""
+    if session_id is None:
+        return None
+    try:
+        await run_in_threadpool(stripe_checkout.ensure_session_unused, session_id)
+    except StripeCheckoutError as exc:
+        if str(exc) in {"checkout_session_consumed", "checkout_session_not_paid"}:
+            _mark_entitlement_used(session_id)
+            return _payment_required_response()
+        logger.warning("stripe entitlement check failed mode=%s reason=%s", checkout_mode(), str(exc))
+        return HTMLResponse(
+            _payment_status_document("決済状況を確認できませんでした", "時間をおいてもう一度お試しください。再度のお支払いは不要です。", "販売ページへ戻る", "/career-reading"),
+            status_code=503,
+            headers={"Cache-Control": "no-store"},
+        )
+    return None
+
+
+async def _consume_entitlement(session_id: str | None) -> None:
+    """Mark a delivered reading used locally and durably at Stripe."""
+    if session_id is None:
+        return
+    _mark_entitlement_used(session_id)
+    try:
+        await run_in_threadpool(stripe_checkout.record_reading_consumed, session_id)
+    except StripeCheckoutError as exc:
+        # The local record still blocks reuse in this process.
+        logger.error("stripe consumption record failed mode=%s reason=%s manual_review=1", checkout_mode(), str(exc))
 
 
 def _reset_entitlements() -> None:
@@ -197,7 +228,7 @@ def _payment_required_response() -> HTMLResponse:
     return HTMLResponse(
         _payment_status_document(
             "お支払いの確認が必要です",
-            "鑑定画面を開くには、販売ページからテスト決済を完了してください。決済済みの場合は成功画面からもう一度お進みください。",
+            "鑑定画面を開くには、販売ページから決済を完了してください。決済済みの場合は成功画面からもう一度お進みください。",
             "販売ページへ戻る",
             "/career-reading",
         ),
@@ -847,6 +878,12 @@ async def customer_checkout_success(session_id: str = "") -> HTMLResponse:
         entitlement = issue_entitlement(session_id)
     except StripeCheckoutError as exc:
         logger.warning("stripe checkout verification failed mode=%s reason=%s", checkout_mode(), str(exc))
+        if str(exc) == "checkout_session_consumed":
+            return HTMLResponse(
+                _payment_status_document("この決済の鑑定は実行済みです", "1回のお支払いにつき鑑定は1回です。重複決済や障害の場合は問い合わせフォームからご連絡ください。", "問い合わせフォームを開く", "https://form.os7.biz/f/be4d264a/"),
+                status_code=409,
+                headers={"Cache-Control": "no-store"},
+            )
         return HTMLResponse(
             _payment_status_document("決済を確認できませんでした", "決済状態を確認できませんでした。再度の支払いはせず、問い合わせフォームからご連絡ください。", "問い合わせフォームを開く", "https://form.os7.biz/f/be4d264a/"),
             status_code=400,
@@ -925,7 +962,7 @@ def customer_commerce_image() -> FileResponse:
 
 @router.get("/app", response_class=HTMLResponse, include_in_schema=False)
 def customer_form(request: Request) -> HTMLResponse:
-    if test_checkout_enabled() and _entitlement_session(request) is None:
+    if checkout_enabled() and _entitlement_session(request) is None:
         return _payment_required_response()
     return HTMLResponse(_render_form())
 
@@ -982,7 +1019,7 @@ def customer_service_worker() -> FileResponse:
 
 @router.get("/app/reading", response_class=HTMLResponse, include_in_schema=False)
 def customer_reading_form(request: Request) -> HTMLResponse:
-    if test_checkout_enabled() and _entitlement_session(request) is None:
+    if checkout_enabled() and _entitlement_session(request) is None:
         return _payment_required_response()
     return HTMLResponse(_render_form())
 
@@ -992,8 +1029,11 @@ async def customer_reading_full(request: Request) -> HTMLResponse:
     performance = PerformanceTrace()
     values: dict[str, str] = {}
     entitlement_session = _entitlement_session(request)
-    if test_checkout_enabled() and entitlement_session is None:
+    if checkout_enabled() and entitlement_session is None:
         return _payment_required_response()
+    payment_check = await _confirm_entitlement_unused(entitlement_session)
+    if payment_check is not None:
+        return payment_check
     try:
         with performance.measure("request_parse"):
             values = await _form_values(request)
@@ -1018,7 +1058,7 @@ async def customer_reading_full(request: Request) -> HTMLResponse:
             document = _render_customer_result(product)
         performance.skip("pdf_generation")
         performance.finish(status="success")
-        _mark_entitlement_used(entitlement_session)
+        await _consume_entitlement(entitlement_session)
         return HTMLResponse(document)
     except _CustomerRateLimitExceeded as exc:
         performance.finish(status="rate_limited")
@@ -1070,8 +1110,11 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
     started = time.perf_counter()
     performance: dict[str, object] = {"provider_calls": 0, "status": "error"}
     entitlement_session = _entitlement_session(request)
-    if test_checkout_enabled() and entitlement_session is None:
+    if checkout_enabled() and entitlement_session is None:
         return _payment_required_response()
+    payment_check = await _confirm_entitlement_unused(entitlement_session)
+    if payment_check is not None:
+        return payment_check
     try:
         values = await _form_values(request)
         if not _consume_access_code(values):
@@ -1090,7 +1133,7 @@ async def customer_reading_fast(request: Request) -> HTMLResponse:
         document = _move_fast_back_link_to_header(document)
         performance["render_elapsed"] = time.perf_counter() - render_started
         performance["status"] = "success"
-        _mark_entitlement_used(entitlement_session)
+        await _consume_entitlement(entitlement_session)
         return HTMLResponse(document)
     except CustomerInputError as exc:
         return HTMLResponse(_render_form(values, exc.errors), status_code=422)

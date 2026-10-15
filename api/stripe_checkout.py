@@ -18,6 +18,9 @@ import httpx
 PRODUCT_CODE = "yakumo-career-reading"
 EXPECTED_AMOUNT_JPY = 1980
 ENTITLEMENT_COOKIE = "yakumo_reading_entitlement"
+# Recorded on the PaymentIntent at Stripe so that a used payment stays used
+# across restarts and instances without a local database.
+CONSUMED_METADATA_KEY = "yakumo_reading_consumed"
 
 
 class StripeCheckoutError(RuntimeError):
@@ -121,14 +124,14 @@ def create_checkout_session() -> str:
     return url
 
 
-def verify_paid_session(session_id: str) -> dict[str, object]:
-    config = _config()
+def _retrieve_session(config: StripeConfig, session_id: str) -> dict[str, object]:
     expected_session_prefix = "cs_test_" if config.mode == "test" else "cs_live_"
     if not session_id.startswith(expected_session_prefix) or len(session_id) > 200:
         raise StripeCheckoutError("checkout_session_id_invalid")
     try:
         response = httpx.get(
             f"https://api.stripe.com/v1/checkout/sessions/{quote(session_id, safe='')}",
+            params={"expand[]": "payment_intent"},
             headers={"Authorization": f"Bearer {config.secret_key}"},
             timeout=10.0,
         )
@@ -136,10 +139,23 @@ def verify_paid_session(session_id: str) -> dict[str, object]:
         payload = response.json()
     except (httpx.HTTPError, ValueError) as exc:
         raise StripeCheckoutError("checkout_session_verify_failed") from exc
-    metadata = payload.get("metadata") if isinstance(payload, dict) else None
+    if not isinstance(payload, dict):
+        raise StripeCheckoutError("checkout_session_verify_failed")
+    return payload
+
+
+def _session_consumed(payload: dict[str, object]) -> bool:
+    intent = payload.get("payment_intent")
+    metadata = intent.get("metadata") if isinstance(intent, dict) else None
+    return isinstance(metadata, dict) and bool(metadata.get(CONSUMED_METADATA_KEY))
+
+
+def verify_paid_session(session_id: str) -> dict[str, object]:
+    config = _config()
+    payload = _retrieve_session(config, session_id)
+    metadata = payload.get("metadata")
     valid = (
-        isinstance(payload, dict)
-        and payload.get("id") == session_id
+        payload.get("id") == session_id
         and payload.get("mode") == "payment"
         and payload.get("payment_status") == "paid"
         and payload.get("currency") == "jpy"
@@ -149,7 +165,34 @@ def verify_paid_session(session_id: str) -> dict[str, object]:
     )
     if not valid:
         raise StripeCheckoutError("checkout_session_not_paid")
+    if _session_consumed(payload):
+        raise StripeCheckoutError("checkout_session_consumed")
     return payload
+
+
+def ensure_session_unused(session_id: str) -> None:
+    """Fail closed unless Stripe confirms the paid session has no recorded reading."""
+    verify_paid_session(session_id)
+
+
+def record_reading_consumed(session_id: str) -> None:
+    """Mark the session's PaymentIntent as used after a successful reading."""
+    config = _config()
+    payload = _retrieve_session(config, session_id)
+    intent = payload.get("payment_intent")
+    intent_id = intent.get("id") if isinstance(intent, dict) else intent
+    if not isinstance(intent_id, str) or not intent_id.startswith("pi_"):
+        raise StripeCheckoutError("payment_intent_missing")
+    try:
+        response = httpx.post(
+            f"https://api.stripe.com/v1/payment_intents/{quote(intent_id, safe='')}",
+            data={f"metadata[{CONSUMED_METADATA_KEY}]": str(int(time.time()))},
+            headers={"Authorization": f"Bearer {config.secret_key}"},
+            timeout=10.0,
+        )
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise StripeCheckoutError("consumption_record_failed") from exc
 
 
 def verify_webhook(payload: bytes, signature_header: str, *, now: int | None = None) -> dict[str, object]:
