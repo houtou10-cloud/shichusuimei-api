@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from html import escape
+import json
 import re
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, urlparse
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
@@ -34,9 +35,93 @@ _MAX_FORM_BYTES = 12_000
 _STYLES = """
 <style>
 :root{color-scheme:light;--ink:#302820;--muted:#75685c;--paper:#fffdfa;--wash:#f5efe7;--line:#dfd1c2;--gold:#9a6a35;--deep:#5d3b25;--danger:#a33a35}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#f6f1eb,#eee5da);color:var(--ink);font-family:"Yu Mincho","Hiragino Mincho ProN","Noto Serif JP",serif;line-height:1.7}.shell{width:min(960px,calc(100% - 24px));margin:24px auto 56px;background:var(--paper);border:1px solid var(--line);box-shadow:0 16px 46px #422c1e18;border-radius:16px;overflow:hidden}.hero{padding:30px clamp(20px,5vw,54px);background:linear-gradient(120deg,#fffaf1,#f4eadc);border-bottom:1px solid var(--line)}.eyebrow{margin:0;color:var(--gold);font-size:.8rem;letter-spacing:.16em}.hero h1{margin:.2rem 0 .5rem;color:#422c1e;font-size:clamp(1.7rem,4vw,2.5rem)}.hero p{margin:.25rem 0;color:var(--muted)}.content{padding:28px clamp(20px,5vw,54px)}h2{color:var(--deep);border-bottom:1px solid var(--line);padding-bottom:.35rem;margin-top:1.6rem}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 22px}.full{grid-column:1/-1}label{display:block;font-weight:700;margin-bottom:.35rem}input,select{width:100%;font:inherit;padding:9px;border:1px solid #cdbdad;border-radius:7px;background:#fff}fieldset{border:1px solid var(--line);border-radius:10px;margin:18px 0;padding:15px}legend{font-weight:700;color:var(--deep)}.choice{display:inline-flex;align-items:center;gap:6px;margin:.25rem .8rem .25rem 0;font-weight:400}.choice input{width:auto}.button{display:inline-block;border:0;border-radius:8px;padding:12px 18px;background:linear-gradient(120deg,#6b4328,#9a6a35);color:#fff;font:700 1rem inherit;cursor:pointer;text-decoration:none}.nav{display:flex;gap:8px;flex-wrap:wrap;padding:12px clamp(20px,5vw,54px);background:#fffaf4;border-bottom:1px solid var(--line)}.nav a{color:var(--deep);font-weight:700;text-decoration:none;padding:.25rem .6rem}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.card{padding:20px;border:1px solid var(--line);border-radius:10px;background:#fffaf4}.card h3{margin-top:0;color:var(--deep)}.step-list{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;list-style:none;padding:0}.step-list li{padding:12px 8px;text-align:center;background:var(--wash);border-radius:8px;font-weight:700}.error{padding:10px 13px;border-left:4px solid var(--danger);background:#fff1ef;color:#772a27}.pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.pillar{padding:12px;text-align:center;background:var(--wash);border:1px solid var(--line);border-radius:8px}.pillar small{display:block;color:var(--muted)}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}.ok{color:#286c48;font-weight:700}.ng{color:#a33a35;font-weight:700}.note{padding:12px;background:#f8f3ec;border-radius:8px;color:var(--muted)}@media(max-width:680px){.grid,.pillars,.cards{grid-template-columns:1fr 1fr}.full{grid-column:1/-1}.step-list{grid-template-columns:1fr 1fr}}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:linear-gradient(145deg,#f6f1eb,#eee5da);color:var(--ink);font-family:"Yu Mincho","Hiragino Mincho ProN","Noto Serif JP",serif;line-height:1.7}.shell{width:min(960px,calc(100% - 24px));margin:24px auto 56px;background:var(--paper);border:1px solid var(--line);box-shadow:0 16px 46px #422c1e18;border-radius:16px;overflow:hidden}.hero{padding:30px clamp(20px,5vw,54px);background:linear-gradient(120deg,#fffaf1,#f4eadc);border-bottom:1px solid var(--line)}.eyebrow{margin:0;color:var(--gold);font-size:.8rem;letter-spacing:.16em}.hero h1{margin:.2rem 0 .5rem;color:#422c1e;font-size:clamp(1.7rem,4vw,2.5rem)}.hero p{margin:.25rem 0;color:var(--muted)}.content{padding:28px clamp(20px,5vw,54px)}h2{color:var(--deep);border-bottom:1px solid var(--line);padding-bottom:.35rem;margin-top:1.6rem}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 22px}.full{grid-column:1/-1}label{display:block;font-weight:700;margin-bottom:.35rem}input,select{width:100%;font:inherit;padding:9px;border:1px solid #cdbdad;border-radius:7px;background:#fff}fieldset{border:1px solid var(--line);border-radius:10px;margin:18px 0;padding:15px}legend{font-weight:700;color:var(--deep)}.choice{display:inline-flex;align-items:center;gap:6px;margin:.25rem .8rem .25rem 0;font-weight:400}.choice input{width:auto}.button{display:inline-block;border:0;border-radius:8px;padding:12px 18px;background:linear-gradient(120deg,#6b4328,#9a6a35);color:#fff;font:700 1rem inherit;cursor:pointer;text-decoration:none}.nav{display:flex;gap:8px;flex-wrap:wrap;padding:12px clamp(20px,5vw,54px);background:#fffaf4;border-bottom:1px solid var(--line)}.nav a{color:var(--deep);font-weight:700;text-decoration:none;padding:.25rem .6rem}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.card{padding:20px;border:1px solid var(--line);border-radius:10px;background:#fffaf4}.card h3{margin-top:0;color:var(--deep)}.step-list{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;list-style:none;padding:0}.step-list li{padding:12px 8px;text-align:center;background:var(--wash);border-radius:8px;font-weight:700}.error{padding:10px 13px;border-left:4px solid var(--danger);background:#fff1ef;color:#772a27}.pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.pillar{padding:12px;text-align:center;background:var(--wash);border:1px solid var(--line);border-radius:8px}.pillar small{display:block;color:var(--muted)}table{width:100%;border-collapse:collapse;margin:12px 0}.lesson-table-wrap{overflow-x:auto;margin:12px 0}.lesson-table{min-width:520px}.lesson-table th,.lesson-table td{padding:8px;border:1px solid var(--line);text-align:left;vertical-align:top}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}.ok{color:#286c48;font-weight:700}.ng{color:#a33a35;font-weight:700}.note{padding:12px;background:#f8f3ec;border-radius:8px;color:var(--muted)}@media(max-width:680px){.grid,.pillars,.cards{grid-template-columns:1fr 1fr}.full{grid-column:1/-1}.step-list{grid-template-columns:1fr 1fr}}
+.progress-panel{padding:16px;border:1px solid var(--line);border-radius:10px;background:#fffaf4}.progress-panel progress{width:100%;height:16px;accent-color:var(--gold)}.course-search{margin:20px 0;padding:16px;border:1px solid var(--line);border-radius:10px}.course-search label{margin-top:0}.course-search input{min-height:46px}.course-search-output{margin:.5rem 0 0;color:var(--muted)}.chapter-list{display:grid;gap:12px}.chapter-card{border:1px solid var(--line);border-radius:10px;background:#fffaf4;overflow:hidden}.chapter-card summary{cursor:pointer;padding:16px 18px;font-weight:700;color:var(--deep)}.chapter-card summary span{display:block;color:var(--muted);font-size:.9rem;font-weight:400}.chapter-card ul{margin:0;padding:0 20px 18px 42px}.chapter-card li{padding:.4rem 0}.lesson-status,.video-status,.lesson-minutes{display:inline-block;margin-left:.5rem;color:var(--muted);font-size:.86rem}.lesson-status.done{color:#286c48;font-weight:700}.lesson-nav{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:26px 0}.lesson-nav .button{text-align:center}.media-status{padding:18px;border:1px dashed var(--line);border-radius:10px;background:#201b18;color:#fff}.media-status h2{margin-top:0;color:#fff;border-color:#5d5048}.media-status p{color:#eee3d8}.video-frame{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden}.video-frame iframe{width:100%;height:100%;border:0}.reading-material{margin:24px 0;border:1px solid var(--line);border-radius:10px}.reading-material>summary{cursor:pointer;padding:16px 18px;color:var(--deep);font-weight:700;background:#fffaf4}.reading-material>article{padding:4px 18px 20px}@media(max-width:680px){.shell{width:100%;margin:0;min-height:100vh;border-radius:0}.hero,.content{padding-left:18px;padding-right:18px}.grid,.pillars,.cards{grid-template-columns:1fr}.nav{flex-wrap:nowrap;overflow-x:auto;padding:10px 12px}.nav a{white-space:nowrap}.button{width:100%;text-align:center;min-height:48px}.lesson-nav{grid-template-columns:1fr}.choice{display:flex;min-height:44px;align-items:center}.lesson-table{min-width:480px}}
 </style>
 """
+
+_PROGRESS_KEY = "yakumo_academy_completed_v1"
+_LAST_LESSON_KEY = "yakumo_academy_last_lesson_v1"
+
+
+def _progress_script(
+    *,
+    completed_lesson_id: str = "",
+    current_lesson_url: str = "",
+    current_lesson_title: str = "",
+) -> str:
+    completed = json.dumps(completed_lesson_id, ensure_ascii=False).replace("<", "\\u003c")
+    current_url = json.dumps(current_lesson_url, ensure_ascii=False).replace("<", "\\u003c")
+    current_title = json.dumps(current_lesson_title, ensure_ascii=False).replace("<", "\\u003c")
+    return f'''<script>
+(() => {{
+  const key = "{_PROGRESS_KEY}";
+  let completed = [];
+  try {{ completed = JSON.parse(localStorage.getItem(key) || "[]"); }} catch (_) {{ completed = []; }}
+  if (!Array.isArray(completed)) completed = [];
+  const justCompleted = {completed};
+  if (justCompleted && !completed.includes(justCompleted)) {{
+    completed.push(justCompleted);
+    try {{ localStorage.setItem(key, JSON.stringify(completed)); }} catch (_) {{}}
+  }}
+  document.querySelectorAll("[data-lesson-id]").forEach((row) => {{
+    const done = completed.includes(row.dataset.lessonId);
+    const status = row.querySelector(".lesson-status");
+    if (status) {{ status.textContent = done ? "修了" : "未修了"; status.classList.toggle("done", done); }}
+  }});
+  document.querySelectorAll("[data-progress-total]").forEach((panel) => {{
+    const total = Number(panel.dataset.progressTotal || 0);
+    const count = Math.min(total, completed.length);
+    const bar = panel.querySelector("progress");
+    const label = panel.querySelector("[data-progress-label]");
+    if (bar) bar.value = count;
+    if (label) label.textContent = `${{count}} / ${{total}}講 修了`;
+  }});
+  const currentUrl = {current_url};
+  const currentTitle = {current_title};
+  if (currentUrl) {{
+    try {{ localStorage.setItem("{_LAST_LESSON_KEY}", JSON.stringify({{url: currentUrl, title: currentTitle}})); }} catch (_) {{}}
+  }}
+  let last = null;
+  try {{ last = JSON.parse(localStorage.getItem("{_LAST_LESSON_KEY}") || "null"); }} catch (_) {{ last = null; }}
+  document.querySelectorAll("[data-resume-link]").forEach((link) => {{
+    if (last && typeof last.url === "string" && last.url.startsWith("/academy/" + "course/")) {{
+      link.href = last.url;
+      link.textContent = `続きから学ぶ：${{last.title || "前回の講座"}}`;
+      link.hidden = false;
+    }}
+  }});
+}})();
+</script>'''
+
+
+def _course_search_script(total: int) -> str:
+    return f'''<script>
+(() => {{
+  const input = document.querySelector("[data-course-search]");
+  const output = document.querySelector("[data-course-search-output]");
+  if (!input || !output) return;
+  const rows = [...document.querySelectorAll("[data-course-title]")];
+  const chapters = [...document.querySelectorAll(".chapter-card")];
+  const update = () => {{
+    const query = input.value.trim().toLocaleLowerCase("ja");
+    let shown = 0;
+    rows.forEach((row) => {{
+      const match = !query || row.dataset.courseTitle.toLocaleLowerCase("ja").includes(query);
+      row.hidden = !match;
+      if (match) shown += 1;
+    }});
+    chapters.forEach((chapter) => {{
+      const hasVisible = [...chapter.querySelectorAll("[data-course-title]")].some((row) => !row.hidden);
+      chapter.hidden = !hasVisible;
+      if (query && hasVisible) chapter.open = true;
+    }});
+    output.textContent = query ? `${{shown}}講が一致しました` : `全{total}講`;
+  }};
+  input.addEventListener("input", update);
+  update();
+}})();
+</script>'''
 
 _COURSES = (
     ("第1章", "四柱推命の土台", "四柱推命を学ぶための基本概念を順番に身につけます。", (
@@ -83,8 +168,21 @@ def _academy_nav() -> str:
     return '<nav class="nav"><a href="/academy">Academyトップ</a><a href="/academy/courses">講座一覧</a><a href="/academy/practice">実践トレーニング</a></nav>'
 
 
+def _render_video_area(lesson: dict[str, object]) -> str:
+    video_url = str(lesson.get("video_url") or "").strip()
+    if not video_url:
+        return '<section class="media-status"><h2>動画講座</h2><p><strong>動画未登録</strong></p><p>この講座には再生可能な動画URLが登録されていません。動画が登録されるまでは、下の補助教材と理解度チェックを利用できます。</p></section>'
+    parsed = urlparse(video_url)
+    allowed_hosts = {"www.youtube-nocookie.com", "www.youtube.com", "player.vimeo.com"}
+    if parsed.scheme != "https" or parsed.hostname not in allowed_hosts:
+        return '<section class="media-status"><h2>動画講座</h2><p><strong>動画を表示できません</strong></p><p>登録された動画URLの形式が未対応です。補助教材を利用してください。</p></section>'
+    safe_url = escape(video_url, quote=True)
+    title = escape(str(lesson["title"]), quote=True)
+    return f'<section aria-labelledby="video-heading"><h2 id="video-heading">動画講座</h2><div class="video-frame"><iframe src="{safe_url}" title="{title}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div></section>'
+
+
 def _render_portal() -> str:
-    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>八雲式 四柱推命Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>八雲式 四柱推命Academy</h1><p>「覚える」から「判断できる」へ。</p><p>四柱推命の理論を学び、実際の命式を自分で読み、八雲式で答え合わせしながら鑑定力を身につける実践型Academyです。</p></header><section class="content"><div class="cards"><article class="card"><h3>講座で学ぶ</h3><p>基礎から実践鑑定まで、順番に四柱推命の判断方法を学びます。</p><a class="button" href="/academy/courses">講座を見る</a><p><a href="/academy/course/1/1">第1講から学ぶ</a></p></article><article class="card"><h3>命式で練習する</h3><p>実際の命式を使って自分で判断し、八雲式エンジンで答え合わせします。</p><a class="button" href="/academy/practice">実践トレーニング</a></article></div><h2>八雲式Academyの学習サイクル</h2><ol class="step-list"><li>理論を学ぶ</li><li>自分で判断する</li><li>命式で練習する</li><li>八雲式で答え合わせ</li><li>判断根拠を確認する</li></ol></section></main></body></html>'''
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>八雲式 四柱推命Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>八雲式 四柱推命 動画講座</h1><p>動画を中心に学び、補助教材と理解度チェックで判断根拠を確認します。</p><p class="note">現在、カリキュラムは整備済みですが動画URLは未登録です。登録済みの教材だけを表示します。</p></header><section class="content"><p><a class="button" data-resume-link hidden href="/academy/course/1/1">続きから学ぶ</a></p><div class="cards"><article class="card"><h3>動画講座で学ぶ</h3><p>基礎から実践鑑定まで、章ごとに順番に学びます。</p><a class="button" href="/academy/courses">動画講座一覧を見る</a><p><a href="/academy/course/1/1">第1講から学ぶ</a></p></article><article class="card"><h3>命式で練習する</h3><p>実際の命式を使って自分で判断し、八雲式エンジンで答え合わせします。</p><a class="button" href="/academy/practice">実践トレーニング</a></article></div><h2>動画講座の学習サイクル</h2><ol class="step-list"><li>動画を見る</li><li>補助教材を読む</li><li>自分で判断する</li><li>理解度を確認</li><li>命式で練習</li></ol></section>{_progress_script()}</main></body></html>'''
 
 
 def _render_courses() -> str:
@@ -121,11 +219,13 @@ def _render_curriculum_courses() -> str:
     for chapter, lessons in grouped.items():
         first = lessons[0]
         items = "".join(
-            f'<li><a href="/academy/course/{lesson["chapter"]}/{((lesson["order"] - 1) % 7) + 1}">第{lesson["order"]}講　{escape(lesson["title"])}</a></li>'
+            f'<li data-lesson-id="{escape(str(lesson["lesson_id"]), quote=True)}" data-course-title="{escape(str(lesson["title"]), quote=True)}"><a href="/academy/course/{lesson["chapter"]}/{((lesson["order"] - 1) % 7) + 1}">第{lesson["order"]}講　{escape(lesson["title"])}</a><span class="lesson-minutes">約{lesson["estimated_minutes"]}分</span><span class="video-status">動画未登録</span><span class="lesson-status">未修了</span></li>'
             for lesson in lessons
         )
-        cards.append(f'<article class="card"><h3>第{chapter}章</h3><h2>{escape(str(first["chapter_title"]).split(" ", 1)[-1])}</h2><ul>{items}</ul></article>')
-    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>講座一覧 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>講座一覧</h1><p>全{len(curriculum)}講を、基礎から実践まで順に学びます。すべての教材は現在draftとして管理されています。</p></header><section class="content"><div class="cards">{"".join(cards)}</div></section></main></body></html>'''
+        cards.append(f'<details class="chapter-card"{" open" if chapter == 1 else ""}><summary>第{chapter}章　{escape(str(first["chapter_title"]).split(" ", 1)[-1])}<span>{len(lessons)}講</span></summary><ul>{items}</ul></details>')
+    progress = f'<section class="progress-panel" data-progress-total="{len(curriculum)}"><strong data-progress-label>0 / {len(curriculum)}講 修了</strong><progress value="0" max="{len(curriculum)}" aria-label="講座の修了進捗"></progress><p class="note">理解度チェックに合格した講座を、この端末のブラウザに記録します。ログイン同期・端末間同期には未対応です。</p></section>'
+    search = f'<section class="course-search" role="search"><label for="course-search">講座名から探す</label><input id="course-search" data-course-search type="search" placeholder="例：五行、用神、大運" autocomplete="off"><p class="course-search-output" data-course-search-output aria-live="polite">全{len(curriculum)}講</p></section>'
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>講座一覧 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>講座一覧</h1><p>全{len(curriculum)}講を、基礎から実践まで順に学びます。すべての教材は現在draftとして管理されています。</p></header><section class="content">{progress}<p><a class="button" data-resume-link hidden href="#">続きから学ぶ</a></p>{search}<h2>章から選ぶ</h2><div class="chapter-list">{"".join(cards)}</div></section>{_progress_script()}{_course_search_script(len(curriculum))}</main></body></html>'''
 
 
 def _render_lesson_1_1(error: str = "") -> str:
@@ -240,9 +340,19 @@ def _render_lesson_markdown(markdown: str) -> str:
     blocks: list[str] = []
     paragraph: list[str] = []
     list_items: list[str] = []
+    table_rows: list[list[str]] = []
 
     def flush() -> None:
-        nonlocal paragraph, list_items
+        nonlocal paragraph, list_items, table_rows
+        if table_rows:
+            header, *rows = table_rows
+            head_html = "".join(f"<th>{escape(cell)}</th>" for cell in header)
+            body_html = "".join(
+                "<tr>" + "".join(f"<td>{escape(cell)}</td>" for cell in row) + "</tr>"
+                for row in rows
+            )
+            blocks.append(f'<div class="lesson-table-wrap"><table class="lesson-table"><thead><tr>{head_html}</tr></thead><tbody>{body_html}</tbody></table></div>')
+            table_rows = []
         if list_items:
             blocks.append("<ul>" + "".join(f"<li>{escape(item)}</li>" for item in list_items) + "</ul>")
             list_items = []
@@ -266,7 +376,14 @@ def _render_lesson_markdown(markdown: str) -> str:
         elif re.match(r"^\d+\. ", line):
             if paragraph: flush()
             list_items.append(re.sub(r"^\d+\. ", "", line))
+        elif line.startswith("|") and line.endswith("|"):
+            if paragraph or list_items: flush()
+            cells = [cell.strip() for cell in line.strip("|").split("|")]
+            if cells and all(re.fullmatch(r":?-+:?", cell) for cell in cells):
+                continue
+            table_rows.append(cells)
         else:
+            if table_rows: flush()
             paragraph.append(line)
     flush()
     return "".join(blocks)
@@ -296,11 +413,16 @@ def _render_curriculum_lesson(chapter: int, lesson_number: int, error: str = "")
     links = []
     if previous:
         links.append(f'<a class="button" href="/academy/course/{previous["chapter"]}/{((previous["order"] - 1) % 7) + 1}">前の講座</a>')
+    else:
+        links.append('<a class="button" href="/academy/courses">講座一覧</a>')
     if following:
         links.append(f'<a class="button" href="/academy/course/{following["chapter"]}/{((following["order"] - 1) % 7) + 1}">次の講座</a>')
     body = _render_lesson_markdown(load_lesson_content(lesson["lesson_id"]))
-    progress = round(index * 100 / max(1, len(lessons)))
-    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(lesson["title"])} | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>{escape(lesson["chapter_title"])}</h1><p>第{lesson["order"]}講　{escape(lesson["title"])}</p><p>学習位置 {lesson["order"]} / 全{len(lessons)}講　進捗目安 {progress}%　目安 {lesson["estimated_minutes"]}分</p></header><section class="content"><article>{body}</article><section><h2>理解度チェック</h2><p>教材を読んでから、理解度を確認してください。</p>{error_html}<form method="post" action="/academy/course/{chapter}/{lesson_number}/check">{"".join(questions)}<button class="button" type="submit">答え合わせをする</button></form></section><p>{" ".join(links)}</p><p><a href="/academy/courses">講座一覧へ戻る</a>　<a href="/academy/practice">実践トレーニング</a></p></section></main></body></html>'''
+    position = round(lesson["order"] * 100 / max(1, len(lessons)))
+    media = _render_video_area(lesson)
+    lesson_url = f"/academy/course/{chapter}/{lesson_number}"
+    lesson_title = f'第{lesson["order"]}講　{lesson["title"]}'
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(lesson["title"])} | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO VIDEO COURSE</p><h1>{escape(lesson["chapter_title"])}</h1><p>第{lesson["order"]}講　{escape(lesson["title"])}</p><p>カリキュラム位置 {lesson["order"]} / 全{len(lessons)}講（{position}%）　目安 {lesson["estimated_minutes"]}分</p></header><section class="content">{media}<details class="reading-material"><summary>補助教材を読む</summary><article>{body}</article></details><section><h2>理解度チェック</h2><p>動画または補助教材で学んでから、理解度を確認してください。3分の2以上の正解で、この端末に修了として記録します。</p>{error_html}<form method="post" action="/academy/course/{chapter}/{lesson_number}/check">{"".join(questions)}<button class="button" type="submit">答え合わせをする</button></form></section><nav class="lesson-nav" aria-label="講座間の移動">{"".join(links)}</nav><p><a href="/academy/courses">講座一覧へ戻る</a>　<a href="/academy/practice">実践トレーニング</a></p></section>{_progress_script(current_lesson_url=lesson_url, current_lesson_title=lesson_title)}</main></body></html>'''
 
 
 def _render_curriculum_result(chapter: int, lesson_number: int, values: dict[str, list[str]]) -> str | None:
@@ -330,7 +452,8 @@ def _render_curriculum_result(chapter: int, lesson_number: int, values: dict[str
         next_link = '<section class="card"><h2>カリキュラム最終講を修了しました</h2><p>この端末での学習位置として第84講まで到達しました。ユーザー別の永続的な全講修了判定は、ログイン機能追加後に拡張できます。</p></section>'
     else:
         next_link = '<p class="note">最終講は合格後に修了扱いになります。</p>'
-    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>学習結果 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>学習結果</h1><p>{total}問中{score}問正解</p>{status_html}</header><section class="content"><div class="cards">{"".join(rows)}</div><p><a class="button" href="/academy/course/{chapter}/{lesson_number}">講座をもう一度読む</a></p>{next_link}<p><a class="button" href="/academy/practice">実践トレーニング</a></p><p><a href="/academy/courses">講座一覧へ戻る</a></p></section></main></body></html>'''
+    completed_id = str(lesson["lesson_id"]) if passed else ""
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>学習結果 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>学習結果</h1><p>{total}問中{score}問正解</p>{status_html}</header><section class="content"><div class="cards">{"".join(rows)}</div><div class="lesson-nav"><a class="button" href="/academy/course/{chapter}/{lesson_number}">講座をもう一度読む</a>{next_link}</div><p><a href="/academy/practice">実践トレーニング</a>　<a href="/academy/courses">講座一覧へ戻る</a></p></section>{_progress_script(completed_lesson_id=completed_id)}</main></body></html>'''
 
 
 def _parse_curriculum_form(body: bytes, lesson_id: str) -> dict[str, list[str]]:

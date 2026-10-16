@@ -7,14 +7,14 @@
     {
       "artifact_id": "GC03:html",
       "path": "GC03_1984_fukuoka_male_afternoon.html",
-      "size": 22711,
-      "sha256": "792a8d0d50fea588c3078680c825e4700ab413e47e54c27c7d9f924d9ea96d15"
+      "size": 22723,
+      "sha256": "458f95a7cf6ecb2fe8f2de523b2dc3ecfac9d8dd78035d202e094c908e751050"
     },
     {
       "artifact_id": "GC03:pdf",
       "path": "GC03_1984_fukuoka_male_afternoon.pdf",
-      "size": 164523,
-      "sha256": "a2414c725d7350a28a163482ea4d6cc99cdd2443b0d8b4c3cdb03c9693f07a70"
+      "size": 186452,
+      "sha256": "5ae55e5bffc3bc3a5eda5dbade552e58ac890cfffcc371cf62a35b52c016df0d"
     },
     {
       "artifact_id": "GC03:visual_review",
@@ -25,14 +25,14 @@
     {
       "artifact_id": "GC10:html",
       "path": "GC10_1985_ishikawa_female_unknown_birth_time.html",
-      "size": 22862,
-      "sha256": "fc84b97ce4527fb7fb1bc9f4ecc52bcff9cd62cf17e0ce7671ee3af4bcfe7bf1"
+      "size": 22832,
+      "sha256": "fd2fb70187f5f5ad9f9f014022c16b5614ffaf9b5f1cb5af8c8dbcc82ff6a9a0"
     },
     {
       "artifact_id": "GC10:pdf",
       "path": "GC10_1985_ishikawa_female_unknown_birth_time.pdf",
-      "size": 169002,
-      "sha256": "ad9ffcdc8826c44b478badc2c0306935f12b7e74586f2225e015ffb3e36d43e0"
+      "size": 190827,
+      "sha256": "e27f1b4654d0a0225e6e26c9d5f9ff1868cf5391516685b23e17123482eca0e0"
     },
     {
       "artifact_id": "GC10:visual_review",

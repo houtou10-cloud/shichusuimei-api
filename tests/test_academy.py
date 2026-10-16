@@ -57,11 +57,13 @@ def test_academy_home_and_start_do_not_call_provider_or_leak_answers():
 def test_academy_fixture_authority_projection_is_exact():
     projection = _fixture_projection()
     assert projection["day_master"] == "乙"
-    assert projection["month_hidden_stems"] == ("己", "丁", "乙")
-    assert projection["month_hidden_stem_ten_gods"] == ("偏財", "食神", "比肩")
+    # 本どおり（book_kiso）：未月の節入から3日目のため初期の丁が主蔵干（基礎編p.52）。
+    assert projection["month_hidden_stems"] == ("丁", "乙", "己")
+    assert projection["month_hidden_stem_ten_gods"] == ("食神", "比肩", "偏財")
     assert projection["strength"] == "中和"
     assert projection["pattern"] == "食神格"
-    assert projection["useful_element"] == "土"
+    # 本どおり：乙・未月の調候表は癸丙辛（応用編p.210）。
+    assert projection["useful_element"] == "水"
     assert projection["pattern_evidence"]["selected_hidden_stem"] == "丁"
     assert projection["pattern_evidence"]["selected_ten_god"] == "食神"
     assert projection["pattern_evidence"]["exposure_positions"] == ("hour",)
@@ -70,20 +72,20 @@ def test_academy_fixture_authority_projection_is_exact():
 def test_academy_check_compares_all_six_answers_on_server():
     values = _fixture_values(
         q1="乙",
-        q2=["己", "丁", "乙"],
-        q3_0="偏財",
-        q3_1="食神",
-        q3_2="比肩",
+        q2=["丁", "乙", "己"],
+        q3_0="食神",
+        q3_1="比肩",
+        q3_2="偏財",
         q4="中和",
         q5="食神格",
-        q6="土",
+        q6="水",
     )
     response = CLIENT.post("/academy/check", data=values)
     assert response.status_code == 200
     assert "6問 / 6問一致" in response.text
     assert "月干" not in response.text
 
-    values["q6"] = "木"
+    values["q6"] = "土"
     response = CLIENT.post("/academy/check", data=values)
     assert response.status_code == 200
     assert "5問 / 6問一致" in response.text
@@ -123,12 +125,13 @@ def test_academy_portal_navigation_and_course_catalog():
     assert 'action="/academy/start"' in practice.text
 
 
-def test_first_lesson_contains_material_and_server_side_quiz_without_answer_payload():
+def test_legacy_first_lesson_contains_material_and_server_side_quiz_without_answer_payload():
     response = CLIENT.get("/academy/course/1/1")
     assert response.status_code == 200
-    assert "第1講 四柱推命とは何を読むものか" in response.text
+    assert '<table class="lesson-table">' in response.text
+    assert "lesson-table-wrap" in response.text
     assert "この講座で学ぶこと" in response.text
-    assert "四柱の意味" in response.text
+    assert "理論解説" in response.text
     assert 'action="/academy/course/1/1/check"' in response.text
     assert 'name="lesson_q1"' in response.text
     assert 'name="lesson_q2"' in response.text
@@ -139,14 +142,14 @@ def test_first_lesson_contains_material_and_server_side_quiz_without_answer_payl
     assert "<!--" not in response.text
 
 
-def test_first_lesson_quiz_scores_on_server_and_explains_answers():
+def test_legacy_first_lesson_quiz_scores_on_server_and_explains_answers():
     response = CLIENT.post(
         "/academy/course/1/1/check",
-        data={"lesson_q1": "0", "lesson_q2": "1", "lesson_q3": "1"},
+        data={"lesson_q1": "0", "lesson_q2": "1", "lesson_q3": "2"},
     )
     assert response.status_code == 200
     assert "3問中3問正解" in response.text
-    assert "命式から確認できる事実" in response.text
+    assert "正解：" in response.text
     assert 'href="/academy/course/1/1"' in response.text
     assert 'href="/academy/practice"' in response.text
     assert "次の講座：陰陽五行" in response.text or 'href="/academy/course/1/2"' in response.text
@@ -156,7 +159,7 @@ def test_first_lesson_quiz_scores_on_server_and_explains_answers():
         data={"lesson_q1": "9", "lesson_q2": "", "lesson_q3": "1"},
     )
     assert response.status_code == 200
-    assert "1問正解" in response.text
+    assert "3問中0問正解" in response.text
 
 
 def test_first_lesson_quiz_rejects_unknown_fields_and_handles_missing_answers():
@@ -186,3 +189,40 @@ def test_academy_navigation_is_present_once_across_all_screens():
     assert_nav(CLIENT.post("/academy/check", data={"bad": "input"}))
     assert_nav(CLIENT.post("/academy/start", data={"birth_date": "not-a-date"}))
     assert_nav(CLIENT.post("/academy/start", data=_fixture_values(birth_hour="", birth_minute="", birth_time_unknown="1")))
+
+
+# Chapter 1 content was intentionally rewritten; keep these regression checks
+# aligned with the new material rather than asserting the retired wording.
+def test_first_lesson_contains_material_and_server_side_quiz_without_answer_payload():
+    response = CLIENT.get("/academy/course/1/1")
+    assert response.status_code == 200
+    assert '<table class="lesson-table">' in response.text
+    assert "lesson-table-wrap" in response.text
+    assert "<h2>" in response.text
+    assert 'action="/academy/course/1/1/check"' in response.text
+    assert 'name="lesson_q1"' in response.text
+    assert 'name="lesson_q2"' in response.text
+    assert 'name="lesson_q3"' in response.text
+    assert "correct_answer" not in response.text
+    assert "data-answer" not in response.text
+    assert "window.__" not in response.text
+    assert "<!--" not in response.text
+
+
+def test_first_lesson_quiz_scores_on_server_and_explains_answers():
+    response = CLIENT.post(
+        "/academy/course/1/1/check",
+        data={"lesson_q1": "0", "lesson_q2": "1", "lesson_q3": "2"},
+    )
+    assert response.status_code == 200
+    assert "3問中3問正解" in response.text
+    assert "正解：" in response.text
+    assert 'href="/academy/course/1/1"' in response.text
+    assert 'href="/academy/practice"' in response.text
+
+    response = CLIENT.post(
+        "/academy/course/1/1/check",
+        data={"lesson_q1": "9", "lesson_q2": "", "lesson_q3": "2"},
+    )
+    assert response.status_code == 200
+    assert "1問正解" in response.text

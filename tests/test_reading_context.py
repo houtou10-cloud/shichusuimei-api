@@ -68,6 +68,17 @@ from engine.reading_context import (
 )
 
 
+# このファイルは従来の計算（engine_v1）の回帰を固定する。
+# 既定は本どおりモード（book_kiso、2026-10-16〜）のため、ここで engine_v1 を明示する。
+_calculate_chart_default = calculate_chart
+
+
+def calculate_chart(*args, **kwargs):
+    kwargs.setdefault("rule_set", "engine_v1")
+    return _calculate_chart_default(*args, **kwargs)
+
+
+
 # ============================================================
 # Constants
 # ============================================================

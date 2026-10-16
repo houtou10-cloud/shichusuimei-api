@@ -193,7 +193,11 @@ def test_synthetic_customer_input_runs_real_chart_to_reference_html_flag_off_and
     assert "八雲式・参考評価" in enabled.text
     assert all(label in enabled.text for label in ("理由・根拠", "適用規則", "研究用仮定"))
     assert "◎" not in enabled.text
-    assert "最高評価候補" in enabled.text and "判定規則が未確立" in enabled.text
+    # 本どおりの命式（book_kiso、2026-10-16〜）ではこの入力に最高評価候補が出ないため、
+    # 「最高評価候補を◎で公開せず保留表示する」ことは
+    # test_customer_renderer_holds_unestablished_top_mark_instead_of_publishing_it で確認する。
+    if "最高評価候補" in enabled.text:
+        assert "判定規則が未確立" in enabled.text
 
 
 def test_synthetic_customer_flag_off_never_calls_b_boundary(monkeypatch):

@@ -8,13 +8,13 @@
       "artifact_id": "GC03:ai_reading_v2",
       "path": "GC03_1984_fukuoka_male_afternoon_ai_reading_v2.json",
       "size": 79202,
-      "sha256": "d7f7d6e7a505752aae22621f6204500b23f5355276f545614a55a232b688695c"
+      "sha256": "61ddfe5dfd765190fa53005bbf4e70c2ae8d1557cb1a974ca7e495a055248722"
     },
     {
       "artifact_id": "GC10:ai_reading_v2",
       "path": "GC10_1985_ishikawa_female_unknown_birth_time_ai_reading_v2.json",
-      "size": 77123,
-      "sha256": "4694b9ebc00148c66bca66fd80c0312a16e18446ac77fee3590a1ca6f8570caa"
+      "size": 77073,
+      "sha256": "50309889cd60419b5667a7b1f9526f2322d765bbc6ef094e9e0ce551a563b5f0"
     }
   ]
 }

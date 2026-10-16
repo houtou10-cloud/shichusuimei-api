@@ -78,6 +78,12 @@ from typing import Any
 from engine.day import (
     calculate_day_pillar,
 )
+from engine.book_rules import (
+    book_hidden_stem,
+    book_hour_pillar,
+    days_since_setsuiri,
+    month_branch_phases,
+)
 from engine.ganzhi import (
     split_ganzhi,
 )
@@ -123,6 +129,17 @@ PILLARS_METHOD = (
 
 PILLARS_STATUS = (
     "time_correction_integrated"
+)
+
+# 計算規則のセット。
+# book_kiso : 『四柱推命 基礎』p.48〜52の手順（時柱の干支時刻表、
+#             月律分野蔵干表）。engine/book_rules.py を参照。既定（2026-10-16〜）。
+# engine_v1 : 従来の計算。比較・検証用に残す。
+RULE_SET_ENGINE = "engine_v1"
+RULE_SET_BOOK = "book_kiso"
+RULE_SETS = (
+    RULE_SET_ENGINE,
+    RULE_SET_BOOK,
 )
 
 
@@ -239,6 +256,7 @@ def build_pillar_data(
     day_stem: str,
     *,
     is_day_pillar: bool = False,
+    hidden_stems_override: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     干支文字列から柱データを作成する。
@@ -286,7 +304,9 @@ def build_pillar_data(
     )
 
     hidden_stems = list(
-        get_hidden_stems(
+        hidden_stems_override
+        if hidden_stems_override is not None
+        else get_hidden_stems(
             branch
         )
     )
@@ -560,6 +580,7 @@ def calculate_four_pillars(
     standard_meridian: float = (
         STANDARD_MERIDIAN
     ),
+    rule_set: str = RULE_SET_BOOK,
 ) -> dict[str, Any]:
     """
     出生日時から四柱を計算する。
@@ -637,6 +658,11 @@ def calculate_four_pillars(
     _validate_birth_datetime(
         birth_datetime
     )
+
+    if rule_set not in RULE_SETS:
+        raise ValueError(
+            f"rule_setは{RULE_SETS}のいずれかで指定してください: {rule_set}"
+        )
 
     # --------------------------------------------------------
     # Time correction
@@ -754,7 +780,88 @@ def calculate_four_pillars(
         PILLARS_STATUS
     )
 
+    if rule_set == RULE_SET_BOOK:
+        _apply_book_rules(
+            result,
+            calculation_datetime,
+        )
+
     return result
+
+
+def _apply_book_rules(
+    result: dict[str, Any],
+    calculation_datetime: datetime,
+) -> None:
+    """
+    『四柱推命 基礎』の手順で時柱と蔵干を置き換える。
+
+    時柱：干支時刻表（p.48〜49）。本から決まらない時刻は
+    従来の時柱を残し、warningsへ理由を書く。
+    蔵干：節入からの日数を四柱すべてに当てはめ、
+    月律分野蔵干表（p.50〜52）で一つを選ぶ。
+    """
+
+    day_stem = result["day_master"]["stem"]
+
+    hour = book_hour_pillar(
+        day_stem,
+        calculation_datetime,
+    )
+    hour_rule = "book_table"
+    if hour.status == "ok":
+        result["hour"] = build_pillar_data(
+            hour.value,
+            day_stem,
+        )
+    else:
+        hour_rule = "hold_engine_v1_kept"
+        result["warnings"].append(
+            "本どおりの時柱を決められないため従来の時柱を使用: "
+            + hour.note
+        )
+
+    days = days_since_setsuiri(
+        calculation_datetime
+    )
+    for position in (
+        "year",
+        "month",
+        "day",
+        "hour",
+    ):
+        stem = book_hidden_stem(
+            result[position]["branch"],
+            days,
+        )
+        result[position] = build_pillar_data(
+            result[position]["pillar"],
+            day_stem,
+            is_day_pillar=(
+                position == "day"
+            ),
+            # 本の表でその地支に入る干をすべて残し、
+            # 節入後の日数で選んだ干を先頭（主蔵干）にする。
+            hidden_stems_override=[stem.value] + [
+                s
+                for s, _ in month_branch_phases(
+                    result[position]["branch"]
+                )
+                if s != stem.value
+            ],
+        )
+
+    rules = result["calculation_rules"]
+    rules["rule_set"] = RULE_SET_BOOK
+    rules["hour_boundary"] = (
+        "book_kiso_p49_table"
+    )
+    rules["hour_rule_applied"] = hour_rule
+    rules["hour_rule_note"] = hour.note
+    rules["hidden_stem_method"] = (
+        "book_kiso_p52_getsuritsu_bunya"
+    )
+    rules["days_since_setsuiri"] = days
 
 
 # ============================================================

@@ -9,6 +9,17 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from engine.chart import calculate_chart
+
+
+# このファイルの GC03・GC10 は、従来の計算（engine_v1）で人が承認した正解データ。
+# 既定は本どおりモード（book_kiso、2026-10-16〜）だが、承認済みの記録を
+# 機械生成で上書きしないため、ここでは承認時の engine_v1 で照合する。
+_calculate_chart_default = calculate_chart
+
+
+def calculate_chart(*args, **kwargs):
+    kwargs.setdefault("rule_set", "engine_v1")
+    return _calculate_chart_default(*args, **kwargs)
 from engine.reading_context_v2 import (
     READING_CONTEXT_V2_EVIDENCE_SOURCES,
     READING_CONTEXT_V2_FACT_CODES,

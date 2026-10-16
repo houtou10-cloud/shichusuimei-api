@@ -564,6 +564,42 @@ def calculate_start_age(
     )
 
 
+def calculate_book_start_age(
+    birth_datetime: datetime,
+    target_term_datetime: datetime,
+) -> float:
+    """
+    『四柱推命 基礎』p.61〜62の立運。
+
+    生まれた日から節入日までの日付の差（日数）を3で割り、
+    余り1につき4か月とする。
+    例：28日 → 9歳4か月（p.62）、2日 → 8か月（p.61）。
+    """
+    _validate_datetime(
+        birth_datetime,
+        "birth_datetime",
+    )
+    _validate_datetime(
+        target_term_datetime,
+        "target_term_datetime",
+    )
+    days = abs(
+        (
+            target_term_datetime.date()
+            - birth_datetime.date()
+        ).days
+    )
+    years, remainder = divmod(
+        days,
+        3,
+    )
+    return round(
+        years
+        + remainder * 4 / 12.0,
+        6,
+    )
+
+
 def age_to_year_month_day(
     age: float,
 ) -> Dict[str, int]:
@@ -1127,9 +1163,13 @@ def calculate_luck_pillars(
     useful_gods: Optional[
         Dict[str, Any]
     ] = None,
+    rule_set: str = "engine_v1",
 ) -> Dict[str, Any]:
     """
     大運を一括計算する。
+
+    rule_set="book_kiso" のとき、立運を本の数え方
+    （日付の差÷3、余り1につき4か月）で求める。
 
     target_term_datetime を省略した場合は、
     順行・逆行を判定したうえで solar_terms_v2 から
@@ -1191,9 +1231,16 @@ def calculate_luck_pillars(
         ]
     )
 
-    start_age = calculate_start_age(
-        birth_datetime,
-        resolved_target_datetime,
+    start_age = (
+        calculate_book_start_age(
+            birth_datetime,
+            resolved_target_datetime,
+        )
+        if rule_set == "book_kiso"
+        else calculate_start_age(
+            birth_datetime,
+            resolved_target_datetime,
+        )
     )
 
     term_distance_days = (
@@ -1279,7 +1326,9 @@ def calculate_luck_pillars(
                 "陽男陰女順行・陰男陽女逆行"
             ),
             "start_age_rule": (
-                "三日一年法"
+                "book_kiso_p61_days_div3_remainder4months"
+                if rule_set == "book_kiso"
+                else "三日一年法"
             ),
             "month_pillar_rule": (
                 "月柱の次干支から第1大運"

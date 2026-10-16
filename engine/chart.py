@@ -58,7 +58,11 @@ from engine.pattern_useful_gods import (
 from engine.pattern_special_rules import (
     evaluate_pattern_special_rules,
 )
-from engine.pillars import calculate_four_pillars
+from engine.book_strength import calculate_book_strength, to_final_strength_judgment
+from engine.book_pattern import apply_to_pattern_judgment, determine_book_pattern
+from engine.book_climate import book_climate_useful_gods
+from engine.book_useful_gods import book_useful_gods
+from engine.pillars import RULE_SET_BOOK, calculate_four_pillars
 from engine.root_strength import find_roots
 from engine.seasonal_strength import (
     evaluate_seasonal_strength,
@@ -386,6 +390,8 @@ def _calculate_strength_from_pillars(
 def calculate_chart(
     req,
     target_datetime: datetime | None = None,
+    *,
+    rule_set: str | None = None,
 ) -> dict:
     """
     APIの入力情報から命式と各種分析データを作成します。
@@ -482,8 +488,12 @@ def calculate_chart(
         )
     )
 
+    # 既定は本どおり（book_kiso）。rule_set="engine_v1" で従来の計算。
+    if rule_set is None:
+        rule_set = RULE_SET_BOOK
     pillars = calculate_four_pillars(
-        calculation_birth_datetime
+        calculation_birth_datetime,
+        rule_set=rule_set,
     )
 
     if birth_time is None:
@@ -497,6 +507,16 @@ def calculate_chart(
         ),
         warnings=warnings,
     )
+
+    if rule_set == RULE_SET_BOOK:
+        # 『四柱推命 基礎』p.95〜103の身旺・身弱の計算で置き換える。
+        # 格局・用神などの下流処理はこの判定を受け取る。
+        strength_context["final_strength_judgment"] = (
+            to_final_strength_judgment(
+                calculate_book_strength(pillars),
+                strength_context["final_strength_judgment"],
+            )
+        )
 
     chart_data = strength_context["chart_data"]
     stem_combinations = strength_context["stem_combinations"]
@@ -551,6 +571,13 @@ def calculate_chart(
         )
     )
 
+    if rule_set == RULE_SET_BOOK:
+        # 『四柱推命 基礎』p.104〜106の格の決め方で置き換える。
+        pattern_judgment = apply_to_pattern_judgment(
+            pattern_judgment,
+            determine_book_pattern(pillars),
+        )
+
     pattern_useful_gods = (
         evaluate_pattern_useful_gods(
             pillars[
@@ -578,6 +605,14 @@ def calculate_chart(
         )
     )
 
+    if rule_set == RULE_SET_BOOK:
+        # 応用編p.210の調候表で調候用神の候補と順位を置き換える。
+        climate_useful_gods = book_climate_useful_gods(
+            climate_useful_gods,
+            pillars["day_master"]["stem"],
+            pillars["month"]["branch"],
+        )
+
     useful_gods = (
         evaluate_useful_gods_v3(
             pillars[
@@ -592,6 +627,13 @@ def calculate_chart(
             pattern_useful_gods,
         )
     )
+
+    if rule_set == RULE_SET_BOOK:
+        # 応用編p.210の調候表の並びを用神の候補順とする（本の例題での照合結果による）。
+        useful_gods = book_useful_gods(
+            useful_gods,
+            climate_useful_gods,
+        )
 
     # solar_terms_v2 は現在 timezone-naive の
     # ローカル日時を使用する。
@@ -635,6 +677,7 @@ def calculate_chart(
                 luck_birth_datetime
             ),
             useful_gods=useful_gods,
+            rule_set=rule_set,
         )
     )
 

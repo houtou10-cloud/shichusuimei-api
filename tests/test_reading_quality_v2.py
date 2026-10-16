@@ -3573,7 +3573,8 @@ def test_phase51_same_block_referenced_fact_values_are_trusted(
 ):
     inputs = deepcopy(phase2_inputs)
     code = "five_elements.weighted_scores" if nested else "strength.final_score"
-    text = "1.4" if nested else "54.75"
+    # strength.final_score は本どおりの判定（中和）の代表値 50.0（engine/book_strength.py）。
+    text = "1.4" if nested else "50"
     _phase51_set_astrology(inputs["ai_reading"]["summary"], text, (code,))
     _phase51_assert_public_pass(inputs)
 
