@@ -2,7 +2,8 @@ import logging
 import sys
 import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 from api.routes import router
 
 app = FastAPI(title="Shichusuimei API", version="0.1.0")
@@ -44,5 +45,8 @@ def warm_chart_runtime() -> None:
     _warm_chart_runtime()
 
 @app.get("/")
-def root():
+def root(request: Request):
+    # ブラウザで開いた人は販売ページへ。監視やAPIの呼び出し（HTML以外）には従来どおりJSONを返す。
+    if "text/html" in request.headers.get("accept", ""):
+        return RedirectResponse("/career-reading", status_code=302)
     return {"status":"ok","message":"Shichusuimei API is running."}

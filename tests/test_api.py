@@ -1038,3 +1038,10 @@ def test_chart_api_repeated_request_core_consistency():
         ]
         == "useful_gods_v3"
     )
+
+
+def test_root_redirects_browsers_to_sales_page():
+    browser = client.get("/", headers={"Accept": "text/html,application/xhtml+xml"}, follow_redirects=False)
+    assert browser.status_code == 302
+    assert browser.headers["location"] == "/career-reading"
+    assert client.get("/", headers={"Accept": "application/json"}).json()["status"] == "ok"
