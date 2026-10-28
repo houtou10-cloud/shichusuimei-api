@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 from fastapi.testclient import TestClient
 
@@ -63,9 +64,10 @@ def test_all_lessons_have_source_grounding_and_non_repeated_quizzes():
     for lesson in lessons:
         body = (CONTENT_ROOT / "lessons" / f'{lesson["lesson_id"]}.md').read_text(encoding="utf-8")
         assert len(body) > 700
-        assert "学習資料から読む" in body
+        assert not re.search(r"p\.\d|基礎編|応用編|原典|参考書|(?<![日基根見手資])本の", body)
         quiz = json.loads((CONTENT_ROOT / "quizzes" / f'{lesson["lesson_id"]}.json').read_text(encoding="utf-8"))
         assert 3 <= len(quiz["questions"]) <= 5
+        assert not re.search(r"p\.\d|基礎編|応用編|原典|参考書|(?<![日基根見手資])本の", json.dumps(quiz, ensure_ascii=False))
         signatures.append(tuple(q["prompt"] for q in quiz["questions"]))
     assert len(set(signatures)) == len(signatures)
 
