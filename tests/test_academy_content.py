@@ -128,7 +128,10 @@ def test_course_catalog_has_client_side_title_search_without_external_requests()
     assert "84講が一致しました" not in response.text
 
 
-def test_lesson_screen_discloses_missing_video_and_has_adjacent_navigation():
+def test_lesson_screen_discloses_missing_video_and_has_adjacent_navigation(monkeypatch):
+    from engine import academy_content
+
+    monkeypatch.setattr(academy_content, "load_video_urls", lambda: {})
     middle = CLIENT.get("/academy/course/6/4")
     assert middle.status_code == 200
     assert "再生可能な動画URLが登録されていません" in middle.text
