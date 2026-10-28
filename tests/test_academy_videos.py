@@ -35,7 +35,7 @@ def test_registered_video_is_embedded_and_listed(tmp_path, monkeypatch):
     courses = CLIENT.get("/academy/courses").text
     assert courses.count("動画あり") == 1
     assert "動画未登録" in courses
-    assert "全84講のうち1講を公開中" in CLIENT.get("/academy").text
+    assert "動画は1講を公開中" in CLIENT.get("/academy").text
 
 
 def test_lessons_without_videos_keep_placeholder():

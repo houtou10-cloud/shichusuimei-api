@@ -75,7 +75,7 @@ def _progress_script(
     const bar = panel.querySelector("progress");
     const label = panel.querySelector("[data-progress-label]");
     if (bar) bar.value = count;
-    if (label) label.textContent = `${{count}} / ${{total}}講 修了`;
+    if (label) label.textContent = `${{count}}講 修了`;
   }});
   const currentUrl = {current_url};
   const currentTitle = {current_title};
@@ -116,7 +116,7 @@ def _course_search_script(total: int) -> str:
       chapter.hidden = !hasVisible;
       if (query && hasVisible) chapter.open = true;
     }});
-    output.textContent = query ? `${{shown}}講が一致しました` : `全{total}講`;
+    output.textContent = query ? `${{shown}}講が一致しました` : `すべての講を表示中`;
   }};
   input.addEventListener("input", update);
   update();
@@ -186,7 +186,7 @@ def _portal_video_note() -> str:
     if registered == 0:
         return '<p class="note">現在、カリキュラムは整備済みですが動画URLは未登録です。登録済みの教材だけを表示します。</p>'
     if registered < len(all_lessons()):
-        return f'<p class="note">動画は全{len(all_lessons())}講のうち{registered}講を公開中です。未公開の講は補助教材で学べます。</p>'
+        return f'<p class="note">動画は{registered}講を公開中です。未公開の講は補助教材で学べます。</p>'
     return ""
 
 
@@ -232,9 +232,9 @@ def _render_curriculum_courses() -> str:
             for lesson in lessons
         )
         cards.append(f'<details class="chapter-card"{" open" if chapter == 1 else ""}><summary>第{chapter}章　{escape(str(first["chapter_title"]).split(" ", 1)[-1])}<span>{len(lessons)}講</span></summary><ul>{items}</ul></details>')
-    progress = f'<section class="progress-panel" data-progress-total="{len(curriculum)}"><strong data-progress-label>0 / {len(curriculum)}講 修了</strong><progress value="0" max="{len(curriculum)}" aria-label="講座の修了進捗"></progress><p class="note">理解度チェックに合格した講座を、この端末のブラウザに記録します。ログイン同期・端末間同期には未対応です。</p></section>'
-    search = f'<section class="course-search" role="search"><label for="course-search">講座名から探す</label><input id="course-search" data-course-search type="search" placeholder="例：五行、用神、大運" autocomplete="off"><p class="course-search-output" data-course-search-output aria-live="polite">全{len(curriculum)}講</p></section>'
-    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>講座一覧 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>講座一覧</h1><p>全{len(curriculum)}講を、基礎から実践まで順に学びます。すべての教材は現在draftとして管理されています。</p></header><section class="content">{progress}<p><a class="button" data-resume-link hidden href="#">続きから学ぶ</a></p>{search}<h2>章から選ぶ</h2><div class="chapter-list">{"".join(cards)}</div></section>{_progress_script()}{_course_search_script(len(curriculum))}</main></body></html>'''
+    progress = f'<section class="progress-panel" data-progress-total="{len(curriculum)}"><strong data-progress-label>0講 修了</strong><progress value="0" max="{len(curriculum)}" aria-label="講座の修了進捗"></progress><p class="note">理解度チェックに合格した講座を、この端末のブラウザに記録します。ログイン同期・端末間同期には未対応です。</p></section>'
+    search = f'<section class="course-search" role="search"><label for="course-search">講座名から探す</label><input id="course-search" data-course-search type="search" placeholder="例：五行、用神、大運" autocomplete="off"><p class="course-search-output" data-course-search-output aria-live="polite">すべての講を表示中</p></section>'
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>講座一覧 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>講座一覧</h1><p>基礎から実践まで順に学びます。すべての教材は現在draftとして管理されています。</p></header><section class="content">{progress}<p><a class="button" data-resume-link hidden href="#">続きから学ぶ</a></p>{search}<h2>章から選ぶ</h2><div class="chapter-list">{"".join(cards)}</div></section>{_progress_script()}{_course_search_script(len(curriculum))}</main></body></html>'''
 
 
 def _render_lesson_1_1(error: str = "") -> str:
@@ -431,7 +431,7 @@ def _render_curriculum_lesson(chapter: int, lesson_number: int, error: str = "")
     media = _render_video_area(lesson)
     lesson_url = f"/academy/course/{chapter}/{lesson_number}"
     lesson_title = f'第{lesson["order"]}講　{lesson["title"]}'
-    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(lesson["title"])} | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO VIDEO COURSE</p><h1>{escape(lesson["chapter_title"])}</h1><p>第{lesson["order"]}講　{escape(lesson["title"])}</p><p>カリキュラム位置 {lesson["order"]} / 全{len(lessons)}講（{position}%）　目安 {lesson["estimated_minutes"]}分</p></header><section class="content">{media}<details class="reading-material"><summary>補助教材を読む</summary><article>{body}</article></details><section><h2>理解度チェック</h2><p>動画または補助教材で学んでから、理解度を確認してください。3分の2以上の正解で、この端末に修了として記録します。</p>{error_html}<form method="post" action="/academy/course/{chapter}/{lesson_number}/check">{"".join(questions)}<button class="button" type="submit">答え合わせをする</button></form></section><nav class="lesson-nav" aria-label="講座間の移動">{"".join(links)}</nav><p><a href="/academy/courses">講座一覧へ戻る</a>　<a href="/academy/practice">実践トレーニング</a></p></section>{_progress_script(current_lesson_url=lesson_url, current_lesson_title=lesson_title)}</main></body></html>'''
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(lesson["title"])} | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO VIDEO COURSE</p><h1>{escape(lesson["chapter_title"])}</h1><p>第{lesson["order"]}講　{escape(lesson["title"])}</p><p>カリキュラム位置 第{lesson["order"]}講（{position}%）　目安 {lesson["estimated_minutes"]}分</p></header><section class="content">{media}<details class="reading-material"><summary>補助教材を読む</summary><article>{body}</article></details><section><h2>理解度チェック</h2><p>動画または補助教材で学んでから、理解度を確認してください。3分の2以上の正解で、この端末に修了として記録します。</p>{error_html}<form method="post" action="/academy/course/{chapter}/{lesson_number}/check">{"".join(questions)}<button class="button" type="submit">答え合わせをする</button></form></section><nav class="lesson-nav" aria-label="講座間の移動">{"".join(links)}</nav><p><a href="/academy/courses">講座一覧へ戻る</a>　<a href="/academy/practice">実践トレーニング</a></p></section>{_progress_script(current_lesson_url=lesson_url, current_lesson_title=lesson_title)}</main></body></html>'''
 
 
 def _render_curriculum_result(chapter: int, lesson_number: int, values: dict[str, list[str]]) -> str | None:
@@ -458,9 +458,9 @@ def _render_curriculum_result(chapter: int, lesson_number: int, values: dict[str
     if following:
         next_link = f'<p><a class="button" href="/academy/course/{following["chapter"]}/{((following["order"] - 1) % 7) + 1}">次の講座：{escape(following["title"])}</a></p>'
     elif passed:
-        next_link = '<section class="card"><h2>カリキュラム最終講を修了しました</h2><p>この端末での学習位置として第84講まで到達しました。ユーザー別の永続的な全講修了判定は、ログイン機能追加後に拡張できます。</p></section>'
+        next_link = '<section class="card"><h2>公開中の最後の講を修了しました</h2><p>この端末での学習位置として、公開中の最後の講まで到達しました。ユーザー別の永続的な全講修了判定は、ログイン機能追加後に拡張できます。</p></section>'
     else:
-        next_link = '<p class="note">最終講は合格後に修了扱いになります。</p>'
+        next_link = '<p class="note">この講は合格後に修了扱いになります。</p>'
     completed_id = str(lesson["lesson_id"]) if passed else ""
     return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>学習結果 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>学習結果</h1><p>{total}問中{score}問正解</p>{status_html}</header><section class="content"><div class="cards">{"".join(rows)}</div><div class="lesson-nav"><a class="button" href="/academy/course/{chapter}/{lesson_number}">講座をもう一度読む</a>{next_link}</div><p><a href="/academy/practice">実践トレーニング</a>　<a href="/academy/courses">講座一覧へ戻る</a></p></section>{_progress_script(completed_lesson_id=completed_id)}</main></body></html>'''
 
