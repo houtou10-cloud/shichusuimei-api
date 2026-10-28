@@ -181,8 +181,17 @@ def _render_video_area(lesson: dict[str, object]) -> str:
     return f'<section aria-labelledby="video-heading"><h2 id="video-heading">動画講座</h2><div class="video-frame"><iframe src="{safe_url}" title="{title}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div></section>'
 
 
+def _portal_video_note() -> str:
+    registered = sum(1 for lesson in all_lessons() if lesson.get("video_url"))
+    if registered == 0:
+        return '<p class="note">現在、カリキュラムは整備済みですが動画URLは未登録です。登録済みの教材だけを表示します。</p>'
+    if registered < len(all_lessons()):
+        return f'<p class="note">動画は全{len(all_lessons())}講のうち{registered}講を公開中です。未公開の講は補助教材で学べます。</p>'
+    return ""
+
+
 def _render_portal() -> str:
-    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>八雲式 四柱推命Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>八雲式 四柱推命 動画講座</h1><p>動画を中心に学び、補助教材と理解度チェックで判断根拠を確認します。</p><p class="note">現在、カリキュラムは整備済みですが動画URLは未登録です。登録済みの教材だけを表示します。</p></header><section class="content"><p><a class="button" data-resume-link hidden href="/academy/course/1/1">続きから学ぶ</a></p><div class="cards"><article class="card"><h3>動画講座で学ぶ</h3><p>基礎から実践鑑定まで、章ごとに順番に学びます。</p><a class="button" href="/academy/courses">動画講座一覧を見る</a><p><a href="/academy/course/1/1">第1講から学ぶ</a></p></article><article class="card"><h3>命式で練習する</h3><p>実際の命式を使って自分で判断し、八雲式エンジンで答え合わせします。</p><a class="button" href="/academy/practice">実践トレーニング</a></article></div><h2>動画講座の学習サイクル</h2><ol class="step-list"><li>動画を見る</li><li>補助教材を読む</li><li>自分で判断する</li><li>理解度を確認</li><li>命式で練習</li></ol></section>{_progress_script()}</main></body></html>'''
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>八雲式 四柱推命Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>八雲式 四柱推命 動画講座</h1><p>動画を中心に学び、補助教材と理解度チェックで判断根拠を確認します。</p>{_portal_video_note()}</header><section class="content"><p><a class="button" data-resume-link hidden href="/academy/course/1/1">続きから学ぶ</a></p><div class="cards"><article class="card"><h3>動画講座で学ぶ</h3><p>基礎から実践鑑定まで、章ごとに順番に学びます。</p><a class="button" href="/academy/courses">動画講座一覧を見る</a><p><a href="/academy/course/1/1">第1講から学ぶ</a></p></article><article class="card"><h3>命式で練習する</h3><p>実際の命式を使って自分で判断し、八雲式エンジンで答え合わせします。</p><a class="button" href="/academy/practice">実践トレーニング</a></article></div><h2>動画講座の学習サイクル</h2><ol class="step-list"><li>動画を見る</li><li>補助教材を読む</li><li>自分で判断する</li><li>理解度を確認</li><li>命式で練習</li></ol></section>{_progress_script()}</main></body></html>'''
 
 
 def _render_courses() -> str:
@@ -219,7 +228,7 @@ def _render_curriculum_courses() -> str:
     for chapter, lessons in grouped.items():
         first = lessons[0]
         items = "".join(
-            f'<li data-lesson-id="{escape(str(lesson["lesson_id"]), quote=True)}" data-course-title="{escape(str(lesson["title"]), quote=True)}"><a href="/academy/course/{lesson["chapter"]}/{((lesson["order"] - 1) % 7) + 1}">第{lesson["order"]}講　{escape(lesson["title"])}</a><span class="lesson-minutes">約{lesson["estimated_minutes"]}分</span><span class="video-status">動画未登録</span><span class="lesson-status">未修了</span></li>'
+            f'<li data-lesson-id="{escape(str(lesson["lesson_id"]), quote=True)}" data-course-title="{escape(str(lesson["title"]), quote=True)}"><a href="/academy/course/{lesson["chapter"]}/{((lesson["order"] - 1) % 7) + 1}">第{lesson["order"]}講　{escape(lesson["title"])}</a><span class="lesson-minutes">約{lesson["estimated_minutes"]}分</span><span class="video-status">{"動画あり" if lesson.get("video_url") else "動画未登録"}</span><span class="lesson-status">未修了</span></li>'
             for lesson in lessons
         )
         cards.append(f'<details class="chapter-card"{" open" if chapter == 1 else ""}><summary>第{chapter}章　{escape(str(first["chapter_title"]).split(" ", 1)[-1])}<span>{len(lessons)}講</span></summary><ul>{items}</ul></details>')
@@ -482,7 +491,7 @@ def _render_questions(values: dict[str, list[str]], projection: dict[str, object
     hidden = "".join(f'<label class="choice"><input type="checkbox" name="q2" value="{escape(stem, quote=True)}">{escape(stem)}</label>' for stem in ACADEMY_STEM_OPTIONS)
     q3 = "".join(f'<p><strong>{escape(str(stem))}</strong> <select name="q3_{index}" required><option value="">選択</option>{_options(ACADEMY_TEN_GOD_OPTIONS)}</select></p>' for index, stem in enumerate(projection["month_hidden_stems"]))
     hidden_fields = _start_fields(values)
-    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>命式を読む | 八雲式Academy</title>{_STYLES}</head><body><main class="shell"><header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>まず、自分で読んでみましょう</h1><p>以下の命式を手がかりに、6問へ回答してください。正解はこのHTMLやhidden dataには埋め込んでいません。</p></header><section class="content"><h2>命式</h2><div class="pillars">{pillars}</div><form method="post" action="/academy/check">{hidden_fields}<fieldset><legend>Q1 日主</legend><p>この命式の日主はどれでしょうか？</p>{_radio("q1", ACADEMY_STEM_OPTIONS)}</fieldset><fieldset><legend>Q2 月支蔵干</legend><p>月支に含まれる蔵干を選んでください（複数選択）。</p>{hidden}</fieldset><fieldset><legend>Q3 月支蔵干通変星</legend><p>それぞれの日主との関係を選んでください。</p>{q3}</fieldset><fieldset><legend>Q4 身強身弱</legend><p>この命式の身強・身弱判定は？</p>{_radio("q4", ACADEMY_STRENGTH_OPTIONS)}</fieldset><fieldset><legend>Q5 格局</legend><p>この命式の代表格局は？</p>{_radio("q5", pattern_options(projection))}</fieldset><fieldset><legend>Q6 用神第一候補</legend><p>八雲式で用神第一候補となる五行は？</p>{_radio("q6", ACADEMY_ELEMENT_OPTIONS)}</fieldset><button class="button" type="submit">答え合わせをする</button></form></section></main></body></html>'''
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>命式を読む | 八雲式Academy</title>{_STYLES}</head><body><main class="shell"><header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>まず、自分で読んでみましょう</h1><p>以下の命式を手がかりに、6問へ回答してください。正解はこのHTMLやhidden dataには埋め込んでいません。</p></header><section class="content"><h2>命式</h2><div class="pillars">{pillars}</div><form method="post" action="/academy/check">{hidden_fields}<fieldset><legend>Q1 日主</legend><p>この命式の日主はどれでしょうか？</p>{_radio("q1", ACADEMY_STEM_OPTIONS)}</fieldset><fieldset><legend>Q2 月支蔵干</legend><p>月支に含まれる蔵干を選んでください（複数選択）。</p>{hidden}</fieldset><fieldset><legend>Q3 月支蔵干通変星</legend><p>それぞれの日主との関係を選んでください。</p>{q3}</fieldset><fieldset><legend>Q4 身旺身弱</legend><p>この命式の身旺・身弱判定は？</p>{_radio("q4", ACADEMY_STRENGTH_OPTIONS)}</fieldset><fieldset><legend>Q5 格局</legend><p>この命式の代表格局は？</p>{_radio("q5", pattern_options(projection))}</fieldset><fieldset><legend>Q6 用神第一候補</legend><p>八雲式で用神第一候補となる五行は？</p>{_radio("q6", ACADEMY_ELEMENT_OPTIONS)}</fieldset><button class="button" type="submit">答え合わせをする</button></form></section></main></body></html>'''
 
 
 def _options(values: Sequence[str]) -> str:
@@ -494,12 +503,12 @@ def _position_label(value: str) -> str:
 
 
 def _render_result(projection: dict[str, object], results: Sequence[bool]) -> str:
-    labels = ("日主", "月支蔵干", "蔵干通変星", "身強身弱", "格局", "用神第一候補")
+    labels = ("日主", "月支蔵干", "蔵干通変星", "身旺身弱", "格局", "用神第一候補")
     rows = "".join(f'<tr><th>{label}</th><td class="{"ok" if ok else "ng"}">{"○" if ok else "×"}</td></tr>' for label, ok in zip(labels, results))
     evidence = dict(projection["pattern_evidence"])
     evidence["exposure_positions"] = tuple(_position_label(value) for value in evidence["exposure_positions"])
     note = '<p class="note">出生時刻不明のため、時干への透干を確認できない三柱範囲の学習結果です。格局などは既存エンジンの暫定判定として確認してください。</p>' if projection["unknown_birth_time"] else ''
-    explanation = f'''<h2>八雲式判定と判断材料</h2><dl><dt>日主</dt><dd>{escape(str(projection["day_master"]))}（日柱の日干）</dd><dt>月支蔵干</dt><dd>{escape("・".join(projection["month_hidden_stems"]))}（月支 {escape(str(projection["month_branch"]))}）</dd><dt>蔵干通変星</dt><dd>{escape("・".join(projection["month_hidden_stem_ten_gods"]))}</dd><dt>身強身弱</dt><dd>{escape(str(projection["strength"]))}</dd><dt>格局</dt><dd>{escape(str(projection["pattern"]))}（月支 {escape(str(evidence["month_branch"]))}、採用蔵干 {escape(str(evidence["selected_hidden_stem"]))}、通変星 {escape(str(evidence["selected_ten_god"]))}、透干位置 {escape("・".join(evidence["exposure_positions"]) or "確認なし")}）</dd><dt>用神第一候補</dt><dd>{escape(str(projection["useful_element"]))}</dd></dl>{note}'''
+    explanation = f'''<h2>八雲式判定と判断材料</h2><dl><dt>日主</dt><dd>{escape(str(projection["day_master"]))}（日柱の日干）</dd><dt>月支蔵干</dt><dd>{escape("・".join(projection["month_hidden_stems"]))}（月支 {escape(str(projection["month_branch"]))}）</dd><dt>蔵干通変星</dt><dd>{escape("・".join(projection["month_hidden_stem_ten_gods"]))}</dd><dt>身旺身弱</dt><dd>{escape(str(projection["strength"]))}</dd><dt>格局</dt><dd>{escape(str(projection["pattern"]))}（月支 {escape(str(evidence["month_branch"]))}、採用蔵干 {escape(str(evidence["selected_hidden_stem"]))}、通変星 {escape(str(evidence["selected_ten_god"]))}、透干位置 {escape("・".join(evidence["exposure_positions"]) or "確認なし")}）</dd><dt>用神第一候補</dt><dd>{escape(str(projection["useful_element"]))}</dd></dl>{note}'''
     return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>学習結果 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell"><header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>学習結果</h1><p>{sum(results)}問 / {len(results)}問一致</p></header><section class="content"><table>{rows}</table>{explanation}<p><a class="button" href="/academy">もう一度挑戦する</a></p></section></main></body></html>'''
 
 
