@@ -74,7 +74,7 @@ def test_career_sales_page_is_mobile_ready_and_truthful_before_payment_connectio
     assert response.headers["cache-control"] == "no-store"
     html = response.text
     assert 'name="viewport" content="width=device-width,initial-scale=1"' in html
-    assert "転職すべきか" in html and "独立へ進むべきか" in html
+    assert "生まれ持った「自然」を知り" in html and "これからの流れを読む" in html
     assert "1鑑定 1,980円（税込）" in html
     assert "買い切り" in html and "継続課金はありません" in html
     assert "Stripe決済はまだ接続されておらず" in html

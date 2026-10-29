@@ -18,7 +18,7 @@ from uuid import uuid4
 from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 
 from api.customer_pipeline import (
@@ -345,6 +345,36 @@ a{color:inherit}.sales-head{padding:16px 22px;background:#fffdfa;border-bottom:1
 """
 
 
+_SALES_DESCRIPTION = (
+    "生まれ持った本質と、今とこれからの運気の流れを、四柱推命で読み解く鑑定。"
+    "命式は規則どおりに計算し、読み方はやさしく。1鑑定1,980円（税込）・買い切り。"
+)
+_PUBLIC_PATHS = ("/career-reading", "/terms", "/privacy", "/legal")
+
+
+def _public_base_url() -> str:
+    return os.getenv("CUSTOMER_PUBLIC_BASE_URL", "").strip().rstrip("/")
+
+
+def _search_meta(path: str, description: str = "") -> str:
+    """本番決済（live）のときだけ検索エンジンに公開する。テスト・準備中は非公開のまま。"""
+    if checkout_mode() != "live":
+        return '<meta name="robots" content="noindex,nofollow">'
+    tags = ['<meta name="robots" content="index,follow">']
+    if description:
+        tags.append(f'<meta name="description" content="{escape(description, quote=True)}">')
+    base = _public_base_url()
+    if base.startswith("https://"):
+        url = escape(base + path, quote=True)
+        tags.append(f'<link rel="canonical" href="{url}">')
+        tags.append('<meta property="og:type" content="website">')
+        tags.append(f'<meta property="og:url" content="{url}">')
+        tags.append('<meta property="og:title" content="八雲式 四柱推命鑑定">')
+        if description:
+            tags.append(f'<meta property="og:description" content="{escape(description, quote=True)}">')
+    return "".join(tags)
+
+
 def _render_sales_page() -> str:
     mode = checkout_mode()
     if mode == "test":
@@ -354,37 +384,37 @@ def _render_sales_page() -> str:
     else:
         purchase_action = '''<a class="cta" href="/app">ステージングで鑑定画面を確認</a><small class="stage-note">現在は公開前の確認用です。Stripe決済はまだ接続されておらず、料金は請求されません。</small>'''
     return f"""<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
-<title>八雲式四柱推命 キャリア鑑定</title>{_SALES_CSS}</head><body>
+<meta name="viewport" content="width=device-width,initial-scale=1">{_search_meta("/career-reading", _SALES_DESCRIPTION)}
+<title>八雲式 四柱推命鑑定</title>{_SALES_CSS}</head><body>
 <header class="sales-head"><div class="sales-brand">八雲式 四柱推命</div></header>
-<main><section class="hero"><div class="hero-inner"><p class="eyebrow">CAREER READING</p>
-<h1>転職すべきか、<br>独立へ進むべきか。</h1>
-<p class="hero-lead">生まれ持った仕事の傾向と運気の流れから、これからのキャリアを整理する四柱推命鑑定。答えを決めつけず、強みと現在の流れを読み解き、次の一歩を考える材料をお届けします。</p>
+<main><section class="hero"><div class="hero-inner"><p class="eyebrow">YAKUMO READING</p>
+<h1>生まれ持った「自然」を知り、<br>これからの流れを読む。</h1>
+<p class="hero-lead">生年月日から命式を出し、あなたの本質と、今とこれからの運気の流れを読み解く四柱推命鑑定。命式は規則どおりに正確に計算し、読み方はやさしく。答えを決めつけず、自分らしく進むためのヒントをお届けします。</p>
 <p class="price">1鑑定 1,980円（税込）</p><p class="subprice">買い切り・自動更新や継続課金はありません</p>
 {purchase_action}
 </div></section>
 <section class="sales-section"><h2>このような方へ</h2><ul class="audience">
-<li>今の会社に残るか、転職するか迷っている</li><li>自分に合う仕事や働き方を整理したい</li>
-<li>独立・副業へ踏み出す時期に迷っている</li><li>経験を今後のキャリアへどう活かすか考えたい</li>
+<li>自分の本質や強みを、あらためて知りたい</li><li>人間関係や仕事、これからの方向性に迷っている</li>
+<li>今年とこれからの流れを知って、心を整えたい</li><li>占いの言葉に振り回されず、自分で考える材料がほしい</li>
 </ul></section>
 <section class="sales-section alt"><h2>鑑定で分かること</h2><div class="cards">
-<article class="card"><h3>仕事上の強み</h3><p>仕事で発揮しやすい資質、判断の傾向、人との関わり方を読み解きます。</p></article>
-<article class="card"><h3>向いている働き方</h3><p>組織、裁量の大きい環境など、力を発揮しやすい働き方を考えます。</p></article>
-<article class="card"><h3>転職・独立の注意点</h3><p>勢いだけで決めず、事前に確認したい条件や準備を整理します。</p></article>
+<article class="card"><h3>あなたの本質</h3><p>日干と五行のバランスから、生まれ持った性質と強みを読み解きます。</p></article>
+<article class="card"><h3>五行のバランス</h3><p>命式に多い五行と少ない五行、あなたを助ける五行（用神）を確認します。</p></article>
+<article class="card"><h3>仕事と人間関係</h3><p>力を発揮しやすい関わり方や働き方、お金との向き合い方を考えます。</p></article>
 <article class="card"><h3>現在と今後の流れ</h3><p>大運・年運を基に、現在の状況とこれからの流れを確認します。</p></article>
 <article class="card"><h3>お悩みへの個別回答</h3><p>入力した相談内容を焦点として、状況に沿った回答を生成します。</p></article>
-<article class="card"><h3>今からできる行動</h3><p>キャリア形成へ向けて、現実的に準備できることをお伝えします。</p></article>
+<article class="card"><h3>今からできること</h3><p>流れを踏まえて、今日から無理なく始められることをお伝えします。</p></article>
 </div></section>
 <section class="sales-section"><h2>ご利用の流れ</h2><div class="steps">
 <div class="step"><strong>STEP 1</strong>内容・規約を確認</div><div class="step"><strong>STEP 2</strong>Stripeでお支払い</div>
 <div class="step"><strong>STEP 3</strong>必要事項を入力</div><div class="step"><strong>STEP 4</strong>通常数分で結果表示</div>
 </div></section>
-<section class="sales-section alt"><h2>大切にしていること</h2><div class="notice"><p>「今すぐ退職すべき」「独立すれば成功する」と決めつける鑑定ではありません。</p><p>運気の流れを、雇用条件、資金、家族状況、市場環境などの現実的な条件と一緒に考えるための参考情報として提供します。採用、収入、事業成果または利益を保証するものではありません。</p></div></section>
+<section class="sales-section alt"><h2>大切にしていること</h2><div class="notice"><p>「このままでは不幸になる」「この時期に必ずこうなる」と決めつけたり、不安をあおったりする鑑定ではありません。</p><p>霊視や霊的な力による鑑定ではなく、命式の計算に基づく参考情報です。運気の流れを、ご自身の状況や現実的な条件と一緒に考えるための材料としてお使いください。結果や収入などを保証するものではありません。</p></div></section>
 <section class="sales-section faq"><h2>よくある質問</h2>
 <details><summary>出生時刻が分からなくても利用できますか？</summary><p>利用できます。「出生時刻が分からない」を選択してください。時刻を推測する必要はありません。</p></details>
 <details><summary>継続課金はありますか？</summary><p>ありません。1鑑定ごとの買い切りです。</p></details>
 <details><summary>AIを使っていますか？</summary><p>命式計算結果に基づく鑑定文の生成にAIを使用します。入力情報の取扱いはプライバシーポリシーへ明記します。</p></details>
-<details><summary>鑑定だけで転職や独立を決めてもよいですか？</summary><p>鑑定は意思決定の参考情報です。生活費、雇用条件、事業計画なども確認し、最終的にはご自身で判断してください。</p></details>
+<details><summary>鑑定だけで大事なことを決めてもよいですか？</summary><p>鑑定は意思決定の参考情報です。仕事、お金、人間関係などの大事なことは、現実的な条件も確認し、最終的にはご自身で判断してください。</p></details>
 </section></main>
 <footer class="sales-footer"><p>18歳以上対象・インターネット通信が必要です</p><p>決済へ進むことで、利用規約とプライバシーポリシーを確認し、同意したものとします。</p><p class="legal-pending"><a href="/terms">利用規約</a> ｜ <a href="/privacy">プライバシーポリシー</a> ｜ <a href="/legal">特定商取引法に基づく表記</a></p></footer>
 </body></html>"""
@@ -397,15 +427,16 @@ _LEGAL_CSS = """
 """
 
 
-def _legal_document(title: str, body: str) -> str:
-    return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>{title}</title>{_LEGAL_CSS}</head><body><header class="legal-head"><a href="/career-reading">← 八雲式 キャリア鑑定</a></header><main class="legal-main"><h1>{title}</h1>{body}<nav class="legal-nav"><a href="/terms">利用規約</a><a href="/privacy">プライバシーポリシー</a><a href="/legal">特商法表示</a></nav></main></body></html>'''
+def _legal_document(title: str, body: str, path: str = "") -> str:
+    robots = _search_meta(path) if path in _PUBLIC_PATHS else '<meta name="robots" content="noindex,nofollow">'
+    return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">{robots}<title>{title}</title>{_LEGAL_CSS}</head><body><header class="legal-head"><a href="/career-reading">← 八雲式 四柱推命鑑定</a></header><main class="legal-main"><h1>{title}</h1>{body}<nav class="legal-nav"><a href="/terms">利用規約</a><a href="/privacy">プライバシーポリシー</a><a href="/legal">特商法表示</a></nav></main></body></html>'''
 
 
 def _render_terms_page() -> str:
     return _legal_document("利用規約", '''
 <p>この利用規約は、「八雲式四柱推命鑑定」（以下「本サービス」）の利用条件を定めるものです。運営者の表示およびお問い合わせ先は、<a href="/legal">特定商取引法に基づく表記</a>をご確認ください。</p>
-<h2>1. サービスの内容</h2><p>本サービスは、転職、独立およびキャリア形成を主なテーマとして、四柱推命による参考情報を提供します。鑑定文の一部は、命式計算結果に基づきAIで生成されます。</p>
-<h2>2. 鑑定の位置づけ</h2><p>鑑定は意思決定の参考情報です。転職、退職、開業、借入、投資等を指示せず、採用、収入、事業成果または利益を保証しません。重要な判断は現実的な条件を確認し、必要に応じて専門家へ相談してください。</p>
+<h2>1. サービスの内容</h2><p>本サービスは、自己理解、人間関係、仕事、これからの運気の流れなどをテーマとして、四柱推命による参考情報を提供します。鑑定文の一部は、命式計算結果に基づきAIで生成されます。</p>
+<h2>2. 鑑定の位置づけ</h2><p>鑑定は意思決定の参考情報です。転職、退職、開業、借入、投資、結婚、離婚等を指示せず、採用、収入、事業成果、利益、人間関係の結果を保証しません。霊視など霊的な力による鑑定ではありません。重要な判断は現実的な条件を確認し、必要に応じて専門家へ相談してください。</p>
 <h2>3. 料金と提供</h2><p>1鑑定1,980円（税込）、Stripeによるクレジットカード決済、買い切りです。自動更新・継続課金はありません。決済後に必要事項を入力すると、通常数分以内に結果を表示します。</p>
 <h2>4. キャンセル・返金</h2><p>鑑定生成開始後の利用者都合によるキャンセル・返金は原則として受け付けません。重複決済、当方の障害により結果を提供できなかった場合、その他法令上必要な場合は確認後に返金します。</p>
 <h2>5. 利用条件</h2><p>18歳以上の方が利用できます。第三者の情報を入力する場合は、適法な権限または本人の同意を得てください。不正アクセス、大量アクセス、認証情報の無断共有等を禁止します。</p>
@@ -413,7 +444,7 @@ def _render_terms_page() -> str:
 <h2>7. 責任</h2><p>法令上許されない範囲まで当方の責任を免除するものではありません。当方の故意または重大な過失がある場合に、不当な責任制限は適用しません。</p>
 <h2>8. 規約の変更</h2><p>法令の改正またはサービス内容の変更等に応じて、本規約を変更することがあります。重要な変更は、本サービス上で分かりやすく表示します。</p>
 <h2>9. 準拠法</h2><p>本規約は日本法を準拠法とします。</p>
-<p><strong>制定日：</strong>2026年10月15日</p>''')
+<p><strong>制定日：</strong>2026年10月15日<br><strong>改定日：</strong>2026年10月29日</p>''', "/terms")
 
 
 def _render_privacy_page() -> str:
@@ -427,7 +458,7 @@ def _render_privacy_page() -> str:
 <h2>6. 安全管理</h2><p>通信の暗号化、アクセス制御、秘密情報の環境変数管理、不正利用防止、入力本文や秘密情報の過剰なログ記録防止等を行います。顧客入力、鑑定結果、認証情報をService Workerへキャッシュしません。</p>
 <h2>7. 開示・訂正・利用停止等</h2><p>法令に基づく開示、訂正、削除、利用停止等の請求は、<a href="https://form.os7.biz/f/be4d264a/" target="_blank" rel="noopener noreferrer">お問い合わせフォーム</a>から受け付けます。対象情報を特定できる内容をご記入ください。なりすまし防止のため、必要な範囲で本人確認をお願いする場合があります。法令に従って遅滞なく対応します。</p>
 <h2>8. ポリシーの変更</h2><p>法令の改正またはサービス内容の変更等に応じて、本ポリシーを変更することがあります。重要な変更は、本サービス上で分かりやすく表示します。</p>
-<p><strong>制定日：</strong>2026年10月15日</p>''')
+<p><strong>制定日：</strong>2026年10月15日</p>''', "/privacy")
 
 
 def _render_commerce_page() -> str:
@@ -435,7 +466,7 @@ def _render_commerce_page() -> str:
 <img class="legal-image" src="/legal/disclosure.png" alt="特定商取引法に基づく表記。販売業者・運営統括責任者、販売価格、支払方法、提供時期、キャンセル・返金条件等を記載しています。">
 <section class="contact-box" aria-labelledby="legal-contact-title"><h2 id="legal-contact-title">お問い合わせ</h2>
 <p>住所・電話番号の開示請求、商品・決済・返金に関するお問い合わせは、次のフォームからご連絡ください。</p>
-<a class="contact-link" href="https://form.os7.biz/f/be4d264a/" target="_blank" rel="noopener noreferrer">お問い合わせフォームを開く</a></section>''')
+<a class="contact-link" href="https://form.os7.biz/f/be4d264a/" target="_blank" rel="noopener noreferrer">お問い合わせフォームを開く</a></section>''', "/legal")
 
 
 def _option(value: str, label: str, selected: str) -> str:
@@ -949,6 +980,30 @@ def customer_privacy_page() -> HTMLResponse:
 @router.get("/legal", response_class=HTMLResponse, include_in_schema=False)
 def customer_commerce_page() -> HTMLResponse:
     return HTMLResponse(_render_commerce_page(), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/robots.txt", include_in_schema=False)
+def customer_robots_txt() -> Response:
+    lines = ["User-agent: *"]
+    if checkout_mode() == "live":
+        lines += [f"Allow: {path}" for path in _PUBLIC_PATHS]
+        lines += ["Disallow: /app", "Disallow: /checkout", "Disallow: /stripe", "Disallow: /academy", "Disallow: /api", "Disallow: /"]
+        base = _public_base_url()
+        if base.startswith("https://"):
+            lines.append(f"Sitemap: {base}/sitemap.xml")
+    else:
+        lines.append("Disallow: /")
+    return Response("\n".join(lines) + "\n", media_type="text/plain", headers={"Cache-Control": "public, max-age=3600"})
+
+
+@router.get("/sitemap.xml", include_in_schema=False)
+def customer_sitemap_xml() -> Response:
+    base = _public_base_url()
+    urls = "" if checkout_mode() != "live" or not base.startswith("https://") else "".join(
+        f"<url><loc>{escape(base + path)}</loc></url>" for path in _PUBLIC_PATHS
+    )
+    xml = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + urls + "</urlset>"
+    return Response(xml, media_type="application/xml", headers={"Cache-Control": "public, max-age=3600"})
 
 
 @router.get("/legal/disclosure.png", include_in_schema=False)

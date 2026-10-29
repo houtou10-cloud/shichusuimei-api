@@ -216,4 +216,4 @@ def test_portal_and_lessons_link_to_career_reading():
 
 def test_menu_links_to_career_reading():
     nav = CLIENT.get("/academy/courses").text.split('<nav class="nav">')[1].split("</nav>")[0]
-    assert '<a href="/career-reading">キャリア鑑定</a>' in nav
+    assert '<a href="/career-reading">四柱推命鑑定</a>' in nav
