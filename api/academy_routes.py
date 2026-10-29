@@ -174,7 +174,7 @@ _LESSON_1_1 = {
 
 def _academy_nav() -> str:
     account = '<a href="/academy/purchase">受講登録・ログイン</a>' if academy_access.login_required() else ""
-    return f'<nav class="nav"><a href="/academy">Academyトップ</a><a href="/academy/courses">講座一覧</a><a href="/academy/practice">実践トレーニング</a>{account}</nav>'
+    return f'<nav class="nav"><a href="/academy">Academyトップ</a><a href="/academy/courses">講座一覧</a><a href="/academy/practice">実践トレーニング</a><a href="/career-reading">キャリア鑑定</a>{account}</nav>'
 
 
 def _current_login(request: Request) -> Login | None:

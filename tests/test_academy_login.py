@@ -212,3 +212,8 @@ def test_search_query_rejects_unsafe_email(gate):
 def test_portal_and_lessons_link_to_career_reading():
     assert 'href="/career-reading"' in CLIENT.get("/academy").text
     assert 'href="/career-reading"' in CLIENT.get("/academy/course/1/2").text
+
+
+def test_menu_links_to_career_reading():
+    nav = CLIENT.get("/academy/courses").text.split('<nav class="nav">')[1].split("</nav>")[0]
+    assert '<a href="/career-reading">キャリア鑑定</a>' in nav
