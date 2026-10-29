@@ -195,10 +195,12 @@ def _refreshed_login(request: Request) -> tuple[Login | None, bool]:
     return login, False
 
 
+def _practice_locked(login: Login | None) -> bool:
+    return academy_access.login_required() and (login is None or not login.active())
+
+
 def _lesson_locked(chapter: int, login: Login | None) -> bool:
-    if not academy_access.login_required() or academy_access.chapter_is_free(chapter):
-        return False
-    return login is None or not login.active()
+    return not academy_access.chapter_is_free(chapter) and _practice_locked(login)
 
 
 _PLAN_TERMS = (
@@ -206,7 +208,7 @@ _PLAN_TERMS = (
     '<li>支払い：申込時にクレジットカードで支払い、以後は契約日から月額は1か月ごと、年額は1年ごとに自動で請求します。</li>'
     '<li>契約期間：解約するまで自動で更新します。最低契約期間はありません。</li>'
     '<li>解約：このページの「契約の確認・解約」からいつでも手続きできます。次回の請求日の前日までに解約すると、次回の請求は行いません。解約後も、支払い済みの期間の終わりまで視聴できます。</li>'
-    '<li>提供時期：決済完了後すぐに、すべての講を視聴できます。</li>'
+    '<li>提供時期：決済完了後すぐに、すべての講と実践トレーニングを利用できます。</li>'
     '<li>返金：デジタルコンテンツのため、利用者の都合による返金（日割りを含む）は原則として行いません。購入前に、無料の第1章で内容をご確認ください。</li>'
     '<li>対象：18歳以上の方</li></ul>'
     '<p>詳しくは<a href="/academy/terms">受講規約</a>・<a href="/terms">利用規約</a>・<a href="/privacy">プライバシーポリシー</a>・<a href="/legal">特定商取引法に基づく表記</a>をご確認ください。</p>'
@@ -236,6 +238,15 @@ def _render_locked_lesson(chapter: int, lesson_number: int, login: Login | None)
     else:
         action = f'<p>{escape(login.email)} でログイン中です。このアカウントには有効な受講登録がありません。</p><p><a class="button" href="/academy/purchase">受講登録へ進む</a></p>'
     body = f'<p>第{lesson["order"]}講「{escape(str(lesson["title"]))}」は、受講登録をした方が見られる講です。第1章は無料で見られます。</p><p>受講登録は月額2,980円、または年額19,800円（税込）で、契約中はすべての講を見られます。</p>{action}<p><a href="/academy/courses">講座一覧へ戻る</a></p>'
+    return _simple_page("受講登録が必要です", body)
+
+
+def _render_locked_practice(login: Login | None) -> str:
+    if login is None:
+        action = '<p>購入済みの方は、購入時と同じGoogleアカウントでログインしてください。</p>' + _login_button("/academy/practice")
+    else:
+        action = f'<p>{escape(login.email)} でログイン中です。このアカウントには有効な受講登録がありません。</p><p><a class="button" href="/academy/purchase">受講登録へ進む</a></p>'
+    body = f'<p>実践トレーニングは、受講登録をした方が使える機能です。第1章は無料で見られます。</p><p>受講登録は月額2,980円、または年額19,800円（税込）で、契約中はすべての講と実践トレーニングを使えます。</p>{action}<p><a href="/academy/courses">講座一覧へ戻る</a></p>'
     return _simple_page("受講登録が必要です", body)
 
 
@@ -293,7 +304,7 @@ def _render_courses_with_lesson_link() -> str:
 def _courses_access_note() -> str:
     if not academy_access.login_required():
         return ""
-    return '<p>第1章は無料で見られます。第2章以降は<a href="/academy/purchase">受講登録</a>が必要です。</p>'
+    return '<p>第1章は無料で見られます。第2章以降と実践トレーニングは<a href="/academy/purchase">受講登録</a>が必要です。</p>'
 
 
 def _render_curriculum_courses() -> str:
@@ -644,12 +655,21 @@ async def academy_curriculum_lesson_check(chapter: int, lesson: int, request: Re
 
 
 @router.get("/academy/practice", response_class=HTMLResponse, include_in_schema=False)
-def academy_practice() -> HTMLResponse:
-    return HTMLResponse(_with_academy_nav(_render_start_form()))
+def academy_practice(request: Request) -> HTMLResponse:
+    login, refreshed = _refreshed_login(request) if academy_access.login_required() else (None, False)
+    if _practice_locked(login):
+        return HTMLResponse(_render_locked_practice(login), status_code=403)
+    response = HTMLResponse(_with_academy_nav(_render_start_form()))
+    if refreshed and login is not None:
+        _set_login_cookie(response, login)
+    return response
 
 
 @router.post("/academy/start", response_class=HTMLResponse, include_in_schema=False)
 async def academy_start(request: Request) -> HTMLResponse:
+    login, _ = _refreshed_login(request) if academy_access.login_required() else (None, False)
+    if _practice_locked(login):
+        return HTMLResponse(_render_locked_practice(login), status_code=403)
     try:
         values = _parse_form(request, await request.body())
         chart, projection = _chart_from_values(values)
@@ -661,6 +681,9 @@ async def academy_start(request: Request) -> HTMLResponse:
 
 @router.post("/academy/check", response_class=HTMLResponse, include_in_schema=False)
 async def academy_check(request: Request) -> HTMLResponse:
+    login, _ = _refreshed_login(request) if academy_access.login_required() else (None, False)
+    if _practice_locked(login):
+        return HTMLResponse(_render_locked_practice(login), status_code=403)
     try:
         values = _parse_form(request, await request.body())
         chart, projection = _chart_from_values(values)
@@ -741,7 +764,7 @@ def academy_purchase(request: Request) -> HTMLResponse:
     if not academy_access.purchase_ready():
         return _not_ready()
     login, _ = _refreshed_login(request)
-    intro = "<p>受講登録をすると、契約中はすべての講の動画・補助教材・理解度チェックを見られます。第1章は登録なしで見られます。</p>"
+    intro = "<p>受講登録をすると、契約中はすべての講の動画・補助教材・理解度チェックと、実践トレーニングを使えます。第1章は登録なしで見られます。</p>"
     if login is None:
         return HTMLResponse(_simple_page("受講登録・ログイン", intro + "<p>まずGoogleアカウントでログインしてください。受講登録済みの方も、申し込み時と同じGoogleアカウントでログインすると続きから見られます。</p>" + _login_button("/academy/courses") + "<h2>料金と契約の内容</h2>" + _PLAN_TERMS))
     account = f'<p>{escape(login.email)} でログイン中です。<a href="/academy/logout">ログアウト</a></p>'

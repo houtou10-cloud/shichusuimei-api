@@ -49,7 +49,7 @@ def test_first_chapter_is_free_and_later_chapters_need_purchase(gate):
     assert "youtube" not in locked.text
     assert "Googleでログイン" in locked.text
     assert CLIENT.post("/academy/course/2/1/check", data={}).status_code == 403
-    assert "第2章以降は" in CLIENT.get("/academy/courses").text
+    assert "第2章以降と実践トレーニングは" in CLIENT.get("/academy/courses").text
 
 
 def test_active_login_opens_paid_lessons(gate):
@@ -58,6 +58,19 @@ def test_active_login_opens_paid_lessons(gate):
     expired = CLIENT.get("/academy/course/12/7", headers=_cookie(Login("buyer@example.com", NOW - 1)))
     assert expired.status_code == 403
     assert "有効な受講登録がありません" in expired.text
+
+
+def test_practice_needs_purchase(gate, monkeypatch):
+    monkeypatch.setattr(academy_access, "find_access_until", lambda email: 0)
+    locked = CLIENT.get("/academy/practice")
+    assert locked.status_code == 403
+    assert "実践トレーニングは、受講登録をした方が使える機能です" in locked.text
+    assert "Googleでログイン" in locked.text
+    assert CLIENT.post("/academy/start", data={}).status_code == 403
+    assert CLIENT.post("/academy/check", data={}).status_code == 403
+    assert CLIENT.get("/academy/practice", headers=_cookie(Login("new@example.com", NOW - 1))).status_code == 403
+    assert CLIENT.get("/academy/practice", headers=_cookie(Login("buyer@example.com", NOW + 3600))).status_code == 200
+    assert "第2章以降と実践トレーニングは" in CLIENT.get("/academy/courses").text
 
 
 def test_tampered_or_other_mode_cookie_is_rejected(gate, monkeypatch):
