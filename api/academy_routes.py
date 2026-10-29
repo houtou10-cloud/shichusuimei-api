@@ -7,8 +7,16 @@ import json
 import re
 from urllib.parse import parse_qsl, urlparse
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
+
+from fastapi.concurrency import run_in_threadpool
+
+from api import academy_access
+from api.academy_access import AcademyAccessError, Login
+from api.academy_terms import ACADEMY_TERMS as _ACADEMY_TERMS
 
 from api.customer_pipeline import (
     PREFECTURES,
@@ -165,7 +173,70 @@ _LESSON_1_1 = {
 
 
 def _academy_nav() -> str:
-    return '<nav class="nav"><a href="/academy">Academyトップ</a><a href="/academy/courses">講座一覧</a><a href="/academy/practice">実践トレーニング</a></nav>'
+    account = '<a href="/academy/purchase">受講登録・ログイン</a>' if academy_access.login_required() else ""
+    return f'<nav class="nav"><a href="/academy">Academyトップ</a><a href="/academy/courses">講座一覧</a><a href="/academy/practice">実践トレーニング</a>{account}</nav>'
+
+
+def _current_login(request: Request) -> Login | None:
+    return academy_access.read_login(request.cookies.get(academy_access.ACCESS_COOKIE, ""))
+
+
+def _refreshed_login(request: Request) -> tuple[Login | None, bool]:
+    """Current login; an expired paid-through time is re-checked at Stripe (renewals)."""
+    login = _current_login(request)
+    if login is None or login.active():
+        return login, False
+    try:
+        until = academy_access.find_access_until(login.email)
+    except AcademyAccessError:
+        return login, False
+    if until > login.access_until:
+        return Login(login.email, until), True
+    return login, False
+
+
+def _lesson_locked(chapter: int, login: Login | None) -> bool:
+    if not academy_access.login_required() or academy_access.chapter_is_free(chapter):
+        return False
+    return login is None or not login.active()
+
+
+_PLAN_TERMS = (
+    '<ul><li>料金：月額プラン 2,980円（税込）／年額プラン 19,800円（税込）</li>'
+    '<li>支払い：申込時にクレジットカードで支払い、以後は契約日から月額は1か月ごと、年額は1年ごとに自動で請求します。</li>'
+    '<li>契約期間：解約するまで自動で更新します。最低契約期間はありません。</li>'
+    '<li>解約：このページの「契約の確認・解約」からいつでも手続きできます。次回の請求日の前日までに解約すると、次回の請求は行いません。解約後も、支払い済みの期間の終わりまで視聴できます。</li>'
+    '<li>提供時期：決済完了後すぐに、すべての講を視聴できます。</li>'
+    '<li>返金：デジタルコンテンツのため、利用者の都合による返金（日割りを含む）は原則として行いません。購入前に、無料の第1章で内容をご確認ください。</li>'
+    '<li>対象：18歳以上の方</li></ul>'
+    '<p>詳しくは<a href="/academy/terms">受講規約</a>・<a href="/terms">利用規約</a>・<a href="/privacy">プライバシーポリシー</a>・<a href="/legal">特定商取引法に基づく表記</a>をご確認ください。</p>'
+)
+
+
+def _jst_date(timestamp: int) -> str:
+    day = datetime.fromtimestamp(timestamp, timezone(timedelta(hours=9)))
+    return f"{day.year}年{day.month}月{day.day}日"
+
+
+def _simple_page(title: str, body: str) -> str:
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>{escape(title)} | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>{escape(title)}</h1></header><section class="content">{body}</section></main></body></html>'''
+
+
+def _login_button(next_path: str) -> str:
+    return f'<p><a class="button" href="/academy/login?next={escape(academy_access.safe_next(next_path), quote=True)}">Googleでログイン</a></p>'
+
+
+def _render_locked_lesson(chapter: int, lesson_number: int, login: Login | None) -> str | None:
+    lesson = lesson_by_number(chapter, lesson_number)
+    if lesson is None:
+        return None
+    path = f"/academy/course/{chapter}/{lesson_number}"
+    if login is None:
+        action = '<p>購入済みの方は、購入時と同じGoogleアカウントでログインしてください。</p>' + _login_button(path)
+    else:
+        action = f'<p>{escape(login.email)} でログイン中です。このアカウントには有効な受講登録がありません。</p><p><a class="button" href="/academy/purchase">受講登録へ進む</a></p>'
+    body = f'<p>第{lesson["order"]}講「{escape(str(lesson["title"]))}」は、受講登録をした方が見られる講です。第1章は無料で見られます。</p><p>受講登録は月額2,980円、または年額19,800円（税込）で、契約中はすべての講を見られます。</p>{action}<p><a href="/academy/courses">講座一覧へ戻る</a></p>'
+    return _simple_page("受講登録が必要です", body)
 
 
 def _render_video_area(lesson: dict[str, object]) -> str:
@@ -219,6 +290,12 @@ def _render_courses_with_lesson_link() -> str:
     return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>講座一覧 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>講座一覧</h1><p>7章構成で、基礎から実践鑑定までの学びを整理しています。</p></header><section class="content"><div class="cards">{"".join(chapters)}</div></section></main></body></html>'''
 
 
+def _courses_access_note() -> str:
+    if not academy_access.login_required():
+        return ""
+    return '<p>第1章は無料で見られます。第2章以降は<a href="/academy/purchase">受講登録</a>が必要です。</p>'
+
+
 def _render_curriculum_courses() -> str:
     curriculum = all_lessons()
     grouped: dict[int, list[dict[str, object]]] = {}
@@ -234,7 +311,7 @@ def _render_curriculum_courses() -> str:
         cards.append(f'<details class="chapter-card"{" open" if chapter == 1 else ""}><summary>第{chapter}章　{escape(str(first["chapter_title"]).split(" ", 1)[-1])}<span>{len(lessons)}講</span></summary><ul>{items}</ul></details>')
     progress = f'<section class="progress-panel" data-progress-total="{len(curriculum)}"><strong data-progress-label>0講 修了</strong><progress value="0" max="{len(curriculum)}" aria-label="講座の修了進捗"></progress><p class="note">理解度チェックに合格した講座を、この端末のブラウザに記録します。ログイン同期・端末間同期には未対応です。</p></section>'
     search = f'<section class="course-search" role="search"><label for="course-search">講座名から探す</label><input id="course-search" data-course-search type="search" placeholder="例：五行、用神、大運" autocomplete="off"><p class="course-search-output" data-course-search-output aria-live="polite">すべての講を表示中</p></section>'
-    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>講座一覧 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>講座一覧</h1><p>基礎から実践まで順に学びます。すべての教材は現在draftとして管理されています。</p></header><section class="content">{progress}<p><a class="button" data-resume-link hidden href="#">続きから学ぶ</a></p>{search}<h2>章から選ぶ</h2><div class="chapter-list">{"".join(cards)}</div></section>{_progress_script()}{_course_search_script(len(curriculum))}</main></body></html>'''
+    return f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>講座一覧 | 八雲式Academy</title>{_STYLES}</head><body><main class="shell">{_academy_nav()}<header class="hero"><p class="eyebrow">YAKUMO ACADEMY</p><h1>講座一覧</h1><p>基礎から実践まで順に学びます。すべての教材は現在draftとして管理されています。</p>{_courses_access_note()}</header><section class="content">{progress}<p><a class="button" data-resume-link hidden href="#">続きから学ぶ</a></p>{search}<h2>章から選ぶ</h2><div class="chapter-list">{"".join(cards)}</div></section>{_progress_script()}{_course_search_script(len(curriculum))}</main></body></html>'''
 
 
 def _render_lesson_1_1(error: str = "") -> str:
@@ -538,9 +615,16 @@ async def academy_lesson_1_1_check(request: Request) -> HTMLResponse:
 
 
 @router.get("/academy/course/{chapter}/{lesson}", response_class=HTMLResponse, include_in_schema=False)
-def academy_curriculum_lesson(chapter: int, lesson: int) -> HTMLResponse:
+def academy_curriculum_lesson(chapter: int, lesson: int, request: Request) -> HTMLResponse:
+    login, refreshed = _refreshed_login(request) if academy_access.login_required() else (None, False)
+    if _lesson_locked(chapter, login):
+        locked = _render_locked_lesson(chapter, lesson, login)
+        return HTMLResponse(locked or "講座が見つかりません。", status_code=403 if locked else 404)
     rendered = _render_curriculum_lesson(chapter, lesson)
-    return HTMLResponse(rendered or "講座が見つかりません。", status_code=200 if rendered else 404)
+    response = HTMLResponse(rendered or "講座が見つかりません。", status_code=200 if rendered else 404)
+    if refreshed and login is not None:
+        _set_login_cookie(response, login)
+    return response
 
 
 @router.post("/academy/course/{chapter}/{lesson}/check", response_class=HTMLResponse, include_in_schema=False)
@@ -548,6 +632,9 @@ async def academy_curriculum_lesson_check(chapter: int, lesson: int, request: Re
     item = lesson_by_number(chapter, lesson)
     if item is None:
         return HTMLResponse("講座が見つかりません。", status_code=404)
+    login, _ = _refreshed_login(request) if academy_access.login_required() else (None, False)
+    if _lesson_locked(chapter, login):
+        return HTMLResponse(_render_locked_lesson(chapter, lesson, login) or "", status_code=403)
     try:
         values = _parse_curriculum_form(await request.body(), item["lesson_id"])
     except CustomerInputError as exc:
@@ -581,6 +668,147 @@ async def academy_check(request: Request) -> HTMLResponse:
     except (CustomerInputError, ValueError):
         return HTMLResponse(_with_academy_nav(_render_start_form({}, "入力を確認して、もう一度学習を開始してください。")), status_code=422)
     return HTMLResponse(_with_academy_nav(_render_result(projection, results)))
+
+
+def _set_login_cookie(response: Response, login: Login) -> None:
+    response.set_cookie(
+        academy_access.ACCESS_COOKIE,
+        academy_access.issue_login(login),
+        max_age=academy_access.LOGIN_SECONDS,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/academy",
+    )
+
+
+def _not_ready() -> HTMLResponse:
+    return HTMLResponse(_simple_page("準備中です", "<p>受講登録とログインは準備中です。しばらくお待ちください。</p>"), status_code=503)
+
+
+@router.get("/academy/login", include_in_schema=False)
+def academy_login(next: str = "/academy/courses") -> Response:
+    if not academy_access.login_required():
+        return RedirectResponse("/academy/courses", status_code=303)
+    try:
+        state, state_token = academy_access.issue_state(next)
+        url = academy_access.google_auth_url(state)
+    except AcademyAccessError:
+        return _not_ready()
+    response = RedirectResponse(url, status_code=303)
+    response.set_cookie(academy_access.STATE_COOKIE, state_token, max_age=academy_access.STATE_SECONDS, httponly=True, secure=True, samesite="lax", path="/academy")
+    return response
+
+
+@router.get("/academy/auth/callback", include_in_schema=False)
+def academy_auth_callback(request: Request, code: str = "", state: str = "") -> Response:
+    if not academy_access.login_required():
+        return RedirectResponse("/academy/courses", status_code=303)
+    next_path = academy_access.read_state(request.cookies.get(academy_access.STATE_COOKIE, ""), state)
+    if next_path is None or not code:
+        return HTMLResponse(_simple_page("ログインできませんでした", "<p>ログインの有効期限が切れたか、途中で中断されました。もう一度お試しください。</p>" + _login_button("/academy/courses")), status_code=400)
+    try:
+        email = academy_access.google_email(code)
+        until = academy_access.find_access_until(email)
+    except AcademyAccessError:
+        return HTMLResponse(_simple_page("ログインできませんでした", "<p>ログインまたは受講登録の確認ができませんでした。時間をおいてもう一度お試しください。</p>" + _login_button(next_path)), status_code=502)
+    login = Login(email, until)
+    response = RedirectResponse(next_path if login.active() else "/academy/purchase", status_code=303)
+    _set_login_cookie(response, login)
+    response.delete_cookie(academy_access.STATE_COOKIE, path="/academy")
+    return response
+
+
+@router.get("/academy/logout", include_in_schema=False)
+def academy_logout() -> RedirectResponse:
+    response = RedirectResponse("/academy", status_code=303)
+    response.delete_cookie(academy_access.ACCESS_COOKIE, path="/academy")
+    return response
+
+
+def _plan_forms() -> str:
+    forms = "".join(
+        f'<form method="post" action="/academy/checkout"><input type="hidden" name="plan" value="{key}"><button class="button" type="submit">{escape(plan["label"])}で申し込む（{escape(plan["price_text"])}）</button></form>'
+        for key, plan in academy_access.PLANS.items()
+    )
+    return f'<div class="cards">{forms}</div>'
+
+
+@router.get("/academy/purchase", response_class=HTMLResponse, include_in_schema=False)
+def academy_purchase(request: Request) -> HTMLResponse:
+    if not academy_access.login_required():
+        return HTMLResponse(_simple_page("受講登録", '<p>現在、講座はどなたでも見られます。</p><p><a class="button" href="/academy/courses">講座一覧へ</a></p>'))
+    if not academy_access.purchase_ready():
+        return _not_ready()
+    login, _ = _refreshed_login(request)
+    intro = "<p>受講登録をすると、契約中はすべての講の動画・補助教材・理解度チェックを見られます。第1章は登録なしで見られます。</p>"
+    if login is None:
+        return HTMLResponse(_simple_page("受講登録・ログイン", intro + "<p>まずGoogleアカウントでログインしてください。受講登録済みの方も、申し込み時と同じGoogleアカウントでログインすると続きから見られます。</p>" + _login_button("/academy/courses") + "<h2>料金と契約の内容</h2>" + _PLAN_TERMS))
+    account = f'<p>{escape(login.email)} でログイン中です。<a href="/academy/logout">ログアウト</a></p>'
+    billing = '<form method="post" action="/academy/billing"><button class="button" type="submit">契約の確認・解約</button></form>'
+    if login.active():
+        page = _simple_page("受講中です", f'{account}<p>{_jst_date(login.access_until)}まで支払い済みです。契約は解約するまで自動で更新されます。</p><p><a class="button" href="/academy/courses">講座一覧へ</a></p>{billing}<p class="note">解約、カードの変更、領収書の確認は「契約の確認・解約」からできます（Stripeの画面に移ります）。</p>')
+    else:
+        page = _simple_page("受講登録", f'{intro}{account}<h2>料金と契約の内容</h2>{_PLAN_TERMS}{_plan_forms()}<p class="note">お支払いはStripeの画面で行います。ログイン中のメールアドレスで契約が記録されます。以前に契約していた方は、下のボタンから契約の状況を確認できます。</p>{billing}')
+    response = HTMLResponse(page)
+    _set_login_cookie(response, login)
+    return response
+
+
+@router.post("/academy/checkout", include_in_schema=False)
+async def academy_checkout(request: Request) -> Response:
+    if not academy_access.login_required():
+        return RedirectResponse("/academy/courses", status_code=303)
+    login = _current_login(request)
+    if login is None:
+        return RedirectResponse("/academy/purchase", status_code=303)
+    if login.active():
+        return RedirectResponse("/academy/courses", status_code=303)
+    body = await request.body()
+    plan = dict(parse_qsl(body.decode("utf-8", "replace")[:200])).get("plan", "")
+    if plan not in academy_access.PLANS:
+        return RedirectResponse("/academy/purchase", status_code=303)
+    try:
+        url = await run_in_threadpool(academy_access.create_academy_checkout, login.email, plan)
+    except AcademyAccessError:
+        return HTMLResponse(_simple_page("申し込みを開始できませんでした", '<p>時間をおいてもう一度お試しください。料金は請求されていません。</p><p><a href="/academy/purchase">受講登録へ戻る</a></p>'), status_code=502)
+    return RedirectResponse(url, status_code=303)
+
+
+@router.post("/academy/billing", include_in_schema=False)
+def academy_billing(request: Request) -> Response:
+    if not academy_access.login_required():
+        return RedirectResponse("/academy/courses", status_code=303)
+    login = _current_login(request)
+    if login is None:
+        return RedirectResponse("/academy/purchase", status_code=303)
+    try:
+        url = academy_access.billing_portal_url(login.email)
+    except AcademyAccessError:
+        return HTMLResponse(_simple_page("契約の画面を開けませんでした", '<p>このアカウントの契約が見つからないか、一時的に接続できませんでした。時間をおいてもう一度お試しください。解決しない場合は、<a href="https://form.os7.biz/f/be4d264a/" target="_blank" rel="noopener noreferrer">お問い合わせフォーム</a>からご連絡ください。</p><p><a href="/academy/purchase">受講登録へ戻る</a></p>'), status_code=502)
+    return RedirectResponse(url, status_code=303)
+
+
+@router.get("/academy/checkout/success", response_class=HTMLResponse, include_in_schema=False)
+def academy_checkout_success(request: Request, session_id: str = "") -> HTMLResponse:
+    if not academy_access.login_required():
+        return HTMLResponse(_simple_page("受講登録", '<p><a href="/academy/courses">講座一覧へ</a></p>'))
+    login = _current_login(request)
+    if login is None:
+        return HTMLResponse(_simple_page("ログインしてください", "<p>申し込み時と同じGoogleアカウントでログインすると、受講できるようになります。再度のお支払いは不要です。</p>" + _login_button("/academy/courses")), status_code=401)
+    try:
+        until = academy_access.verify_academy_checkout(session_id, login.email)
+    except AcademyAccessError:
+        return HTMLResponse(_simple_page("お支払いを確認できませんでした", '<p>時間をおいて<a href="/academy/purchase">受講登録のページ</a>を開き直してください。再度のお支払いは不要です。</p>'), status_code=502)
+    login = Login(login.email, max(until, login.access_until))
+    response = HTMLResponse(_simple_page("受講登録が完了しました", f'<p>ありがとうございます。すべての講を見られるようになりました。</p><p>契約は解約するまで自動で更新されます。解約は、<a href="/academy/purchase">受講登録のページ</a>の「契約の確認・解約」からいつでもできます。</p><p><a class="button" href="/academy/courses">講座一覧へ</a></p>'))
+    _set_login_cookie(response, login)
+    return response
+
+
+@router.get("/academy/terms", response_class=HTMLResponse, include_in_schema=False)
+def academy_terms() -> HTMLResponse:
+    return HTMLResponse(_simple_page("八雲式Academy 受講規約", _ACADEMY_TERMS))
 
 
 __all__ = ["router", "academy_home", "academy_courses", "academy_lesson_1_1", "academy_lesson_1_1_check", "academy_practice", "academy_start", "academy_check"]
