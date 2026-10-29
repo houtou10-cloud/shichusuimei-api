@@ -207,3 +207,8 @@ def test_checkout_must_belong_to_logged_in_email(gate, monkeypatch):
 def test_search_query_rejects_unsafe_email(gate):
     with pytest.raises(AcademyAccessError):
         academy_access.find_access_until("a'b@example.com")
+
+
+def test_portal_and_lessons_link_to_career_reading():
+    assert 'href="/career-reading"' in CLIENT.get("/academy").text
+    assert 'href="/career-reading"' in CLIENT.get("/academy/course/1/2").text
