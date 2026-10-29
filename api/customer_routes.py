@@ -795,7 +795,7 @@ def _render_fast_result_raw(result: dict[str, object]) -> str:
     )
     sections = result.get("sections", {})
     cards: list[str] = []
-    for key, label in ("basic_type", "あなたの基本タイプ"), ("career", "仕事・適職"), ("wealth", "お金"), ("relationships", "人間関係"), ("current_luck", "現在の運勢"), ("future_flow", "今後の流れ"), ("advice", "今すべきこと"):
+    for key, label in ("basic_type", "あなたの基本タイプ"), ("career", "仕事と役割"), ("wealth", "お金"), ("relationships", "人間関係"), ("current_luck", "現在の運勢"), ("future_flow", "今後の流れ"), ("advice", "今すべきこと"):
         prose = _render_fast_prose(sections.get(key, "") if isinstance(sections, dict) else "")
         button = "" if key in ("basic_type", "advice") else f'<button class="detail-button" data-detail="{key}" type="button">詳しく見る</button><div class="detail-box" hidden></div>'
         cards.append(f'<article class="fast-card"><h2>{label}</h2><div class="fast-prose">{prose}</div>{button}</article>')
