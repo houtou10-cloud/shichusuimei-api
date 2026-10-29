@@ -15,6 +15,7 @@ def test_sales_page_is_general_reading_without_fear_appeals():
     assert "不安をあおったりする鑑定ではありません" in html
     assert "霊視や霊的な力による鑑定ではなく" in html
     assert "1鑑定 1,980円（税込）" in html
+    assert "八雲式の読み物" in html
 
 
 def test_terms_cover_general_themes():

@@ -48,6 +48,7 @@ from api.stripe_checkout import (
     verify_webhook,
 )
 from engine.reading_renderer_v2 import render_customer_reading_product_v2_html
+from api.yakumo_reading_note import render_yakumo_note
 
 
 router = APIRouter()
@@ -306,6 +307,7 @@ _FAST_RESPONSIVE_CSS = """
 <style>
 .fast-shell,.fast-grid,.fast-card,.chart-record{min-width:0;max-width:100%;}
 .fast-grid>*{min-width:0;}
+.yakumo-note{margin-top:16px;min-width:0;max-width:100%;border:1px solid #dfd1c2;border-radius:12px;padding:18px;background:#fbf6ee}.yakumo-note h2{font-size:1.15rem;color:#5d3b25;margin:0 0 8px}.yakumo-note p{overflow-wrap:anywhere;word-break:break-word}.yakumo-note h3{color:#5d3b25;margin:18px 0 6px}.yakumo-note .note-lead{color:#75685c;font-size:.92em}.yakumo-note .note-question{font-weight:700}.yakumo-note .note-hint{color:#75685c;font-size:.92em}
 .fast-card p,.fast-prose,.detail-box{max-width:100%;overflow-wrap:anywhere;word-break:break-word;}
 .fast-facts{min-width:0;max-width:100%;}
 .fast-facts span{min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;}
@@ -404,6 +406,7 @@ def _render_sales_page() -> str:
 <article class="card"><h3>現在と今後の流れ</h3><p>大運・年運を基に、現在の状況とこれからの流れを確認します。</p></article>
 <article class="card"><h3>お悩みへの個別回答</h3><p>入力した相談内容を焦点として、状況に沿った回答を生成します。</p></article>
 <article class="card"><h3>今からできること</h3><p>流れを踏まえて、今日から無理なく始められることをお伝えします。</p></article>
+<article class="card"><h3>八雲式の読み物</h3><p>日干を自然にたとえたイメージと、五行のセルフケア、ふり返りの問いをお届けします（判定ではなく、味わうための読み物です）。</p></article>
 </div></section>
 <section class="sales-section"><h2>ご利用の流れ</h2><div class="steps">
 <div class="step"><strong>STEP 1</strong>内容・規約を確認</div><div class="step"><strong>STEP 2</strong>Stripeでお支払い</div>
@@ -799,7 +802,8 @@ def _render_fast_result_raw(result: dict[str, object]) -> str:
     # The chart is rendered from server-owned projections before the existing
     # Fast Reading cards; provider contracts and detail behavior stay intact.
     cards.insert(0, _render_fast_chart(result))
-    return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">{_PWA_HEAD}<title>八雲式 四柱推命 鑑定結果</title>{_FAST_CSS}</head><body><nav class="web-nav"><a href="/app">入力画面へ戻る</a></nav><main class="fast-shell"><header class="fast-head"><p class="eyebrow">PERSONAL READING</p><h1>あなたの鑑定結果</h1><p>命式の主要な傾向を先に確認できます。詳しい内容は必要な項目だけご覧ください。</p></header><div class="fast-facts"><span>命式：{escape(pillar_text)}</span></div><section class="fast-grid">{''.join(cards)}</section></main><script>
+    note = render_yakumo_note(chart)
+    return f'''<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">{_PWA_HEAD}<title>八雲式 四柱推命 鑑定結果</title>{_FAST_CSS}</head><body><nav class="web-nav"><a href="/app">入力画面へ戻る</a></nav><main class="fast-shell"><header class="fast-head"><p class="eyebrow">PERSONAL READING</p><h1>あなたの鑑定結果</h1><p>命式の主要な傾向を先に確認できます。詳しい内容は必要な項目だけご覧ください。</p></header><div class="fast-facts"><span>命式：{escape(pillar_text)}</span></div><section class="fast-grid">{''.join(cards)}</section>{note}</main><script>
 const sid="{session_id}";document.querySelectorAll('.detail-button').forEach((button)=>button.addEventListener('click',async()=>{{const box=button.nextElementSibling;const type=button.dataset.detail;if(!box.hidden){{box.hidden=true;button.textContent='詳しく見る';return;}}button.disabled=true;box.hidden=false;box.className='detail-box detail-loading';box.textContent='詳しい鑑定を準備しています…';try{{const response=await fetch('/app/reading/detail',{{method:'POST',headers:{{'content-type':'application/json'}},body:JSON.stringify({{session_id:sid,detail_type:type}})}});const data=await response.json();if(!response.ok)throw new Error();box.className='detail-box';box.textContent=data.text;button.textContent='閉じる';}}catch(_error){{box.textContent='詳細鑑定を取得できませんでした。もう一度お試しください。';}}finally{{button.disabled=false;}}}}));
  </script></body></html>'''
 
@@ -820,11 +824,11 @@ def _render_fast_result(result: dict[str, object]) -> str:
             "<style>.concern-card{grid-column:1/-1;min-width:0;max-width:100%;border:1px solid #dfd1c2;border-radius:12px;padding:18px;background:#fffaf1}.concern-card h2{color:#5d3b25}.concern-label{font-weight:700;color:#75685c}.concern-text{white-space:pre-wrap;max-width:100%;overflow-wrap:anywhere;word-break:break-word;margin:8px 0 14px}.concern-answer-button{border:1px solid #8a5a3b;background:#fff;color:#6a412a;border-radius:7px;padding:8px 12px;cursor:pointer;max-width:100%;white-space:normal}.concern-answer-button:disabled{opacity:.65;cursor:wait}</style></head>",
             label="concern_css_head",
         )
-        document = replace_once(
-            "</section></main><script>",
-            f"</section>{concern_card}</main><script>",
-            label="concern_card",
-        )
+        # The personal answer comes right after the reading cards; the Yakumo
+        # note (when present) stays last.
+        note_marker = '<article class="yakumo-note">'
+        marker = note_marker if note_marker in document else "</main><script>"
+        document = replace_once(marker, concern_card + marker, label="concern_card")
     document = replace_once(
         "</head>",
         _FAST_RESPONSIVE_CSS + "</head>",
