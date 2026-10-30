@@ -30,6 +30,7 @@ from api.customer_routes import (
     router as customer_router,
 )
 from api.academy_routes import router as academy_router
+from api.line_bot import router as line_router
 from api.reading_routes import (
     router as reading_router,
 )
@@ -93,6 +94,9 @@ router.include_router(
 )
 router.include_router(
     academy_router
+)
+router.include_router(
+    line_router
 )
 
 
