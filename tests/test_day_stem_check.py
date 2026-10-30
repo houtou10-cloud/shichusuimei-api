@@ -105,3 +105,29 @@ def test_nikkan_is_listed_for_search_when_live(monkeypatch):
     assert "Allow: /nikkan" in CLIENT.get("/robots.txt").text
     assert "<loc>https://app.yakumoshiki.jp/nikkan</loc>" in CLIENT.get("/sitemap.xml").text
     assert "index,follow" in CLIENT.get("/nikkan").text
+
+
+def test_holding_stars_are_year_and_month_ten_gods():
+    stars, changes = day_stem_check.holding_stars(date(1983, 8, 30))
+    assert stars == [("年の柱", "傷官"), ("月の柱", "比肩")]
+    assert changes is False
+
+
+def test_solar_term_day_is_flagged():
+    _, changes = day_stem_check.holding_stars(date(1988, 8, 7))
+    assert changes is True
+    page = CLIENT.post("/nikkan", data={"birth_date": "1988-08-07"}).text
+    assert day_stem_check.HOLDING_CHANGE_NOTE in page
+
+
+def test_result_page_shows_holding_stars():
+    page = CLIENT.post("/nikkan", data={"birth_date": "1985-10-13"}).text
+    assert "あなたの持ち星" in page
+    assert "年の柱：比肩" in page and "月の柱：傷官" in page
+    assert "才能を言い切るものではありません" in page
+
+
+def test_ten_god_notes_cover_all_stars_without_banned_words():
+    assert set(day_stem_check.TEN_GOD_NOTES) == {"比肩", "劫財", "食神", "傷官", "偏財", "正財", "偏官", "正官", "偏印", "印綬"}
+    for text in day_stem_check.TEN_GOD_NOTES.values():
+        assert not any(word in text for word in BANNED + ("災厄", "損失", "失職", "離別", "転職", "副業")), text

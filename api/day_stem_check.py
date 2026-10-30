@@ -132,6 +132,54 @@ def day_stem_for(birth: date) -> str:
     return calculate_four_pillars(datetime(birth.year, birth.month, birth.day, 12))["day"]["stem"]
 
 
+# 持ち星（年干・月干の通変星）に関係する事柄。講座の本の定義から、才能・仕事に関わるものだけを選ぶ。
+# 劫財は事柄の一覧を確認できていないので、「日干の力になる星」という分類だけを書く。
+TEN_GOD_NOTES = {
+    "比肩": "日干と同じ五行・同じ陰陽の星です。関係する事柄は、独立、活動、競争、生一本。",
+    "劫財": "日干と同じ五行で、日干の力になる星です。",
+    "食神": "日干から生じる星です。関係する事柄は、食禄、発想、アイデア。",
+    "傷官": "日干から生じる星です。関係する事柄は、技術、学芸。",
+    "偏財": "日干が剋す星です。関係する事柄は、商業、仲介、活動。",
+    "正財": "日干が剋す星です。関係する事柄は、商工業、慎重、規律的。",
+    "偏官": "日干を剋す星です。関係する事柄は、職業、権利、勤人。",
+    "正官": "日干を剋す星です。関係する事柄は、目上、職業、誠実、温和。",
+    "偏印": "日干を生じる星です。関係する事柄は、芸術、自由業、機敏。",
+    "印綬": "日干を生じる星です。関係する事柄は、学芸技術、理知的、名声、信用。",
+}
+
+
+def holding_stars(birth: date) -> tuple[list[tuple[str, str]], bool]:
+    """年干・月干の通変星（持ち星）と、生まれた時刻で年や月の柱が変わる日かどうか。"""
+    noon = calculate_four_pillars(datetime(birth.year, birth.month, birth.day, 12))
+    stars = [(label, str(noon[key]["stem_ten_god"])) for key, label in (("year", "年の柱"), ("month", "月の柱"))]
+    edges = [calculate_four_pillars(datetime(birth.year, birth.month, birth.day, h, m)) for h, m in ((0, 0), (23, 59))]
+    changes = any(edge[key]["pillar"] != noon[key]["pillar"] for edge in edges for key in ("year", "month"))
+    return stars, changes
+
+
+HOLDING_LEAD = "持ち星は、命式にある通変星のことで、才能のヒントです。ここでは、年と月の天干から見た2つの星をお届けします。才能を言い切るものではありません。"
+HOLDING_CHANGE_NOTE = "この日は季節の変わり目（節入り）にあたり、生まれた時刻によって持ち星が変わることがあります。"
+HOLDING_MORE = "時の柱や地支の中の星も合わせた、命式全体の持ち星は、八雲式 四柱推命鑑定でお伝えします。"
+
+
+def _holding_html(birth: date) -> str:
+    stars, changes = holding_stars(birth)
+    items = "".join(f"<li><strong>{label}：{star}</strong><br>{escape(TEN_GOD_NOTES.get(star, ''))}</li>" for label, star in stars)
+    note = f'<p class="note">{HOLDING_CHANGE_NOTE}</p>' if changes else ""
+    return f'<h2>あなたの持ち星</h2><p>{HOLDING_LEAD}</p><ul class="stars">{items}</ul>{note}'
+
+
+def holding_text(birth: date) -> str:
+    stars, changes = holding_stars(birth)
+    lines = ["あなたの持ち星", HOLDING_LEAD, ""]
+    for label, star in stars:
+        lines += [f"{label}：{star}", TEN_GOD_NOTES.get(star, ""), ""]
+    if changes:
+        lines += [HOLDING_CHANGE_NOTE, ""]
+    lines.append(HOLDING_MORE)
+    return "\n".join(lines)
+
+
 def _safe_src(value: str) -> str:
     """どの動画・投稿から来たかの目印。英数字と _ - だけを残す。"""
     return "".join(ch for ch in (value or "")[:40] if ch.isascii() and (ch.isalnum() or ch in "_-"))
@@ -146,7 +194,7 @@ label{display:block;font-weight:700;margin-bottom:.4rem}input[type=date]{width:1
 fieldset{border:0;padding:0;margin:1.2rem 0 0}legend{font-weight:700;margin-bottom:.4rem}.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.choices label{font-weight:400;margin:0;padding:10px 12px;border:1px solid #cdb9a4;border-radius:8px;background:#fff;cursor:pointer}
 .cta{display:block;width:100%;margin-top:1rem;border:0;border-radius:9px;padding:14px 20px;background:linear-gradient(120deg,#6b4328,#9a6a35);color:#fff;text-align:center;text-decoration:none;font:700 1rem inherit;cursor:pointer}
 .sub{display:block;margin-top:.8rem;text-align:center;color:#5d3b25}.error{color:#a33a35;font-weight:700}.note{color:#6f6257;font-size:.9rem}.question{font-size:1.15rem;font-weight:700;color:#5d3b25}
-.concern{border-left:5px solid #9a6a35;background:#fffaf1;padding:14px 16px}.support-first{border:2px solid #9a6a35}.tel{font-size:1.15rem;font-weight:700}.tel a{color:#5d3b25}
+.stars{padding-left:1.2rem}.stars li{margin-bottom:.6rem}.concern{border-left:5px solid #9a6a35;background:#fffaf1;padding:14px 16px}.support-first{border:2px solid #9a6a35}.tel{font-size:1.15rem;font-weight:700}.tel a{color:#5d3b25}
 .support{font-size:.9rem;color:#6f6257;border-top:1px solid #dfd1c2;padding-top:1rem}footer{text-align:center;font-size:.85rem;padding:0 16px 32px}footer a{margin:0 .5rem;color:#5d3b25}
 </style>"""
 
@@ -209,12 +257,14 @@ def render_result(birth: date, robots: str, src: str = "", concern: str = "") ->
         f'<h1>あなたの日干は「{stem}」<br>{note["image"]}のイメージ</h1>'
         f'<p>日干の{stem}は、{STEM_YIN_YANG[stem]}の{STEM_ELEMENT[stem]}です。</p>'
         f'<p>{escape(note["nature"])}</p><p>{escape(note["care"])}</p>'
+        f'{_holding_html(birth)}'
         f'{concern_html}'
         '<h2>ふり返りの問い</h2>'
         f'<p class="question">{escape(note["question"])}</p>'
         '<p class="note">ノートに一行、書いてみてください。答えに正解はありません。</p>'
         '<p class="note">これは日干だけを見た、八雲式の読み物です。四柱推命の判定ではありません。23時以降に生まれた方は、日干が翌日のものになる場合があります。</p></section>'
         '<section class="box"><h2>命式全体で、もっと深く</h2>'
+        f'<p>{HOLDING_MORE}</p>'
         '<p>四柱推命では、日干のほかに、年・月・時の柱と、10年ごとに巡る大運を合わせて読みます。'
         f'{lead}八雲式 四柱推命鑑定では、あなたの命式全体と今の流れ、お悩みへの回答、八雲式の読み物をお届けします。</p>'
         f'<a class="cta" href="/career-reading{query}">八雲式 四柱推命鑑定を見る</a>'

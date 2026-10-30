@@ -144,7 +144,7 @@ def day_stem_messages(birth: date) -> list[dict]:
         "※ 日干だけを見た、八雲式の読み物です。四柱推命の判定ではありません。23時以降に生まれた方は、日干が翌日のものになる場合があります。"
     )
     ask = "いまの悩みに近いものを選ぶと、日干に合わせた一言をお届けします（選ばなくても大丈夫です）。"
-    return [_text(body), _text(ask, _concern_buttons(birth))]
+    return [_text(body), _text(day_stem_check.holding_text(birth)), _text(ask, _concern_buttons(birth))]
 
 
 def concern_messages(concern: str, birth: date) -> list[dict]:

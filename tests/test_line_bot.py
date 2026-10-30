@@ -58,7 +58,8 @@ def test_birth_date_message_returns_day_stem_and_concern_buttons(sent, text):
     _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": text}}])
     messages = sent[0][1]
     assert "あなたの日干は「乙」" in messages[0]["text"]
-    labels = [item["action"]["label"] for item in messages[1]["quickReply"]["items"]]
+    labels = [item["action"]["label"] for item in messages[2]["quickReply"]["items"]]
+    assert "年の柱：比肩" in messages[1]["text"] and "月の柱：傷官" in messages[1]["text"]
     assert labels == ["仕事", "人間関係", "恋愛・結婚", "自分のこと", "とてもつらい"]
 
 
