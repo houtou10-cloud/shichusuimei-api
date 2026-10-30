@@ -82,11 +82,14 @@ def test_concern_postback_returns_note_and_paid_link(sent):
     assert "/career-reading?src=line" in text
 
 
-def test_hard_postback_returns_support_only(sent):
+def test_hard_postback_returns_support_and_invites_writing(sent):
     _post([{"type": "postback", "replyToken": "r", "postback": {"data": "concern=hard&birth_date=1985-10-13"}}])
     text = _texts(sent)
     assert "0120-279-338" in text
-    assert "career-reading" not in text
+    assert "いまの気持ちを、このトークに書いて吐き出してください" in text
+    assert "お返事は自動の一通" in text
+    assert "career-reading" not in text and "academy" not in text
+    assert "八雲が" not in text
 
 
 def test_only_concern_type_is_logged(sent, caplog):
@@ -101,10 +104,11 @@ def test_written_concern_gets_one_automatic_reply(sent, caplog):
     concern = "職場の人間関係がうまくいかなくて、毎日疲れています。"
     _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": concern}}])
     text = _texts(sent)
-    assert "お悩みを聞かせてくださって、ありがとうございます" in text
-    assert "個別のお返事ができるとは限らない" in text
-    assert "/career-reading?src=line" in text
-    assert "0120-279-338" in text
+    assert "気持ちを聞かせてくださって、ありがとうございます" in text
+    assert "お返事は自動の一通" in text
+    assert "career-reading" not in text and "academy" not in text
+    assert "0120-279-338" in text and "mamorouyokokoro" in text
+    assert "八雲が" not in text
     messages = [r.getMessage() for r in caplog.records if r.name == "api.line_bot"]
     assert messages == ["line_concern_text_received"]
     assert concern not in " ".join(r.getMessage() for r in caplog.records)
