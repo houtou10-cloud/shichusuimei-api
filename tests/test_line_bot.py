@@ -96,6 +96,31 @@ def test_only_concern_type_is_logged(sent, caplog):
     assert messages == ["free_day_stem_check concern=work"]
 
 
+def test_written_concern_gets_one_automatic_reply(sent, caplog):
+    caplog.set_level("INFO", logger="api.line_bot")
+    concern = "職場の人間関係がうまくいかなくて、毎日疲れています。"
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": concern}}])
+    text = _texts(sent)
+    assert "お悩みを聞かせてくださって、ありがとうございます" in text
+    assert "個別のお返事ができるとは限らない" in text
+    assert "/career-reading?src=line" in text
+    assert "0120-279-338" in text
+    messages = [r.getMessage() for r in caplog.records if r.name == "api.line_bot"]
+    assert messages == ["line_concern_text_received"]
+    assert concern not in " ".join(r.getMessage() for r in caplog.records)
+
+
+@pytest.mark.parametrize("text", ["日干診断", "こんにちは", "よろしく"])
+def test_short_text_returns_help(sent, text):
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": text}}])
+    assert "生年月日を、次のように送ってください" in _texts(sent)
+
+
+def test_concern_postback_invites_written_concern(sent):
+    _post([{"type": "postback", "replyToken": "r", "postback": {"data": "concern=work&birth_date=1985-10-13"}}])
+    assert "いまの悩みを、このトークに書いて送っていただくこともできます" in _texts(sent)
+
+
 def test_parse_date_text_rejects_impossible_dates():
     assert line_bot.parse_date_text("1985/02/30") is None
     assert line_bot.parse_date_text("1899/12/31") is None

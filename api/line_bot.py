@@ -57,6 +57,26 @@ HELP_TEXT = (
 
 WELCOME_TEXT = "友だち追加ありがとうございます。八雲式 四柱推命です。\n\n" + HELP_TEXT
 
+INVITE_TEXT = (
+    "いまの悩みを、このトークに書いて送っていただくこともできます。\n"
+    "いただいた内容は八雲が目を通します。個別のお返事はお約束できませんが、発信のテーマを考える参考にさせていただきます。"
+)
+
+# 生年月日でも短いあいさつでもない文章は、悩みとして受け取る。返事は自動の一通だけ（個別の返信は約束しない）。
+CONCERN_MIN_CHARS = 10
+
+
+def _concern_received_text() -> str:
+    return (
+        "お悩みを聞かせてくださって、ありがとうございます。\n"
+        "いただいた内容は、八雲が目を通します。\n"
+        "すべてに個別のお返事ができるとは限らないこと、ご了承ください。\n\n"
+        "命式全体から、このお悩みに答える「八雲式 四柱推命鑑定」もあります。\n"
+        f"{_public_link('/career-reading')}\n\n"
+        "もし、ひとりで抱えきれないほどつらいときは、占いより先に、人に話してください。\n"
+        "よりそいホットライン 0120-279-338（24時間・無料）"
+    )
+
 _DATE = re.compile(r"(\d{4})\D{0,2}(\d{1,2})\D{0,2}(\d{1,2})")
 
 
@@ -137,6 +157,7 @@ def concern_messages(concern: str, birth: date) -> list[dict]:
             "自分で読めるようになりたい方は、アカデミー（第1章は無料）\n"
             f"{_public_link('/academy')}"
         ),
+        _text(INVITE_TEXT),
     ]
 
 
@@ -153,9 +174,12 @@ def messages_for_event(event: dict) -> list[dict]:
             day_stem_check.record_concern("hard")
             return [_text(SUPPORT_TEXT)]
         birth = parse_date_text(text)
-        if birth is None:
-            return [_text(HELP_TEXT)]
-        return day_stem_messages(birth)
+        if birth is not None:
+            return day_stem_messages(birth)
+        if len(unicodedata.normalize("NFKC", text).strip()) >= CONCERN_MIN_CHARS:
+            logger.info("line_concern_text_received")
+            return [_text(_concern_received_text())]
+        return [_text(HELP_TEXT)]
     if kind == "postback" and isinstance(event.get("postback"), dict):
         data = parse_qs(str(event["postback"].get("data", "")))
         concern = day_stem_check.parse_concern((data.get("concern") or [""])[0])

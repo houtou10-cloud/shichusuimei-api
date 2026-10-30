@@ -96,6 +96,7 @@ def test_privacy_policy_mentions_free_check():
     page = CLIENT.get("/privacy").text
     assert "無料の日干診断（Webと公式LINE）では、入力または送信された生年月日を日干の計算にだけ使い、保存しません。" in page
     assert "LINE公式アカウント" in page
+    assert "公式LINEのトークで送られた相談内容は、本サービスのサーバーには保存せず" in page
 
 
 def test_nikkan_is_listed_for_search_when_live(monkeypatch):
