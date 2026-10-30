@@ -131,3 +131,14 @@ def test_ten_god_notes_cover_all_stars_without_banned_words():
     assert set(day_stem_check.TEN_GOD_NOTES) == {"比肩", "劫財", "食神", "傷官", "偏財", "正財", "偏官", "正官", "偏印", "印綬"}
     for text in day_stem_check.TEN_GOD_NOTES.values():
         assert not any(word in text for word in BANNED + ("災厄", "損失", "失職", "離別", "転職", "副業")), text
+
+
+def test_result_page_links_to_official_line():
+    page = CLIENT.post("/nikkan", data={"birth_date": "1985-10-13"}).text
+    assert 'href="https://lin.ee/oeoF4hI"' in page
+    assert page.index("公式LINEでも診断できます") < page.index("命式全体で、もっと深く")
+
+
+def test_hard_concern_page_has_no_line_button():
+    page = CLIENT.post("/nikkan", data={"birth_date": "1985-10-13", "concern": "hard"}).text
+    assert "lin.ee" not in page

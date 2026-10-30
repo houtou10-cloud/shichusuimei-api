@@ -162,6 +162,17 @@ HOLDING_CHANGE_NOTE = "この日は季節の変わり目（節入り）にあた
 HOLDING_MORE = "時の柱や地支の中の星も合わせた、命式全体の持ち星は、八雲式 四柱推命鑑定でお伝えします。"
 
 
+LINE_FRIEND_URL = "https://lin.ee/oeoF4hI"
+
+
+def _line_box() -> str:
+    return (
+        '<section class="box"><h2>公式LINEでも診断できます</h2>'
+        '<p>公式LINEに登録して生年月日を送ると、日干と持ち星がトークに届きます。あとから読み返したいときに便利です（無料）。</p>'
+        f'<a class="line-btn" href="{LINE_FRIEND_URL}" target="_blank" rel="noopener noreferrer">公式LINEに登録する</a></section>'
+    )
+
+
 def _holding_html(birth: date) -> str:
     stars, changes = holding_stars(birth)
     items = "".join(f"<li><strong>{label}：{star}</strong><br>{escape(TEN_GOD_NOTES.get(star, ''))}</li>" for label, star in stars)
@@ -194,7 +205,7 @@ label{display:block;font-weight:700;margin-bottom:.4rem}input[type=date]{width:1
 fieldset{border:0;padding:0;margin:1.2rem 0 0}legend{font-weight:700;margin-bottom:.4rem}.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.choices label{font-weight:400;margin:0;padding:10px 12px;border:1px solid #cdb9a4;border-radius:8px;background:#fff;cursor:pointer}
 .cta{display:block;width:100%;margin-top:1rem;border:0;border-radius:9px;padding:14px 20px;background:linear-gradient(120deg,#6b4328,#9a6a35);color:#fff;text-align:center;text-decoration:none;font:700 1rem inherit;cursor:pointer}
 .sub{display:block;margin-top:.8rem;text-align:center;color:#5d3b25}.error{color:#a33a35;font-weight:700}.note{color:#6f6257;font-size:.9rem}.question{font-size:1.15rem;font-weight:700;color:#5d3b25}
-.stars{padding-left:1.2rem}.stars li{margin-bottom:.6rem}.concern{border-left:5px solid #9a6a35;background:#fffaf1;padding:14px 16px}.support-first{border:2px solid #9a6a35}.tel{font-size:1.15rem;font-weight:700}.tel a{color:#5d3b25}
+.line-btn{display:block;margin-top:1rem;border-radius:9px;padding:14px 20px;background:#06c755;color:#fff;text-align:center;text-decoration:none;font-weight:700}.stars{padding-left:1.2rem}.stars li{margin-bottom:.6rem}.concern{border-left:5px solid #9a6a35;background:#fffaf1;padding:14px 16px}.support-first{border:2px solid #9a6a35}.tel{font-size:1.15rem;font-weight:700}.tel a{color:#5d3b25}
 .support{font-size:.9rem;color:#6f6257;border-top:1px solid #dfd1c2;padding-top:1rem}footer{text-align:center;font-size:.85rem;padding:0 16px 32px}footer a{margin:0 .5rem;color:#5d3b25}
 </style>"""
 
@@ -263,6 +274,7 @@ def render_result(birth: date, robots: str, src: str = "", concern: str = "") ->
         f'<p class="question">{escape(note["question"])}</p>'
         '<p class="note">ノートに一行、書いてみてください。答えに正解はありません。</p>'
         '<p class="note">これは日干だけを見た、八雲式の読み物です。四柱推命の判定ではありません。23時以降に生まれた方は、日干が翌日のものになる場合があります。</p></section>'
+        f'{_line_box()}'
         '<section class="box"><h2>命式全体で、もっと深く</h2>'
         f'<p>{HOLDING_MORE}</p>'
         '<p>四柱推命では、日干のほかに、年・月・時の柱と、10年ごとに巡る大運を合わせて読みます。'
