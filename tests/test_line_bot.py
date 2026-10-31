@@ -130,3 +130,18 @@ def test_parse_date_text_rejects_impossible_dates():
     assert line_bot.parse_date_text("1985/02/30") is None
     assert line_bot.parse_date_text("1899/12/31") is None
     assert line_bot.parse_date_text("1985/10/13") == date(1985, 10, 13)
+
+
+def test_concern_postback_links_to_jibunshi(sent):
+    _post([{"type": "postback", "replyToken": "r", "postback": {"data": "concern=self&birth_date=1985-10-13"}}])
+    assert "/jibunshi?src=line" in _texts(sent)
+
+
+@pytest.mark.parametrize("event", [
+    {"type": "postback", "replyToken": "r", "postback": {"data": "concern=hard&birth_date=1985-10-13"}},
+    {"type": "message", "replyToken": "r", "message": {"type": "text", "text": "職場の人間関係がうまくいかなくて、毎日疲れています。"}},
+    {"type": "message", "replyToken": "r", "message": {"type": "text", "text": "死にたい"}},
+])
+def test_jibunshi_is_never_offered_to_people_in_pain(sent, event):
+    _post([event])
+    assert "jibunshi" not in _texts(sent)
