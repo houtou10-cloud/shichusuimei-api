@@ -49,7 +49,7 @@ from api.stripe_checkout import (
 )
 from engine.reading_renderer_v2 import render_customer_reading_product_v2_html
 from api.yakumo_reading_note import render_yakumo_note
-from api import day_stem_check
+from api import day_stem_check, jibunshi
 
 
 router = APIRouter()
@@ -352,7 +352,7 @@ _SALES_DESCRIPTION = (
     "生まれ持った本質と、今とこれからの運気の流れを、四柱推命で読み解く鑑定。"
     "命式は規則どおりに計算し、読み方はやさしく。1鑑定1,980円（税込）・買い切り。"
 )
-_PUBLIC_PATHS = ("/career-reading", "/nikkan", "/terms", "/privacy", "/legal")
+_PUBLIC_PATHS = ("/career-reading", "/nikkan", "/jibunshi", "/terms", "/privacy", "/legal")
 
 
 def _public_base_url() -> str:
@@ -448,26 +448,36 @@ def _render_terms_page() -> str:
 <h2>7. 責任</h2><p>法令上許されない範囲まで当方の責任を免除するものではありません。当方の故意または重大な過失がある場合に、不当な責任制限は適用しません。</p>
 <h2>8. 規約の変更</h2><p>法令の改正またはサービス内容の変更等に応じて、本規約を変更することがあります。重要な変更は、本サービス上で分かりやすく表示します。</p>
 <h2>9. 準拠法</h2><p>本規約は日本法を準拠法とします。</p>
-<p><strong>制定日：</strong>2026年10月15日<br><strong>改定日：</strong>2026年10月29日</p>''', "/terms")
+<h2>10. 自分史鑑定</h2><p>自分史鑑定は、利用者から送られた自分史を命式と大運に重ねて読み、専用の動画とPDFを作成してお届けするサービスです。料金は1件19,800円（税込）、モニター価格は最初の5名に限り9,800円（税込）で、Stripeの支払いリンクによるクレジットカード決済、買い切りです。自分史を受け取ってから14日以内に、Googleドライブの共有リンクでお届けします。受付は月4件までです。</p><p>鑑定の作業を始める前は、全額を返金します。作業を始めたあとの利用者都合による返金は受け付けません。当方の事情で14日以内にお届けできない場合、または送られた内容を確認したうえで当方が鑑定を見合わせた場合は、全額を返金します。第2項の鑑定の位置づけは、自分史鑑定にも適用します。お届けした動画とPDFは、利用者本人の個人的な利用に限ります。</p>
+<p><strong>制定日：</strong>2026年10月15日<br><strong>改定日：</strong>2026年10月31日</p>''', "/terms")
 
 
 def _render_privacy_page() -> str:
     return _legal_document("プライバシーポリシー", '''
 <p>本ポリシーは、「八雲式四柱推命鑑定」における利用者情報の取扱いを定めます。取扱事業者の表示およびお問い合わせ先は、<a href="/legal">特定商取引法に基づく表記</a>をご確認ください。</p>
-<h2>1. 取得する情報</h2><p>生年月日、出生時刻または不明であること、出生地、性別、任意の相談内容、セッション識別子、アクセス日時、IPアドレス、処理時間、エラー分類等を取得します。無料の日干診断（Webと公式LINE）では、入力または送信された生年月日を日干の計算にだけ使い、保存しません。任意で選んだ悩みの種類（仕事、人間関係など）は、どの悩みが多いかを集計するためだけに、生年月日と結び付けずに記録します。公式LINEのトークで送られた相談内容は、本サービスのサーバーには保存せず、LINE公式アカウントのチャット画面で運営者が目を通し、発信するテーマの参考と、必要な場合の返信にだけ使います。</p>
+<h2>1. 取得する情報</h2><p>生年月日、出生時刻または不明であること、出生地、性別、任意の相談内容、セッション識別子、アクセス日時、IPアドレス、処理時間、エラー分類等を取得します。無料の日干診断（Webと公式LINE）では、入力または送信された生年月日を日干の計算にだけ使い、保存しません。任意で選んだ悩みの種類（仕事、人間関係など）は、どの悩みが多いかを集計するためだけに、生年月日と結び付けずに記録します。公式LINEのトークで送られた相談内容は、本サービスのサーバーには保存せず、LINE公式アカウントのチャット画面で運営者が目を通し、発信するテーマの参考と、必要な場合の返信にだけ使います。自分史鑑定では、Googleフォームで送られた生年月日、出生時刻、出生地、性別、メールアドレス、自分史、知りたいこと、取り上げてほしくない時期や話題を取得します。</p>
 <h2>2. 利用目的</h2><p>命式計算、鑑定結果の生成・表示、相談への回答、不正利用防止、障害対応、品質改善、問い合わせ対応および法令上必要な対応に利用します。</p>
-<h2>3. 外部サービス</h2><p>鑑定文生成にはOpenAI API、Webサービス運用にはRender、決済にはStripe、公式LINEでの日干診断にはLINEヤフー株式会社のLINE公式アカウントを利用します。公式LINEで送られたメッセージは、LINEヤフー株式会社のサービス上でも処理されます。鑑定に必要な入力情報と相談内容がOpenAIおよびRenderで処理され、決済情報がStripeで処理されます。これらの事業者による取扱いには各社のプライバシーポリシーが適用され、国外で処理される場合があります。カード番号等はStripeの決済画面で取り扱い、本サービスのサーバーでは保持しません。</p>
+<h2>3. 外部サービス</h2><p>鑑定文生成にはOpenAI API、Webサービス運用にはRender、決済にはStripe、公式LINEでの日干診断にはLINEヤフー株式会社のLINE公式アカウントを利用します。公式LINEで送られたメッセージは、LINEヤフー株式会社のサービス上でも処理されます。自分史鑑定では、受け取りと届けにGoogle LLCのGoogleフォームとGoogleドライブ、台本の下書き作成にAnthropic PBCのClaudeを利用し、自分史などの内容がこれらの事業者のサービス上で処理されます。鑑定に必要な入力情報と相談内容がOpenAIおよびRenderで処理され、決済情報がStripeで処理されます。これらの事業者による取扱いには各社のプライバシーポリシーが適用され、国外で処理される場合があります。カード番号等はStripeの決済画面で取り扱い、本サービスのサーバーでは保持しません。</p>
 <h2>4. 第三者提供</h2><p>法令に基づく場合を除き、本人の同意なく個人情報を第三者へ提供しません。前項の外部サービス利用は、サービス提供に必要な範囲での委託として取り扱います。</p>
-<h2>5. 保存期間</h2><p>詳細表示用のサーバー内セッションは原則30分、命式計算の一時キャッシュは原則5分保持します。アクセス・障害ログ、問い合わせ記録および決済・会計記録は、不正利用防止、障害対応、問い合わせ対応、取引確認および法令上の義務に必要な期間に限って保持し、目的達成後または保存義務の終了後に削除または匿名化します。</p>
+<h2>5. 保存期間</h2><p>詳細表示用のサーバー内セッションは原則30分、命式計算の一時キャッシュは原則5分保持します。アクセス・障害ログ、問い合わせ記録および決済・会計記録は、不正利用防止、障害対応、問い合わせ対応、取引確認および法令上の義務に必要な期間に限って保持し、目的達成後または保存義務の終了後に削除または匿名化します。自分史鑑定で受け取った自分史とフォームの内容、作成した動画・PDF・台本は、お届けしてから30日後に削除します（決済・会計記録を除きます）。お届けした動画とPDFを、本人の許可なく公開・転用しません。</p>
 <h2>6. 安全管理</h2><p>通信の暗号化、アクセス制御、秘密情報の環境変数管理、不正利用防止、入力本文や秘密情報の過剰なログ記録防止等を行います。顧客入力、鑑定結果、認証情報をService Workerへキャッシュしません。</p>
 <h2>7. 開示・訂正・利用停止等</h2><p>法令に基づく開示、訂正、削除、利用停止等の請求は、<a href="https://form.os7.biz/f/be4d264a/" target="_blank" rel="noopener noreferrer">お問い合わせフォーム</a>から受け付けます。対象情報を特定できる内容をご記入ください。なりすまし防止のため、必要な範囲で本人確認をお願いする場合があります。法令に従って遅滞なく対応します。</p>
 <h2>8. ポリシーの変更</h2><p>法令の改正またはサービス内容の変更等に応じて、本ポリシーを変更することがあります。重要な変更は、本サービス上で分かりやすく表示します。</p>
-<p><strong>制定日：</strong>2026年10月15日<br><strong>改定日：</strong>2026年10月30日</p>''', "/privacy")
+<p><strong>制定日：</strong>2026年10月15日<br><strong>改定日：</strong>2026年10月31日</p>''', "/privacy")
 
 
 def _render_commerce_page() -> str:
     return _legal_document("特定商取引法に基づく表記", '''
 <img class="legal-image" src="/legal/disclosure.png" alt="特定商取引法に基づく表記。販売業者・運営統括責任者、販売価格、支払方法、提供時期、キャンセル・返金条件等を記載しています。">
+<h2>自分史鑑定</h2><table><tbody>
+<tr><th>販売価格</th><td>1件19,800円（税込）。モニター価格：最初の5名に限り9,800円（税込）</td></tr>
+<tr><th>価格以外の負担</th><td>インターネット接続に必要な通信料金</td></tr>
+<tr><th>支払方法・時期</th><td>Stripeによるクレジットカード決済。申込時に支払い</td></tr>
+<tr><th>提供時期</th><td>自分史を受け取ってから14日以内に、Googleドライブの共有リンクでお届け（受付は月4件まで）</td></tr>
+<tr><th>キャンセル・返金</th><td>鑑定の作業開始前は全額返金。作業開始後の利用者都合による返金は不可。当方の事情で14日以内にお届けできない場合、または当方が鑑定を見合わせた場合は全額返金</td></tr>
+<tr><th>課金方式</th><td>1件ごとの買い切り。自動更新・継続課金なし</td></tr>
+<tr><th>動作環境</th><td>動画の再生とPDFの閲覧ができる端末、Googleドライブを開けるGoogleアカウント</td></tr>
+</tbody></table>
 <section class="contact-box" aria-labelledby="legal-contact-title"><h2 id="legal-contact-title">お問い合わせ</h2>
 <p>住所・電話番号の開示請求、商品・決済・返金に関するお問い合わせは、次のフォームからご連絡ください。</p>
 <a class="contact-link" href="https://form.os7.biz/f/be4d264a/" target="_blank" rel="noopener noreferrer">お問い合わせフォームを開く</a></section>''', "/legal")
@@ -985,6 +995,18 @@ def customer_privacy_page() -> HTMLResponse:
 @router.get("/legal", response_class=HTMLResponse, include_in_schema=False)
 def customer_commerce_page() -> HTMLResponse:
     return HTMLResponse(_render_commerce_page(), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/jibunshi", response_class=HTMLResponse, include_in_schema=False)
+def customer_jibunshi_page() -> HTMLResponse:
+    robots = _search_meta("/jibunshi", jibunshi.DESCRIPTION)
+    return HTMLResponse(jibunshi.render_page(robots), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/jibunshi/thanks", response_class=HTMLResponse, include_in_schema=False)
+def customer_jibunshi_thanks() -> HTMLResponse:
+    robots = '<meta name="robots" content="noindex,nofollow">'
+    return HTMLResponse(jibunshi.render_thanks(robots), headers={"Cache-Control": "no-store"})
 
 
 _NIKKAN_DESCRIPTION = "生年月日から、四柱推命であなた自身を表す「日干」を無料で調べられます。日干の自然のイメージと、ふり返りの問いをお届けします。"

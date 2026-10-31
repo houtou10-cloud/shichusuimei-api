@@ -22,5 +22,5 @@ def test_terms_cover_general_themes():
     terms = CLIENT.get("/terms").text
     assert "自己理解、人間関係、仕事、これからの運気の流れ" in terms
     assert "転職、独立およびキャリア形成を主なテーマ" not in terms
-    assert "改定日：</strong>2026年10月29日" in terms
+    assert "改定日：</strong>2026年10月31日" in terms
     assert "← 八雲式 四柱推命鑑定" in terms
