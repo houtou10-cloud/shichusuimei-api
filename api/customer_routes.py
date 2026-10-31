@@ -650,8 +650,9 @@ def _render_fast_chart(result: dict[str, object]) -> str:
             return text(pillar["unavailable"])
         value = pillar.get(key)
         if key in ("hidden_stems", "hidden_stem_ten_gods"):
-            values = value if isinstance(value, list) else []
-            return text(" / ".join(str(item) for item in values if item not in (None, "")))
+            # 本どおり（基礎編p.50〜52）：節入後の日数で選んだ主蔵干が先頭。その1つだけを出す。
+            values = [item for item in (value if isinstance(value, list) else []) if item not in (None, "")]
+            return text(values[0] if values else None)
         return text(value)
 
     positions = ("year", "month", "day", "hour")
