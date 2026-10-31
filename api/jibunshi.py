@@ -12,14 +12,11 @@ from html import escape
 from api.day_stem_check import _CSS
 
 PRICE = 19800
-MONITOR_PRICE = 9800
-MONITOR_SEATS = 5
 DELIVERY_DAYS = 14
 MONTHLY_LIMIT = 4
 KEEP_DAYS = 30
 
 PAYMENT_ENV = "JIBUNSHI_PAYMENT_URL"
-MONITOR_PAYMENT_ENV = "JIBUNSHI_MONITOR_PAYMENT_URL"
 FORM_ENV = "JIBUNSHI_FORM_URL"
 
 _PAYMENT_PREFIXES = ("https://buy.stripe.com/",)
@@ -53,10 +50,6 @@ def payment_url() -> str:
     return _env_url(PAYMENT_ENV, _PAYMENT_PREFIXES)
 
 
-def monitor_payment_url() -> str:
-    return _env_url(MONITOR_PAYMENT_ENV, _PAYMENT_PREFIXES)
-
-
 def form_url() -> str:
     return _env_url(FORM_ENV, _FORM_PREFIXES)
 
@@ -75,25 +68,16 @@ def _document(body: str, robots: str, title: str) -> str:
 
 def _purchase_box() -> str:
     regular = payment_url()
-    monitor = monitor_payment_url()
-    if not regular and not monitor:
+    if not regular:
         return (
             '<section class="box" id="apply"><h2>お申し込み</h2>'
             "<p><strong>現在、受付の準備中です。</strong>受付を始めたら、公式LINEでお知らせします。</p>"
             '<a class="line-btn" href="https://lin.ee/oeoF4hI" target="_blank" rel="noopener noreferrer">公式LINEに登録する（無料）</a>'
             "</section>"
         )
-    buttons = ""
-    if monitor:
-        buttons += (
-            f'<a class="cta" href="{escape(monitor, quote=True)}" rel="noopener noreferrer">モニター価格で申し込む（{MONITOR_PRICE:,}円）</a>'
-            f'<p class="note">最初の{MONITOR_SEATS}名さま限定です。お届けのあとに、感想をお願いします（掲載するのは、了承をいただいた場合だけです）。定員に達すると、このボタンは表示されなくなります。</p>'
-        )
-    if regular:
-        buttons += f'<a class="cta" href="{escape(regular, quote=True)}" rel="noopener noreferrer">申し込む（{PRICE:,}円）</a>'
     return (
         '<section class="box" id="apply"><h2>お申し込み</h2>'
-        f"{buttons}"
+        f'<a class="cta" href="{escape(regular, quote=True)}" rel="noopener noreferrer">申し込む（{PRICE:,}円）</a>'
         '<p class="note">Stripeの安全な決済画面へ移動します。支払いが終わると、自分史を送るフォームのご案内が表示されます。</p>'
         '<p class="note">お申し込みをもって、<a href="/terms">利用規約</a>と<a href="/privacy">プライバシーポリシー</a>に同意したものとします。'
         f"受付は月{MONTHLY_LIMIT}件までです。上限に達した月は、ボタンを外して受付を止めます。</p>"

@@ -10,7 +10,7 @@ BANNED = ("霊視します", "因縁", "先祖", "不幸", "必ず", "治る", "
 
 
 def _clear(monkeypatch):
-    for name in (jibunshi.PAYMENT_ENV, jibunshi.MONITOR_PAYMENT_ENV, jibunshi.FORM_ENV):
+    for name in (jibunshi.PAYMENT_ENV, jibunshi.FORM_ENV):
         monkeypatch.delenv(name, raising=False)
 
 
@@ -30,22 +30,21 @@ def test_support_comes_before_purchase(monkeypatch):
     assert page.index("お申し込みの前に") < page.index("https://buy.stripe.com/test_abc")
 
 
-def test_both_buttons_when_monitor_link_is_set(monkeypatch):
+def test_single_regular_price_button(monkeypatch):
     _clear(monkeypatch)
     monkeypatch.setenv(jibunshi.PAYMENT_ENV, "https://buy.stripe.com/regular")
-    monkeypatch.setenv(jibunshi.MONITOR_PAYMENT_ENV, "https://buy.stripe.com/monitor")
     page = CLIENT.get("/jibunshi").text
-    assert "モニター価格で申し込む（9,800円）" in page and "申し込む（19,800円）" in page
-    assert "受付の準備中" not in page
+    assert "申し込む（19,800円）" in page
+    assert "受付の準備中" not in page and "モニター" not in page and "9,800円" not in page.replace("19,800円", "")
 
 
 def test_untrusted_urls_are_ignored(monkeypatch):
     _clear(monkeypatch)
     monkeypatch.setenv(jibunshi.PAYMENT_ENV, "https://evil.example/pay")
-    monkeypatch.setenv(jibunshi.MONITOR_PAYMENT_ENV, 'https://buy.stripe.com/x"><script>')
+    assert "evil.example" not in CLIENT.get("/jibunshi").text
+    monkeypatch.setenv(jibunshi.PAYMENT_ENV, 'https://buy.stripe.com/x"><script>')
     page = CLIENT.get("/jibunshi").text
-    assert "evil.example" not in page and "<script>" not in page
-    assert "受付の準備中" in page
+    assert "<script>" not in page and "受付の準備中" in page
 
 
 def test_page_states_reading_rules_without_banned_words(monkeypatch):
@@ -72,7 +71,7 @@ def test_legal_pages_cover_jibunshi():
     privacy = CLIENT.get("/privacy").text
     assert "Anthropic PBCのClaude" in privacy and "お届けしてから30日後に削除" in privacy
     legal = CLIENT.get("/legal").text
-    assert "<h2>自分史鑑定</h2>" in legal and "9,800円" in legal
+    assert "<h2>自分史鑑定</h2>" in legal and "1件19,800円（税込）" in legal and "モニター" not in legal
 
 
 def test_jibunshi_is_listed_for_search_when_live(monkeypatch):
