@@ -266,6 +266,8 @@ def _render_basic_info(rc: dict[str, Any]) -> str:
 def _render_pillars(
     rc: dict[str, Any],
     engine_result: dict[str, Any],
+    *,
+    main_hidden_stem_only: bool = False,
 ) -> str:
     pillars = _dict(_dict(rc["chart"])["pillars"])
     engine_pillars = _dict(_dict(engine_result["chart"]))
@@ -284,7 +286,8 @@ def _render_pillars(
             if entry is None:
                 result.append(escape(missing))
             elif list_value:
-                result.append(_joined_text(entry[field], missing=missing))
+                values = _list(entry[field])
+                result.append(_joined_text(values[:1] if main_hidden_stem_only else values, missing=missing))
             else:
                 result.append(_text(entry[field], missing=missing))
         return result
@@ -309,7 +312,7 @@ def _render_pillars(
                 if ten_god.get("stem") != stem or type(ten_god.get("ten_god")) is not str:
                     raise ValueError("hidden-stem sources are inconsistent")
                 ten_gods.append(ten_god["ten_god"])
-            result.append(_joined_text(ten_gods))
+            result.append(_joined_text(ten_gods[:1] if main_hidden_stem_only else ten_gods))
         return result
 
     rows = [
@@ -830,7 +833,8 @@ def _render_customer_visible(value: dict[str, Any], title: str) -> str:
                 + _render_basic_info(rc)
                 + "</div>"
                 '<div class="presentation-subsection"><h3>四柱</h3>'
-                + _render_pillars(rc, engine_result)
+                # 顧客Webは本どおり（基礎編p.50〜52）の主蔵干（先頭）だけを出す。PDF用（v1.2固定）は従来どおり。
+                + _render_pillars(rc, engine_result, main_hidden_stem_only=True)
                 + "</div>"
                 '<div class="presentation-subsection"><h3>日主</h3>'
                 + _render_day_master(rc)

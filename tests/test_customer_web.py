@@ -366,8 +366,10 @@ def test_verified_1984_chart_distinguishes_stem_and_hidden_stem_ten_gods(monkeyp
     assert "<td>辛</td>" in response.text
     assert "<td>偏官</td>" in response.text
     # 本どおり（book_kiso）：未月の節入から3日目のため初期の丁が主蔵干（基礎編p.52）。
-    assert "<td>丁・乙・己</td>" in response.text
-    assert "<td>食神・比肩・偏財</td>" in response.text
+    # 顧客Webでは主蔵干だけを出す（2026-10-31 ユーザー指示）。
+    assert "<tr><td>蔵干</td><td>壬</td><td>丁</td><td>戊</td><td>戊</td></tr>" in response.text
+    assert "<tr><td>蔵干通変星</td><td>印綬</td><td>食神</td><td>正財</td><td>正財</td></tr>" in response.text
+    assert "丁・乙・己" not in response.text and "食神・比肩・偏財" not in response.text
 
 
 def test_gc10_browser_flow_preserves_unknown_hour_warning_and_uncertainty(monkeypatch):
