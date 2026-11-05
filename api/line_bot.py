@@ -154,16 +154,18 @@ def concern_messages(concern: str, birth: date) -> list[dict]:
     note = CONCERN_NOTES[stem].get(concern)
     if not note:
         return [_text(HELP_TEXT)]
+    # 一度に案内するのは二つまで。「自分のこと」を選んだ人には自分史鑑定、それ以外はアカデミーを添える。
+    if concern == "self":
+        second = f"これまでの人生を、持ち星と10年の季節で読み直したい方は、自分史鑑定（専用の動画とPDF）\n{_public_link('/jibunshi')}"
+    else:
+        second = f"自分で読めるようになりたい方は、アカデミー（第1章は無料）\n{_public_link('/academy')}"
     return [
         _text(f"{stem}（{DAY_STEM_NOTES[stem]['image']}）のあなたが、「{CONCERNS[concern]}」に悩むとき\n\n{note}"),
         _text(
             "いまの悩みに、命式全体から答えるのが、八雲式 四柱推命鑑定です。\n"
             "命式全体と今の流れ、お悩みへの回答、八雲式の読み物をお届けします。\n"
             f"{_public_link('/career-reading')}\n\n"
-            "これまでの人生を、持ち星と10年の季節で読み直したい方は、自分史鑑定（専用の動画とPDF）\n"
-            f"{_public_link('/jibunshi')}\n\n"
-            "自分で読めるようになりたい方は、アカデミー（第1章は無料）\n"
-            f"{_public_link('/academy')}"
+            f"{second}"
         ),
         _text(INVITE_TEXT),
     ]

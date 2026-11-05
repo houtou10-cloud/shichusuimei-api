@@ -359,7 +359,7 @@ def _public_base_url() -> str:
     return os.getenv("CUSTOMER_PUBLIC_BASE_URL", "").strip().rstrip("/")
 
 
-def _search_meta(path: str, description: str = "") -> str:
+def _search_meta(path: str, description: str = "", og_title: str = "八雲式 四柱推命鑑定") -> str:
     """本番決済（live）のときだけ検索エンジンに公開する。テスト・準備中は非公開のまま。"""
     if checkout_mode() != "live":
         return '<meta name="robots" content="noindex,nofollow">'
@@ -372,7 +372,7 @@ def _search_meta(path: str, description: str = "") -> str:
         tags.append(f'<link rel="canonical" href="{url}">')
         tags.append('<meta property="og:type" content="website">')
         tags.append(f'<meta property="og:url" content="{url}">')
-        tags.append('<meta property="og:title" content="八雲式 四柱推命鑑定">')
+        tags.append(f'<meta property="og:title" content="{escape(og_title, quote=True)}">')
         if description:
             tags.append(f'<meta property="og:description" content="{escape(description, quote=True)}">')
     return "".join(tags)
@@ -1000,7 +1000,7 @@ def customer_commerce_page() -> HTMLResponse:
 
 @router.get("/jibunshi", response_class=HTMLResponse, include_in_schema=False)
 def customer_jibunshi_page() -> HTMLResponse:
-    robots = _search_meta("/jibunshi", jibunshi.DESCRIPTION)
+    robots = _search_meta("/jibunshi", jibunshi.DESCRIPTION, og_title="自分史鑑定｜八雲式 四柱推命")
     return HTMLResponse(jibunshi.render_page(robots), headers={"Cache-Control": "no-store"})
 
 

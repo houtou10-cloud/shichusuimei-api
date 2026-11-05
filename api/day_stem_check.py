@@ -173,9 +173,16 @@ def _line_box() -> str:
     )
 
 
+def _grouped_stars(stars: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """年と月が同じ星なら、同じ説明を繰り返さず一つにまとめる。"""
+    if len(stars) == 2 and stars[0][1] == stars[1][1]:
+        return [(f"{stars[0][0]}・{stars[1][0]}", stars[0][1])]
+    return stars
+
+
 def _holding_html(birth: date) -> str:
     stars, changes = holding_stars(birth)
-    items = "".join(f"<li><strong>{label}：{star}</strong><br>{escape(TEN_GOD_NOTES.get(star, ''))}</li>" for label, star in stars)
+    items = "".join(f"<li><strong>{label}：{star}</strong><br>{escape(TEN_GOD_NOTES.get(star, ''))}</li>" for label, star in _grouped_stars(stars))
     note = f'<p class="note">{HOLDING_CHANGE_NOTE}</p>' if changes else ""
     return f'<h2>あなたの持ち星</h2><p>{HOLDING_LEAD}</p><ul class="stars">{items}</ul>{note}'
 
@@ -183,7 +190,7 @@ def _holding_html(birth: date) -> str:
 def holding_text(birth: date) -> str:
     stars, changes = holding_stars(birth)
     lines = ["あなたの持ち星", HOLDING_LEAD, ""]
-    for label, star in stars:
+    for label, star in _grouped_stars(stars):
         lines += [f"{label}：{star}", TEN_GOD_NOTES.get(star, ""), ""]
     if changes:
         lines += [HOLDING_CHANGE_NOTE, ""]

@@ -63,6 +63,36 @@ def test_birth_date_message_returns_day_stem_and_concern_buttons(sent, text):
     assert labels == ["仕事", "人間関係", "恋愛・結婚", "自分のこと", "とてもつらい"]
 
 
+def test_same_star_in_year_and_month_is_shown_once(sent):
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": "1966/8/27"}}])
+    holding = sent[0][1][1]["text"]
+    assert "年の柱・月の柱：偏印" in holding
+    assert holding.count("日干を生じる星です") == 1
+
+
+@pytest.mark.parametrize("concern, shown, hidden", [
+    ("work", "/academy?src=line", "/jibunshi"),
+    ("relation", "/academy?src=line", "/jibunshi"),
+    ("self", "/jibunshi?src=line", "/academy"),
+])
+def test_concern_reply_offers_at_most_two_links(sent, concern, shown, hidden):
+    _post([{"type": "postback", "replyToken": "r", "postback": {"data": f"concern={concern}&birth_date=1985-10-13"}}])
+    text = _texts(sent)
+    assert "/career-reading?src=line" in text and shown in text
+    assert hidden not in text
+
+
+def test_preview_titles_name_each_page(monkeypatch):
+    from api import customer_routes
+    monkeypatch.setenv("CUSTOMER_PUBLIC_BASE_URL", "https://app.example.test")
+    monkeypatch.setattr(customer_routes, "checkout_mode", lambda: "live")
+    assert 'og:title" content="自分史鑑定｜八雲式 四柱推命"' in CLIENT.get("/jibunshi").text
+    assert 'og:title" content="八雲式 四柱推命鑑定"' in CLIENT.get("/career-reading").text
+    academy = CLIENT.get("/academy").text
+    assert 'og:title" content="八雲式 四柱推命Academy"' in academy
+    assert 'og:description" content="四柱推命を基礎から実践まで' in academy
+
+
 def test_unreadable_message_returns_help(sent):
     _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": "こんにちは"}}])
     assert "生年月日を、次のように送ってください" in _texts(sent)
