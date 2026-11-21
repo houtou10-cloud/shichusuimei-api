@@ -17,7 +17,7 @@ def _clear(monkeypatch):
 def test_page_is_pending_without_payment_links(monkeypatch):
     _clear(monkeypatch)
     page = CLIENT.get("/jibunshi").text
-    assert "八雲式 自分史鑑定" in page and "19,800円（税込）" in page
+    assert "八雲式 自分史鑑定" in page and "25,000円（税込）" in page and "1か月目" in page and "50,000円" in page
     assert "受付の準備中" in page and "buy.stripe.com" not in page
     assert "noindex,nofollow" in page
 
@@ -34,8 +34,8 @@ def test_single_regular_price_button(monkeypatch):
     _clear(monkeypatch)
     monkeypatch.setenv(jibunshi.PAYMENT_ENV, "https://buy.stripe.com/regular")
     page = CLIENT.get("/jibunshi").text
-    assert "申し込む（19,800円）" in page
-    assert "受付の準備中" not in page and "モニター" not in page and "9,800円" not in page.replace("19,800円", "")
+    assert "申し込む（25,000円）" in page
+    assert "受付の準備中" not in page and "モニター" not in page and "19,800円" not in page
 
 
 def test_untrusted_urls_are_ignored(monkeypatch):
@@ -71,7 +71,7 @@ def test_legal_pages_cover_jibunshi():
     privacy = CLIENT.get("/privacy").text
     assert "Anthropic PBCのClaude" in privacy and "お届けしてから30日後に削除" in privacy
     legal = CLIENT.get("/legal").text
-    assert "<h2>自分史鑑定</h2>" in legal and "1件19,800円（税込）" in legal and "モニター" not in legal
+    assert "<h2>自分史鑑定</h2>" in legal and "1か月目 25,000円（税込）" in legal and "残り50,000円（税込）" in legal and "モニター" not in legal
 
 
 def test_jibunshi_is_listed_for_search_when_live(monkeypatch):
