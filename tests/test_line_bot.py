@@ -195,3 +195,50 @@ def test_read_word_inside_a_longer_message_is_not_a_read_report(sent, text):
 def test_crisis_words_win_over_read_report(sent):
     assert line_bot.is_read_report("読んだ")
     assert not line_bot.is_read_report("死にたい")
+
+
+@pytest.mark.parametrize("text", ["単発鑑定", "単発鑑定！", "単発鑑定を申し込みたい"])
+def test_tanpatsu_keyword_returns_questions(sent, text):
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": text}}])
+    messages = sent[0][1]
+    assert len(messages) == 3
+    assert messages[1]["text"].startswith("【単発鑑定 お申し込み】")
+    assert "②生年月日（西暦）：" in messages[1]["text"]
+    assert "https://yakumo-shiki.jp/tanpatsu" in messages[2]["text"]
+
+
+APPLICATION = (
+    "【単発鑑定 お申し込み】\n①お名前（ニックネーム可）：たろう\n②生年月日（西暦）：1985/10/13\n"
+    "③出生時刻（分からなければ「不明」）：不明\n④出生地（都道府県・市区町村）：愛知県名古屋市\n⑤性別：男性\n"
+    "⑥メニュー（仕事と転職／お金と副業／人生の後半戦）：仕事と転職\n⑦いちばん知りたいこと（1つ）：転職するべきか\n"
+    "⑧その悩みの背景（いつごろから、何があったか）：3年前から\n⑨これまでの人生で、大きく動いた年を3つ：2008年 入社"
+)
+
+
+def test_tanpatsu_application_is_acknowledged_without_day_stem(sent, caplog):
+    caplog.set_level("INFO")
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": APPLICATION}}])
+    reply = _texts(sent)
+    assert "たしかに受け取りました" in reply
+    assert "あなたの日干は" not in reply
+    assert len(sent[0][1]) == 1
+    logs = " ".join(r.getMessage() for r in caplog.records)
+    assert "1985" not in logs and "転職するべきか" not in logs
+
+
+def test_tanpatsu_application_without_header_is_recognized(sent):
+    text = APPLICATION.replace("【単発鑑定 お申し込み】\n", "単発鑑定の申し込みです\n")
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": text}}])
+    assert "たしかに受け取りました" in _texts(sent)
+
+
+def test_crisis_words_in_application_return_support_first(sent):
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": APPLICATION + "\n死にたいと思うことがある"}}])
+    reply = _texts(sent)
+    assert "たしかに受け取りました" not in reply
+    assert "0120-279-338" in reply
+
+
+def test_birth_date_alone_still_returns_day_stem(sent):
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": "1985/10/13"}}])
+    assert "あなたの日干は" in _texts(sent)

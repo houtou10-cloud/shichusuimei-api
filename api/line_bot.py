@@ -108,6 +108,60 @@ READ_REPLY_TEXT = (
 _READ_STRIP = re.compile(r"[\s。、．，！!？?・.〜~ー♪☆★]+")
 
 
+# 単発鑑定（8,000円、https://yakumo-shiki.jp/tanpatsu）。「単発鑑定」と送った人には、申し込みの質問を返す。
+# 質問への答え（【単発鑑定 お申し込み】で始まる文）には生年月日が入っているが、日干診断は返さず、
+# 受け取ったことだけを返す。受付の返事は八雲がLINEのチャットで手で送る。内容はログに書かない。
+TANPATSU_WORDS = frozenset({"単発鑑定", "単発鑑定希望", "単発鑑定を申し込みたい", "単発鑑定申し込み", "単発鑑定申込"})
+
+TANPATSU_HEADER = "【単発鑑定 お申し込み】"
+
+TANPATSU_FORM_TEXT = (
+    "単発鑑定のお申し込みありがとうございます。\n"
+    "次の9つの質問に、このLINEでそのままご返信ください。\n"
+    "（この下の文をまるごとコピーして、「：」のあとに答えを書いて送ってください）"
+)
+
+TANPATSU_QUESTIONS_TEXT = (
+    TANPATSU_HEADER + "\n"
+    "①お名前（ニックネーム可）：\n"
+    "②生年月日（西暦）：\n"
+    "③出生時刻（分からなければ「不明」）：\n"
+    "④出生地（都道府県・市区町村）：\n"
+    "⑤性別：\n"
+    "⑥メニュー（仕事と転職／お金と副業／人生の後半戦）：\n"
+    "⑦いちばん知りたいこと（1つ）：\n"
+    "⑧その悩みの背景（いつごろから、何があったか）：\n"
+    "⑨これまでの人生で、大きく動いた年を3つ（例：2015年 転職、だいたいでOK）："
+)
+
+TANPATSU_PAYMENT_NOTE_TEXT = (
+    "まだお支払いがお済みでない方は、こちらからお願いします（8,000円）。\n"
+    "https://yakumo-shiki.jp/tanpatsu"
+)
+
+TANPATSU_RECEIVED_TEXT = (
+    "単発鑑定のお申し込み内容を、たしかに受け取りました。ありがとうございます。\n\n"
+    "お支払いを確認してから、受付番号とお届け予定日を、このLINEでお知らせします（通常1〜2日以内）。\n"
+    "お届けは、答えがそろった日から5営業日以内です。\n\n"
+    "まだお支払いがお済みでない方は、こちらからお願いします。\n"
+    "https://yakumo-shiki.jp/tanpatsu"
+)
+
+
+def is_tanpatsu_request(text: str) -> bool:
+    """「単発鑑定」と、申し込みたいことだけを伝える短い言葉かどうか。"""
+    normalized = _READ_STRIP.sub("", unicodedata.normalize("NFKC", text or ""))
+    return normalized in TANPATSU_WORDS
+
+
+def is_tanpatsu_application(text: str) -> bool:
+    """単発鑑定の質問への答え（見出しつき、または①〜⑨の答えがそろった文）かどうか。"""
+    normalized = unicodedata.normalize("NFKC", text or "")
+    if unicodedata.normalize("NFKC", TANPATSU_HEADER) in normalized or "単発鑑定 お申し込み" in normalized:
+        return True
+    return "単発鑑定" in normalized and all(mark in (text or "") for mark in ("⑥", "⑦", "⑨"))
+
+
 def is_read_report(text: str) -> bool:
     """「読んだ」「読みました！」など、本を読み終えたことだけを伝える短い言葉かどうか。"""
     normalized = _READ_STRIP.sub("", unicodedata.normalize("NFKC", text or ""))
@@ -217,6 +271,12 @@ def messages_for_event(event: dict) -> list[dict]:
         if is_read_report(text):
             logger.info("line_read_report_received")
             return [_text(READ_REPLY_TEXT)]
+        if is_tanpatsu_application(text):
+            logger.info("line_tanpatsu_application_received")
+            return [_text(TANPATSU_RECEIVED_TEXT)]
+        if is_tanpatsu_request(text):
+            logger.info("line_tanpatsu_request_received")
+            return [_text(TANPATSU_FORM_TEXT), _text(TANPATSU_QUESTIONS_TEXT), _text(TANPATSU_PAYMENT_NOTE_TEXT)]
         birth = parse_date_text(text)
         if birth is not None:
             return day_stem_messages(birth)
