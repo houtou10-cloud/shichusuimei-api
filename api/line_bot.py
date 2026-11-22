@@ -154,9 +154,9 @@ def concern_messages(concern: str, birth: date) -> list[dict]:
     note = CONCERN_NOTES[stem].get(concern)
     if not note:
         return [_text(HELP_TEXT)]
-    # 一度に案内するのは二つまで。「自分のこと」を選んだ人には自分史鑑定、それ以外はアカデミーを添える。
+    # 一度に案内するのは二つまで。「自分のこと」を選んだ人には人生設計書プログラム、それ以外はアカデミーを添える。
     if concern == "self":
-        second = f"これまでの人生を、持ち星と10年の季節で読み直したい方は、自分史鑑定（専用の動画とPDF）\n{_public_link('/jibunshi')}"
+        second = f"これまでの人生を、持ち星と10年の季節で読み直したい方は、人生設計書プログラム（1か月目から始められます）\n{_public_link('/jibunshi')}"
     else:
         second = f"自分で読めるようになりたい方は、アカデミー（第1章は無料）\n{_public_link('/academy')}"
     return [

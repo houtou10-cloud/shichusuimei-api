@@ -1,4 +1,4 @@
-"""自分史鑑定の申込ページ（/jibunshi）。"""
+"""人生設計書プログラム（1か月目）の申込ページ（/jibunshi）。"""
 
 from fastapi.testclient import TestClient
 
@@ -17,7 +17,7 @@ def _clear(monkeypatch):
 def test_page_is_pending_without_payment_links(monkeypatch):
     _clear(monkeypatch)
     page = CLIENT.get("/jibunshi").text
-    assert "八雲式 自分史鑑定" in page and "25,000円（税込）" in page and "1か月目" in page and "50,000円" in page
+    assert "八雲式 人生設計書プログラム" in page and "25,000円（税込）" in page and "1か月目" in page and "50,000円" in page
     assert "受付の準備中" in page and "buy.stripe.com" not in page
     assert "noindex,nofollow" in page
 
@@ -67,11 +67,11 @@ def test_thanks_page_shows_form_link_only_when_valid(monkeypatch):
 
 
 def test_legal_pages_cover_jibunshi():
-    assert "10. 自分史鑑定" in CLIENT.get("/terms").text
+    assert "10. 人生設計書プログラム" in CLIENT.get("/terms").text
     privacy = CLIENT.get("/privacy").text
     assert "Anthropic PBCのClaude" in privacy and "お届けしてから30日後に削除" in privacy
     legal = CLIENT.get("/legal").text
-    assert "<h2>自分史鑑定</h2>" in legal and "1か月目 25,000円（税込）" in legal and "残り50,000円（税込）" in legal and "モニター" not in legal
+    assert "<h2>人生設計書プログラム</h2>" in legal and "1か月目 25,000円（税込）" in legal and "残り50,000円（税込）" in legal and "モニター" not in legal
 
 
 def test_jibunshi_is_listed_for_search_when_live(monkeypatch):

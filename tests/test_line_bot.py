@@ -86,7 +86,7 @@ def test_preview_titles_name_each_page(monkeypatch):
     from api import customer_routes
     monkeypatch.setenv("CUSTOMER_PUBLIC_BASE_URL", "https://app.example.test")
     monkeypatch.setattr(customer_routes, "checkout_mode", lambda: "live")
-    assert 'og:title" content="自分史鑑定｜八雲式 四柱推命"' in CLIENT.get("/jibunshi").text
+    assert 'og:title" content="人生設計書プログラム｜八雲式 四柱推命"' in CLIENT.get("/jibunshi").text
     assert 'og:title" content="八雲式 四柱推命鑑定"' in CLIENT.get("/career-reading").text
     academy = CLIENT.get("/academy").text
     assert 'og:title" content="八雲式 四柱推命Academy"' in academy

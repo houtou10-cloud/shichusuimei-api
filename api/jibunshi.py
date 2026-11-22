@@ -1,4 +1,4 @@
-"""自分史鑑定の申込ページ（/jibunshi）と、支払い後の案内ページ（/jibunshi/thanks）。
+"""人生設計書プログラム（1か月目）の申込ページ（/jibunshi）と、支払い後の案内ページ（/jibunshi/thanks）。
 
 支払いはStripeの支払いリンク、自分史の受け取りはGoogleフォームで行う。
 URLは環境変数で設定し、未設定または形式が違う場合は「準備中」と表示する。
@@ -89,10 +89,10 @@ def _purchase_box() -> str:
 
 def render_page(robots: str) -> str:
     body = (
-        '<section class="box"><p class="eyebrow">LIFE STORY READING</p>'
-        "<h1>八雲式 自分史鑑定</h1>"
+        '<section class="box"><p class="eyebrow">LIFE PLAN PROGRAM</p>'
+        "<h1>八雲式 人生設計書プログラム</h1>"
         "<p><strong>持ち星と10年の季節で、あなたの人生を読み直す。</strong></p>"
-        "<p>人生設計書プログラム（3か月）の<strong>1か月目</strong>です。</p>"
+        "<p>3か月で、あなたの命式と人生から1冊の「人生設計書」をつくるプログラムです。このページは<strong>1か月目</strong>（自分史の読み直し）のお申し込みです。</p>"
         "<p>送っていただいた自分史を、命式の「持ち星」と、10年ごとに巡る「大運」に重ねて読み、人生の転機3つを読み直します。"
         "<strong>あなた専用の動画（約15分）</strong>と<strong>PDF（A4で8〜12ページ）</strong>でお届けします。</p>"
         f'<p class="question">{PRICE:,}円（税込）</p>'
@@ -148,7 +148,7 @@ def render_page(robots: str) -> str:
         "</section>"
         + _purchase_box()
     )
-    return _document(body, robots, "自分史鑑定")
+    return _document(body, robots, "人生設計書プログラム")
 
 
 def render_thanks(robots: str) -> str:
