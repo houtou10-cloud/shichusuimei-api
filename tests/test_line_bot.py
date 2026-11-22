@@ -175,3 +175,23 @@ def test_concern_postback_links_to_jibunshi(sent):
 def test_jibunshi_is_never_offered_to_people_in_pain(sent, event):
     _post([event])
     assert "jibunshi" not in _texts(sent)
+
+
+@pytest.mark.parametrize("text", ["読んだ", "よんだ", "読了", "読みました！", "読み終わりました。", " 読んだ "])
+def test_read_report_returns_life_bible(sent, text):
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": text}}])
+    reply = _texts(sent)
+    assert "https://yakumo-shiki.jp/bible/" in reply
+    assert "八雲の人生バイブル" in reply
+    assert "生年月日を、次のように送ってください" not in reply
+
+
+@pytest.mark.parametrize("text", ["本を読んだけど、仕事のことでずっと悩んでいます", "読んだ本の感想です。とても良かったです"])
+def test_read_word_inside_a_longer_message_is_not_a_read_report(sent, text):
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": text}}])
+    assert "https://yakumo-shiki.jp/bible/" not in _texts(sent)
+
+
+def test_crisis_words_win_over_read_report(sent):
+    assert line_bot.is_read_report("読んだ")
+    assert not line_bot.is_read_report("死にたい")

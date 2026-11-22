@@ -83,6 +83,37 @@ CONCERN_RECEIVED_TEXT = (
     "チャットで相談できる窓口：まもろうよ こころ（厚生労働省）\nhttps://www.mhlw.go.jp/mamorouyokokoro/"
 )
 
+# Kindle本『せっかく映画を観に来たのだから』を読んだ人が「読んだ」と送ったら、人生バイブルを返す。
+# ステップ配信の6日後のメッセージで「読んだ」と送るようお願いしている。短い決まった言葉だけに反応し、
+# 悩みの文章の中に「読んだ」が入っていても反応しない。
+READ_WORDS = frozenset({
+    "読んだ", "よんだ", "読了", "読みました", "よみました", "読了しました",
+    "読み終わりました", "読み終えました", "読み終わった", "読み終えた",
+})
+
+READ_REPLY_TEXT = (
+    "最後まで読んでくださって、本当にありがとうございます。\n"
+    "途中で席を立たずに観てくださったことを、とてもうれしく思います。\n\n"
+    "お約束の「八雲の人生バイブル」です。\n"
+    "https://yakumo-shiki.jp/bible/\n\n"
+    "本の20年を、私の命式（乙巳日）と照らし合わせて、\n"
+    "迷ったときに戻ってくるための「十の教え」にまとめたものです。\n\n"
+    "「あの場面には、命式の上でこういう理由があったのか」\n"
+    "というところを、本と並べて読んでいただくと面白いと思います。\n\n"
+    "もし、本を読んで「自分の場合はどうだろう」と思ったことがあれば、\n"
+    "一つの悩みに絞って私が命式を読む「単発鑑定」もあります。\n"
+    "https://yakumo-shiki.jp/tanpatsu"
+)
+
+_READ_STRIP = re.compile(r"[\s。、．，！!？?・.〜~ー♪☆★]+")
+
+
+def is_read_report(text: str) -> bool:
+    """「読んだ」「読みました！」など、本を読み終えたことだけを伝える短い言葉かどうか。"""
+    normalized = _READ_STRIP.sub("", unicodedata.normalize("NFKC", text or ""))
+    return normalized in READ_WORDS
+
+
 _DATE = re.compile(r"(\d{4})\D{0,2}(\d{1,2})\D{0,2}(\d{1,2})")
 
 
@@ -183,6 +214,9 @@ def messages_for_event(event: dict) -> list[dict]:
         if any(word in unicodedata.normalize("NFKC", text) for word in CRISIS_WORDS):
             day_stem_check.record_concern("hard")
             return [_text(SUPPORT_TEXT)]
+        if is_read_report(text):
+            logger.info("line_read_report_received")
+            return [_text(READ_REPLY_TEXT)]
         birth = parse_date_text(text)
         if birth is not None:
             return day_stem_messages(birth)
