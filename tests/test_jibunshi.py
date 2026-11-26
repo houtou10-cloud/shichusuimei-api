@@ -79,3 +79,16 @@ def test_jibunshi_is_listed_for_search_when_live(monkeypatch):
     monkeypatch.setenv("CUSTOMER_PUBLIC_BASE_URL", "https://app.yakumoshiki.jp")
     assert "Allow: /jibunshi" in CLIENT.get("/robots.txt").text
     assert "index,follow" in CLIENT.get("/jibunshi").text
+
+
+def test_sample_section_shows_yakumo_excerpt_before_apply(monkeypatch):
+    _clear(monkeypatch)
+    monkeypatch.setenv(jibunshi.PAYMENT_ENV, "https://buy.stripe.com/regular")
+    page = CLIENT.get("/jibunshi").text
+    assert 'id="sample"' in page and 'href="#sample"' in page
+    assert "お客様のものではありません" in page
+    assert page.count("命式から見ると：") == len(jibunshi._SAMPLE_YEARS)
+    assert page.index("お届けするもの") < page.index('id="sample"') < page.index("https://buy.stripe.com/regular")
+    # 誕生日・命式の表・結婚の年は出さない
+    for word in ("1984", "7月10日", "婚姻", "大切な人と出会う", "<table"):
+        assert word not in jibunshi.SAMPLE
