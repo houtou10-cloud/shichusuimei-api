@@ -73,6 +73,10 @@ HARD_INVITE_TEXT = (
 # 誰が「とてもつらい」を選んだかは覚えていないので、販売の案内は入れない。
 CONCERN_MIN_CHARS = 10
 
+# LINE公式アカウントの管理画面の「キーワード応答」が返す言葉。ここでは返さない（返事が2通になるため）。
+# 管理画面のキーワード応答は完全一致なので、こちらも前後の空白を除いた完全一致で見る。
+MANAGER_KEYWORDS = frozenset({"見本", "チェック"})
+
 CONCERN_RECEIVED_TEXT = (
     "気持ちを聞かせてくださって、ありがとうございます。\n"
     "書いてくれた言葉は、ちゃんと届いています。\n"
@@ -268,6 +272,8 @@ def messages_for_event(event: dict) -> list[dict]:
         if any(word in unicodedata.normalize("NFKC", text) for word in CRISIS_WORDS):
             day_stem_check.record_concern("hard")
             return [_text(SUPPORT_TEXT)]
+        if unicodedata.normalize("NFKC", text).strip() in MANAGER_KEYWORDS:
+            return []
         if is_read_report(text):
             logger.info("line_read_report_received")
             return [_text(READ_REPLY_TEXT)]

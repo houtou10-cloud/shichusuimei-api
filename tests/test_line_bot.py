@@ -151,6 +151,18 @@ def test_short_text_returns_help(sent, text):
     assert "生年月日を、次のように送ってください" in _texts(sent)
 
 
+@pytest.mark.parametrize("text", ["見本", "チェック", " 見本 "])
+def test_manager_keywords_get_no_bot_reply(sent, text):
+    # 管理画面のキーワード応答だけが返す（返事を2通にしない）
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": text}}])
+    assert sent == []
+
+
+def test_keyword_inside_longer_text_still_gets_help(sent):
+    _post([{"type": "message", "replyToken": "r", "message": {"type": "text", "text": "見本を"}}])
+    assert "生年月日を、次のように送ってください" in _texts(sent)
+
+
 def test_concern_postback_invites_written_concern(sent):
     _post([{"type": "postback", "replyToken": "r", "postback": {"data": "concern=work&birth_date=1985-10-13"}}])
     assert "いまの悩みを、このトークに書いて送っていただくこともできます" in _texts(sent)
