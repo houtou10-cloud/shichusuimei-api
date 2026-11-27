@@ -92,3 +92,6 @@ def test_sample_section_shows_yakumo_excerpt_before_apply(monkeypatch):
     # 誕生日・命式の表・結婚の年は出さない
     for word in ("1984", "7月10日", "婚姻", "大切な人と出会う", "<table"):
         assert word not in jibunshi.SAMPLE
+    # 見本の全体は公式LINEで渡す
+    assert "公式LINEで「見本」と送る" in jibunshi.SAMPLE
+    assert "https://lin.ee/oeoF4hI" in jibunshi.SAMPLE
